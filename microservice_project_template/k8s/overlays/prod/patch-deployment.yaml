@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microservice-template
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+        - name: microservice-template
+          image: ghcr.io/your-org/microservice-template:latest
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1
+              memory: 768Mi

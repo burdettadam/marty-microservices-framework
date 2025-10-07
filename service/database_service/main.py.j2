@@ -1,0 +1,73 @@
+"""
+{{service_description}}
+
+This is a database-centric service generated from the Marty template.
+Features:
+- SQLAlchemy ORM with PostgreSQL
+- Database connection pooling
+- Alembic migrations
+- Repository pattern implementation
+- Connection health checks
+- Transaction management
+"""
+
+import sys
+from pathlib import Path
+
+# Ensure we can import from the parent directory
+sys.path.append(str(Path(__file__).resolve().parents[3]))
+
+from marty_common.grpc_service_factory import serve_auto_service
+from marty_common.service_config_factory import get_config_manager
+from marty_common.logging_config import get_logger
+
+# Database imports
+from src.{{service_package}}.app.core.database import DatabaseManager, engine
+from src.{{service_package}}.app.core.config import {{service_class}}Config
+from src.{{service_package}}.app.models import Base
+from src.{{service_package}}.app.repositories import setup_repositories
+
+# Get configuration and logger using DRY factory
+config_manager = get_config_manager("{{service_name}}")
+config = {{service_class}}Config()
+logger = get_logger(__name__)
+
+
+async def create_tables():
+    """Create database tables if they don't exist."""
+    try:
+        # Create all tables
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Failed to create database tables: {e}")
+        raise
+
+
+async def main():
+    """Main service entry point with database initialization."""
+    logger.info("Starting {{service_name}} service...")
+
+    # Initialize database
+    db_manager = DatabaseManager(config.database_url)
+    await db_manager.initialize()
+
+    # Create tables
+    await create_tables()
+
+    # Setup repositories
+    setup_repositories(db_manager)
+
+    logger.info("Database initialized successfully")
+
+    # Start the gRPC service using DRY patterns
+    await serve_auto_service(
+        service_name="{{service_name}}",
+        service_module="src.{{service_package}}.app.services.{{service_package}}_service",
+        config=config
+    )
+
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(main())

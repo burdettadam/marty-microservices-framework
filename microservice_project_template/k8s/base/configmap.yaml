@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: microservice-template-config
+  labels:
+    app.kubernetes.io/name: microservice-template
+    app.kubernetes.io/component: config
+data:
+  environment: dev
+  otlp_endpoint: http://otel-collector:4317
