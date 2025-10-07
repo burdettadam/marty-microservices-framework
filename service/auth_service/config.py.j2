@@ -1,0 +1,207 @@
+"""
+{{service_name}} Authentication Service Configuration
+"""
+
+import os
+from typing import List, Optional, Dict, Any
+from datetime import timedelta
+
+from marty_common.config_base import GRPCServiceConfig
+
+
+class {{service_class}}ServiceConfig(GRPCServiceConfig):
+    """Configuration for {{service_name}} Authentication Service."""
+
+    # JWT Configuration
+    jwt_secret_key: str = os.environ.get("JWT_SECRET_KEY", "your-secret-key-change-in-production")
+    jwt_algorithm: str = os.environ.get("JWT_ALGORITHM", "HS256")
+    jwt_access_token_expire_minutes: int = int(os.environ.get("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+    jwt_refresh_token_expire_days: int = int(os.environ.get("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+    jwt_issuer: str = os.environ.get("JWT_ISSUER", "{{service_package}}-auth")
+    jwt_audience: str = os.environ.get("JWT_AUDIENCE", "{{service_package}}-api")
+
+    # OAuth2 Configuration
+    oauth2_enabled: bool = os.environ.get("OAUTH2_ENABLED", "false").lower() == "true"
+    oauth2_google_client_id: Optional[str] = os.environ.get("OAUTH2_GOOGLE_CLIENT_ID")
+    oauth2_google_client_secret: Optional[str] = os.environ.get("OAUTH2_GOOGLE_CLIENT_SECRET")
+    oauth2_github_client_id: Optional[str] = os.environ.get("OAUTH2_GITHUB_CLIENT_ID")
+    oauth2_github_client_secret: Optional[str] = os.environ.get("OAUTH2_GITHUB_CLIENT_SECRET")
+    oauth2_microsoft_client_id: Optional[str] = os.environ.get("OAUTH2_MICROSOFT_CLIENT_ID")
+    oauth2_microsoft_client_secret: Optional[str] = os.environ.get("OAUTH2_MICROSOFT_CLIENT_SECRET")
+
+    # RBAC Configuration
+    rbac_enabled: bool = os.environ.get("RBAC_ENABLED", "true").lower() == "true"
+    rbac_default_role: str = os.environ.get("RBAC_DEFAULT_ROLE", "user")
+    rbac_admin_emails: List[str] = os.environ.get("RBAC_ADMIN_EMAILS", "").split(",") if os.environ.get("RBAC_ADMIN_EMAILS") else []
+    rbac_cache_ttl_seconds: int = int(os.environ.get("RBAC_CACHE_TTL_SECONDS", "300"))
+
+    # Database Configuration
+    database_url: str = os.environ.get("AUTH_DATABASE_URL", "postgresql://localhost:5432/{{service_package}}_auth_db")
+    database_pool_size: int = int(os.environ.get("AUTH_DATABASE_POOL_SIZE", "10"))
+    database_max_overflow: int = int(os.environ.get("AUTH_DATABASE_MAX_OVERFLOW", "20"))
+    database_pool_timeout: int = int(os.environ.get("AUTH_DATABASE_POOL_TIMEOUT", "30"))
+    database_pool_recycle: int = int(os.environ.get("AUTH_DATABASE_POOL_RECYCLE", "3600"))
+    database_echo: bool = os.environ.get("AUTH_DATABASE_ECHO", "false").lower() == "true"
+
+    # Redis Configuration (for sessions and caching)
+    redis_url: str = os.environ.get("AUTH_REDIS_URL", "redis://localhost:6379/1")
+    redis_pool_size: int = int(os.environ.get("AUTH_REDIS_POOL_SIZE", "10"))
+    redis_session_expire_seconds: int = int(os.environ.get("AUTH_REDIS_SESSION_EXPIRE_SECONDS", "3600"))
+    redis_cache_expire_seconds: int = int(os.environ.get("AUTH_REDIS_CACHE_EXPIRE_SECONDS", "300"))
+
+    # Security Configuration
+    password_hash_algorithm: str = os.environ.get("PASSWORD_HASH_ALGORITHM", "bcrypt")
+    password_hash_rounds: int = int(os.environ.get("PASSWORD_HASH_ROUNDS", "12"))
+    password_min_length: int = int(os.environ.get("PASSWORD_MIN_LENGTH", "8"))
+    password_require_uppercase: bool = os.environ.get("PASSWORD_REQUIRE_UPPERCASE", "true").lower() == "true"
+    password_require_lowercase: bool = os.environ.get("PASSWORD_REQUIRE_LOWERCASE", "true").lower() == "true"
+    password_require_digits: bool = os.environ.get("PASSWORD_REQUIRE_DIGITS", "true").lower() == "true"
+    password_require_special: bool = os.environ.get("PASSWORD_REQUIRE_SPECIAL", "true").lower() == "true"
+
+    # Session Configuration
+    session_cookie_name: str = os.environ.get("SESSION_COOKIE_NAME", "{{service_package}}_session")
+    session_cookie_secure: bool = os.environ.get("SESSION_COOKIE_SECURE", "true").lower() == "true"
+    session_cookie_httponly: bool = os.environ.get("SESSION_COOKIE_HTTPONLY", "true").lower() == "true"
+    session_cookie_samesite: str = os.environ.get("SESSION_COOKIE_SAMESITE", "lax")
+    session_max_age_seconds: int = int(os.environ.get("SESSION_MAX_AGE_SECONDS", "86400"))  # 24 hours
+
+    # Multi-Factor Authentication
+    mfa_enabled: bool = os.environ.get("MFA_ENABLED", "false").lower() == "true"
+    mfa_issuer_name: str = os.environ.get("MFA_ISSUER_NAME", "{{service_name}}")
+    mfa_totp_window: int = int(os.environ.get("MFA_TOTP_WINDOW", "1"))
+    mfa_backup_codes_count: int = int(os.environ.get("MFA_BACKUP_CODES_COUNT", "10"))
+
+    # Rate Limiting
+    rate_limit_enabled: bool = os.environ.get("RATE_LIMIT_ENABLED", "true").lower() == "true"
+    rate_limit_requests_per_minute: int = int(os.environ.get("RATE_LIMIT_REQUESTS_PER_MINUTE", "60"))
+    rate_limit_burst_size: int = int(os.environ.get("RATE_LIMIT_BURST_SIZE", "10"))
+    rate_limit_window_seconds: int = int(os.environ.get("RATE_LIMIT_WINDOW_SECONDS", "60"))
+
+    # Service-to-Service Authentication
+    service_auth_enabled: bool = os.environ.get("SERVICE_AUTH_ENABLED", "true").lower() == "true"
+    service_auth_secret: str = os.environ.get("SERVICE_AUTH_SECRET", "service-secret-change-in-production")
+    service_auth_token_expire_minutes: int = int(os.environ.get("SERVICE_AUTH_TOKEN_EXPIRE_MINUTES", "60"))
+    trusted_services: List[str] = os.environ.get("TRUSTED_SERVICES", "").split(",") if os.environ.get("TRUSTED_SERVICES") else []
+
+    # External Identity Providers
+    external_providers_enabled: bool = os.environ.get("EXTERNAL_PROVIDERS_ENABLED", "false").lower() == "true"
+    ldap_enabled: bool = os.environ.get("LDAP_ENABLED", "false").lower() == "true"
+    ldap_server: Optional[str] = os.environ.get("LDAP_SERVER")
+    ldap_port: int = int(os.environ.get("LDAP_PORT", "389"))
+    ldap_use_ssl: bool = os.environ.get("LDAP_USE_SSL", "false").lower() == "true"
+    ldap_bind_dn: Optional[str] = os.environ.get("LDAP_BIND_DN")
+    ldap_bind_password: Optional[str] = os.environ.get("LDAP_BIND_PASSWORD")
+    ldap_user_search_base: Optional[str] = os.environ.get("LDAP_USER_SEARCH_BASE")
+    ldap_user_search_filter: str = os.environ.get("LDAP_USER_SEARCH_FILTER", "(uid={username})")
+
+    # Audit and Logging
+    audit_enabled: bool = os.environ.get("AUDIT_ENABLED", "true").lower() == "true"
+    audit_log_failed_attempts: bool = os.environ.get("AUDIT_LOG_FAILED_ATTEMPTS", "true").lower() == "true"
+    audit_log_successful_logins: bool = os.environ.get("AUDIT_LOG_SUCCESSFUL_LOGINS", "true").lower() == "true"
+    audit_log_password_changes: bool = os.environ.get("AUDIT_LOG_PASSWORD_CHANGES", "true").lower() == "true"
+    audit_log_role_changes: bool = os.environ.get("AUDIT_LOG_ROLE_CHANGES", "true").lower() == "true"
+
+    # Account Security
+    account_lockout_enabled: bool = os.environ.get("ACCOUNT_LOCKOUT_ENABLED", "true").lower() == "true"
+    account_lockout_attempts: int = int(os.environ.get("ACCOUNT_LOCKOUT_ATTEMPTS", "5"))
+    account_lockout_duration_minutes: int = int(os.environ.get("ACCOUNT_LOCKOUT_DURATION_MINUTES", "15"))
+    account_lockout_window_minutes: int = int(os.environ.get("ACCOUNT_LOCKOUT_WINDOW_MINUTES", "15"))
+
+    # Email Configuration (for password reset, etc.)
+    email_enabled: bool = os.environ.get("EMAIL_ENABLED", "false").lower() == "true"
+    email_smtp_server: Optional[str] = os.environ.get("EMAIL_SMTP_SERVER")
+    email_smtp_port: int = int(os.environ.get("EMAIL_SMTP_PORT", "587"))
+    email_smtp_username: Optional[str] = os.environ.get("EMAIL_SMTP_USERNAME")
+    email_smtp_password: Optional[str] = os.environ.get("EMAIL_SMTP_PASSWORD")
+    email_use_tls: bool = os.environ.get("EMAIL_USE_TLS", "true").lower() == "true"
+    email_from_address: str = os.environ.get("EMAIL_FROM_ADDRESS", "noreply@{{service_package}}.com")
+
+    # Token Validation
+    token_validation_strict: bool = os.environ.get("TOKEN_VALIDATION_STRICT", "true").lower() == "true"
+    token_validation_leeway_seconds: int = int(os.environ.get("TOKEN_VALIDATION_LEEWAY_SECONDS", "30"))
+    token_blacklist_enabled: bool = os.environ.get("TOKEN_BLACKLIST_ENABLED", "true").lower() == "true"
+
+    # CORS Configuration
+    cors_origins: List[str] = os.environ.get("CORS_ORIGINS", "*").split(",")
+    cors_allow_credentials: bool = os.environ.get("CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
+    cors_allow_methods: List[str] = os.environ.get("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE,OPTIONS").split(",")
+    cors_allow_headers: List[str] = os.environ.get("CORS_ALLOW_HEADERS", "Content-Type,Authorization").split(",")
+
+    @property
+    def jwt_access_token_expire_delta(self) -> timedelta:
+        """Get JWT access token expiration as timedelta."""
+        return timedelta(minutes=self.jwt_access_token_expire_minutes)
+
+    @property
+    def jwt_refresh_token_expire_delta(self) -> timedelta:
+        """Get JWT refresh token expiration as timedelta."""
+        return timedelta(days=self.jwt_refresh_token_expire_days)
+
+    @property
+    def session_max_age_delta(self) -> timedelta:
+        """Get session max age as timedelta."""
+        return timedelta(seconds=self.session_max_age_seconds)
+
+    @property
+    def account_lockout_duration_delta(self) -> timedelta:
+        """Get account lockout duration as timedelta."""
+        return timedelta(minutes=self.account_lockout_duration_minutes)
+
+    @property
+    def account_lockout_window_delta(self) -> timedelta:
+        """Get account lockout window as timedelta."""
+        return timedelta(minutes=self.account_lockout_window_minutes)
+
+    def get_oauth2_config(self, provider: str) -> Dict[str, Any]:
+        """Get OAuth2 configuration for a specific provider."""
+        configs = {
+            "google": {
+                "client_id": self.oauth2_google_client_id,
+                "client_secret": self.oauth2_google_client_secret,
+                "auth_url": "https://accounts.google.com/o/oauth2/auth",
+                "token_url": "https://oauth2.googleapis.com/token",
+                "userinfo_url": "https://www.googleapis.com/oauth2/v2/userinfo",
+                "scopes": ["openid", "email", "profile"]
+            },
+            "github": {
+                "client_id": self.oauth2_github_client_id,
+                "client_secret": self.oauth2_github_client_secret,
+                "auth_url": "https://github.com/login/oauth/authorize",
+                "token_url": "https://github.com/login/oauth/access_token",
+                "userinfo_url": "https://api.github.com/user",
+                "scopes": ["user:email"]
+            },
+            "microsoft": {
+                "client_id": self.oauth2_microsoft_client_id,
+                "client_secret": self.oauth2_microsoft_client_secret,
+                "auth_url": "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+                "token_url": "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+                "userinfo_url": "https://graph.microsoft.com/v1.0/me",
+                "scopes": ["openid", "email", "profile"]
+            }
+        }
+        return configs.get(provider, {})
+
+    def validate_config(self) -> None:
+        """Validate the configuration."""
+        if self.jwt_secret_key == "your-secret-key-change-in-production":
+            raise ValueError("JWT secret key must be changed in production")
+
+        if self.service_auth_secret == "service-secret-change-in-production":
+            raise ValueError("Service auth secret must be changed in production")
+
+        if self.oauth2_enabled:
+            if not any([
+                self.oauth2_google_client_id,
+                self.oauth2_github_client_id,
+                self.oauth2_microsoft_client_id
+            ]):
+                raise ValueError("At least one OAuth2 provider must be configured when OAuth2 is enabled")
+
+        if self.ldap_enabled:
+            if not all([self.ldap_server, self.ldap_bind_dn, self.ldap_user_search_base]):
+                raise ValueError("LDAP server, bind DN, and user search base must be configured when LDAP is enabled")
+
+        if self.email_enabled:
+            if not all([self.email_smtp_server, self.email_smtp_username, self.email_smtp_password]):
+                raise ValueError("SMTP configuration must be complete when email is enabled")

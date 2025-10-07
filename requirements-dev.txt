@@ -1,0 +1,29 @@
+# Marty Microservices Framework - Development Requirements
+# Additional dependencies for development, testing, and code quality
+
+# Pre-commit hooks and code quality
+pre-commit>=3.3.0     # Git hooks framework
+black>=23.7.0         # Code formatting
+isort>=5.12.0         # Import sorting
+ruff>=0.0.284         # Fast Python linter
+bandit>=1.7.5         # Security linting
+
+# Testing and validation (already in main requirements)
+# mypy>=1.0.0         # Static type checking
+# astroid>=2.15.0     # Code analysis
+
+# Documentation and development tools
+pytest>=7.4.0        # Testing framework (for generated code testing)
+pytest-cov>=4.1.0    # Coverage reporting
+pytest-xdist>=3.3.0  # Parallel testing
+
+# Optional: Enhanced development experience
+rich>=13.0.0          # Beautiful terminal output
+click>=8.1.0          # CLI development (if extending scripts)
+pydantic>=2.0.0       # Data validation (for config management)
+
+# Build and packaging (if distributing framework)
+build>=0.10.0         # Build tool
+twine>=4.0.0          # PyPI publishing
+setuptools>=68.0.0    # Package setup
+wheel>=0.41.0         # Wheel packaging

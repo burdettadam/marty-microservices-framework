@@ -1,0 +1,84 @@
+"""
+Database service configuration extending DRY base patterns.
+"""
+
+from marty_common.service_config_factory import GRPCServiceConfig
+from pydantic import Field
+import os
+
+
+class {{service_class}}Config(GRPCServiceConfig):
+    """Configuration for {{service_name}} with database settings."""
+
+    # Database configuration
+    database_url: str = Field(
+        default_factory=lambda: os.getenv(
+            "DATABASE_URL",
+            "postgresql://user:password@localhost:5432/{{service_package}}_db"
+        ),
+        description="PostgreSQL database URL"
+    )
+
+    database_pool_size: int = Field(
+        default=10,
+        description="Database connection pool size"
+    )
+
+    database_max_overflow: int = Field(
+        default=20,
+        description="Maximum database connection overflow"
+    )
+
+    database_pool_timeout: int = Field(
+        default=30,
+        description="Database connection pool timeout in seconds"
+    )
+
+    database_pool_recycle: int = Field(
+        default=3600,
+        description="Database connection recycle time in seconds"
+    )
+
+    # Migration settings
+    alembic_config_path: str = Field(
+        default="alembic.ini",
+        description="Path to Alembic configuration file"
+    )
+
+    # Health check settings
+    database_health_check_timeout: int = Field(
+        default=5,
+        description="Database health check timeout in seconds"
+    )
+
+    # Transaction settings
+    default_transaction_timeout: int = Field(
+        default=30,
+        description="Default transaction timeout in seconds"
+    )
+
+    # Query settings
+    query_timeout: int = Field(
+        default=30,
+        description="Default query timeout in seconds"
+    )
+
+    # Logging
+    log_sql_queries: bool = Field(
+        default=False,
+        description="Enable SQL query logging"
+    )
+
+    # Connection retry settings
+    connection_retry_attempts: int = Field(
+        default=3,
+        description="Number of connection retry attempts"
+    )
+
+    connection_retry_delay: float = Field(
+        default=1.0,
+        description="Delay between connection retry attempts"
+    )
+
+    class Config:
+        env_prefix = "{{service_name.upper().replace('-', '_')}}_"

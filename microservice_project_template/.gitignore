@@ -1,0 +1,33 @@
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+.venv/
+.env
+.env.local
+
+# Tooling cache
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.htmlcov/
+
+# Generated code
+build/
+dist/
+*.egg-info/
+proto_gen/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+.uv/

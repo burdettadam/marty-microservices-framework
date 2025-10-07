@@ -1,0 +1,9 @@
+# Marty Microservices Framework Requirements
+# Minimal dependencies for template generation and validation
+
+# Template engine for service generation
+jinja2>=3.1.2
+
+# Development dependencies for enhanced validation and type checking
+astroid>=2.15.0   # For additional code analysis
+mypy>=1.0.0       # For static type checking
