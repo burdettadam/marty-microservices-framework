@@ -1,0 +1,290 @@
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: phase2-default-metrics
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: telemetry
+    app.kubernetes.io/component: metrics
+    marty.framework/phase: "phase2"
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: ALL_METRICS
+      tagOverrides:
+        marty_phase:
+          value: "phase2"
+        marty_framework_version:
+          value: "v1.0.0"
+        environment:
+          value: "%{ENVIRONMENT}"
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: phase2-access-logs
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: telemetry
+    app.kubernetes.io/component: access-logs
+    marty.framework/phase: "phase2"
+spec:
+  accessLogging:
+  - providers:
+    - name: otel
+  - format:
+      text: |
+        [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+        %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT%
+        %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%"
+        "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%"
+        "%UPSTREAM_HOST%" %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS%
+        %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_REMOTE_ADDRESS%
+        marty_phase=phase2 service=%{CANONICAL_SERVICE} version=%{CANONICAL_REVISION}
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: phase2-tracing
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: telemetry
+    app.kubernetes.io/component: tracing
+    marty.framework/phase: "phase2"
+spec:
+  tracing:
+  - providers:
+    - name: jaeger
+  - customTags:
+      marty_phase:
+        literal:
+          value: "phase2"
+      marty_component:
+        header:
+          name: "x-marty-component"
+          defaultValue: "unknown"
+      user_id:
+        header:
+          name: "x-user-id"
+          defaultValue: "anonymous"
+      request_id:
+        header:
+          name: "x-request-id"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: phase2-telemetry-config
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: configmap
+    app.kubernetes.io/component: telemetry-config
+    marty.framework/phase: "phase2"
+data:
+  otel_config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+      resource:
+        attributes:
+        - key: marty.framework.phase
+          value: "phase2"
+          action: insert
+        - key: environment
+          from_attribute: deployment.environment
+          action: insert
+
+    exporters:
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        metric_expiration: 180m
+        enable_open_metrics: true
+      jaeger:
+        endpoint: jaeger-collector.monitoring.svc.cluster.local:14250
+        tls:
+          insecure: true
+      logging:
+        loglevel: info
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [batch, resource]
+          exporters: [jaeger, logging]
+        metrics:
+          receivers: [otlp]
+          processors: [batch, resource]
+          exporters: [prometheus, logging]
+        logs:
+          receivers: [otlp]
+          processors: [batch, resource]
+          exporters: [logging]
+
+  prometheus_config.yaml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    rule_files:
+    - "/etc/prometheus/rules/*.yml"
+
+    scrape_configs:
+    - job_name: 'istio-mesh'
+      kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+          - microservices-prod
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: istio-proxy;http-monitoring
+      - source_labels: [__meta_kubernetes_service_annotation_marty_framework_phase]
+        action: keep
+        regex: phase2
+
+    - job_name: 'phase2-infrastructure'
+      static_configs:
+      - targets:
+        - redis.microservices-prod.svc.cluster.local:6379
+        - rabbitmq.microservices-prod.svc.cluster.local:15692
+        - postgresql.microservices-prod.svc.cluster.local:5432
+      metrics_path: /metrics
+      scrape_interval: 30s
+      relabel_configs:
+      - target_label: marty_phase
+        replacement: phase2
+      - target_label: marty_component
+        replacement: infrastructure
+
+    - job_name: 'phase2-microservices'
+      kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+          - microservices-prod
+      relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_marty_framework_phase]
+        action: keep
+        regex: phase2
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: phase2-otel-collector
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/component: observability
+    marty.framework/phase: "phase2"
+spec:
+  selector:
+    app: otel-collector
+  ports:
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+    protocol: TCP
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+    protocol: TCP
+  - name: prometheus
+    port: 8889
+    targetPort: 8889
+    protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phase2-otel-collector
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/component: observability
+    marty.framework/phase: "phase2"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+        marty.framework/phase: "phase2"
+        marty.framework/component: observability
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8889"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:0.91.0
+        args:
+        - --config=/etc/otel-collector-config/otel_config.yaml
+        ports:
+        - containerPort: 4317
+          name: otlp-grpc
+        - containerPort: 4318
+          name: otlp-http
+        - containerPort: 8889
+          name: prometheus
+        env:
+        - name: GOMEMLIMIT
+          value: "160MiB"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: otel-collector-config-vol
+          mountPath: /etc/otel-collector-config
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: otel-collector-config-vol
+        configMap:
+          name: phase2-telemetry-config
+          items:
+          - key: otel_config.yaml
+            path: otel_config.yaml

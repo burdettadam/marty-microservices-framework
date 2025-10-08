@@ -1,0 +1,95 @@
+# Development Environment Values
+# Optimized for local development with minimal resource usage
+
+# Override default namespace for development
+namespace: microservices-dev
+environment: development
+
+service:
+  replicaCount: 1  # Single replica for development
+  debug: true
+  logLevel: DEBUG
+
+# Phase 2 Infrastructure - Development Configuration
+infrastructure:
+  # Use in-memory backends for faster development
+  cache:
+    backend: memory  # Use in-memory cache for development
+    ttl: 60  # Shorter TTL for development
+    maxSize: 500
+
+  messaging:
+    broker: memory  # Use in-memory messaging for development
+
+  events:
+    store: memory  # Use in-memory event store for development
+
+  gateway:
+    enabled: true
+    auth:
+      enabled: false  # Disable auth for easier development
+    rateLimit:
+      connections: 50  # Higher limits for development
+      requestsPerMinute: 500
+
+# Development Database (can use local PostgreSQL)
+database:
+  host: localhost
+  port: 5432
+
+# Development Secrets (non-production values)
+secrets:
+  database:
+    username: dev_user
+    password: dev_password
+
+  jwt:
+    secretKey: dev-jwt-secret-key-not-for-production
+
+  encryption:
+    key: dev-encryption-key-not-for-production
+
+# Reduced Resource Requirements for Development
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+resourceQuota:
+  cpu: 2
+  memory: 4Gi
+  cpuLimit: 4
+  memoryLimit: 8Gi
+  pvc: 5
+
+defaultLimits:
+  cpu: 200m
+  memory: 256Mi
+
+defaultRequests:
+  cpu: 50m
+  memory: 64Mi
+
+# Disable persistence for development (use emptyDir)
+persistence:
+  enabled: false
+
+# Observability for Development
+observability:
+  tracing:
+    enabled: true
+    endpoint: http://localhost:14268/api/traces
+  metrics:
+    enabled: true
+    endpoint: http://localhost:9090
+  logging:
+    level: DEBUG
+    format: text  # Easier to read in development
+
+# Development-specific service annotations
+serviceAnnotations:
+  dev.marty.framework/environment: development
+  dev.marty.framework/debug-enabled: "true"

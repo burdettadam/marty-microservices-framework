@@ -1,0 +1,186 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.service.name }}
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.service.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/component: microservice
+    marty.framework/phase: "phase2"
+spec:
+  replicas: {{ .Values.service.replicaCount | default 3 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.service.name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.service.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: microservice
+        marty.framework/phase: "phase2"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.service.metricsPort | default "9090" | quote }}
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ .Values.service.serviceAccount | default "default" }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: {{ .Values.service.name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+        ports:
+        - name: grpc
+          containerPort: {{ .Values.service.grpcPort | default 50051 }}
+          protocol: TCP
+        - name: http
+          containerPort: {{ .Values.service.httpPort | default 8080 }}
+          protocol: TCP
+        - name: metrics
+          containerPort: {{ .Values.service.metricsPort | default 9090 }}
+          protocol: TCP
+        env:
+        # Phase 2 Infrastructure Environment Variables
+        - name: SERVICE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.service.name }}-enterprise-config
+              key: service_name
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.service.name }}-enterprise-config
+              key: environment
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.service.name }}-enterprise-config
+              key: log_level
+
+        # Database Configuration
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.service.name }}-enterprise-secrets
+              key: database_url
+
+        # Cache Configuration
+        - name: CACHE_BACKEND
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.service.name }}-enterprise-config
+              key: cache_backend
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.service.name }}-enterprise-secrets
+              key: redis_url
+
+        # Message Queue Configuration
+        - name: MESSAGE_BROKER
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.service.name }}-enterprise-config
+              key: message_broker
+        - name: RABBITMQ_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.service.name }}-enterprise-secrets
+              key: rabbitmq_url
+
+        # API Gateway Configuration
+        - name: API_GATEWAY_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.service.name }}-enterprise-config
+              key: api_gateway_enabled
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.service.name }}-enterprise-secrets
+              key: jwt_secret_key
+
+        # Observability Configuration
+        - name: TRACING_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.service.name }}-enterprise-config
+              key: tracing_endpoint
+        - name: METRICS_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.service.name }}-enterprise-config
+              key: metrics_endpoint
+
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
+        resources:
+          limits:
+            cpu: {{ .Values.resources.limits.cpu | default "1000m" }}
+            memory: {{ .Values.resources.limits.memory | default "1Gi" }}
+          requests:
+            cpu: {{ .Values.resources.requests.cpu | default "100m" }}
+            memory: {{ .Values.resources.requests.memory | default "128Mi" }}
+
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        - name: secrets-volume
+          mountPath: /app/secrets
+          readOnly: true
+        {{- if .Values.persistence.enabled }}
+        - name: data-volume
+          mountPath: /app/data
+        {{- end }}
+
+      volumes:
+      - name: config-volume
+        configMap:
+          name: {{ .Values.service.name }}-enterprise-config
+      - name: secrets-volume
+        secret:
+          secretName: {{ .Values.service.name }}-enterprise-secrets
+      {{- if .Values.persistence.enabled }}
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: {{ .Values.service.name }}-data
+      {{- end }}
+
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

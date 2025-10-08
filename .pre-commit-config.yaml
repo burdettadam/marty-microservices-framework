@@ -82,7 +82,7 @@ repos:
       # Template validation
       - id: template-validation
         name: Validate Service Templates
-        entry: python3
+        entry: uv run python
         language: system
         files: ^(scripts/.*\.py|service/.*\.j2|mypy\.ini|requirements\.txt)$
         args: [scripts/validate_templates.py]
@@ -92,7 +92,7 @@ repos:
       # Framework tests
       - id: framework-tests
         name: Run Framework Tests
-        entry: python3
+        entry: uv run python
         language: system
         files: ^(scripts/.*\.py|service/.*\.j2|mypy\.ini|requirements\.txt|Makefile|observability/.*)$
         args: [scripts/test_framework.py]
@@ -102,7 +102,7 @@ repos:
       # Observability validation
       - id: observability-validation
         name: Validate Observability Components
-        entry: python3
+        entry: uv run python
         language: system
         files: ^observability/.*\.py$
         args: [scripts/validate_observability.py]
@@ -115,7 +115,7 @@ repos:
         entry: bash
         language: system
         files: ^requirements\.txt$
-        args: [-c, 'python3 -c "import jinja2, pathlib, ast, argparse; print(\"✅ All dependencies available\")"']
+        args: [-c, 'uv run python -c "import jinja2, pathlib, ast, argparse; print(\"✅ All dependencies available\")"']
         require_serial: true
         pass_filenames: false
 
@@ -150,9 +150,9 @@ repos:
           - |
             TEMP_DIR=$(mktemp -d)
             CURRENT_DIR=$(pwd)
-            cd "$TEMP_DIR"
-            python3 "$CURRENT_DIR/scripts/generate_service.py" fastapi smoke-test --output-dir ./test_output
-            if [ -d "./test_output/smoke_test" ]; then
+            cd "$CURRENT_DIR"
+            uv run python scripts/generate_service.py fastapi smoke-test --output-dir "$TEMP_DIR/test_output"
+            if [ -d "$TEMP_DIR/test_output/smoke_test" ]; then
               echo "✅ Service generation smoke test passed"
               rm -rf "$TEMP_DIR"
             else

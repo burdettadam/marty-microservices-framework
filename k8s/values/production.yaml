@@ -1,0 +1,194 @@
+# Production Environment Values
+# Optimized for production with high availability and security
+
+# Production namespace
+namespace: microservices-prod
+environment: production
+
+service:
+  replicaCount: 5  # High availability with multiple replicas
+  debug: false
+  logLevel: INFO
+
+# Phase 2 Infrastructure - Production Configuration
+infrastructure:
+  # Production-grade infrastructure
+  cache:
+    backend: redis  # Use Redis cluster for production
+    ttl: 3600  # Longer TTL for production
+    maxSize: 10000
+    redis:
+      replicas: 3  # Redis cluster for HA
+      maxMemory: 1gb
+      persistence:
+        enabled: true
+        size: 20Gi
+        storageClass: fast-ssd
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 2Gi
+        requests:
+          cpu: 500m
+          memory: 1Gi
+
+  messaging:
+    broker: rabbitmq  # Production message queue
+    rabbitmq:
+      replicas: 3  # RabbitMQ cluster for HA
+      persistence:
+        size: 50Gi
+        storageClass: fast-ssd
+      resources:
+        limits:
+          cpu: 2000m
+          memory: 4Gi
+        requests:
+          cpu: 1000m
+          memory: 2Gi
+
+  events:
+    store: postgresql  # Production event store
+
+  gateway:
+    enabled: true
+    auth:
+      enabled: true  # Enable authentication in production
+      username: prod_admin
+      # Password should be set via secure secret management
+    rateLimit:
+      connections: 5  # Stricter limits for production
+      requestsPerMinute: 50
+    tls:
+      enabled: true  # Enable TLS in production
+    circuitBreaker:
+      connectTimeout: 2
+      sendTimeout: 30
+      readTimeout: 30
+
+# Production Database Configuration
+database:
+  host: postgresql-cluster-primary
+  port: 5432
+  poolSize: 50
+  maxOverflow: 20
+
+# Production Secrets (Should be managed via external secret management)
+secrets:
+  database:
+    username: prod_user
+    password: REPLACE_WITH_SECURE_PASSWORD
+
+  redis:
+    password: REPLACE_WITH_SECURE_REDIS_PASSWORD
+
+  rabbitmq:
+    username: prod_admin
+    password: REPLACE_WITH_SECURE_RABBITMQ_PASSWORD
+
+  jwt:
+    secretKey: REPLACE_WITH_SECURE_JWT_SECRET
+
+  encryption:
+    key: REPLACE_WITH_SECURE_ENCRYPTION_KEY
+
+  monitoring:
+    prometheus:
+      username: prometheus_user
+      password: REPLACE_WITH_SECURE_PROMETHEUS_PASSWORD
+    grafana:
+      adminPassword: REPLACE_WITH_SECURE_GRAFANA_PASSWORD
+
+# Production Resource Configuration
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+resourceQuota:
+  cpu: 20
+  memory: 40Gi
+  cpuLimit: 40
+  memoryLimit: 80Gi
+  pvc: 50
+
+defaultLimits:
+  cpu: 2000m
+  memory: 4Gi
+
+defaultRequests:
+  cpu: 500m
+  memory: 1Gi
+
+# Production Persistence
+persistence:
+  enabled: true
+  storageClass: fast-ssd
+  size: 50Gi
+
+# Production Observability
+observability:
+  tracing:
+    enabled: true
+    endpoint: http://jaeger-collector:14268/api/traces
+  metrics:
+    enabled: true
+    endpoint: http://prometheus:9090
+  logging:
+    level: INFO
+    format: json  # Structured logging for production
+
+# Production Monitoring Stack
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+  grafana:
+    enabled: true
+  jaeger:
+    enabled: true
+
+# Cloud Provider (Example for AWS)
+cloud:
+  provider: aws
+
+# Node Scheduling for Production
+nodeSelector:
+  node-type: production
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: node-type
+          operator: In
+          values:
+          - production
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - "{{ .Values.service.name }}"
+        topologyKey: kubernetes.io/hostname
+
+# Production TLS Configuration
+tls:
+  cert: |
+    # REPLACE_WITH_PRODUCTION_CERTIFICATE
+  key: |
+    # REPLACE_WITH_PRODUCTION_PRIVATE_KEY
+
+# Production-specific service configuration
+serviceAnnotations:
+  prod.marty.framework/environment: production
+  prod.marty.framework/high-availability: "true"
+  prod.marty.framework/security-hardened: "true"

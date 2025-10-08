@@ -1,0 +1,142 @@
+{{- if .Values.infrastructure.gateway.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.service.name }}-gateway
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.service.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: api-gateway
+    marty.framework/phase: "phase2"
+  annotations:
+    # API Gateway Annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+
+    # Rate Limiting
+    nginx.ingress.kubernetes.io/rate-limit-connections: {{ .Values.infrastructure.gateway.rateLimit.connections | default "10" | quote }}
+    nginx.ingress.kubernetes.io/rate-limit-requests-per-minute: {{ .Values.infrastructure.gateway.rateLimit.requestsPerMinute | default "100" | quote }}
+
+    # Load Balancing
+    nginx.ingress.kubernetes.io/upstream-hash-by: {{ .Values.infrastructure.gateway.loadBalancing.hashBy | default "$request_uri" | quote }}
+    nginx.ingress.kubernetes.io/load-balance: {{ .Values.infrastructure.gateway.loadBalancing.algorithm | default "round_robin" | quote }}
+
+    # CORS Configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: {{ .Values.infrastructure.gateway.cors.allowOrigin | default "*" | quote }}
+    nginx.ingress.kubernetes.io/cors-allow-methods: {{ .Values.infrastructure.gateway.cors.allowMethods | default "GET, POST, PUT, DELETE, OPTIONS" | quote }}
+    nginx.ingress.kubernetes.io/cors-allow-headers: {{ .Values.infrastructure.gateway.cors.allowHeaders | default "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization" | quote }}
+
+    # Authentication
+    {{- if .Values.infrastructure.gateway.auth.enabled }}
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: {{ .Values.service.name }}-gateway-auth
+    nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required'
+    {{- end }}
+
+    # Circuit Breaker
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: {{ .Values.infrastructure.gateway.circuitBreaker.connectTimeout | default "5" | quote }}
+    nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.infrastructure.gateway.circuitBreaker.sendTimeout | default "60" | quote }}
+    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.infrastructure.gateway.circuitBreaker.readTimeout | default "60" | quote }}
+
+    # Custom annotations
+    {{- if .Values.infrastructure.gateway.annotations }}
+    {{- toYaml .Values.infrastructure.gateway.annotations | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.infrastructure.gateway.tls.enabled }}
+  tls:
+  - hosts:
+    - {{ .Values.infrastructure.gateway.host | default (printf "%s.%s" .Values.service.name .Values.domain) }}
+    secretName: {{ .Values.service.name }}-tls-certs
+  {{- end }}
+  rules:
+  - host: {{ .Values.infrastructure.gateway.host | default (printf "%s.%s" .Values.service.name .Values.domain) }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.service.name }}
+            port:
+              number: {{ .Values.service.httpPort | default 8080 }}
+      - path: /grpc
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.service.name }}
+            port:
+              number: {{ .Values.service.grpcPort | default 50051 }}
+      - path: /metrics
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ .Values.service.name }}
+            port:
+              number: {{ .Values.service.metricsPort | default 9090 }}
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: {{ .Values.service.name }}
+            port:
+              number: {{ .Values.service.httpPort | default 8080 }}
+---
+{{- if .Values.infrastructure.gateway.auth.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.service.name }}-gateway-auth
+  namespace: {{ .Values.namespace | default "microservices" }}
+type: Opaque
+data:
+  auth: {{ htpasswd .Values.infrastructure.gateway.auth.username .Values.infrastructure.gateway.auth.password | b64enc }}
+{{- end }}
+---
+# API Gateway Service Discovery
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.service.name }}-discovery
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.service.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: discovery
+    marty.framework/discoverable: "true"
+  annotations:
+    marty.framework/service-version: {{ .Chart.AppVersion | quote }}
+    marty.framework/service-capabilities: {{ .Values.service.capabilities | default "processing,status" | quote }}
+    marty.framework/phase2-enabled: "true"
+    marty.framework/discovery-metadata: |
+      {
+        "name": "{{ .Values.service.name }}",
+        "version": "{{ .Chart.AppVersion }}",
+        "endpoints": {
+          "grpc": "{{ .Values.service.name }}:{{ .Values.service.grpcPort | default 50051 }}",
+          "http": "{{ .Values.service.name }}:{{ .Values.service.httpPort | default 8080 }}",
+          "metrics": "{{ .Values.service.name }}:{{ .Values.service.metricsPort | default 9090 }}"
+        },
+        "health_check": "/health",
+        "capabilities": {{ .Values.service.capabilities | default "processing,status" | split "," | toJson }},
+        "phase2_infrastructure": {
+          "cache": "{{ .Values.infrastructure.cache.backend }}",
+          "messaging": "{{ .Values.infrastructure.messaging.broker }}",
+          "events": "{{ .Values.infrastructure.events.store }}",
+          "gateway": {{ .Values.infrastructure.gateway.enabled }}
+        }
+      }
+spec:
+  type: ClusterIP
+  ports:
+  - name: discovery
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ .Values.service.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

@@ -1,52 +1,114 @@
 """
 {{service_class}} gRPC service implementation.
 
-This service implements the {{service_name}} gRPC interface using Ultra-DRY patterns.
-Auto-discoverable by serve_auto_service using naming conventions.
+This service implements the {{service_name}} gRPC interface using enterprise patterns:
+- Repository pattern for data access
+- Event-driven architecture with Phase 2 components
+- Configuration management with secrets
+- Multi-backend caching infrastructure
+- Message queues and event streaming
+- API Gateway integration
+- Comprehensive monitoring and health checks
+- Distributed tracing
 """
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import grpc
+from grpc_health.v1 import health_pb2
 
-from marty_common.logging_config import get_logger
-from marty_common.service_config_factory import get_config_manager
-from src.proto.{{service_package}}_pb2_grpc import {{service_class}}Servicer
-# Import your protobuf message types here as needed
-# Example:
+from src.framework.config import BaseServiceConfig
+from src.framework.observability import get_tracer, traced_operation
+from src.framework.observability.monitoring import ServiceMonitor, time_operation
+{% if use_database %}
+from src.framework.database import DatabaseManager, UnitOfWork
+from src.framework.events import EventBus, publish_system_event
+{% endif %}
+
+# Import your protobuf message types here
 # from src.proto.{{service_package}}_pb2 import (
 #     ProcessRequest,
 #     ProcessResponse,
 #     StatusRequest,
 #     StatusResponse,
 # )
+# from src.proto.{{service_package}}_pb2_grpc import {{service_class}}Servicer
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
-class {{service_class}}Service({{service_class}}Servicer):
+class {{service_name|title}}ServiceConfig(BaseServiceConfig):
+    """Configuration for {{service_name}} service with Phase 2 infrastructure."""
+
+    service_name: str = "{{service_name}}"
+    grpc_port: int = {{grpc_port}}
+    max_workers: int = 10
+
+    {% if use_database %}
+    # Database configuration
+    database_url: str = "postgresql+asyncpg://user:password@localhost/{{service_name}}_db"
+    {% endif %}
+
+    # Phase 2 Infrastructure Configuration
+    cache_backend: str = "memory"  # or "redis"
+    cache_ttl: int = 300
+    message_broker: str = "memory"  # or "rabbitmq", "kafka", "redis"
+    event_store_backend: str = "memory"  # or external event store
+
+    # Service-specific configuration
+    # Add your configuration fields here
+    # debug_mode: bool = False
+
+
+class {{service_name|title}}Service:  # Implement your gRPC servicer interface here
     """
     Implementation of the {{service_class}} gRPC service.
 
-    This service handles {{(service_description or "service functionality").lower()}}.
-    Auto-discoverable by serve_auto_service using class name pattern.
+    This service handles {{(service_description or "service functionality").lower()}}
+    using enterprise patterns and Phase 2 infrastructure components:
+    - Configuration management with secrets
+    - Multi-backend caching
+    - Message queues and event streaming
+    - API Gateway integration
     """
 
-    def __init__(self) -> None:
-        """Initialize the {{service_class}} service."""
-        logger.info("Initializing {{service_class}} Service")
+    def __init__(
+        self,
+        config: {{service_name|title}}ServiceConfig,
+        config_manager,  # ConfigManager
+        secret_manager,  # SecretManager
+        cache_manager,  # CacheManager
+        message_queue,  # MessageQueue
+        event_stream_manager,  # EventStreamManager
+        api_gateway,  # APIGateway
+        {% if use_database %}
+        db_manager: DatabaseManager,
+        event_bus: EventBus,
+        {% endif %}
+        monitor: Optional[ServiceMonitor] = None,
+    ) -> None:
+        """Initialize the {{service_class}} service with Phase 2 infrastructure."""
+        logger.info("Initializing {{service_name|title}} Service with Phase 2 infrastructure")
 
-        # Initialize configuration using DRY factory
-        self.config_manager = get_config_manager("{{service_name}}")
+        # Phase 1 components
+        self.config = config
+        {% if use_database %}
+        self.db_manager = db_manager
+        self.event_bus = event_bus
+        {% endif %}
+        self.monitor = monitor or ServiceMonitor(config.service_name)
+        self.tracer = get_tracer()
 
-        # Initialize your service dependencies here
-        # Example using DRY config:
-        # self.database_url = self.config_manager.get_env_str("DATABASE_URL")
-        # self.cache_ttl = self.config_manager.get_env_int("CACHE_TTL", 300)
-        # self.debug_mode = self.config_manager.get_env_bool("DEBUG", False)
+        # Phase 2 components
+        self.config_manager = config_manager
+        self.secret_manager = secret_manager
+        self.cache_manager = cache_manager
+        self.message_queue = message_queue
+        self.event_stream_manager = event_stream_manager
+        self.api_gateway = api_gateway
 
-    def GetStatus(self, request: Any, context: grpc.ServicerContext) -> Any:
+    def GetStatus(self, request, context):
         """
         Get service status.
 
@@ -63,39 +125,165 @@ class {{service_class}}Service({{service_class}}Servicer):
         # Return appropriate status response
         pass
 
-    # Add your service methods here
-    # Example:
-    # def ProcessDocument(self, request: ProcessRequest, context: grpc.ServicerContext) -> ProcessResponse:
-    #     """Process a document."""
-    #     logger.info(f"Processing document: {request.document_id}")
-    #
-    #     try:
-    #         # Implement your business logic here
-    #         result = self._process_document(request)
-    #
-    #         return ProcessResponse(
-    #             success=True,
-    #             result=result,
-    #             message="Document processed successfully"
-    #         )
-    #     except Exception as e:
-    #         logger.error(f"Error processing document: {e}", exc_info=True)
-    #         context.set_code(grpc.StatusCode.INTERNAL)
-    #         context.set_details(f"Processing failed: {str(e)}")
-    #         return ProcessResponse(
-    #             success=False,
-    #             error=str(e)
-    #         )
+    # Add your gRPC method implementations here
+    # Example method demonstrating Phase 2 infrastructure:
+    async def ProcessData(self, request: Any, context: grpc.ServicerContext) -> Any:
+        """Process data with Phase 2 enterprise patterns."""
+        request_id = getattr(request, 'id', 'unknown')
 
-    def _process_document(self, request: Any) -> Any:
-        """
-        Private method for document processing logic.
+        with traced_operation("process_data", request_id=request_id) as span:
+            try:
+                # Phase 2: Check cache first
+                cache_key = f"processed_data:{request_id}"
+                cached_result = await self.cache_manager.get(cache_key)
+                if cached_result:
+                    span.set_attribute("cache_hit", True)
+                    return cached_result
 
-        Args:
-            request: The processing request
+                # Phase 2: Get dynamic configuration
+                processing_config = await self.config_manager.get_config(
+                    "processing_settings",
+                    {"max_retries": 3, "timeout": 30}
+                )
 
-        Returns:
-            Processing result
-        """
-        # Implement your core business logic here
-        pass
+                # Phase 2: Get secrets for external API calls
+                api_key = await self.secret_manager.get_secret("external_api_key")
+
+                {% if use_database %}
+                # Use repository pattern for data access
+                async with UnitOfWork(self.db_manager) as uow:
+                    # repository = uow.get_repository(YourModel)
+
+                    # Your business logic here
+                    # result = await repository.create(entity)
+
+                    # Phase 2: Publish to event stream for CQRS
+                    await self.event_stream_manager.publish_event(
+                        stream_name=f"{{service_name}}-events",
+                        event_type="DataProcessed",
+                        event_data={
+                            "request_id": request_id,
+                            "timestamp": span.get_attribute("start_time"),
+                            "service": "{{service_name}}",
+                        }
+                    )
+
+                    # Publish domain event via message queue
+                    await self.message_queue.publish(
+                        queue_name="{{service_name}}.events",
+                        message={
+                            "event_type": "data_processed",
+                            "request_id": request_id,
+                            "source": "{{service_name}}",
+                        }
+                    )
+
+                    await uow.commit()
+                {% else %}
+                # Phase 2: Publish events even without database
+                await self.event_stream_manager.publish_event(
+                    stream_name=f"{{service_name}}-events",
+                    event_type="DataProcessed",
+                    event_data={
+                        "request_id": request_id,
+                        "timestamp": span.get_attribute("start_time"),
+                        "service": "{{service_name}}",
+                    }
+                )
+
+                await self.message_queue.publish(
+                    queue_name="{{service_name}}.events",
+                    message={
+                        "event_type": "data_processed",
+                        "request_id": request_id,
+                        "source": "{{service_name}}",
+                    }
+                )
+                {% endif %}
+
+                # Process the data (your business logic here)
+                result = {"status": "processed", "request_id": request_id}
+
+                # Phase 2: Cache the result
+                await self.cache_manager.set(
+                    cache_key,
+                    result,
+                    ttl=self.config.cache_ttl
+                )
+
+                # Record metrics
+                if self.monitor:
+                    self.monitor.metrics.counter("data_processed_total")
+
+                span.set_attribute("success", True)
+                span.set_attribute("cache_hit", False)
+
+                # Return your response
+                # return ProcessResponse(...)
+                return result
+
+            except Exception as e:
+                logger.error("Error processing data: %s", e)
+                span.record_exception(e)
+
+                # Record error metrics
+                if self.monitor:
+                    self.monitor.metrics.counter("data_processing_errors_total")
+
+                await context.abort(grpc.StatusCode.INTERNAL, f"Processing failed: {e}")
+
+
+# Health check implementations with Phase 2 infrastructure
+def create_health_checks(service: {{service_name|title}}Service) -> dict:
+    """Create health check functions for the service with Phase 2 components."""
+
+    def service_health() -> bool:
+        """Check if service is healthy."""
+        return True  # Implement your health check logic
+
+    async def cache_health() -> bool:
+        """Check cache connectivity."""
+        try:
+            await service.cache_manager.set("health_check", "ok", ttl=5)
+            result = await service.cache_manager.get("health_check")
+            return result == "ok"
+        except Exception:
+            return False
+
+    async def message_queue_health() -> bool:
+        """Check message queue connectivity."""
+        try:
+            return await service.message_queue.health_check()
+        except Exception:
+            return False
+
+    async def event_stream_health() -> bool:
+        """Check event stream connectivity."""
+        try:
+            return await service.event_stream_manager.health_check()
+        except Exception:
+            return False
+
+    async def api_gateway_health() -> bool:
+        """Check API gateway connectivity."""
+        try:
+            return await service.api_gateway.health_check()
+        except Exception:
+            return False
+
+    {% if use_database %}
+    async def database_health() -> bool:
+        """Check database connectivity."""
+        return await service.db_manager.health_check()
+    {% endif %}
+
+    return {
+        "service": service_health,
+        "cache": cache_health,
+        "message_queue": message_queue_health,
+        "event_stream": event_stream_health,
+        "api_gateway": api_gateway_health,
+        {% if use_database %}
+        "database": database_health,
+        {% endif %}
+    }

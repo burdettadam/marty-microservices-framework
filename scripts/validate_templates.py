@@ -205,13 +205,14 @@ class ServiceTemplateValidator:
             Dictionary of sample template variables
         """
         return {
-            "service_name": "test-service",
+            "service_name": "test_service",
             "service_package": "test_service",
             "service_class": "TestService",
             "service_description": "Test service for validation",
             "author": "Test Author",
             "grpc_port": 50051,
             "http_port": 8080,
+            "use_database": True,
         }
 
     def _print_summary(self, results: Dict[str, Any]) -> None:

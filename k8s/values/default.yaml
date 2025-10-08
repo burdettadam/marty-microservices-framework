@@ -1,0 +1,245 @@
+# Phase 2 Enterprise Infrastructure Values
+# Default values for microservices with complete enterprise infrastructure
+
+# Global Configuration
+namespace: microservices
+environment: development
+domain: cluster.local
+
+# Service Configuration
+service:
+  name: example-service
+  replicaCount: 3
+  grpcPort: 50051
+  httpPort: 8080
+  metricsPort: 9090
+  logLevel: INFO
+  debug: false
+  capabilities: "processing,status,health"
+  serviceAccount: default
+
+  # Service Type and Load Balancer
+  type: ClusterIP
+  loadBalancer:
+    enabled: false
+    awsType: nlb
+    gcpType: Internal
+    azureInternal: true
+    sourceRanges: []
+
+  annotations: {}
+
+# Image Configuration
+image:
+  repository: your-registry/your-service
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Phase 2 Infrastructure Configuration
+infrastructure:
+  # Configuration Management
+  config:
+    hotReload: true
+    validateSchema: true
+
+  # Caching Infrastructure
+  cache:
+    backend: redis  # memory, redis
+    ttl: 300
+    maxSize: 1000
+    redis:
+      image: redis:7.2-alpine
+      replicas: 1
+      maxMemory: 256mb
+      evictionPolicy: allkeys-lru
+      logLevel: notice
+      persistence:
+        enabled: true
+        size: 5Gi
+        storageClass: ""
+        save: "900 1 300 10 60 10000"
+        aof: yes
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+
+  # Message Queue Infrastructure
+  messaging:
+    broker: rabbitmq  # memory, redis, rabbitmq, kafka
+    rabbitmq:
+      image: rabbitmq:3.12-management-alpine
+      replicas: 1
+      erlangCookie: SWQOKODSQALRPCLNMEQG
+      memoryHighWatermark: 0.6
+      diskFreeLimit: 2.0
+      logLevel: info
+      persistence:
+        size: 10Gi
+        storageClass: ""
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 256Mi
+    kafka:
+      brokers: kafka:9092
+      # Add Kafka configuration when needed
+
+  # Event Streaming Infrastructure
+  events:
+    store: postgresql  # memory, postgresql, eventstore
+    streamPrefix: ""  # Will use service name if empty
+    snapshotFrequency: 100
+
+  # API Gateway Infrastructure
+  gateway:
+    enabled: true
+    host: ""  # Will use service.name.domain if empty
+    discoveryEndpoint: http://api-gateway:8080/registry
+
+    # Rate Limiting
+    rateLimit:
+      connections: 10
+      requestsPerMinute: 100
+
+    # Load Balancing
+    loadBalancing:
+      algorithm: round_robin  # round_robin, least_conn, ip_hash
+      hashBy: "$request_uri"
+
+    # CORS Configuration
+    cors:
+      allowOrigin: "*"
+      allowMethods: "GET, POST, PUT, DELETE, OPTIONS"
+      allowHeaders: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+
+    # Authentication
+    auth:
+      enabled: false
+      username: admin
+      password: changeme
+
+    # Circuit Breaker
+    circuitBreaker:
+      connectTimeout: 5
+      sendTimeout: 60
+      readTimeout: 60
+
+    # TLS Configuration
+    tls:
+      enabled: false
+
+    annotations: {}
+
+# Database Configuration
+database:
+  host: postgresql
+  port: 5432
+  poolSize: 20
+  maxOverflow: 10
+
+# Secrets Configuration (Override in environment-specific values)
+secrets:
+  database:
+    username: postgres
+    password: postgres
+
+  redis:
+    password: ""  # Empty for no password
+
+  rabbitmq:
+    username: guest
+    password: guest
+
+  jwt:
+    secretKey: your-jwt-secret-key-change-in-production
+    algorithm: HS256
+
+  external:
+    apiKey: ""
+
+  encryption:
+    key: your-encryption-key-change-in-production
+
+  monitoring:
+    prometheus:
+      username: admin
+      password: admin
+    grafana:
+      adminPassword: admin
+
+# TLS Configuration
+tls:
+  cert: ""  # Base64 encoded certificate
+  key: ""   # Base64 encoded private key
+
+# Resource Quotas and Limits
+resourceQuota:
+  cpu: 4
+  memory: 8Gi
+  cpuLimit: 8
+  memoryLimit: 16Gi
+  pvc: 10
+
+defaultLimits:
+  cpu: 500m
+  memory: 512Mi
+  storage: 10Gi
+
+defaultRequests:
+  cpu: 100m
+  memory: 128Mi
+
+# Resource Configuration for Services
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Persistence Configuration
+persistence:
+  enabled: false
+  storageClass: ""
+  size: 5Gi
+
+# Observability Configuration
+observability:
+  tracing:
+    enabled: true
+    endpoint: http://jaeger:14268/api/traces
+  metrics:
+    enabled: true
+    endpoint: http://prometheus:9090
+  logging:
+    level: INFO
+    format: json
+
+# Cloud Provider Configuration
+cloud:
+  provider: ""  # aws, gcp, azure
+
+# Node Scheduling
+nodeSelector: {}
+
+affinity: {}
+
+tolerations: []
+
+# Monitoring Stack (Optional)
+monitoring:
+  enabled: false
+  prometheus:
+    enabled: false
+  grafana:
+    enabled: false
+  jaeger:
+    enabled: false

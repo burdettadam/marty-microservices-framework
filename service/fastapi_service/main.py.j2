@@ -1,53 +1,133 @@
 """
 {{service_description}}
 
-This is a FastAPI service generated from the Marty Ultra-DRY service template.
-It automatically uses all established DRY patterns:
-- Service Configuration Factory for centralized config
-- Standardized FastAPI setup patterns
-- Auto-configuration from environment
-- Ultra-DRY testing patterns ready
+This is a FastAPI service generated with enterprise infrastructure:
+- OpenTelemetry distributed tracing
+- Comprehensive health monitoring and metrics
+- Repository pattern for data access
+- Event-driven architecture
+- Structured configuration management
 """
 
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from marty_common.service_config_factory import get_service_config, get_config_manager
-from marty_common.logging_config import get_logger
-from src.{{service_package}}.app.api.routes import router
-from src.{{service_package}}.app.core.middleware import setup_middleware
-from src.{{service_package}}.app.core.error_handlers import setup_error_handlers
+from src.framework.config import BaseServiceConfig
+from src.framework.observability import init_tracing, auto_instrument, instrument_fastapi
+from src.framework.observability.monitoring import ServiceMonitor
+{% if use_database %}
+from src.framework.database import DatabaseManager
+from src.framework.events import TransactionalOutboxEventBus
+{% endif %}
 
-# Get configuration and logger using DRY factory
-config_manager = get_config_manager("{{service_name}}")
-logger = get_logger(__name__)
+from .api.routes import router
+from .core.middleware import setup_middleware
+from .core.error_handlers import setup_error_handlers
+
+
+class {{service_name|title}}Config(BaseServiceConfig):
+    """Configuration for {{service_name}} service."""
+
+    service_name: str = "{{service_name}}"
+    host: str = "0.0.0.0"
+    port: int = {{http_port}}
+    debug: bool = False
+    docs_enabled: bool = True
+
+    {% if use_database %}
+    # Database configuration
+    database_url: str = "postgresql+asyncpg://user:password@localhost/{{service_name}}_db"
+    {% endif %}
+
+
+# Global references
+config = {{service_name|title}}Config()
+monitor: ServiceMonitor = None
+{% if use_database %}
+db_manager: DatabaseManager = None
+event_bus: TransactionalOutboxEventBus = None
+{% endif %}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan with proper startup and shutdown."""
+    global monitor{% if use_database %}, db_manager, event_bus{% endif %}
+
+    # Startup
+    print(f"Starting {config.service_name} with enterprise infrastructure...")
+
+    # Initialize observability
+    init_tracing(service_name=config.service_name)
+    auto_instrument()
+    instrument_fastapi()
+
+    {% if use_database %}
+    # Initialize database
+    db_manager = DatabaseManager(config.database_url)
+    await db_manager.create_tables()
+
+    # Initialize event bus
+    session_factory = db_manager.get_async_session_factory()
+    event_bus = TransactionalOutboxEventBus(session_factory)
+    await event_bus.start()
+
+    # Store in app state for access in routes
+    app.state.db_manager = db_manager
+    app.state.event_bus = event_bus
+    {% endif %}
+
+    # Start monitoring
+    monitor = ServiceMonitor(config.service_name)
+    monitor.start_monitoring()
+    app.state.monitor = monitor
+
+    print(f"{config.service_name} started successfully")
+
+    yield
+
+    # Shutdown
+    print(f"Shutting down {config.service_name}...")
+
+    if monitor:
+        monitor.stop_monitoring()
+
+    {% if use_database %}
+    if event_bus:
+        await event_bus.stop()
+
+    if db_manager:
+        await db_manager.close()
+    {% endif %}
+
+    print(f"{config.service_name} shutdown complete")
 
 
 def create_app() -> FastAPI:
     """
-    Create FastAPI application with Ultra-DRY patterns.
+    Create FastAPI application with enterprise infrastructure.
 
-    This automatically sets up:
-    - Configuration from Service Configuration Factory
-    - Standard middleware (CORS, logging, etc.)
-    - Error handling patterns
-    - OpenAPI documentation
-    - Health check endpoints
-    - Auto-configured from service defaults
+    This sets up:
+    - Distributed tracing and observability
+    - Health monitoring and metrics
+    - Database access with repository pattern
+    - Event-driven architecture
+    - Comprehensive error handling
     """
-    # Get service configuration using DRY factory
-    service_config = get_service_config("{{service_name}}", "fastapi")
 
-    # Initialize FastAPI with DRY configuration
+    # Initialize FastAPI with enterprise configuration
     app = FastAPI(
-        title=service_config.get("service_description", "{{service_description}}"),
+        title=config.service_name.replace("_", " ").title(),
+        description="{{service_description}}",
         version="1.0.0",
-        debug=service_config.get("debug", False),
-        docs_url="/docs" if service_config.get("docs_enabled", True) else None,
-        redoc_url="/redoc" if service_config.get("docs_enabled", True) else None,
+        debug=config.debug,
+        docs_url="/docs" if config.docs_enabled else None,
+        redoc_url="/redoc" if config.docs_enabled else None,
+        lifespan=lifespan,
     )
 
-    # Setup DRY patterns
+    # Setup enterprise patterns
     setup_middleware(app, service_config)
     setup_error_handlers(app)
 

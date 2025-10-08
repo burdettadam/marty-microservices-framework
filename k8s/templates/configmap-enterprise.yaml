@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.service.name }}-enterprise-config
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.service.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: configuration
+    marty.framework/phase: "phase2"
+data:
+  # Phase 2 Infrastructure Configuration
+  cache_backend: {{ .Values.infrastructure.cache.backend | default "redis" | quote }}
+  cache_ttl: {{ .Values.infrastructure.cache.ttl | default "300" | quote }}
+  cache_redis_url: {{ .Values.infrastructure.cache.redis.url | default "redis://redis:6379" | quote }}
+  cache_max_size: {{ .Values.infrastructure.cache.maxSize | default "1000" | quote }}
+
+  message_broker: {{ .Values.infrastructure.messaging.broker | default "rabbitmq" | quote }}
+  rabbitmq_url: {{ .Values.infrastructure.messaging.rabbitmq.url | default "amqp://guest:guest@rabbitmq:5672/" | quote }}
+  kafka_brokers: {{ .Values.infrastructure.messaging.kafka.brokers | default "kafka:9092" | quote }}
+
+  event_store_backend: {{ .Values.infrastructure.events.store | default "postgresql" | quote }}
+  event_stream_prefix: {{ .Values.service.name | quote }}
+
+  api_gateway_enabled: {{ .Values.infrastructure.gateway.enabled | default "true" | quote }}
+  api_gateway_discovery_endpoint: {{ .Values.infrastructure.gateway.discoveryEndpoint | default "http://api-gateway:8080/registry" | quote }}
+
+  # Observability Configuration
+  tracing_endpoint: {{ .Values.observability.tracing.endpoint | default "http://jaeger:14268/api/traces" | quote }}
+  metrics_endpoint: {{ .Values.observability.metrics.endpoint | default "http://prometheus:9090" | quote }}
+
+  # Service Configuration
+  service_name: {{ .Values.service.name | quote }}
+  environment: {{ .Values.environment | default "development" | quote }}
+  log_level: {{ .Values.service.logLevel | default "INFO" | quote }}
+  debug_mode: {{ .Values.service.debug | default "false" | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.service.name }}-database-config
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.service.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: database
+data:
+  database_host: {{ .Values.database.host | default "postgresql" | quote }}
+  database_port: {{ .Values.database.port | default "5432" | quote }}
+  database_name: {{ printf "%s_db" .Values.service.name | quote }}
+  database_pool_size: {{ .Values.database.poolSize | default "20" | quote }}
+  database_max_overflow: {{ .Values.database.maxOverflow | default "10" | quote }}

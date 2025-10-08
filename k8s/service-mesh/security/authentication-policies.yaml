@@ -1,0 +1,219 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: phase2-default-strict-mtls
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: peer-authentication
+    app.kubernetes.io/component: security
+    marty.framework/phase: "phase2"
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: phase2-infrastructure-mtls
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: peer-authentication
+    app.kubernetes.io/component: infrastructure-security
+    marty.framework/phase: "phase2"
+spec:
+  selector:
+    matchLabels:
+      marty.framework/component: infrastructure
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    6379:  # Redis
+      mode: STRICT
+    5672:  # RabbitMQ
+      mode: STRICT
+    5432:  # PostgreSQL
+      mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: phase2-api-gateway-access
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: authorization-policy
+    app.kubernetes.io/component: api-security
+    marty.framework/phase: "phase2"
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  rules:
+  # Allow external HTTPS traffic
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        paths: ["/api/v2/*", "/health", "/metrics"]
+
+  # Allow internal microservice communication
+  - from:
+    - source:
+        namespaces: ["microservices-prod"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+        paths: ["/api/v2/*"]
+    when:
+    - key: source.labels[marty.framework/phase]
+      values: ["phase2"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: phase2-infrastructure-access
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: authorization-policy
+    app.kubernetes.io/component: infrastructure-security
+    marty.framework/phase: "phase2"
+spec:
+  selector:
+    matchLabels:
+      marty.framework/component: infrastructure
+  rules:
+  # Redis access control
+  - from:
+    - source:
+        namespaces: ["microservices-prod"]
+    to:
+    - operation:
+        ports: ["6379"]
+    when:
+    - key: source.labels[marty.framework/phase]
+      values: ["phase2"]
+    - key: source.labels[marty.framework/cache-access]
+      values: ["allowed"]
+
+  # RabbitMQ access control
+  - from:
+    - source:
+        namespaces: ["microservices-prod"]
+    to:
+    - operation:
+        ports: ["5672"]
+    when:
+    - key: source.labels[marty.framework/phase]
+      values: ["phase2"]
+    - key: source.labels[marty.framework/messaging-access]
+      values: ["allowed"]
+
+  # PostgreSQL access control
+  - from:
+    - source:
+        namespaces: ["microservices-prod"]
+    to:
+    - operation:
+        ports: ["5432"]
+    when:
+    - key: source.labels[marty.framework/phase]
+      values: ["phase2"]
+    - key: source.labels[marty.framework/database-access]
+      values: ["allowed"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: phase2-microservice-to-microservice
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: authorization-policy
+    app.kubernetes.io/component: service-security
+    marty.framework/phase: "phase2"
+spec:
+  rules:
+  # Allow Phase 2 microservices to communicate with each other
+  - from:
+    - source:
+        namespaces: ["microservices-prod"]
+    when:
+    - key: source.labels[marty.framework/phase]
+      values: ["phase2"]
+    - key: destination.labels[marty.framework/phase]
+      values: ["phase2"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: phase2-monitoring-access
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: authorization-policy
+    app.kubernetes.io/component: monitoring-security
+    marty.framework/phase: "phase2"
+spec:
+  rules:
+  # Allow Prometheus to scrape metrics
+  - from:
+    - source:
+        namespaces: ["monitoring"]
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics", "/stats/prometheus"]
+
+  # Allow Grafana to access Prometheus
+  - from:
+    - source:
+        namespaces: ["monitoring"]
+        principals: ["cluster.local/ns/monitoring/sa/grafana"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: phase2-deny-all-default
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: authorization-policy
+    app.kubernetes.io/component: default-deny
+    marty.framework/phase: "phase2"
+spec:
+  # This creates a default deny-all policy
+  # Specific access must be explicitly granted by other policies
+---
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: phase2-jwt-auth
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: request-authentication
+    app.kubernetes.io/component: jwt-security
+    marty.framework/phase: "phase2"
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  jwtRules:
+  - issuer: "https://auth.phase2.example.com"
+    jwksUri: "https://auth.phase2.example.com/.well-known/jwks.json"
+    audiences:
+    - "phase2-microservices"
+    fromHeaders:
+    - name: Authorization
+      prefix: "Bearer "
+    fromParams:
+    - "access_token"
+    outputPayloadToHeader: "x-jwt-payload"
+    forwardOriginalToken: true
+  - issuer: "https://internal-auth.microservices.cluster.local"
+    jwksUri: "https://internal-auth.microservices.cluster.local/.well-known/jwks.json"
+    audiences:
+    - "internal-services"
+    fromHeaders:
+    - name: X-Internal-Token
