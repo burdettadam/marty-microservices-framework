@@ -56,7 +56,7 @@ class ServiceGenerator:
         Args:
             service_type: Type of service (grpc, fastapi, hybrid, minimal)
             service_name: Name of the service (e.g., "document-validator")
-            **options: Additional template variables
+            **options: Additional template variables including service mesh options
         """
         # Validate service type
         valid_types = ["grpc", "fastapi", "hybrid", "minimal"]
@@ -79,6 +79,9 @@ class ServiceGenerator:
         # Generate service files
         self._generate_from_template_dir(template_subdir, template_vars)
 
+        # Generate Kubernetes manifests
+        self._generate_k8s_manifests(template_vars)
+
         print(f"✅ Generated {service_type} service: {service_name}")
         print(f"📁 Location: {self.output_dir / template_vars['service_package']}")
         print(f"🚀 To get started:")
@@ -92,6 +95,19 @@ class ServiceGenerator:
         print(
             f"   6. Build Docker image: docker build -f src/{template_vars['service_package']}/Dockerfile ."
         )
+
+        # Add service mesh deployment instructions
+        if template_vars.get("service_mesh_enabled", False):
+            print(f"🕸️  Service Mesh Configuration:")
+            print(
+                f"   7. Deploy with service mesh: kubectl apply -k k8s/overlays/service-mesh/"
+            )
+            print(
+                f"   8. Apply service mesh policies: kubectl apply -f k8s/service-mesh/"
+            )
+            print(
+                f"   9. Verify mesh injection: kubectl get pods -n {template_vars.get('namespace', 'default')} -o wide"
+            )
 
     def _prepare_template_vars(
         self, service_name: str, **options: Any
@@ -122,6 +138,19 @@ class ServiceGenerator:
             "author": options.get("author", "Marty Development Team"),
             "grpc_port": options.get("grpc_port", 50051),
             "http_port": options.get("http_port", 8080),
+            # Service mesh options
+            "service_mesh_enabled": options.get("service_mesh", False),
+            "service_mesh_type": options.get("service_mesh_type", "istio"),
+            "namespace": options.get("namespace", "microservice-framework"),
+            "domain": options.get("domain", "framework.local"),
+            "package_name": service_package.replace("_", "."),
+            # Kubernetes options
+            "HTTP_PORT": options.get("http_port", 8080),
+            "GRPC_PORT": options.get("grpc_port", 50051),
+            "NAMESPACE": options.get("namespace", "microservice-framework"),
+            "SERVICE_NAME": service_name,
+            "PACKAGE_NAME": service_package.replace("_", "."),
+            "DOMAIN": options.get("domain", "framework.local"),
         }
 
         # Add any additional options
@@ -228,6 +257,79 @@ class ServiceGenerator:
         output_path.write_text(rendered_content, encoding="utf-8")
         print(f"  📝 Generated: {output_path.relative_to(self.output_dir.parent)}")
 
+    def _generate_k8s_manifests(self, template_vars: dict[str, Any]) -> None:
+        """
+        Generate Kubernetes manifests with service mesh configurations.
+
+        Args:
+            template_vars: Template variables including service mesh options
+        """
+        service_dir = self.output_dir / template_vars["service_package"]
+        k8s_dir = service_dir / "k8s"
+
+        # Create k8s directory structure
+        k8s_dir.mkdir(exist_ok=True)
+        (k8s_dir / "base").mkdir(exist_ok=True)
+        (k8s_dir / "overlays").mkdir(exist_ok=True)
+        (k8s_dir / "service-mesh").mkdir(exist_ok=True)
+
+        # Copy base Kubernetes templates
+        template_k8s_dir = self.templates_dir / "microservice_project_template" / "k8s"
+        if template_k8s_dir.exists():
+            self._copy_and_render_k8s_templates(
+                template_k8s_dir, k8s_dir, template_vars
+            )
+
+        print(
+            f"  🎛️  Generated Kubernetes manifests in {k8s_dir.relative_to(self.output_dir.parent)}"
+        )
+
+    def _copy_and_render_k8s_templates(
+        self, source_dir: Path, target_dir: Path, template_vars: dict[str, Any]
+    ) -> None:
+        """
+        Copy and render Kubernetes template files.
+
+        Args:
+            source_dir: Source template directory
+            target_dir: Target output directory
+            template_vars: Variables for template rendering
+        """
+        for item in source_dir.rglob("*"):
+            if item.is_file() and not item.name.startswith("."):
+                # Calculate relative path
+                rel_path = item.relative_to(source_dir)
+                target_path = target_dir / rel_path
+
+                # Ensure target directory exists
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # Read and render template if it's a YAML file
+                if item.suffix in [".yaml", ".yml"]:
+                    content = item.read_text(encoding="utf-8")
+
+                    # Simple template variable substitution
+                    for key, value in template_vars.items():
+                        content = content.replace(f"{{{{{key.upper()}}}}}", str(value))
+                        content = content.replace(f"{{{{{key}}}}}", str(value))
+
+                    # Replace template-specific placeholders
+                    content = content.replace(
+                        "microservice-template", template_vars["service_name"]
+                    )
+                    content = content.replace(
+                        "microservice_template", template_vars["service_package"]
+                    )
+
+                    target_path.write_text(content, encoding="utf-8")
+                else:
+                    # Copy non-template files as-is
+                    target_path.write_bytes(item.read_bytes())
+
+                print(
+                    f"    📄 Generated K8s: {target_path.relative_to(target_dir.parent)}"
+                )
+
 
 def main() -> None:
     """Main entry point for service generation."""
@@ -240,12 +342,20 @@ Examples:
   %(prog)s fastapi user-management --http-port 8080
   %(prog)s hybrid payment-processor --grpc-port 50052 --http-port 8082
   %(prog)s grpc certificate-checker --description "Certificate validation service"
+  %(prog)s fastapi order-service --service-mesh --service-mesh-type istio
+  %(prog)s hybrid user-service --service-mesh --namespace production --domain api.company.com
 
 Service Types:
   grpc      - gRPC-only service with protocol buffers
   fastapi   - HTTP REST API service with FastAPI
   hybrid    - Combined gRPC and FastAPI service
   minimal   - Minimal service with base configuration only
+
+Service Mesh:
+  --service-mesh          - Enable service mesh configurations (Istio/Linkerd)
+  --service-mesh-type     - Choose between 'istio' or 'linkerd' (default: istio)
+  --namespace            - Kubernetes namespace for deployment
+  --domain               - Service domain for external access
         """,
     )
 
@@ -280,6 +390,30 @@ Service Types:
 
     parser.add_argument(
         "--output-dir", type=Path, help="Output directory (default: ./src)"
+    )
+
+    # Service mesh options
+    parser.add_argument(
+        "--service-mesh", action="store_true", help="Enable service mesh configuration"
+    )
+
+    parser.add_argument(
+        "--service-mesh-type",
+        choices=["istio", "linkerd"],
+        default="istio",
+        help="Service mesh type (default: istio)",
+    )
+
+    parser.add_argument(
+        "--namespace",
+        default="microservice-framework",
+        help="Kubernetes namespace (default: microservice-framework)",
+    )
+
+    parser.add_argument(
+        "--domain",
+        default="framework.local",
+        help="Service domain (default: framework.local)",
     )
 
     args = parser.parse_args()
@@ -324,6 +458,11 @@ Service Types:
             author=args.author,
             grpc_port=args.grpc_port,
             http_port=args.http_port,
+            # Service mesh options
+            service_mesh=args.service_mesh,
+            service_mesh_type=args.service_mesh_type,
+            namespace=args.namespace,
+            domain=args.domain,
         )
 
     except Exception as e:

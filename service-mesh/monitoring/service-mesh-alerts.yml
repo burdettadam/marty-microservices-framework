@@ -1,0 +1,205 @@
+groups:
+- name: service-mesh-istio-alerts
+  rules:
+  # Istio Control Plane Alerts
+  - alert: IstioControlPlaneDown
+    expr: up{job=~"istio-.*"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      component: istio
+    annotations:
+      summary: "Istio control plane component is down"
+      description: "Istio control plane component {{ $labels.job }} has been down for more than 1 minute."
+
+  - alert: IstioHighErrorRate
+    expr: |
+      (
+        sum(rate(istio_requests_total{response_code=~"5.*"}[5m])) by (destination_service_name) /
+        sum(rate(istio_requests_total[5m])) by (destination_service_name)
+      ) * 100 > 5
+    for: 2m
+    labels:
+      severity: warning
+      component: istio
+      service: "{{ $labels.destination_service_name }}"
+    annotations:
+      summary: "High error rate in service {{ $labels.destination_service_name }}"
+      description: "Service {{ $labels.destination_service_name }} has an error rate of {{ $value }}% for more than 2 minutes."
+
+  - alert: IstioHighLatency
+    expr: |
+      histogram_quantile(0.95,
+        sum(rate(istio_request_duration_milliseconds_bucket[5m])) by (le, destination_service_name)
+      ) > 1000
+    for: 2m
+    labels:
+      severity: warning
+      component: istio
+      service: "{{ $labels.destination_service_name }}"
+    annotations:
+      summary: "High latency in service {{ $labels.destination_service_name }}"
+      description: "Service {{ $labels.destination_service_name }} has P95 latency of {{ $value }}ms for more than 2 minutes."
+
+  - alert: IstioCircuitBreakerTripped
+    expr: |
+      envoy_cluster_circuit_breakers_default_remaining{} < 1
+    for: 30s
+    labels:
+      severity: warning
+      component: istio
+    annotations:
+      summary: "Circuit breaker tripped for {{ $labels.cluster_name }}"
+      description: "Circuit breaker for cluster {{ $labels.cluster_name }} has been tripped."
+
+  - alert: IstioMutualTLSFailure
+    expr: |
+      sum(rate(istio_requests_total{connection_security_policy!="mutual_tls"}[5m])) by (source_workload, destination_service_name) > 0
+    for: 1m
+    labels:
+      severity: critical
+      component: istio
+    annotations:
+      summary: "mTLS failure detected"
+      description: "Non-mTLS traffic detected from {{ $labels.source_workload }} to {{ $labels.destination_service_name }}."
+
+  - alert: IstioConfigurationError
+    expr: |
+      pilot_k8s_cfg_events{event="update"} - pilot_k8s_cfg_events{event="update"} offset 1m > 10
+    for: 30s
+    labels:
+      severity: warning
+      component: istio
+    annotations:
+      summary: "High configuration update rate in Istio"
+      description: "Istio is processing configuration updates at a high rate, which may indicate configuration issues."
+
+- name: service-mesh-linkerd-alerts
+  rules:
+  # Linkerd Control Plane Alerts
+  - alert: LinkerdControlPlaneDown
+    expr: up{job=~"linkerd-.*"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      component: linkerd
+    annotations:
+      summary: "Linkerd control plane component is down"
+      description: "Linkerd control plane component {{ $labels.job }} has been down for more than 1 minute."
+
+  - alert: LinkerdHighErrorRate
+    expr: |
+      (
+        sum(rate(response_total{classification="failure"}[5m])) by (dst) /
+        sum(rate(response_total[5m])) by (dst)
+      ) * 100 > 5
+    for: 2m
+    labels:
+      severity: warning
+      component: linkerd
+      service: "{{ $labels.dst }}"
+    annotations:
+      summary: "High error rate in service {{ $labels.dst }}"
+      description: "Service {{ $labels.dst }} has an error rate of {{ $value }}% for more than 2 minutes."
+
+  - alert: LinkerdHighLatency
+    expr: |
+      histogram_quantile(0.95,
+        sum(rate(response_latency_ms_bucket[5m])) by (le, dst)
+      ) > 1000
+    for: 2m
+    labels:
+      severity: warning
+      component: linkerd
+      service: "{{ $labels.dst }}"
+    annotations:
+      summary: "High latency in service {{ $labels.dst }}"
+      description: "Service {{ $labels.dst }} has P95 latency of {{ $value }}ms for more than 2 minutes."
+
+  - alert: LinkerdProxyDown
+    expr: up{job="linkerd-proxy"} == 0
+    for: 30s
+    labels:
+      severity: warning
+      component: linkerd
+    annotations:
+      summary: "Linkerd proxy is down"
+      description: "Linkerd proxy on {{ $labels.instance }} has been down for more than 30 seconds."
+
+  - alert: LinkerdTCPConnectionFailure
+    expr: |
+      sum(rate(tcp_close_total{classification="failure"}[5m])) by (peer) > 0
+    for: 1m
+    labels:
+      severity: warning
+      component: linkerd
+    annotations:
+      summary: "TCP connection failures to {{ $labels.peer }}"
+      description: "TCP connection failures detected to peer {{ $labels.peer }}."
+
+- name: service-mesh-general-alerts
+  rules:
+  # General Service Mesh Alerts
+  - alert: ServiceMeshDataPlaneCPUHigh
+    expr: |
+      (
+        rate(container_cpu_usage_seconds_total{container=~"istio-proxy|linkerd-proxy"}[5m]) * 100
+      ) > 80
+    for: 5m
+    labels:
+      severity: warning
+      component: service-mesh
+    annotations:
+      summary: "High CPU usage in service mesh data plane"
+      description: "Service mesh proxy on {{ $labels.pod }} has CPU usage of {{ $value }}% for more than 5 minutes."
+
+  - alert: ServiceMeshDataPlaneMemoryHigh
+    expr: |
+      (
+        container_memory_usage_bytes{container=~"istio-proxy|linkerd-proxy"} /
+        container_spec_memory_limit_bytes{container=~"istio-proxy|linkerd-proxy"} * 100
+      ) > 80
+    for: 5m
+    labels:
+      severity: warning
+      component: service-mesh
+    annotations:
+      summary: "High memory usage in service mesh data plane"
+      description: "Service mesh proxy on {{ $labels.pod }} has memory usage of {{ $value }}% for more than 5 minutes."
+
+  - alert: ServiceMeshCertificateExpiration
+    expr: |
+      (cert_expiry_timestamp - time()) / 86400 < 7
+    for: 1m
+    labels:
+      severity: warning
+      component: service-mesh
+    annotations:
+      summary: "Service mesh certificate expiring soon"
+      description: "Service mesh certificate for {{ $labels.service }} will expire in {{ $value }} days."
+
+  - alert: ServiceMeshRequestVolumeSpike
+    expr: |
+      (
+        sum(rate(istio_requests_total[5m])) or
+        sum(rate(response_total[5m]))
+      ) > 1000
+    for: 2m
+    labels:
+      severity: info
+      component: service-mesh
+    annotations:
+      summary: "High request volume in service mesh"
+      description: "Service mesh is handling {{ $value }} requests per second."
+
+  - alert: ServiceMeshGatewayDown
+    expr: |
+      up{job="istio-gateway"} == 0 or
+      up{job="linkerd-gateway"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      component: service-mesh
+    annotations:
+      summary: "Service mesh gateway is down"
+      description: "Service mesh gateway {{ $labels.job }} has been down for more than 1 minute."

@@ -1,0 +1,87 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: microservice-framework
+spec:
+  # Enable strict mTLS for all services in the namespace
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: api-gateway-peer-auth
+  namespace: microservice-framework
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    8080:
+      mode: STRICT
+    9090:
+      mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: template-service-peer-auth
+  namespace: microservice-framework
+spec:
+  selector:
+    matchLabels:
+      app: template-service
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    8080:
+      mode: PERMISSIVE  # Allow both mTLS and plaintext for gradual migration
+    9090:
+      mode: STRICT      # gRPC should always use mTLS
+---
+# Disable mTLS for observability endpoints
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: observability-peer-auth
+  namespace: microservice-framework
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: observability
+  mtls:
+    mode: DISABLE
+---
+# Special handling for ingress gateway
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: ingress-gateway-peer-auth
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      istio: ingressgateway
+  mtls:
+    mode: PERMISSIVE  # Allow external traffic without mTLS
+---
+# Kafka communication peer authentication
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: kafka-peer-auth
+  namespace: microservice-framework
+spec:
+  selector:
+    matchLabels:
+      app: kafka
+  mtls:
+    mode: PERMISSIVE  # Kafka may not support mTLS
+  portLevelMtls:
+    9092:
+      mode: DISABLE
+    9093:
+      mode: PERMISSIVE

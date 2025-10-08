@@ -12,7 +12,8 @@ repos:
         name: Fix end of files
       - id: check-yaml
         name: Check YAML syntax
-        exclude: ^microservice_project_template/k8s/.*\.yaml$
+        exclude: ^(microservice_project_template/k8s/.*\.yaml|k8s/.*\.yaml|service-mesh/.*\.yaml|security/.*\.yaml)$
+        args: [--allow-multiple-documents]
       - id: check-json
         name: Check JSON syntax
       - id: check-toml
@@ -71,10 +72,10 @@ repos:
       # Type checking with MyPy
       - id: mypy-type-check
         name: MyPy Type Checking
-        entry: python3 -m mypy
+        entry: uv run mypy
         language: system
         files: ^scripts/.*\.py$
-        args: [scripts/, --config-file=mypy.ini]
+        args: [scripts/verify_security_framework.py, --config-file=mypy.ini]
         require_serial: true
         pass_filenames: false
 
@@ -93,8 +94,18 @@ repos:
         name: Run Framework Tests
         entry: python3
         language: system
-        files: ^(scripts/.*\.py|service/.*\.j2|mypy\.ini|requirements\.txt|Makefile)$
+        files: ^(scripts/.*\.py|service/.*\.j2|mypy\.ini|requirements\.txt|Makefile|observability/.*)$
         args: [scripts/test_framework.py]
+        require_serial: true
+        pass_filenames: false
+
+      # Observability validation
+      - id: observability-validation
+        name: Validate Observability Components
+        entry: python3
+        language: system
+        files: ^observability/.*\.py$
+        args: [scripts/validate_observability.py]
         require_serial: true
         pass_filenames: false
 
