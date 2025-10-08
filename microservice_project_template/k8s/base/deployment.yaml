@@ -15,6 +15,19 @@ spec:
       labels:
         app.kubernetes.io/name: microservice-template
         app.kubernetes.io/component: api
+        version: v1  # For service mesh traffic splitting
+      annotations:
+        # Prometheus scraping
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+        prometheus.io/path: "/metrics"
+        # Istio sidecar injection (optional, namespace-level injection is preferred)
+        sidecar.istio.io/inject: "true"
+        # Linkerd injection (optional, namespace-level injection is preferred)
+        linkerd.io/inject: enabled
+        # Service mesh configuration
+        config.linkerd.io/skip-inbound-ports: "9000"  # Skip metrics port
+        traffic.sidecar.istio.io/includeInboundPorts: "50051,8080"  # Include only app ports
     spec:
       containers:
         - name: microservice-template

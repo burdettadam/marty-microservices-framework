@@ -1,0 +1,139 @@
+# Development environment configuration
+# Inherits from base configuration with development-specific overrides
+
+# Base configuration import reference
+base_config: true
+
+# Development-specific hosts
+dev_hosts: &dev_hosts
+  user_service: localhost
+  order_service: localhost
+  payment_service: localhost
+  notification_service: localhost
+  api_gateway: localhost
+
+# Service hosts
+hosts: *dev_hosts
+
+# Development security settings (less strict for development)
+security:
+  grpc_tls:
+    enabled: false  # Disabled for local development
+    mtls: false
+    require_client_auth: false
+
+  auth:
+    required: false  # Optional authentication in development
+    jwt:
+      enabled: true
+      algorithm: "HS256"
+      secret: "dev_jwt_secret_for_testing_only_never_use_in_production"
+    api_key_enabled: false
+    client_cert:
+      enabled: false
+
+  authz:
+    enabled: false  # Disabled for development
+    default_action: "allow"
+
+# Development logging (more verbose)
+logging:
+  level: DEBUG
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
+  handlers:
+    - console
+  file: "logs/dev.log"
+
+# Development monitoring
+monitoring:
+  enabled: true
+  metrics_port: 9090
+  health_check_port: 8080
+  prometheus_enabled: true
+  tracing_enabled: false  # Disabled for local development
+  jaeger_endpoint: ""
+
+# Development database connections (using local PostgreSQL)
+database:
+  user_service:
+    host: localhost
+    port: 5432
+    database: "user_service_dev"
+    username: "dev_user"
+    password: "dev_password"
+    pool_size: 5
+    max_overflow: 10
+    ssl_mode: "disable"
+
+  order_service:
+    host: localhost
+    port: 5432
+    database: "order_service_dev"
+    username: "dev_user"
+    password: "dev_password"
+    pool_size: 5
+    max_overflow: 10
+    ssl_mode: "disable"
+
+  payment_service:
+    host: localhost
+    port: 5432
+    database: "payment_service_dev"
+    username: "dev_user"
+    password: "dev_password"
+    pool_size: 5
+    max_overflow: 10
+    ssl_mode: "disable"
+
+  notification_service:
+    host: localhost
+    port: 5432
+    database: "notification_service_dev"
+    username: "dev_user"
+    password: "dev_password"
+    pool_size: 5
+    max_overflow: 10
+    ssl_mode: "disable"
+
+# Development-specific service configurations
+services:
+  user_service:
+    max_connections: 20
+    request_timeout: 60  # More lenient timeout for debugging
+    enable_email_verification: false  # Disabled for development
+    debug_mode: true
+    mock_external_services: true
+
+  order_service:
+    max_concurrent_orders: 10
+    order_timeout_minutes: 30  # More lenient timeout
+    inventory_check_enabled: false  # Simplified for development
+    payment_timeout_seconds: 600
+    debug_mode: true
+
+  payment_service:
+    max_transaction_amount: 1000  # Lower limit for development
+    fraud_check_enabled: false  # Disabled for development
+    pci_compliance_mode: false  # Relaxed for development
+    debug_mode: true
+    use_mock_payment_gateway: true
+
+  notification_service:
+    max_queue_size: 100
+    retry_attempts: 1  # Fewer retries for faster feedback
+    batch_size: 10
+    rate_limit_per_minute: 600  # More lenient for testing
+    debug_mode: true
+    use_mock_email_service: true
+
+# Development resilience (faster failure for development feedback)
+resilience:
+  circuit_breaker:
+    failure_threshold: 3
+    recovery_timeout: 30
+    half_open_max_calls: 2
+
+  retry_policy:
+    max_attempts: 2
+    backoff_multiplier: 1.2
+    max_delay_seconds: 10

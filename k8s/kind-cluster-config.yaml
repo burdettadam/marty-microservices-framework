@@ -1,0 +1,58 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: microservices-framework
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    protocol: TCP
+  - containerPort: 443
+    hostPort: 443
+    protocol: TCP
+  - containerPort: 15021
+    hostPort: 15021
+    protocol: TCP
+    # Istio status port
+  - containerPort: 15090
+    hostPort: 15090
+    protocol: TCP
+    # Istio envoy admin
+  - containerPort: 4191
+    hostPort: 4191
+    protocol: TCP
+    # Linkerd proxy admin
+  - containerPort: 8086
+    hostPort: 8086
+    protocol: TCP
+    # Linkerd viz
+  - containerPort: 9090
+    hostPort: 9090
+    protocol: TCP
+    # Prometheus
+  - containerPort: 3000
+    hostPort: 3000
+    protocol: TCP
+    # Grafana
+- role: worker
+  labels:
+    node-type: worker
+- role: worker
+  labels:
+    node-type: worker
+networking:
+  apiServerAddress: "127.0.0.1"
+  apiServerPort: 6443
+  disableDefaultCNI: false
+  kubeProxyMode: "ipvs"
+featureGates:
+  # Enable feature gates for service mesh
+  "EphemeralContainers": true
+  "ServiceInternalTrafficPolicy": true
+  "TopologyAwareHints": true

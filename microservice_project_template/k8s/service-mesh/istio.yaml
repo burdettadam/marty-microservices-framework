@@ -1,0 +1,99 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{SERVICE_NAME}}-virtualservice
+  namespace: {{NAMESPACE}}
+spec:
+  hosts:
+  - "{{SERVICE_NAME}}.{{DOMAIN}}"
+  gateways:
+  - microservices-framework-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/{{SERVICE_NAME}}/"
+    route:
+    - destination:
+        host: {{SERVICE_NAME}}
+        port:
+          number: {{HTTP_PORT}}
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+    timeout: 30s
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 100ms
+  - match:
+    - uri:
+        prefix: "/health"
+    route:
+    - destination:
+        host: {{SERVICE_NAME}}
+        port:
+          number: {{HTTP_PORT}}
+    retries:
+      attempts: 2
+      perTryTimeout: 2s
+    timeout: 5s
+  - match:
+    - uri:
+        prefix: "/metrics"
+    route:
+    - destination:
+        host: {{SERVICE_NAME}}
+        port:
+          number: {{HTTP_PORT}}
+    timeout: 10s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{SERVICE_NAME}}-destination
+  namespace: {{NAMESPACE}}
+spec:
+  host: {{SERVICE_NAME}}
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 50
+        connectTimeout: 30s
+      http:
+        http1MaxPendingRequests: 25
+        http2MaxRequests: 50
+        maxRequestsPerConnection: 5
+        maxRetries: 3
+        h2UpgradePolicy: UPGRADE
+    loadBalancer:
+      simple: ROUND_ROBIN
+    circuitBreaker:
+      consecutiveGatewayErrors: 3
+      consecutiveErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+    outlierDetection:
+      consecutiveGatewayErrors: 3
+      consecutive5xxErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+  portLevelSettings:
+  - port:
+      number: {{GRPC_PORT}}
+    connectionPool:
+      tcp:
+        maxConnections: 25
+      http:
+        maxRequestsPerConnection: 3

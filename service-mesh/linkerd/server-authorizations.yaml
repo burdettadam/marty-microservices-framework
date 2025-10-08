@@ -1,0 +1,172 @@
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: framework-inter-service-grpc-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: framework-grpc-server
+  requiredRoutes:
+  - pathRegex: "/.*"
+    methods: ["*"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: api-gateway
+      - name: template-service
+      - name: default
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: framework-inter-service-http-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: framework-http-server
+  requiredRoutes:
+  - pathRegex: "/.*"
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: api-gateway
+      - name: template-service
+      - name: default
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: api-gateway-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: api-gateway-server
+  requiredRoutes:
+  - pathRegex: "/api/.*"
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]
+  - pathRegex: "/health/.*"
+    methods: ["GET"]
+  - pathRegex: "/metrics"
+    methods: ["GET"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: default
+      - name: template-service
+    # Allow unauthenticated access for health checks and metrics
+    unauthenticated: true
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: api-gateway-grpc-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: api-gateway-grpc-server
+  requiredRoutes:
+  - pathRegex: "/framework\\..*"
+    methods: ["*"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: template-service
+      - name: default
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: template-service-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: template-service-server
+  requiredRoutes:
+  - pathRegex: "/template/.*"
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+  - pathRegex: "/health/.*"
+    methods: ["GET"]
+  - pathRegex: "/metrics"
+    methods: ["GET"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: api-gateway
+      - name: default
+    # Allow health checks and metrics without authentication
+    unauthenticated: true
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: template-service-grpc-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: template-service-grpc-server
+  requiredRoutes:
+  - pathRegex: "/framework\\..*"
+    methods: ["*"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: api-gateway
+      - name: default
+---
+# Observability authorization
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: prometheus-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: prometheus-server
+  requiredRoutes:
+  - pathRegex: "/.*"
+    methods: ["GET", "POST"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: grafana
+      - name: default
+    unauthenticated: true  # Allow external monitoring access
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: grafana-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: grafana-server
+  requiredRoutes:
+  - pathRegex: "/.*"
+    methods: ["GET", "POST"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: default
+    unauthenticated: true  # Allow dashboard access
+---
+# Metrics server authorization for all services
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: framework-metrics-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: framework-metrics-server
+  requiredRoutes:
+  - pathRegex: "/metrics"
+    methods: ["GET"]
+  - pathRegex: "/stats.*"
+    methods: ["GET"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: prometheus
+      - name: default
+    unauthenticated: true  # Allow Prometheus scraping
