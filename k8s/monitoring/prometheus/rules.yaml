@@ -1,0 +1,218 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: rules
+    marty.framework/phase: "phase2"
+data:
+  phase2-infrastructure.yml: |
+    groups:
+    - name: phase2.infrastructure
+      rules:
+      # Cache Infrastructure Alerts
+      - alert: RedisCacheDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          infrastructure_component: cache
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache has been down for more than 1 minute"
+
+      - alert: RedisCacheHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          infrastructure_component: cache
+        annotations:
+          summary: "Redis cache memory usage is high"
+          description: "Redis memory usage is above 80% for more than 5 minutes"
+
+      - alert: RedisCacheLowHitRatio
+        expr: rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          infrastructure_component: cache
+        annotations:
+          summary: "Redis cache hit ratio is low"
+          description: "Redis cache hit ratio is below 50% for more than 10 minutes"
+
+      # Message Queue Infrastructure Alerts
+      - alert: RabbitMQDown
+        expr: up{job="rabbitmq-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          infrastructure_component: messaging
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "RabbitMQ has been down for more than 1 minute"
+
+      - alert: RabbitMQHighQueueDepth
+        expr: rabbitmq_queue_messages > 1000
+        for: 5m
+        labels:
+          severity: warning
+          infrastructure_component: messaging
+        annotations:
+          summary: "RabbitMQ queue depth is high"
+          description: "RabbitMQ queue {{ $labels.queue }} has more than 1000 messages for more than 5 minutes"
+
+      - alert: RabbitMQHighMessageRate
+        expr: rate(rabbitmq_queue_messages_published_total[5m]) > 100
+        for: 10m
+        labels:
+          severity: info
+          infrastructure_component: messaging
+        annotations:
+          summary: "RabbitMQ high message rate"
+          description: "RabbitMQ is receiving more than 100 messages per second"
+
+      # Database Infrastructure Alerts
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          infrastructure_component: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL has been down for more than 1 minute"
+
+      - alert: PostgreSQLHighConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          infrastructure_component: database
+        annotations:
+          summary: "PostgreSQL connection usage is high"
+          description: "PostgreSQL connection usage is above 80% for more than 5 minutes"
+
+  phase2-microservices.yml: |
+    groups:
+    - name: phase2.microservices
+      rules:
+      # Microservice Health Alerts
+      - alert: MicroserviceDown
+        expr: up{infrastructure_phase="phase2"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: microservice
+        annotations:
+          summary: "Phase 2 microservice is down"
+          description: "Microservice {{ $labels.kubernetes_pod_name }} has been down for more than 1 minute"
+
+      - alert: MicroserviceHighErrorRate
+        expr: rate(http_requests_total{infrastructure_phase="phase2",status=~"5.."}[5m]) / rate(http_requests_total{infrastructure_phase="phase2"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: microservice
+        annotations:
+          summary: "High error rate in Phase 2 microservice"
+          description: "Error rate is above 5% for {{ $labels.kubernetes_pod_name }}"
+
+      - alert: MicroserviceHighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{infrastructure_phase="phase2"}[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: microservice
+        annotations:
+          summary: "High latency in Phase 2 microservice"
+          description: "95th percentile latency is above 1 second for {{ $labels.kubernetes_pod_name }}"
+
+      # Resource Usage Alerts
+      - alert: MicroserviceHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{pod=~".*phase2.*"}[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: resource
+        annotations:
+          summary: "High CPU usage in Phase 2 microservice"
+          description: "CPU usage is above 80% for {{ $labels.pod }}"
+
+      - alert: MicroserviceHighMemoryUsage
+        expr: container_memory_usage_bytes{pod=~".*phase2.*"} / container_spec_memory_limit_bytes > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: resource
+        annotations:
+          summary: "High memory usage in Phase 2 microservice"
+          description: "Memory usage is above 80% for {{ $labels.pod }}"
+
+  phase2-custom.yml: |
+    groups:
+    - name: phase2.custom
+      rules:
+      # Custom Phase 2 Component Alerts
+      - alert: ConfigManagerUnhealthy
+        expr: config_manager_health_check == 0
+        for: 2m
+        labels:
+          severity: critical
+          infrastructure_component: config
+        annotations:
+          summary: "Configuration Manager is unhealthy"
+          description: "Configuration Manager health check failed"
+
+      - alert: SecretManagerUnhealthy
+        expr: secret_manager_health_check == 0
+        for: 2m
+        labels:
+          severity: critical
+          infrastructure_component: secrets
+        annotations:
+          summary: "Secret Manager is unhealthy"
+          description: "Secret Manager health check failed"
+
+      - alert: APIGatewayUnhealthy
+        expr: api_gateway_health_check == 0
+        for: 2m
+        labels:
+          severity: critical
+          infrastructure_component: gateway
+        annotations:
+          summary: "API Gateway is unhealthy"
+          description: "API Gateway health check failed"
+
+      - alert: EventStreamManagerUnhealthy
+        expr: event_stream_manager_health_check == 0
+        for: 2m
+        labels:
+          severity: warning
+          infrastructure_component: events
+        annotations:
+          summary: "Event Stream Manager is unhealthy"
+          description: "Event Stream Manager health check failed"
+
+      # Performance and Scaling Alerts
+      - alert: CacheHitRatioDecreasing
+        expr: increase(cache_hit_ratio[1h]) < -0.1
+        for: 15m
+        labels:
+          severity: info
+          infrastructure_component: cache
+        annotations:
+          summary: "Cache hit ratio decreasing"
+          description: "Cache hit ratio has decreased by more than 10% in the last hour"
+
+      - alert: MessageQueueThroughputDecreasing
+        expr: increase(message_queue_throughput[1h]) < -100
+        for: 15m
+        labels:
+          severity: info
+          infrastructure_component: messaging
+        annotations:
+          summary: "Message queue throughput decreasing"
+          description: "Message queue throughput has decreased by more than 100 msg/sec in the last hour"

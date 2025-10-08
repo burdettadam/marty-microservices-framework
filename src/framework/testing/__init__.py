@@ -1,19 +1,51 @@
 """
-Advanced Testing Framework for Marty Microservices Framework.
+DRY Testing Infrastructure for Marty Microservices Framework.
 
-This package provides comprehensive testing capabilities for enterprise microservices
-including contract testing, chaos engineering, performance testing, integration testing,
-and test automation.
+This package provides comprehensive testing patterns, fixtures, and utilities
+for testing microservices applications including:
 
-Key Components:
-- Core testing framework with test execution and reporting
+- Async test base classes with automatic setup/teardown
+- Service test mixins with standardized patterns
+- Event testing with collectors and assertions
+- Mock repositories and external services
+- Performance testing utilities
+- Integration test patterns
+- Database testing with in-memory SQLite
+
+Plus advanced testing capabilities including:
 - Contract testing for consumer-driven contracts and API validation
 - Chaos engineering for resilience testing
 - Performance testing with load, stress, and spike testing
 - Integration testing for service-to-service, database, and message queue testing
 - Test automation with discovery, scheduling, and CI/CD integration
 
-Example Usage:
+Basic DRY Patterns Example:
+
+    from src.framework.testing import (
+        AsyncTestCase,
+        ServiceTestMixin,
+        TestEventCollector,
+        MockRepository,
+        unit_test,
+        integration_test,
+        performance_test,
+    )
+
+    class TestMyService(AsyncTestCase, ServiceTestMixin):
+        async def setup_method(self):
+            await self.setup_async_test()
+            self.service = MyService(
+                repository=MockRepository(),
+                event_bus=self.test_event_bus,
+            )
+
+        @unit_test
+        async def test_service_operation(self):
+            result = await self.service.do_something()
+            assert result is not None
+            self.event_collector.assert_event_published("something.done")
+
+Advanced Testing Example:
     from marty.framework.testing import (
         TestSuite, TestExecutor, TestConfiguration,
         ContractBuilder, ChaosExperimentBuilder,
@@ -62,6 +94,8 @@ Example Usage:
         environments=["development", "testing", "staging"]
     )
 """
+
+from typing import Dict, List
 
 # Chaos engineering
 from .chaos_engineering import (
@@ -139,6 +173,23 @@ from .integration_testing import (
     create_message_flow_scenario,
 )
 
+# DRY Testing Patterns (Basic)
+from .patterns import (  # Base classes; Test utilities; Test markers; Utility functions
+    AsyncTestCase,
+    IntegrationTestBase,
+    MockRepository,
+    PerformanceTestMixin,
+    ServiceTestMixin,
+    TestDatabaseManager,
+    TestEventCollector,
+    create_test_config,
+    integration_test,
+    performance_test,
+    slow_test,
+    unit_test,
+    wait_for_condition,
+)
+
 # Performance testing
 from .performance_testing import (
     LoadConfiguration,
@@ -175,6 +226,20 @@ from .test_automation import (
 )
 
 __all__ = [
+    # DRY Testing Patterns (Basic)
+    "AsyncTestCase",
+    "ServiceTestMixin",
+    "PerformanceTestMixin",
+    "IntegrationTestBase",
+    "TestDatabaseManager",
+    "TestEventCollector",
+    "MockRepository",
+    "unit_test",
+    "integration_test",
+    "performance_test",
+    "slow_test",
+    "create_test_config",
+    "wait_for_condition",
     # Core testing framework
     "TestType",
     "TestStatus",
@@ -386,7 +451,7 @@ class QuickStart:
 
     @staticmethod
     def setup_automated_testing(
-        test_dirs: List[str], environments: List[str] = None
+        test_dirs: List[str], environments: List[str] | None = None
     ) -> TestOrchestrator:
         """Setup automated testing with reasonable defaults."""
         environments = environments or ["development", "testing"]

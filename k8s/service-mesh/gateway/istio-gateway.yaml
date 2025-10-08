@@ -1,0 +1,84 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: phase2-microservices-gateway
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: istio-gateway
+    app.kubernetes.io/component: gateway
+    marty.framework/phase: "phase2"
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  # HTTPS/TLS termination
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: phase2-tls-secret
+    hosts:
+    - "*.microservices.cluster.local"
+    - "api.phase2.example.com"
+  # HTTP redirect to HTTPS
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*.microservices.cluster.local"
+    - "api.phase2.example.com"
+    tls:
+      httpsRedirect: true
+  # gRPC services
+  - port:
+      number: 50051
+      name: grpc
+      protocol: GRPC
+    hosts:
+    - "*.microservices.cluster.local"
+    - "grpc.phase2.example.com"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: phase2-internal-gateway
+  namespace: microservices-prod
+  labels:
+    app.kubernetes.io/name: istio-gateway
+    app.kubernetes.io/component: internal-gateway
+    marty.framework/phase: "phase2"
+spec:
+  selector:
+    istio: eastwestgateway
+  servers:
+  # Internal service communication
+  - port:
+      number: 15443
+      name: tls
+      protocol: TLS
+    tls:
+      mode: ISTIO_MUTUAL
+    hosts:
+    - "*.local"
+  # Phase 2 infrastructure communication
+  - port:
+      number: 6379
+      name: redis
+      protocol: TCP
+    hosts:
+    - redis.microservices-prod.svc.cluster.local
+  - port:
+      number: 5672
+      name: rabbitmq
+      protocol: TCP
+    hosts:
+    - rabbitmq.microservices-prod.svc.cluster.local
+  - port:
+      number: 5432
+      name: postgresql
+      protocol: TCP
+    hosts:
+    - postgresql.microservices-prod.svc.cluster.local

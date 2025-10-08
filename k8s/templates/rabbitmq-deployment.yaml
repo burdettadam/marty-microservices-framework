@@ -1,0 +1,285 @@
+{{- if eq .Values.infrastructure.messaging.broker "rabbitmq" }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: messaging
+    marty.framework/infrastructure: "messaging"
+spec:
+  serviceName: rabbitmq-headless
+  replicas: {{ .Values.infrastructure.messaging.rabbitmq.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbitmq
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rabbitmq
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: messaging
+    spec:
+      serviceAccountName: rabbitmq
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: rabbitmq
+        image: {{ .Values.infrastructure.messaging.rabbitmq.image | default "rabbitmq:3.12-management-alpine" }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: amqp
+          containerPort: 5672
+          protocol: TCP
+        - name: management
+          containerPort: 15672
+          protocol: TCP
+        - name: prometheus
+          containerPort: 15692
+          protocol: TCP
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.service.name }}-enterprise-secrets
+              key: rabbitmq_username
+        - name: RABBITMQ_DEFAULT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.service.name }}-enterprise-secrets
+              key: rabbitmq_password
+        - name: RABBITMQ_ERLANG_COOKIE
+          value: {{ .Values.infrastructure.messaging.rabbitmq.erlangCookie | default "SWQOKODSQALRPCLNMEQG" }}
+        - name: RABBITMQ_NODE_NAME
+          value: rabbit@$(hostname).rabbitmq-headless.{{ .Values.namespace | default "microservices" }}.svc.cluster.local
+        - name: RABBITMQ_USE_LONGNAME
+          value: "true"
+        - name: RABBITMQ_NODENAME
+          value: rabbit@$(hostname).rabbitmq-headless.{{ .Values.namespace | default "microservices" }}.svc.cluster.local
+        livenessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - ping
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - rabbitmq-diagnostics
+            - check_port_connectivity
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: {{ .Values.infrastructure.messaging.rabbitmq.resources.limits.cpu | default "1000m" }}
+            memory: {{ .Values.infrastructure.messaging.rabbitmq.resources.limits.memory | default "1Gi" }}
+          requests:
+            cpu: {{ .Values.infrastructure.messaging.rabbitmq.resources.requests.cpu | default "200m" }}
+            memory: {{ .Values.infrastructure.messaging.rabbitmq.resources.requests.memory | default "256Mi" }}
+        volumeMounts:
+        - name: rabbitmq-data
+          mountPath: /var/lib/rabbitmq
+        - name: rabbitmq-config
+          mountPath: /etc/rabbitmq/rabbitmq.conf
+          subPath: rabbitmq.conf
+        - name: rabbitmq-definitions
+          mountPath: /etc/rabbitmq/definitions.json
+          subPath: definitions.json
+      volumes:
+      - name: rabbitmq-config
+        configMap:
+          name: rabbitmq-config
+      - name: rabbitmq-definitions
+        configMap:
+          name: rabbitmq-definitions
+  volumeClaimTemplates:
+  - metadata:
+      name: rabbitmq-data
+      labels:
+        app.kubernetes.io/name: rabbitmq
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.infrastructure.messaging.rabbitmq.persistence.size | default "10Gi" }}
+      {{- if .Values.infrastructure.messaging.rabbitmq.persistence.storageClass }}
+      storageClassName: {{ .Values.infrastructure.messaging.rabbitmq.persistence.storageClass }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: messaging
+spec:
+  type: ClusterIP
+  ports:
+  - name: amqp
+    port: 5672
+    targetPort: amqp
+    protocol: TCP
+  - name: management
+    port: 15672
+    targetPort: management
+    protocol: TCP
+  - name: prometheus
+    port: 15692
+    targetPort: prometheus
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-headless
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: messaging-headless
+spec:
+  clusterIP: None
+  ports:
+  - name: amqp
+    port: 5672
+    targetPort: amqp
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: messaging-config
+data:
+  rabbitmq.conf: |
+    # RabbitMQ configuration for Phase 2 messaging
+
+    # Clustering
+    cluster_formation.peer_discovery_backend = classic_config
+    cluster_formation.classic_config.nodes.1 = rabbit@rabbitmq-0.rabbitmq-headless.{{ .Values.namespace | default "microservices" }}.svc.cluster.local
+
+    # Networking
+    listeners.tcp.default = 5672
+    management.listener.port = 15672
+    management.listener.ssl = false
+
+    # Memory and disk limits
+    vm_memory_high_watermark.relative = {{ .Values.infrastructure.messaging.rabbitmq.memoryHighWatermark | default "0.6" }}
+    disk_free_limit.relative = {{ .Values.infrastructure.messaging.rabbitmq.diskFreeLimit | default "2.0" }}
+
+    # Prometheus metrics
+    prometheus.tcp.port = 15692
+
+    # Logging
+    log.console = true
+    log.console.level = {{ .Values.infrastructure.messaging.rabbitmq.logLevel | default "info" }}
+
+    # Management plugin
+    management.load_definitions = /etc/rabbitmq/definitions.json
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-definitions
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: messaging-definitions
+data:
+  definitions.json: |
+    {
+      "vhosts": [
+        {"name": "/"}
+      ],
+      "exchanges": [
+        {
+          "name": "{{ .Values.service.name }}.events",
+          "vhost": "/",
+          "type": "topic",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {}
+        },
+        {
+          "name": "{{ .Values.service.name }}.commands",
+          "vhost": "/",
+          "type": "direct",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {}
+        }
+      ],
+      "queues": [
+        {
+          "name": "{{ .Values.service.name }}.events",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 3600000,
+            "x-max-length": 10000
+          }
+        },
+        {
+          "name": "{{ .Values.service.name }}.commands",
+          "vhost": "/",
+          "durable": true,
+          "auto_delete": false,
+          "arguments": {
+            "x-message-ttl": 1800000,
+            "x-max-length": 5000
+          }
+        }
+      ],
+      "bindings": [
+        {
+          "source": "{{ .Values.service.name }}.events",
+          "destination": "{{ .Values.service.name }}.events",
+          "destination_type": "queue",
+          "routing_key": "{{ .Values.service.name }}.#",
+          "arguments": {}
+        },
+        {
+          "source": "{{ .Values.service.name }}.commands",
+          "destination": "{{ .Values.service.name }}.commands",
+          "destination_type": "queue",
+          "routing_key": "{{ .Values.service.name }}",
+          "arguments": {}
+        }
+      ]
+    }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq
+  namespace: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: rabbitmq
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: messaging-service-account
+{{- end }}

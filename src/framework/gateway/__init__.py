@@ -1,46 +1,228 @@
 """
-API Gateway Framework
+Gateway Package.
 
-Comprehensive API gateway implementation providing routing, rate limiting,
-authentication, request/response transformation, monitoring, and security
-for microservices architectures.
+Provides comprehensive API Gateway infrastructure including:
+- Dynamic routing and load balancing
+- Rate limiting and circuit breakers
+- Authentication and authorization
+- Middleware system for request/response processing
+- Service discovery and health checking
+- Performance monitoring and metrics
 
-This module provides:
-- Dynamic routing with path-based and host-based routing
-- Rate limiting with multiple algorithms and storage backends
-- Authentication and authorization with multiple providers
-- Request/response transformation and middleware pipeline
-- Load balancing integration with service discovery
-- Circuit breaker integration for fault tolerance
-- Comprehensive monitoring and metrics collection
-- Security features including CORS, security headers, and input validation
-- Plugin architecture for extensibility
-- WebSocket and SSE support for real-time communications
+Available Classes:
+- APIGateway: Main gateway implementation
+- RouteConfig: Route configuration with rules and policies
+- ServiceInstance: Service instance registration
+- ServiceRegistry: Service discovery and health checking
+- LoadBalancer: Various load balancing algorithms
+- RateLimiter: Rate limiting implementations
+- Authenticator: Authentication providers
+- Middleware: Request/response processing middleware
+- CircuitBreaker: Resilience pattern implementation
+
+Supported Features:
+- HTTP/HTTPS routing with multiple load balancing algorithms
+- JWT, API Key, OAuth2 authentication
+- Token bucket, sliding window rate limiting
+- CORS, security headers, logging middleware
+- Circuit breaker pattern and health checking
+- Performance metrics and monitoring
 """
 
-# Authentication and authorization
-from .auth import (  # Authentication providers; Authorization systems; Auth configuration; Token management; Auth exceptions
-    APIKeyProvider,
-    AttributeBasedAuth,
+# New enterprise gateway components
+from .api_gateway import (
+    APIGateway,
+    APIKeyAuthenticator,
     AuthConfig,
-    AuthContext,
-    AuthenticationFailed,
-    AuthorizationDenied,
-    AuthorizationManager,
-    AuthProvider,
-    AuthRule,
-    BasicAuthProvider,
-    CustomAuthProvider,
-    InvalidToken,
-    JWTAuthProvider,
-    OAuth2Provider,
-    PermissionBasedAuth,
-    RoleBasedAuth,
-    TokenExpired,
-    TokenManager,
-    TokenStore,
-    TokenValidator,
+    AuthenticationType,
+    Authenticator,
+    CircuitBreaker,
+    GatewayStats,
+    JWTAuthenticator,
+    LeastConnectionsLoadBalancer,
+    LoadBalancer,
+    LoadBalancingAlgorithm,
+    RateLimitAlgorithm,
+    RateLimitConfig,
+    RateLimiter,
+    RoundRobinLoadBalancer,
+    RouteConfig,
+    RouteRule,
+    RoutingMethod,
+    ServiceInstance,
+    ServiceRegistry,
+    TokenBucketRateLimiter,
+    create_gateway,
+    create_jwt_auth_route,
+    create_rate_limited_route,
+    gateway_context,
+    get_gateway,
 )
+from .middleware import (
+    CachingMiddleware,
+    CORSMiddleware,
+    LoggingMiddleware,
+    MetricsMiddleware,
+    Middleware,
+    MiddlewareChain,
+    MiddlewareContext,
+    SecurityMiddleware,
+    TransformationMiddleware,
+    ValidationMiddleware,
+    create_api_validation_middleware,
+    create_standard_middleware_chain,
+    create_transformation_middleware,
+)
+
+__all__ = [
+    # Core Gateway Components
+    "RoutingMethod",
+    "LoadBalancingAlgorithm",
+    "RateLimitAlgorithm",
+    "AuthenticationType",
+    "ServiceInstance",
+    "RouteRule",
+    "RateLimitConfig",
+    "AuthConfig",
+    "RouteConfig",
+    "GatewayStats",
+    # Rate Limiting
+    "RateLimiter",
+    "TokenBucketRateLimiter",
+    # Load Balancing
+    "LoadBalancer",
+    "RoundRobinLoadBalancer",
+    "LeastConnectionsLoadBalancer",
+    # Authentication
+    "Authenticator",
+    "JWTAuthenticator",
+    "APIKeyAuthenticator",
+    # Resilience
+    "CircuitBreaker",
+    # Service Discovery
+    "ServiceRegistry",
+    # Main Gateway
+    "APIGateway",
+    "get_gateway",
+    "create_gateway",
+    "gateway_context",
+    # Utility Functions
+    "create_jwt_auth_route",
+    "create_rate_limited_route",
+    # Middleware Components
+    "MiddlewareContext",
+    "Middleware",
+    "LoggingMiddleware",
+    "CORSMiddleware",
+    "ValidationMiddleware",
+    "CachingMiddleware",
+    "MetricsMiddleware",
+    "TransformationMiddleware",
+    "SecurityMiddleware",
+    "MiddlewareChain",
+    "create_standard_middleware_chain",
+    "create_api_validation_middleware",
+    "create_transformation_middleware",
+]
+
+# New enterprise gateway components
+from .api_gateway import (
+    APIGateway,
+    APIKeyAuthenticator,
+    AuthConfig,
+    AuthenticationType,
+    Authenticator,
+    CircuitBreaker,
+    GatewayStats,
+    JWTAuthenticator,
+    LeastConnectionsLoadBalancer,
+    LoadBalancer,
+    LoadBalancingAlgorithm,
+    RateLimitAlgorithm,
+    RateLimitConfig,
+    RateLimiter,
+    RoundRobinLoadBalancer,
+    RouteConfig,
+    RouteRule,
+    RoutingMethod,
+    ServiceInstance,
+    ServiceRegistry,
+    TokenBucketRateLimiter,
+    create_gateway,
+    create_jwt_auth_route,
+    create_rate_limited_route,
+    gateway_context,
+    get_gateway,
+)
+from .middleware import (
+    CachingMiddleware,
+    CORSMiddleware,
+    LoggingMiddleware,
+    MetricsMiddleware,
+    Middleware,
+    MiddlewareChain,
+    MiddlewareContext,
+    SecurityMiddleware,
+    TransformationMiddleware,
+    ValidationMiddleware,
+    create_api_validation_middleware,
+    create_standard_middleware_chain,
+    create_transformation_middleware,
+)
+
+__all__ = [
+    # Core Gateway Components
+    "RoutingMethod",
+    "LoadBalancingAlgorithm",
+    "RateLimitAlgorithm",
+    "AuthenticationType",
+    "ServiceInstance",
+    "RouteRule",
+    "RateLimitConfig",
+    "AuthConfig",
+    "RouteConfig",
+    "GatewayStats",
+    # Rate Limiting
+    "RateLimiter",
+    "TokenBucketRateLimiter",
+    # Load Balancing
+    "LoadBalancer",
+    "RoundRobinLoadBalancer",
+    "LeastConnectionsLoadBalancer",
+    # Authentication
+    "Authenticator",
+    "JWTAuthenticator",
+    "APIKeyAuthenticator",
+    # Resilience
+    "CircuitBreaker",
+    # Service Discovery
+    "ServiceRegistry",
+    # Main Gateway
+    "APIGateway",
+    "get_gateway",
+    "create_gateway",
+    "gateway_context",
+    # Utility Functions
+    "create_jwt_auth_route",
+    "create_rate_limited_route",
+    # Middleware Components
+    "MiddlewareContext",
+    "Middleware",
+    "LoggingMiddleware",
+    "CORSMiddleware",
+    "ValidationMiddleware",
+    "CachingMiddleware",
+    "MetricsMiddleware",
+    "TransformationMiddleware",
+    "SecurityMiddleware",
+    "MiddlewareChain",
+    "create_standard_middleware_chain",
+    "create_api_validation_middleware",
+    "create_transformation_middleware",
+    "TokenManager",
+    "TokenStore",
+    "TokenValidator",
+]
 
 # Configuration management
 from .config import (  # Configuration loaders; Dynamic configuration; Configuration formats; Configuration management

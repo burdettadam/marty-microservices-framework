@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace | default "microservices" }}
+  labels:
+    app.kubernetes.io/name: marty-microservices
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: {{ .Chart.AppVersion }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    marty.framework/phase: "phase2"
+    marty.framework/environment: {{ .Values.environment | default "development" }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: {{ .Values.namespace | default "microservices" }}-quota
+  namespace: {{ .Values.namespace | default "microservices" }}
+spec:
+  hard:
+    requests.cpu: {{ .Values.resourceQuota.cpu | default "4" }}
+    requests.memory: {{ .Values.resourceQuota.memory | default "8Gi" }}
+    limits.cpu: {{ .Values.resourceQuota.cpuLimit | default "8" }}
+    limits.memory: {{ .Values.resourceQuota.memoryLimit | default "16Gi" }}
+    persistentvolumeclaims: {{ .Values.resourceQuota.pvc | default "10" }}
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: {{ .Values.namespace | default "microservices" }}-limits
+  namespace: {{ .Values.namespace | default "microservices" }}
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: {{ .Values.defaultLimits.cpu | default "500m" }}
+      memory: {{ .Values.defaultLimits.memory | default "512Mi" }}
+    defaultRequest:
+      cpu: {{ .Values.defaultRequests.cpu | default "100m" }}
+      memory: {{ .Values.defaultRequests.memory | default "128Mi" }}
+  - type: PersistentVolumeClaim
+    max:
+      storage: {{ .Values.defaultLimits.storage | default "10Gi" }}

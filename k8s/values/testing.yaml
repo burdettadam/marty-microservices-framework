@@ -1,0 +1,134 @@
+# Testing Environment Values
+# Optimized for automated testing with isolated resources
+
+# Testing namespace
+namespace: microservices-test
+environment: testing
+
+service:
+  replicaCount: 2  # Minimal redundancy for testing
+  debug: false
+  logLevel: INFO
+
+# Phase 2 Infrastructure - Testing Configuration
+infrastructure:
+  # Lightweight infrastructure for testing
+  cache:
+    backend: redis
+    ttl: 120  # Medium TTL for testing
+    maxSize: 1000
+    redis:
+      replicas: 1
+      maxMemory: 128mb
+      persistence:
+        enabled: false  # No persistence needed for testing
+      resources:
+        limits:
+          cpu: 200m
+          memory: 256Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+
+  messaging:
+    broker: rabbitmq
+    rabbitmq:
+      replicas: 1
+      persistence:
+        size: 5Gi
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 200m
+          memory: 256Mi
+
+  events:
+    store: postgresql
+
+  gateway:
+    enabled: true
+    auth:
+      enabled: true  # Test authentication
+      username: test_user
+      password: test_password
+    rateLimit:
+      connections: 20
+      requestsPerMinute: 200
+
+# Testing Database
+database:
+  host: postgresql-test
+  port: 5432
+  poolSize: 10
+  maxOverflow: 5
+
+# Testing Secrets
+secrets:
+  database:
+    username: test_user
+    password: test_password
+
+  redis:
+    password: test_redis_password
+
+  rabbitmq:
+    username: test_admin
+    password: test_rabbitmq_password
+
+  jwt:
+    secretKey: test-jwt-secret-key-for-testing
+
+  encryption:
+    key: test-encryption-key-for-testing
+
+# Testing Resource Configuration
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+resourceQuota:
+  cpu: 8
+  memory: 16Gi
+  cpuLimit: 16
+  memoryLimit: 32Gi
+  pvc: 20
+
+defaultLimits:
+  cpu: 500m
+  memory: 512Mi
+
+defaultRequests:
+  cpu: 100m
+  memory: 128Mi
+
+# Testing Persistence
+persistence:
+  enabled: false  # Use emptyDir for testing
+
+# Testing Observability
+observability:
+  tracing:
+    enabled: true
+    endpoint: http://jaeger-test:14268/api/traces
+  metrics:
+    enabled: true
+    endpoint: http://prometheus-test:9090
+  logging:
+    level: INFO
+    format: json
+
+# Testing-specific service configuration
+serviceAnnotations:
+  test.marty.framework/environment: testing
+  test.marty.framework/isolation: "true"
+  test.marty.framework/ephemeral: "true"
+
+# Node scheduling for testing
+nodeSelector:
+  node-type: testing

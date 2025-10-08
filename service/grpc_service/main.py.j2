@@ -2,59 +2,178 @@
 {{service_description}}
 
 This is a gRPC service generated from the Marty Ultra-DRY service template.
-It automatically uses all established DRY patterns:
-- Auto-Service Discovery (90% code reduction)
-- Service Configuration Factory (centralized config)
-- Ultra-DRY serve_auto_service pattern
-- Standardized test patterns ready
+It uses enterprise-grade infrastructure components:
+- gRPC Service Factory with dependency injection
+- Configuration management with secrets
+- Multi-backend caching infrastructure
+- Message queues and event streaming
+- API Gateway integration
+- OpenTelemetry distributed tracing
+- Comprehensive health monitoring
+- Event-driven architecture
+- Repository pattern for data access
 """
 
+import asyncio
+import logging
 import sys
 from pathlib import Path
 
 # Ensure we can import from the parent directory
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-# Import ultra-DRY service utilities
-from marty_common.grpc_service_factory import serve_auto_service
-from marty_common.service_config_factory import get_config_manager
-from marty_common.logging_config import get_logger
-from marty_common.database import create_service_database_tables
-
-# Import database utility (if using database)
+# Phase 1 Infrastructure - Enterprise Base
+from src.framework.grpc import GRPCServiceFactory, ServiceDefinition, run_grpc_service
+from src.framework.observability import init_tracing, auto_instrument
+from src.framework.observability.monitoring import ServiceMonitor
+from src.framework.config import BaseServiceConfig
 {% if use_database %}
-from src.shared.database import Base, engine
+from src.framework.database import DatabaseManager
+from src.framework.events import TransactionalOutboxEventBus
 {% endif %}
 
-# Get configuration and logger using DRY factory
-config_manager = get_config_manager("{{service_name}}")
-logger = get_logger(__name__)
+# Phase 2 Infrastructure - Advanced Enterprise Components
+from src.framework.config.manager import ConfigManager, SecretManager
+from src.framework.cache.manager import CacheManager
+from src.framework.messaging.queue import MessageQueue
+from src.framework.messaging.streams import EventStreamManager
+from src.framework.gateway.api_gateway import APIGateway
+
+# Import service implementation
+from .service import {{service_name|title}}Service, {{service_name|title}}ServiceConfig
+
+logger = logging.getLogger(__name__)
 
 
-def main() -> None:
-    """
-    Run {{service_name}} gRPC service using Ultra-DRY Auto-Service pattern.
+async def create_service_factory() -> GRPCServiceFactory:
+    """Create and configure the gRPC service factory with Phase 2 infrastructure."""
 
-    Ultra-DRY Implementation:
-    - Reduced from ~50 lines to ~10 lines (80% reduction)
-    - Auto-discovery of servicer classes and registration functions
-    - Automatic service configuration and database setup
-    - Zero boilerplate service registration
-    """
-    logger.info("Starting {{service_name}} service using Ultra-DRY pattern")
+    # Phase 1: Load base configuration
+    config = {{service_name|title}}ServiceConfig()
+
+    # Phase 2: Initialize enterprise configuration management
+    config_manager = ConfigManager()
+    secret_manager = SecretManager()
+
+    # Load service-specific configuration
+    service_config = await config_manager.get_config("{{service_name}}", config)
+
+    # Initialize observability
+    init_tracing(service_name="{{service_name}}")
+    auto_instrument()
+
+    # Phase 2: Initialize caching infrastructure
+    cache_manager = CacheManager()
+    await cache_manager.initialize()
+
+    # Phase 2: Initialize message queue
+    message_queue = MessageQueue()
+    await message_queue.initialize()
+
+    # Phase 2: Initialize event streaming
+    event_stream_manager = EventStreamManager()
+    await event_stream_manager.initialize()
+
+    # Phase 2: Initialize API Gateway
+    api_gateway = APIGateway()
+    await api_gateway.initialize()
 
     {% if use_database %}
-    # Create database tables if needed
-    create_service_database_tables(Base, engine)
+    # Initialize database
+    db_manager = DatabaseManager(service_config.database_url)
+    await db_manager.create_tables()
+
+    # Initialize event bus
+    session_factory = db_manager.get_async_session_factory()
+    event_bus = TransactionalOutboxEventBus(session_factory)
+    await event_bus.start()
 
     {% endif %}
-    # Ultra-DRY service startup with auto-discovery
-    serve_auto_service(
-        service_name="{{service_name}}",
-        service_module="src.{{service_package}}.app.services.{{service_package}}_service",
-        config_manager=config_manager
+    # Create service factory with enterprise infrastructure
+    factory = GRPCServiceFactory(service_config.model_dump())
+
+    # Register service with all Phase 2 components
+    def create_service():
+        return {{service_name|title}}Service(
+            config=service_config,
+            config_manager=config_manager,
+            secret_manager=secret_manager,
+            cache_manager=cache_manager,
+            message_queue=message_queue,
+            event_stream_manager=event_stream_manager,
+            api_gateway=api_gateway,
+            {% if use_database %}
+            db_manager=db_manager,
+            event_bus=event_bus,
+            {% endif %}
+        )
+
+    # Register service with Phase 2 infrastructure
+    service_def = ServiceDefinition(
+        name="{{service_name}}",
+        servicer_factory=create_service,
+        registration_func=lambda servicer, server: None,  # Auto-registered
+        health_service_name="{{service_name}}",
     )
+
+    # Register service with API Gateway for discovery
+    await api_gateway.register_service(
+        service_name="{{service_name}}",
+        service_url=f"grpc://localhost:{service_config.grpc_port}",
+        health_check_path="/health",
+        metadata={
+            "version": "1.0.0",
+            "capabilities": ["processing", "status"],
+            "phase2_enabled": True,
+        }
+    )
+
+    factory.register_service(service_def)
+    return factory, {
+        "config_manager": config_manager,
+        "secret_manager": secret_manager,
+        "cache_manager": cache_manager,
+        "message_queue": message_queue,
+        "event_stream_manager": event_stream_manager,
+        "api_gateway": api_gateway,
+    }
+
+
+async def main() -> None:
+    """Run {{service_name}} gRPC service with enterprise infrastructure."""
+
+    logger.info("Starting {{service_name}} service with Phase 2 enterprise infrastructure")
+
+    # Create service factory with Phase 2 components
+    factory, infrastructure = await create_service_factory()
+
+    # Start monitoring
+    monitor = ServiceMonitor("{{service_name}}")
+    monitor.start_monitoring()
+
+    try:
+        # Run service
+        await run_grpc_service(
+            factory=factory,
+            port={{grpc_port}},
+            max_workers=10,
+        )
+    finally:
+        # Phase 2: Cleanup infrastructure components
+        logger.info("Shutting down enterprise infrastructure")
+
+        # Stop monitoring
+        monitor.stop_monitoring()
+
+        # Cleanup Phase 2 components
+        await infrastructure["api_gateway"].stop()
+        await infrastructure["event_stream_manager"].stop()
+        await infrastructure["message_queue"].stop()
+        await infrastructure["cache_manager"].stop()
+
+        # Stop service factory
+        await factory.stop()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
