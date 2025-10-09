@@ -8,9 +8,7 @@ for API requests, authentication events, and other application activities.
 import json
 import logging
 import time
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional, dict, list
 
 # FastAPI imports
 try:
@@ -31,7 +29,9 @@ try:
 except ImportError:
     GRPC_AVAILABLE = False
 
-from .events import AuditContext, AuditEventType, AuditOutcome, AuditSeverity
+import builtins
+
+from .events import AuditEventType, AuditOutcome, AuditSeverity
 from .logger import AuditLogger, get_audit_logger
 
 logger = logging.getLogger(__name__)
@@ -49,14 +49,14 @@ class AuditMiddlewareConfig:
         self.log_query_params: bool = True
 
         # Filtering
-        self.exclude_paths: List[str] = [
+        self.exclude_paths: builtins.list[str] = [
             "/health",
             "/metrics",
             "/docs",
             "/openapi.json",
         ]
-        self.exclude_methods: List[str] = ["OPTIONS"]
-        self.sensitive_headers: List[str] = [
+        self.exclude_methods: builtins.list[str] = ["OPTIONS"]
+        self.sensitive_headers: builtins.list[str] = [
             "authorization",
             "cookie",
             "x-api-key",
@@ -98,7 +98,7 @@ def should_log_request(
     return True
 
 
-def extract_user_info(request_data: Dict[str, Any]) -> Dict[str, Any]:
+def extract_user_info(request_data: builtins.dict[str, Any]) -> builtins.dict[str, Any]:
     """Extract user information from request."""
 
     user_info = {}
@@ -124,8 +124,8 @@ def extract_user_info(request_data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def sanitize_headers(
-    headers: Dict[str, str], sensitive_headers: List[str]
-) -> Dict[str, str]:
+    headers: builtins.dict[str, str], sensitive_headers: builtins.list[str]
+) -> builtins.dict[str, str]:
     """Remove or mask sensitive headers."""
 
     sanitized = {}
@@ -138,7 +138,7 @@ def sanitize_headers(
     return sanitized
 
 
-def sanitize_body(body: bytes, max_size: int) -> Optional[str]:
+def sanitize_body(body: bytes, max_size: int) -> str | None:
     """Safely extract and sanitize request/response body."""
 
     if not body or len(body) == 0:
@@ -159,8 +159,7 @@ def sanitize_body(body: bytes, max_size: int) -> Optional[str]:
             # Not JSON, return as text if safe
             if all(ord(c) < 128 for c in text):  # ASCII only
                 return text
-            else:
-                return f"[BINARY - {len(body)} bytes]"
+            return f"[BINARY - {len(body)} bytes]"
 
     except Exception:
         return f"[UNPARSEABLE - {len(body)} bytes]"
@@ -334,10 +333,10 @@ if FASTAPI_AVAILABLE:
             method: str,
             path: str,
             client_ip: str,
-            user_id: Optional[str],
+            user_id: str | None,
             status_code: int,
             duration_ms: float,
-            response_size: Optional[int],
+            response_size: int | None,
         ) -> None:
             """Detect potential security anomalies."""
 
@@ -475,11 +474,11 @@ if GRPC_AVAILABLE:
             audit_logger: AuditLogger,
             method_name: str,
             client_ip: str,
-            user_id: Optional[str],
+            user_id: str | None,
             duration_ms: float,
             outcome: AuditOutcome,
-            error_message: Optional[str],
-            metadata: Dict[str, str],
+            error_message: str | None,
+            metadata: builtins.dict[str, str],
         ) -> None:
             """Log gRPC audit event."""
 

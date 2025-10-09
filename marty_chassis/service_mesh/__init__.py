@@ -6,7 +6,7 @@ configurations, including VirtualServices, DestinationRules, and policies.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional, dict, list
 
 import yaml
 from marty_chassis.config import ChassisConfig
@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 class ServiceMeshGenerator:
     """Generator for service mesh configurations."""
 
-    def __init__(self, service_name: str, config: Optional[ChassisConfig] = None):
+    def __init__(self, service_name: str, config: ChassisConfig | None = None):
         self.service_name = service_name
         self.config = config or ChassisConfig.from_env()
         logger.info("Service mesh generator initialized", service_name=service_name)
@@ -77,7 +77,7 @@ class ServiceMeshGenerator:
 
         logger.info("Linkerd manifests generated", output_dir=str(output_dir))
 
-    def _generate_kubernetes_deployment(self, linkerd: bool = False) -> Dict[str, Any]:
+    def _generate_kubernetes_deployment(self, linkerd: bool = False) -> dict[str, Any]:
         """Generate Kubernetes Deployment manifest."""
         annotations = {}
         if linkerd:
@@ -170,7 +170,7 @@ class ServiceMeshGenerator:
             },
         }
 
-    def _generate_kubernetes_service(self) -> Dict[str, Any]:
+    def _generate_kubernetes_service(self) -> dict[str, Any]:
         """Generate Kubernetes Service manifest."""
         return {
             "apiVersion": "v1",
@@ -201,7 +201,7 @@ class ServiceMeshGenerator:
             },
         }
 
-    def _generate_istio_virtual_service(self) -> Dict[str, Any]:
+    def _generate_istio_virtual_service(self) -> dict[str, Any]:
         """Generate Istio VirtualService manifest."""
         return {
             "apiVersion": "networking.istio.io/v1beta1",
@@ -249,7 +249,7 @@ class ServiceMeshGenerator:
             },
         }
 
-    def _generate_istio_destination_rule(self) -> Dict[str, Any]:
+    def _generate_istio_destination_rule(self) -> dict[str, Any]:
         """Generate Istio DestinationRule manifest."""
         return {
             "apiVersion": "networking.istio.io/v1beta1",
@@ -289,7 +289,7 @@ class ServiceMeshGenerator:
             },
         }
 
-    def _generate_istio_service_entry(self) -> Dict[str, Any]:
+    def _generate_istio_service_entry(self) -> dict[str, Any]:
         """Generate Istio ServiceEntry for external services."""
         return {
             "apiVersion": "networking.istio.io/v1beta1",
@@ -313,7 +313,7 @@ class ServiceMeshGenerator:
             },
         }
 
-    def _generate_istio_authorization_policy(self) -> Dict[str, Any]:
+    def _generate_istio_authorization_policy(self) -> dict[str, Any]:
         """Generate Istio AuthorizationPolicy manifest."""
         return {
             "apiVersion": "security.istio.io/v1beta1",
@@ -350,7 +350,7 @@ class ServiceMeshGenerator:
             },
         }
 
-    def _generate_linkerd_traffic_split(self) -> Dict[str, Any]:
+    def _generate_linkerd_traffic_split(self) -> dict[str, Any]:
         """Generate Linkerd TrafficSplit manifest."""
         return {
             "apiVersion": "split.smi-spec.io/v1alpha1",
@@ -369,7 +369,7 @@ class ServiceMeshGenerator:
             },
         }
 
-    def _generate_linkerd_service_profile(self) -> Dict[str, Any]:
+    def _generate_linkerd_service_profile(self) -> dict[str, Any]:
         """Generate Linkerd ServiceProfile manifest."""
         return {
             "apiVersion": "linkerd.io/v1alpha2",
@@ -412,7 +412,7 @@ class ServiceMeshGenerator:
             },
         }
 
-    def _write_yaml(self, data: Dict[str, Any], file_path: Path) -> None:
+    def _write_yaml(self, data: dict[str, Any], file_path: Path) -> None:
         """Write YAML data to file."""
         try:
             with open(file_path, "w") as f:
@@ -425,7 +425,7 @@ class ServiceMeshGenerator:
 class ManifestGenerator:
     """High-level manifest generator."""
 
-    def __init__(self, service_name: str, config: Optional[ChassisConfig] = None):
+    def __init__(self, service_name: str, config: ChassisConfig | None = None):
         self.service_name = service_name
         self.config = config or ChassisConfig.from_env()
         self.mesh_generator = ServiceMeshGenerator(service_name, config)

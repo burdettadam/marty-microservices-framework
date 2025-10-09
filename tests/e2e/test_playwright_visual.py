@@ -9,11 +9,13 @@ This test demonstrates:
 """
 
 import asyncio
+import builtins
 import json
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Set, dict, list
 
 import pytest
+from aiohttp import web  # Added for F821 'web'
 from playwright.async_api import Browser, Page, async_playwright
 from tests.e2e.conftest import PerformanceAnalyzer
 
@@ -31,7 +33,6 @@ class MockDashboardServer:
         dashboard_html = self._create_dashboard_html()
 
         # Create a simple HTTP server (in real scenarios, this would be your actual dashboard)
-        import aiohttp
         from aiohttp import web
 
         app = web.Application()
@@ -424,7 +425,7 @@ class TestPlaywrightVisual:
 
     async def _run_dashboard_tests(
         self, browser: Browser, dashboard_server, test_report_dir: Path
-    ) -> Dict:
+    ) -> builtins.dict:
         """Run comprehensive dashboard tests."""
 
         results = {
@@ -487,7 +488,7 @@ class TestPlaywrightVisual:
 
     async def _test_dashboard_loading(
         self, page: Page, dashboard_server, screenshots_dir: Path
-    ) -> Dict:
+    ) -> builtins.dict:
         """Test dashboard loading and initial state."""
 
         start_time = asyncio.get_event_loop().time()
@@ -530,7 +531,9 @@ class TestPlaywrightVisual:
                 "screenshot": "dashboard_load_error.png",
             }
 
-    async def _test_visual_regression(self, page: Page, screenshots_dir: Path) -> Dict:
+    async def _test_visual_regression(
+        self, page: Page, screenshots_dir: Path
+    ) -> builtins.dict:
         """Test visual regression by comparing screenshots."""
 
         try:
@@ -576,7 +579,7 @@ class TestPlaywrightVisual:
 
     async def _test_responsive_design(
         self, browser: Browser, dashboard_server, screenshots_dir: Path
-    ) -> Dict:
+    ) -> builtins.dict:
         """Test responsive design across different viewport sizes."""
 
         viewports = [
@@ -641,7 +644,7 @@ class TestPlaywrightVisual:
 
     async def _test_interactive_elements(
         self, page: Page, screenshots_dir: Path
-    ) -> Dict:
+    ) -> builtins.dict:
         """Test interactive elements functionality."""
 
         try:
@@ -708,7 +711,7 @@ class TestPlaywrightVisual:
 
     async def _test_performance_metrics(
         self, page: Page, screenshots_dir: Path
-    ) -> Dict:
+    ) -> builtins.dict:
         """Test performance metrics display and accuracy."""
 
         try:
@@ -757,7 +760,9 @@ class TestPlaywrightVisual:
                 "error": str(e),
             }
 
-    async def _test_accessibility(self, page: Page, screenshots_dir: Path) -> Dict:
+    async def _test_accessibility(
+        self, page: Page, screenshots_dir: Path
+    ) -> builtins.dict:
         """Test accessibility features."""
 
         try:
@@ -809,8 +814,8 @@ class TestPlaywrightVisual:
             }
 
     def _generate_visual_test_report(
-        self, test_results: Dict, test_report_dir: Path
-    ) -> Dict:
+        self, test_results: builtins.dict, test_report_dir: Path
+    ) -> builtins.dict:
         """Generate comprehensive visual test report."""
 
         # Calculate overall scores
@@ -855,7 +860,9 @@ class TestPlaywrightVisual:
             ),
         }
 
-    def _generate_visual_recommendations(self, test_results: Dict) -> List[Dict]:
+    def _generate_visual_recommendations(
+        self, test_results: builtins.dict
+    ) -> builtins.list[builtins.dict]:
         """Generate recommendations based on visual test results."""
         recommendations = []
 
@@ -923,7 +930,9 @@ class TestPlaywrightVisual:
 
         return recommendations
 
-    def _collect_screenshot_info(self, screenshots_dir: Path) -> List[Dict]:
+    def _collect_screenshot_info(
+        self, screenshots_dir: Path
+    ) -> builtins.list[builtins.dict]:
         """Collect information about generated screenshots."""
         if not screenshots_dir.exists():
             return []
@@ -940,7 +949,7 @@ class TestPlaywrightVisual:
 
         return screenshots
 
-    def _print_visual_test_summary(self, report: Dict):
+    def _print_visual_test_summary(self, report: builtins.dict):
         """Print visual test summary."""
         print("\\n" + "=" * 50)
         print("🎭 PLAYWRIGHT VISUAL TESTING SUMMARY")
@@ -954,7 +963,7 @@ class TestPlaywrightVisual:
         print(f"📈 Success rate: {summary['success_rate']:.1f}%")
         print(f"📸 Screenshots generated: {len(report['screenshots_generated'])}")
 
-        print(f"\\n🎯 QUALITY METRICS:")
+        print("\\n🎯 QUALITY METRICS:")
         print(
             f"   🔄 Dashboard loads: {'✅' if quality['dashboard_loads_successfully'] else '❌'}"
         )
@@ -973,7 +982,7 @@ class TestPlaywrightVisual:
 
         recommendations = report["recommendations"]
         if recommendations:
-            print(f"\\n💡 RECOMMENDATIONS:")
+            print("\\n💡 RECOMMENDATIONS:")
             for rec in recommendations[:2]:
                 print(f"   🎯 {rec['category']} ({rec['priority']} priority)")
                 for action in rec["actions"][:2]:

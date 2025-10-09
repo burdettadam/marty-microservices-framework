@@ -6,15 +6,26 @@ token validation, role-based access control, and sophisticated authorization pol
 """
 
 import base64
-import hashlib
-import hmac
+import builtins
 import logging
 import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    dict,
+    list,
+    set,
+    tuple,
+)
 
 import jwt
 
@@ -51,22 +62,22 @@ class Principal:
 
     id: str
     type: str = "user"  # user, service, system
-    name: Optional[str] = None
-    email: Optional[str] = None
-    roles: Set[str] = field(default_factory=set)
-    permissions: Set[str] = field(default_factory=set)
-    attributes: Dict[str, Any] = field(default_factory=dict)
-    groups: Set[str] = field(default_factory=set)
+    name: str | None = None
+    email: str | None = None
+    roles: builtins.set[str] = field(default_factory=set)
+    permissions: builtins.set[str] = field(default_factory=set)
+    attributes: builtins.dict[str, Any] = field(default_factory=dict)
+    groups: builtins.set[str] = field(default_factory=set)
 
     # Token information
-    token_type: Optional[str] = None
-    token_expires: Optional[float] = None
-    token_scope: Set[str] = field(default_factory=set)
+    token_type: str | None = None
+    token_expires: float | None = None
+    token_scope: builtins.set[str] = field(default_factory=set)
 
     # Authentication metadata
-    auth_method: Optional[str] = None
-    auth_time: Optional[float] = None
-    issuer: Optional[str] = None
+    auth_method: str | None = None
+    auth_time: float | None = None
+    issuer: str | None = None
 
 
 @dataclass
@@ -79,29 +90,27 @@ class AuthenticationConfig:
     realm: str = "API Gateway"
 
     # JWT settings
-    jwt_secret: Optional[str] = None
+    jwt_secret: str | None = None
     jwt_algorithm: str = "HS256"
-    jwt_audience: Optional[str] = None
-    jwt_issuer: Optional[str] = None
+    jwt_audience: str | None = None
+    jwt_issuer: str | None = None
     jwt_leeway: int = 10  # seconds
 
     # API Key settings
     api_key_header: str = "X-API-Key"
     api_key_query_param: str = "api_key"
-    api_key_validator: Optional[Callable[[str], Optional[Principal]]] = None
+    api_key_validator: Callable[[str], Principal | None] | None = None
 
     # OAuth2 settings
-    oauth2_introspection_url: Optional[str] = None
-    oauth2_client_id: Optional[str] = None
-    oauth2_client_secret: Optional[str] = None
+    oauth2_introspection_url: str | None = None
+    oauth2_client_id: str | None = None
+    oauth2_client_secret: str | None = None
 
     # Basic auth settings
-    basic_auth_validator: Optional[Callable[[str, str], Optional[Principal]]] = None
+    basic_auth_validator: Callable[[str, str], Principal | None] | None = None
 
     # Custom authentication
-    custom_authenticator: Optional[
-        Callable[[GatewayRequest], Optional[Principal]]
-    ] = None
+    custom_authenticator: Callable[[GatewayRequest], Principal | None] | None = None
 
     # Token caching
     cache_tokens: bool = True
@@ -121,8 +130,8 @@ class AuthorizationConfig:
     default_action: str = "deny"  # allow, deny
 
     # Role-based settings
-    role_hierarchy: Dict[str, List[str]] = field(default_factory=dict)
-    super_admin_roles: Set[str] = field(
+    role_hierarchy: builtins.dict[str, builtins.list[str]] = field(default_factory=dict)
+    super_admin_roles: builtins.set[str] = field(
         default_factory=lambda: {"admin", "super_admin"}
     )
 
@@ -131,13 +140,13 @@ class AuthorizationConfig:
     wildcard_permissions: bool = True
 
     # Resource-based settings
-    resource_patterns: Dict[str, str] = field(default_factory=dict)
+    resource_patterns: builtins.dict[str, str] = field(default_factory=dict)
 
     # Custom authorization
-    custom_authorizer: Optional[Callable[[Principal, GatewayRequest], bool]] = None
+    custom_authorizer: Callable[[Principal, GatewayRequest], bool] | None = None
 
     # Policy settings
-    policy_evaluation_order: List[str] = field(
+    policy_evaluation_order: builtins.list[str] = field(
         default_factory=lambda: ["deny", "allow"]
     )
     combine_policies: str = (
@@ -151,11 +160,11 @@ class AuthorizationRule:
 
     name: str
     effect: str  # allow, deny
-    actions: List[str] = field(default_factory=list)
-    resources: List[str] = field(default_factory=list)
-    conditions: Dict[str, Any] = field(default_factory=dict)
-    roles: List[str] = field(default_factory=list)
-    permissions: List[str] = field(default_factory=list)
+    actions: builtins.list[str] = field(default_factory=list)
+    resources: builtins.list[str] = field(default_factory=list)
+    conditions: builtins.dict[str, Any] = field(default_factory=dict)
+    roles: builtins.list[str] = field(default_factory=list)
+    permissions: builtins.list[str] = field(default_factory=list)
     priority: int = 0
 
 
@@ -164,10 +173,10 @@ class AuthenticationResult:
     """Result of authentication attempt."""
 
     success: bool
-    principal: Optional[Principal] = None
-    error: Optional[str] = None
-    challenge: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    principal: Principal | None = None
+    error: str | None = None
+    challenge: str | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -175,9 +184,9 @@ class AuthorizationResult:
     """Result of authorization check."""
 
     allowed: bool
-    reason: Optional[str] = None
-    matched_rules: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    reason: str | None = None
+    matched_rules: builtins.list[str] = field(default_factory=list)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class Authenticator(ABC):
@@ -210,7 +219,7 @@ class ApiKeyAuthenticator(Authenticator):
 
     def __init__(self, config: AuthenticationConfig):
         self.config = config
-        self.api_keys: Dict[str, Principal] = {}
+        self.api_keys: builtins.dict[str, Principal] = {}
 
     def add_api_key(self, api_key: str, principal: Principal):
         """Add API key for principal."""
@@ -253,7 +262,7 @@ class JWTAuthenticator(Authenticator):
 
     def __init__(self, config: AuthenticationConfig):
         self.config = config
-        self._token_cache: Dict[str, Tuple[Principal, float]] = {}
+        self._token_cache: builtins.dict[str, builtins.tuple[Principal, float]] = {}
 
     def authenticate(self, request: GatewayRequest) -> AuthenticationResult:
         """Authenticate using JWT token."""
@@ -273,9 +282,8 @@ class JWTAuthenticator(Authenticator):
             principal, expires_at = self._token_cache[token]
             if time.time() < expires_at:
                 return AuthenticationResult(success=True, principal=principal)
-            else:
-                # Remove expired token from cache
-                del self._token_cache[token]
+            # Remove expired token from cache
+            del self._token_cache[token]
 
         try:
             # Decode and validate JWT
@@ -303,9 +311,9 @@ class JWTAuthenticator(Authenticator):
         except jwt.ExpiredSignatureError:
             return AuthenticationResult(success=False, error="Token expired")
         except jwt.InvalidTokenError as e:
-            return AuthenticationResult(success=False, error=f"Invalid token: {str(e)}")
+            return AuthenticationResult(success=False, error=f"Invalid token: {e!s}")
 
-    def _create_principal_from_jwt(self, payload: Dict[str, Any]) -> Principal:
+    def _create_principal_from_jwt(self, payload: builtins.dict[str, Any]) -> Principal:
         """Create principal from JWT payload."""
         principal_id = payload.get("sub") or payload.get("user_id") or payload.get("id")
         if not principal_id:
@@ -401,7 +409,7 @@ class BasicAuthenticator(Authenticator):
 
         except Exception as e:
             return AuthenticationResult(
-                success=False, error=f"Authentication error: {str(e)}"
+                success=False, error=f"Authentication error: {e!s}"
             )
 
 
@@ -424,13 +432,10 @@ class CustomAuthenticator(Authenticator):
                 principal.auth_method = "custom"
                 principal.auth_time = time.time()
                 return AuthenticationResult(success=True, principal=principal)
-            else:
-                return AuthenticationResult(
-                    success=False, error="Authentication failed"
-                )
+            return AuthenticationResult(success=False, error="Authentication failed")
         except Exception as e:
             return AuthenticationResult(
-                success=False, error=f"Authentication error: {str(e)}"
+                success=False, error=f"Authentication error: {e!s}"
             )
 
 
@@ -450,7 +455,7 @@ class RBACAuthorizer(Authorizer):
 
     def __init__(self, config: AuthorizationConfig):
         self.config = config
-        self.rules: List[AuthorizationRule] = []
+        self.rules: builtins.list[AuthorizationRule] = []
 
     def add_rule(self, rule: AuthorizationRule):
         """Add authorization rule."""
@@ -483,7 +488,7 @@ class RBACAuthorizer(Authorizer):
                             reason=f"Allowed by rule: {rule.name}",
                             matched_rules=matched_rules,
                         )
-                    elif self.config.combine_policies == "permit_overrides":
+                    if self.config.combine_policies == "permit_overrides":
                         final_decision = True
                         break
 
@@ -494,7 +499,7 @@ class RBACAuthorizer(Authorizer):
                             reason=f"Denied by rule: {rule.name}",
                             matched_rules=matched_rules,
                         )
-                    elif self.config.combine_policies == "deny_overrides":
+                    if self.config.combine_policies == "deny_overrides":
                         final_decision = False
                         break
 
@@ -538,7 +543,7 @@ class RBACAuthorizer(Authorizer):
         return True
 
     def _has_permissions(
-        self, principal: Principal, required_permissions: List[str]
+        self, principal: Principal, required_permissions: builtins.list[str]
     ) -> bool:
         """Check if principal has required permissions."""
         for required in required_permissions:
@@ -572,7 +577,9 @@ class RBACAuthorizer(Authorizer):
 
         return False
 
-    def _matches_resources(self, path: str, resource_patterns: List[str]) -> bool:
+    def _matches_resources(
+        self, path: str, resource_patterns: builtins.list[str]
+    ) -> bool:
         """Check if path matches any resource pattern."""
         for pattern in resource_patterns:
             if self._matches_resource_pattern(path, pattern):
@@ -609,20 +616,20 @@ class RBACAuthorizer(Authorizer):
             end_time = value.get("end", float("inf"))
             return start_time <= current_time <= end_time
 
-        elif key == "ip_address":
+        if key == "ip_address":
             # Check if request IP is in allowed list
             ip = request.get_header("X-Forwarded-For") or request.get_header(
                 "X-Real-IP"
             )
             return ip in value if isinstance(value, list) else ip == value
 
-        elif key == "user_attribute":
+        if key == "user_attribute":
             # Check user attribute
             attr_name = value.get("name")
             attr_value = value.get("value")
             return principal.attributes.get(attr_name) == attr_value
 
-        elif key == "header":
+        if key == "header":
             # Check request header
             header_name = value.get("name")
             header_value = value.get("value")
@@ -657,7 +664,7 @@ class AuthenticationMiddleware:
 
         return authenticator_class(self.config)
 
-    def process_request(self, request: GatewayRequest) -> Optional[GatewayResponse]:
+    def process_request(self, request: GatewayRequest) -> GatewayResponse | None:
         """Process request for authentication."""
         try:
             # Skip authentication if not required
@@ -690,9 +697,8 @@ class AuthenticationMiddleware:
 
                 return None  # Continue processing
 
-            else:
-                # Authentication failed
-                return self._create_auth_error_response(result)
+            # Authentication failed
+            return self._create_auth_error_response(result)
 
         except Exception as e:
             logger.error(f"Error in authentication middleware: {e}")
@@ -730,15 +736,14 @@ class AuthorizationMiddleware:
         """Create authorizer based on configuration."""
         if self.config.model == AuthorizationModel.RBAC:
             return RBACAuthorizer(self.config)
-        else:
-            raise ValueError(f"Unsupported authorization model: {self.config.model}")
+        raise ValueError(f"Unsupported authorization model: {self.config.model}")
 
     def add_rule(self, rule: AuthorizationRule):
         """Add authorization rule."""
         if hasattr(self.authorizer, "add_rule"):
             self.authorizer.add_rule(rule)
 
-    def process_request(self, request: GatewayRequest) -> Optional[GatewayResponse]:
+    def process_request(self, request: GatewayRequest) -> GatewayResponse | None:
         """Process request for authorization."""
         try:
             # Skip authorization if no model
@@ -775,10 +780,7 @@ class AuthorizationMiddleware:
                     "reason": result.reason,
                 }
                 return None  # Continue processing
-            else:
-                return self._create_authz_error_response(
-                    result.reason or "Access denied"
-                )
+            return self._create_authz_error_response(result.reason or "Access denied")
 
         except Exception as e:
             logger.error(f"Error in authorization middleware: {e}")
@@ -802,7 +804,9 @@ def create_jwt_auth(secret: str, algorithm: str = "HS256") -> AuthenticationMidd
     return AuthenticationMiddleware(config)
 
 
-def create_api_key_auth(api_keys: Dict[str, Principal]) -> AuthenticationMiddleware:
+def create_api_key_auth(
+    api_keys: builtins.dict[str, Principal]
+) -> AuthenticationMiddleware:
     """Create API key authentication middleware."""
     config = AuthenticationConfig(auth_type=AuthenticationType.API_KEY)
     middleware = AuthenticationMiddleware(config)

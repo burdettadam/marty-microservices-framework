@@ -11,17 +11,12 @@ Provides comprehensive deployment automation including:
 """
 
 import asyncio
-import json
-import logging
+import builtins
 import time
-import uuid
-from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
-import yaml
+from typing import Any, Dict, List, Optional, Set, dict, list
 
 # Import our deployment components
 from .strategies import (
@@ -30,7 +25,6 @@ from .strategies import (
     DeploymentStrategy,
     DeploymentTarget,
     DeploymentValidation,
-    TrafficSplit,
 )
 from .traffic_management import (
     RoutingRule,
@@ -122,19 +116,19 @@ class EnvironmentConfig:
     # Validation configuration
     validation_level: ValidationLevel = ValidationLevel.STANDARD
     health_check_timeout: int = 300
-    performance_thresholds: Dict[str, Any] = field(default_factory=dict)
+    performance_thresholds: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Feature flags
-    feature_flags: Dict[str, bool] = field(default_factory=dict)
+    feature_flags: builtins.dict[str, bool] = field(default_factory=dict)
 
     # Environment variables
-    env_vars: Dict[str, str] = field(default_factory=dict)
+    env_vars: builtins.dict[str, str] = field(default_factory=dict)
 
     # Secret configuration
-    secrets: List[str] = field(default_factory=list)
-    config_maps: List[str] = field(default_factory=list)
+    secrets: builtins.list[str] = field(default_factory=list)
+    config_maps: builtins.list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "environment": self.environment.value,
@@ -150,24 +144,26 @@ class DeploymentPipeline:
     application_name: str
 
     # Pipeline stages
-    environments: List[EnvironmentConfig]
+    environments: builtins.list[EnvironmentConfig]
 
     # Deployment configuration
-    strategy_per_env: Dict[str, DeploymentStrategy] = field(default_factory=dict)
-    approval_required: Dict[str, bool] = field(default_factory=dict)
-    auto_promote: Dict[str, bool] = field(default_factory=dict)
+    strategy_per_env: builtins.dict[str, DeploymentStrategy] = field(
+        default_factory=dict
+    )
+    approval_required: builtins.dict[str, bool] = field(default_factory=dict)
+    auto_promote: builtins.dict[str, bool] = field(default_factory=dict)
 
     # Rollback configuration
     auto_rollback_enabled: bool = True
-    rollback_conditions: Dict[str, Any] = field(default_factory=dict)
+    rollback_conditions: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Notifications
-    notification_channels: List[str] = field(default_factory=list)
+    notification_channels: builtins.list[str] = field(default_factory=list)
 
     # Traffic management
     traffic_backend: TrafficBackend = TrafficBackend.ISTIO
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "environments": [env.to_dict() for env in self.environments],
@@ -190,28 +186,28 @@ class PipelineExecution:
     # Execution context
     source_version: str = ""
     target_version: str = ""
-    trigger_metadata: Dict[str, Any] = field(default_factory=dict)
+    trigger_metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Stage tracking
     current_stage: str = ""
-    completed_stages: List[str] = field(default_factory=list)
-    failed_stages: List[str] = field(default_factory=list)
+    completed_stages: builtins.list[str] = field(default_factory=list)
+    failed_stages: builtins.list[str] = field(default_factory=list)
 
     # Operations
-    deployment_operations: Dict[str, str] = field(
+    deployment_operations: builtins.dict[str, str] = field(
         default_factory=dict
     )  # env -> operation_id
 
     # Status
     status: str = "running"  # running, succeeded, failed, cancelled, paused
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
 
     # Results
-    deployment_results: Dict[str, Any] = field(default_factory=dict)
-    validation_results: Dict[str, Any] = field(default_factory=dict)
+    deployment_results: builtins.dict[str, Any] = field(default_factory=dict)
+    validation_results: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "triggered_by": self.triggered_by.value,
@@ -234,15 +230,15 @@ class FeatureFlagManager:
     """
 
     def __init__(self):
-        self.flags: Dict[str, Dict[str, Any]] = {}
-        self.flag_history: List[Dict[str, Any]] = []
+        self.flags: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.flag_history: builtins.list[builtins.dict[str, Any]] = []
 
     def create_flag(
         self,
         flag_name: str,
         default_value: bool = False,
         description: str = "",
-        environments: Optional[List[str]] = None,
+        environments: builtins.list[str] | None = None,
     ):
         """Create a new feature flag"""
 
@@ -264,7 +260,7 @@ class FeatureFlagManager:
         print(f"🏳️ Created feature flag: {flag_name}")
 
     def set_flag_value(
-        self, flag_name: str, value: bool, environment: Optional[str] = None
+        self, flag_name: str, value: bool, environment: str | None = None
     ):
         """Set feature flag value"""
 
@@ -296,8 +292,8 @@ class FeatureFlagManager:
     def evaluate_flag(
         self,
         flag_name: str,
-        environment: Optional[str] = None,
-        user_context: Optional[Dict[str, Any]] = None,
+        environment: str | None = None,
+        user_context: builtins.dict[str, Any] | None = None,
     ) -> bool:
         """Evaluate feature flag value"""
 
@@ -327,7 +323,7 @@ class FeatureFlagManager:
         return value
 
     def configure_gradual_rollout(
-        self, flag_name: str, percentage: int, environment: Optional[str] = None
+        self, flag_name: str, percentage: int, environment: str | None = None
     ):
         """Configure gradual rollout for feature flag"""
 
@@ -351,8 +347,8 @@ class FeatureFlagManager:
     def _apply_rollout_rules(
         self,
         base_value: bool,
-        rollout_config: Dict[str, Any],
-        user_context: Dict[str, Any],
+        rollout_config: builtins.dict[str, Any],
+        user_context: builtins.dict[str, Any],
     ) -> bool:
         """Apply rollout rules to determine flag value"""
 
@@ -367,7 +363,7 @@ class FeatureFlagManager:
 
         return base_value
 
-    def get_flag_status(self, flag_name: str) -> Optional[Dict[str, Any]]:
+    def get_flag_status(self, flag_name: str) -> builtins.dict[str, Any] | None:
         """Get feature flag status and metrics"""
 
         if flag_name not in self.flags:
@@ -386,7 +382,7 @@ class FeatureFlagManager:
 
         return flag
 
-    def list_flags(self) -> List[Dict[str, Any]]:
+    def list_flags(self) -> builtins.list[builtins.dict[str, Any]]:
         """List all feature flags"""
         return [self.get_flag_status(name) for name in self.flags.keys()]
 
@@ -403,12 +399,12 @@ class HealthMonitor:
     """
 
     def __init__(self):
-        self.health_checks: Dict[str, Dict[str, Any]] = {}
-        self.monitoring_history: List[Dict[str, Any]] = []
+        self.health_checks: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.monitoring_history: builtins.list[builtins.dict[str, Any]] = []
 
     async def perform_health_check(
-        self, target: str, check_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, target: str, check_config: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Perform comprehensive health check"""
 
         result = {
@@ -480,8 +476,8 @@ class HealthMonitor:
         return result
 
     async def _perform_http_check(
-        self, target: str, config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, target: str, config: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Perform HTTP health check"""
 
         try:
@@ -505,8 +501,8 @@ class HealthMonitor:
             return {"success": False, "error": str(e)}
 
     async def _perform_database_check(
-        self, target: str, config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, target: str, config: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Perform database connectivity check"""
 
         try:
@@ -527,8 +523,8 @@ class HealthMonitor:
             return {"success": False, "error": str(e)}
 
     async def _perform_performance_check(
-        self, target: str, config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, target: str, config: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Perform performance metrics check"""
 
         try:
@@ -562,8 +558,8 @@ class HealthMonitor:
             return {"success": False, "error": str(e)}
 
     async def _perform_custom_check(
-        self, target: str, config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, target: str, config: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Perform custom health check"""
 
         try:
@@ -575,18 +571,19 @@ class HealthMonitor:
             # Simulate different check types
             if check_type == "api_dependency":
                 return {"success": True, "message": "API dependency check passed"}
-            elif check_type == "cache_connectivity":
+            if check_type == "cache_connectivity":
                 return {"success": True, "message": "Cache connectivity verified"}
-            else:
-                return {
-                    "success": True,
-                    "message": f'Custom check {config.get("name", "unknown")} passed',
-                }
+            return {
+                "success": True,
+                "message": f'Custom check {config.get("name", "unknown")} passed',
+            }
 
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def get_health_summary(self, target: str, hours: int = 24) -> Dict[str, Any]:
+    def get_health_summary(
+        self, target: str, hours: int = 24
+    ) -> builtins.dict[str, Any]:
         """Get health summary for target over specified period"""
 
         cutoff_time = datetime.now() - timedelta(hours=hours)
@@ -656,8 +653,8 @@ class DeploymentAutomationEngine:
         self.health_monitor = HealthMonitor()
 
         # Pipeline management
-        self.pipelines: Dict[str, DeploymentPipeline] = {}
-        self.executions: Dict[str, PipelineExecution] = {}
+        self.pipelines: builtins.dict[str, DeploymentPipeline] = {}
+        self.executions: builtins.dict[str, PipelineExecution] = {}
 
         # Configuration
         self.default_validation_configs = {
@@ -726,8 +723,8 @@ class DeploymentAutomationEngine:
         target_version: str,
         trigger: DeploymentTrigger = DeploymentTrigger.MANUAL,
         source_version: str = "",
-        trigger_metadata: Optional[Dict[str, Any]] = None,
-        start_from_environment: Optional[str] = None,
+        trigger_metadata: builtins.dict[str, Any] | None = None,
+        start_from_environment: str | None = None,
     ) -> PipelineExecution:
         """Execute deployment pipeline"""
 
@@ -920,12 +917,11 @@ class DeploymentAutomationEngine:
                 }
 
                 return health_result.get("overall_healthy", True)
-            else:
-                execution.deployment_results[env_config.name] = {
-                    "status": deployment_operation.status,
-                    "error": deployment_operation.error_message,
-                }
-                return False
+            execution.deployment_results[env_config.name] = {
+                "status": deployment_operation.status,
+                "error": deployment_operation.error_message,
+            }
+            return False
 
         except Exception as e:
             print(f"❌ Environment deployment failed for {env_config.name}: {e}")
@@ -980,7 +976,7 @@ class DeploymentAutomationEngine:
         execution: PipelineExecution,
         pipeline: DeploymentPipeline,
         env_config: EnvironmentConfig,
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Monitor environment health after deployment"""
 
         target = f"{pipeline.application_name}-{env_config.name}"
@@ -1029,7 +1025,7 @@ class DeploymentAutomationEngine:
                 print(f"⏪ Rolling back deployment in {env_config.name}")
 
                 success = await self.deployment_orchestrator.rollback_deployment(
-                    operation_id, reason=f"Automated rollback due to deployment failure"
+                    operation_id, reason="Automated rollback due to deployment failure"
                 )
 
                 if success:
@@ -1040,7 +1036,7 @@ class DeploymentAutomationEngine:
         except Exception as e:
             print(f"❌ Rollback error for {env_config.name}: {e}")
 
-    def get_pipeline_status(self, pipeline_name: str) -> Optional[Dict[str, Any]]:
+    def get_pipeline_status(self, pipeline_name: str) -> builtins.dict[str, Any] | None:
         """Get pipeline status and metrics"""
 
         if pipeline_name not in self.pipelines:
@@ -1083,7 +1079,7 @@ class DeploymentAutomationEngine:
             },
         }
 
-    def get_execution_status(self, execution_id: str) -> Optional[Dict[str, Any]]:
+    def get_execution_status(self, execution_id: str) -> builtins.dict[str, Any] | None:
         """Get execution status"""
 
         if execution_id not in self.executions:
@@ -1092,7 +1088,7 @@ class DeploymentAutomationEngine:
         execution = self.executions[execution_id]
         return execution.to_dict()
 
-    def list_active_executions(self) -> List[Dict[str, Any]]:
+    def list_active_executions(self) -> builtins.list[builtins.dict[str, Any]]:
         """List all active pipeline executions"""
 
         active_executions = [
@@ -1214,7 +1210,7 @@ async def main():
     print("Configured 50% gradual rollout for new_ui_enabled in production")
 
     # Show execution details
-    print(f"\n📋 Execution Details")
+    print("\n📋 Execution Details")
     execution_status = engine.get_execution_status(execution.execution_id)
     if execution_status:
         print(f"Execution ID: {execution_status['execution_id']}")

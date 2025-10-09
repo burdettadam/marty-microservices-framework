@@ -3,12 +3,26 @@ Transaction management utilities for the enterprise database framework.
 """
 
 import asyncio
+import builtins
 import logging
+from collections.abc import Awaitable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Awaitable, Callable, Dict, List, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Set,
+    TypeVar,
+    dict,
+    list,
+)
 
 from sqlalchemy import text
 from sqlalchemy.exc import DataError, IntegrityError, SQLAlchemyError
@@ -17,7 +31,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .manager import DatabaseManager
 
 logger = logging.getLogger(__name__)
-
 T = TypeVar("T")
 
 
@@ -33,32 +46,26 @@ class IsolationLevel(Enum):
 class TransactionError(Exception):
     """Base transaction error."""
 
-    pass
-
 
 class DeadlockError(TransactionError):
     """Deadlock detected error."""
 
-    pass
-
 
 class RetryableError(TransactionError):
     """Error that can be retried."""
-
-    pass
 
 
 @dataclass
 class TransactionConfig:
     """Transaction configuration."""
 
-    isolation_level: Optional[IsolationLevel] = None
+    isolation_level: IsolationLevel | None = None
     read_only: bool = False
     deferrable: bool = False
     max_retries: int = 3
     retry_delay: float = 0.1
     retry_backoff: float = 2.0
-    timeout: Optional[float] = None
+    timeout: float | None = None
 
 
 class TransactionManager:
@@ -66,17 +73,16 @@ class TransactionManager:
 
     def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
-        self._active_transactions: Dict[str, AsyncSession] = {}
+        self._active_transactions: builtins.dict[str, AsyncSession] = {}
 
     @asynccontextmanager
     async def transaction(
         self,
-        config: Optional[TransactionConfig] = None,
-        session: Optional[AsyncSession] = None,
+        config: TransactionConfig | None = None,
+        session: AsyncSession | None = None,
     ):
         """Create a managed transaction context."""
         config = config or TransactionConfig()
-
         if session:
             # Use provided session
             async with self._managed_transaction(session, config):
@@ -93,7 +99,6 @@ class TransactionManager:
     ):
         """Internal managed transaction with configuration."""
         transaction_id = id(session)
-
         try:
             # Set transaction configuration
             if config.isolation_level:
@@ -102,27 +107,20 @@ class TransactionManager:
                         f"SET TRANSACTION ISOLATION LEVEL {config.isolation_level.value}"
                     )
                 )
-
             if config.read_only:
                 await session.execute(text("SET TRANSACTION READ ONLY"))
-
             if config.deferrable:
                 await session.execute(text("SET TRANSACTION DEFERRABLE"))
-
             # Set timeout if specified
             if config.timeout:
                 await asyncio.wait_for(session.begin(), timeout=config.timeout)
             else:
                 await session.begin()
-
             self._active_transactions[str(transaction_id)] = session
-
             yield session
-
             # Commit the transaction
             await session.commit()
             logger.debug("Transaction %s committed successfully", transaction_id)
-
         except Exception as e:
             # Rollback on any error
             try:
@@ -141,23 +139,20 @@ class TransactionManager:
         self,
         func: Callable[..., Awaitable[T]],
         *args,
-        config: Optional[TransactionConfig] = None,
+        config: TransactionConfig | None = None,
         **kwargs,
     ) -> T:
         """Execute a function in a transaction with retry logic."""
         config = config or TransactionConfig()
         last_exception = None
-
         for attempt in range(config.max_retries + 1):
             try:
                 async with self.transaction(config) as session:
                     # Add session to kwargs if the function expects it
                     if "session" in func.__code__.co_varnames:
                         kwargs["session"] = session
-
                     result = await func(*args, **kwargs)
                     return result
-
             except (DeadlockError, RetryableError) as e:
                 last_exception = e
                 if attempt < config.max_retries:
@@ -171,16 +166,14 @@ class TransactionManager:
                     )
                     await asyncio.sleep(delay)
                     continue
-                else:
-                    logger.error(
-                        "Transaction failed after %d attempts", config.max_retries + 1
-                    )
-                    raise
+                logger.error(
+                    "Transaction failed after %d attempts", config.max_retries + 1
+                )
+                raise
             except Exception as e:
                 # Non-retryable error
                 logger.error("Transaction failed with non-retryable error: %s", e)
                 raise
-
         # This should not be reached, but just in case
         if last_exception:
             raise last_exception
@@ -188,13 +181,12 @@ class TransactionManager:
 
     async def bulk_transaction(
         self,
-        operations: List[Callable[..., Awaitable[Any]]],
-        config: Optional[TransactionConfig] = None,
-    ) -> List[Any]:
+        operations: builtins.list[Callable[..., Awaitable[Any]]],
+        config: TransactionConfig | None = None,
+    ) -> builtins.list[Any]:
         """Execute multiple operations in a single transaction."""
         config = config or TransactionConfig()
         results = []
-
         async with self.transaction(config) as session:
             for operation in operations:
                 # Add session to the operation if it expects it
@@ -206,32 +198,27 @@ class TransactionManager:
                 else:
                     result = await operation()
                 results.append(result)
-
         return results
 
     async def savepoint_transaction(
         self,
-        operations: List[Callable[..., Awaitable[Any]]],
-        savepoint_names: Optional[List[str]] = None,
-    ) -> List[Any]:
+        operations: builtins.list[Callable[..., Awaitable[Any]]],
+        savepoint_names: builtins.list[str] | None = None,
+    ) -> builtins.list[Any]:
         """Execute operations with savepoints for partial rollback."""
         if savepoint_names and len(savepoint_names) != len(operations):
             raise ValueError(
                 "Number of savepoint names must match number of operations"
             )
-
         results = []
-
         async with self.db_manager.get_session() as session:
             async with session.begin():
                 for i, operation in enumerate(operations):
                     savepoint_name = (
                         savepoint_names[i] if savepoint_names else f"sp_{i}"
                     )
-
                     # Create savepoint
                     savepoint = await session.begin_nested()
-
                     try:
                         # Execute operation
                         if (
@@ -241,12 +228,10 @@ class TransactionManager:
                             result = await operation(session=session)
                         else:
                             result = await operation()
-
                         results.append(result)
                         logger.debug(
                             "Savepoint %s completed successfully", savepoint_name
                         )
-
                     except Exception as e:
                         # Rollback to savepoint
                         await savepoint.rollback()
@@ -255,17 +240,14 @@ class TransactionManager:
                             savepoint_name,
                             e,
                         )
-
                         # Add None result to maintain order
                         results.append(None)
-
                         # Decide whether to continue or re-raise
                         # For now, we continue with other operations
                         continue
-
         return results
 
-    def get_active_transactions(self) -> Dict[str, str]:
+    def get_active_transactions(self) -> builtins.dict[str, str]:
         """Get information about active transactions."""
         return {
             transaction_id: f"Session {id(session)}"
@@ -273,7 +255,7 @@ class TransactionManager:
         }
 
 
-def transactional(config: Optional[TransactionConfig] = None, retry: bool = True):
+def transactional(config: TransactionConfig | None = None, retry: bool = True):
     """Decorator for automatic transaction management."""
 
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
@@ -281,37 +263,28 @@ def transactional(config: Optional[TransactionConfig] = None, retry: bool = True
         async def wrapper(*args, **kwargs) -> T:
             # Try to find database manager in args/kwargs
             db_manager = None
-
             # Look for db_manager in kwargs
             if "db_manager" in kwargs:
                 db_manager = kwargs["db_manager"]
             # Look for self with db_manager attribute
-            elif args and hasattr(args[0], "db_manager"):
+            elif (args and hasattr(args[0], "db_manager")) or (
+                args and hasattr(args[0], "db_manager")
+            ):
                 db_manager = args[0].db_manager
-            # Look for repository with db_manager
-            elif args and hasattr(args[0], "db_manager"):
-                db_manager = args[0].db_manager
-
             if not db_manager:
                 raise ValueError(
                     "No database manager found for transactional decorator"
                 )
-
             transaction_manager = TransactionManager(db_manager)
-
             if retry:
                 return await transaction_manager.retry_transaction(
                     func, *args, config=config, **kwargs
                 )
-            else:
-                async with transaction_manager.transaction(config) as session:
-                    # Add session to kwargs if not already present
-                    if (
-                        "session" not in kwargs
-                        and "session" in func.__code__.co_varnames
-                    ):
-                        kwargs["session"] = session
-                    return await func(*args, **kwargs)
+            async with transaction_manager.transaction(config) as session:
+                # Add session to kwargs if not already present
+                if "session" not in kwargs and "session" in func.__code__.co_varnames:
+                    kwargs["session"] = session
+                return await func(*args, **kwargs)
 
         return wrapper
 
@@ -335,14 +308,12 @@ def handle_database_errors(
             raise TransactionError(f"Invalid data: {e}") from e
         except SQLAlchemyError as e:
             error_message = str(e).lower()
-
             # Check for deadlock
             if any(
                 keyword in error_message for keyword in ["deadlock", "lock timeout"]
             ):
                 logger.warning("Deadlock detected: %s", e)
                 raise DeadlockError(f"Database deadlock: {e}") from e
-
             # Check for connection issues
             if any(
                 keyword in error_message
@@ -350,7 +321,6 @@ def handle_database_errors(
             ):
                 logger.error("Connection error: %s", e)
                 raise RetryableError(f"Database connection error: {e}") from e
-
             # Generic SQLAlchemy error
             logger.error("Database error: %s", e)
             raise TransactionError(f"Database error: {e}") from e
@@ -362,13 +332,11 @@ def handle_database_errors(
 
 
 # Utility functions
-
-
 async def execute_in_transaction(
     db_manager: DatabaseManager,
     func: Callable[..., Awaitable[T]],
     *args,
-    config: Optional[TransactionConfig] = None,
+    config: TransactionConfig | None = None,
     **kwargs,
 ) -> T:
     """Execute a function in a transaction."""
@@ -380,9 +348,9 @@ async def execute_in_transaction(
 
 async def execute_bulk_operations(
     db_manager: DatabaseManager,
-    operations: List[Callable[..., Awaitable[Any]]],
-    config: Optional[TransactionConfig] = None,
-) -> List[Any]:
+    operations: builtins.list[Callable[..., Awaitable[Any]]],
+    config: TransactionConfig | None = None,
+) -> builtins.list[Any]:
     """Execute multiple operations in a single transaction."""
     transaction_manager = TransactionManager(db_manager)
     return await transaction_manager.bulk_transaction(operations, config)
@@ -390,9 +358,9 @@ async def execute_bulk_operations(
 
 async def execute_with_savepoints(
     db_manager: DatabaseManager,
-    operations: List[Callable[..., Awaitable[Any]]],
-    savepoint_names: Optional[List[str]] = None,
-) -> List[Any]:
+    operations: builtins.list[Callable[..., Awaitable[Any]]],
+    savepoint_names: builtins.list[str] | None = None,
+) -> builtins.list[Any]:
     """Execute operations with savepoints."""
     transaction_manager = TransactionManager(db_manager)
     return await transaction_manager.savepoint_transaction(operations, savepoint_names)

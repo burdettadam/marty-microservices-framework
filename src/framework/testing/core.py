@@ -6,17 +6,17 @@ including test orchestration, test data management, and test execution coordinat
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import traceback
 import uuid
 from abc import ABC, abstractmethod
-from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Protocol, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Set, TypeVar, dict, list
 
 logger = logging.getLogger(__name__)
 
@@ -61,13 +61,13 @@ class TestMetrics:
     """Test execution metrics."""
 
     execution_time: float
-    memory_usage: Optional[float] = None
-    cpu_usage: Optional[float] = None
+    memory_usage: float | None = None
+    cpu_usage: float | None = None
     network_calls: int = 0
     database_operations: int = 0
     cache_hits: int = 0
     cache_misses: int = 0
-    custom_metrics: Dict[str, Any] = field(default_factory=dict)
+    custom_metrics: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -80,15 +80,15 @@ class TestResult:
     status: TestStatus
     execution_time: float
     started_at: datetime
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
-    stack_trace: Optional[str] = None
-    metrics: Optional[TestMetrics] = None
-    artifacts: Dict[str, Any] = field(default_factory=dict)
-    tags: List[str] = field(default_factory=list)
+    completed_at: datetime | None = None
+    error_message: str | None = None
+    stack_trace: str | None = None
+    metrics: TestMetrics | None = None
+    artifacts: builtins.dict[str, Any] = field(default_factory=dict)
+    tags: builtins.list[str] = field(default_factory=list)
     severity: TestSeverity = TestSeverity.MEDIUM
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert test result to dictionary."""
         return {
             "test_id": self.test_id,
@@ -112,18 +112,17 @@ class TestResult:
 class TestCase(ABC):
     """Abstract base class for test cases."""
 
-    def __init__(self, name: str, test_type: TestType, tags: List[str] = None):
+    def __init__(self, name: str, test_type: TestType, tags: builtins.list[str] = None):
         self.id = str(uuid.uuid4())
         self.name = name
         self.test_type = test_type
         self.tags = tags or []
-        self.setup_functions: List[Callable] = []
-        self.teardown_functions: List[Callable] = []
+        self.setup_functions: builtins.list[Callable] = []
+        self.teardown_functions: builtins.list[Callable] = []
 
     @abstractmethod
     async def execute(self) -> TestResult:
         """Execute the test case."""
-        pass
 
     async def setup(self):
         """Setup test case."""
@@ -159,10 +158,10 @@ class TestSuite:
     def __init__(self, name: str, description: str = ""):
         self.name = name
         self.description = description
-        self.test_cases: List[TestCase] = []
-        self.setup_functions: List[Callable] = []
-        self.teardown_functions: List[Callable] = []
-        self.tags: List[str] = []
+        self.test_cases: builtins.list[TestCase] = []
+        self.setup_functions: builtins.list[Callable] = []
+        self.teardown_functions: builtins.list[Callable] = []
+        self.tags: builtins.list[str] = []
         self.parallel_execution = True
         self.max_workers = 4
 
@@ -198,8 +197,10 @@ class TestSuite:
                 logger.warning(f"Suite teardown function failed: {e}")
 
     def filter_tests(
-        self, tags: List[str] = None, test_types: List[TestType] = None
-    ) -> List[TestCase]:
+        self,
+        tags: builtins.list[str] = None,
+        test_types: builtins.list[TestType] = None,
+    ) -> builtins.list[TestCase]:
         """Filter test cases by tags and types."""
         filtered_tests = self.test_cases
 
@@ -228,21 +229,21 @@ class TestConfiguration:
     fail_fast: bool = False
     collect_metrics: bool = True
     generate_reports: bool = True
-    report_formats: List[str] = field(default_factory=lambda: ["json", "html"])
+    report_formats: builtins.list[str] = field(default_factory=lambda: ["json", "html"])
     output_directory: str = "./test_results"
     log_level: str = "INFO"
-    tags_to_run: List[str] = field(default_factory=list)
-    tags_to_exclude: List[str] = field(default_factory=list)
-    test_types_to_run: List[TestType] = field(default_factory=list)
+    tags_to_run: builtins.list[str] = field(default_factory=list)
+    tags_to_exclude: builtins.list[str] = field(default_factory=list)
+    test_types_to_run: builtins.list[TestType] = field(default_factory=list)
 
 
 class TestDataManager:
     """Manages test data and fixtures."""
 
     def __init__(self):
-        self.fixtures: Dict[str, Any] = {}
-        self.test_data: Dict[str, Any] = {}
-        self.cleanup_callbacks: List[Callable] = []
+        self.fixtures: builtins.dict[str, Any] = {}
+        self.test_data: builtins.dict[str, Any] = {}
+        self.cleanup_callbacks: builtins.list[Callable] = []
 
     def register_fixture(self, name: str, fixture: Any):
         """Register a test fixture."""
@@ -287,7 +288,7 @@ class TestReporter:
 
     def __init__(self, output_dir: str = "./test_results"):
         self.output_dir = output_dir
-        self.results: List[TestResult] = []
+        self.results: builtins.list[TestResult] = []
 
     def add_result(self, result: TestResult):
         """Add test result."""
@@ -331,7 +332,7 @@ class TestReporter:
 
         return report_path
 
-    def _generate_summary(self) -> Dict[str, Any]:
+    def _generate_summary(self) -> builtins.dict[str, Any]:
         """Generate test summary."""
         total_tests = len(self.results)
         passed = len([r for r in self.results if r.status == TestStatus.PASSED])
@@ -420,7 +421,7 @@ class TestExecutor:
         self.data_manager = TestDataManager()
         self.reporter = TestReporter(self.config.output_directory)
 
-    async def execute_suite(self, suite: TestSuite) -> List[TestResult]:
+    async def execute_suite(self, suite: TestSuite) -> builtins.list[TestResult]:
         """Execute a test suite."""
         logger.info(f"Starting execution of test suite: {suite.name}")
 
@@ -459,7 +460,9 @@ class TestExecutor:
             await suite.teardown()
             await self.data_manager.cleanup()
 
-    async def _execute_parallel(self, tests: List[TestCase]) -> List[TestResult]:
+    async def _execute_parallel(
+        self, tests: builtins.list[TestCase]
+    ) -> builtins.list[TestResult]:
         """Execute tests in parallel."""
         semaphore = asyncio.Semaphore(self.config.max_workers)
 
@@ -491,7 +494,9 @@ class TestExecutor:
 
         return processed_results
 
-    async def _execute_sequential(self, tests: List[TestCase]) -> List[TestResult]:
+    async def _execute_sequential(
+        self, tests: builtins.list[TestCase]
+    ) -> builtins.list[TestResult]:
         """Execute tests sequentially."""
         results = []
 
@@ -563,7 +568,7 @@ class TestExecutor:
             except Exception as e:
                 logger.warning(f"Test teardown failed: {e}")
 
-    def generate_reports(self) -> Dict[str, str]:
+    def generate_reports(self) -> builtins.dict[str, str]:
         """Generate test reports."""
         reports = {}
 
@@ -577,7 +582,7 @@ class TestExecutor:
 
 
 # Utility functions and decorators
-def test_case(name: str, test_type: TestType, tags: List[str] = None):
+def test_case(name: str, test_type: TestType, tags: builtins.list[str] = None):
     """Decorator for creating test cases from functions."""
 
     def decorator(func):

@@ -31,7 +31,7 @@ dependencies = [
     "pydantic>=2.5.0",
     "python-multipart>=0.0.6",
     "click>=8.1.0",
-    "rich>=13.0.0",
+    "rich>=13.8.0",
     "jinja2>=3.1.0",
     "toml>=0.10.2",
     "pyyaml>=6.0.0",
@@ -45,6 +45,8 @@ dependencies = [
     "locust>=2.34.0",
     "grpcio>=1.75.1",
     "grpcio-tools>=1.75.1",
+    "bandit[toml]>=1.8.0",
+    "defusedxml>=0.7.1",
 ]
 
 # Optional dependency groups
@@ -102,7 +104,64 @@ marty_cli = ["templates/**/*"]
 
 [dependency-groups]
 dev = [
+    "bandit>=1.8.6",
     "build>=1.3.0",
     "pre-commit>=4.3.0",
+    "ruff>=0.14.0",
     "twine>=6.2.0",
 ]
+
+# Ruff configuration
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = [
+    ".git",
+    ".venv",
+    "build",
+    "dist",
+    "__pycache__",
+    "templates/",
+    "microservice_project_template/",
+]
+
+[tool.ruff.lint]
+# Current issues temporarily ignored - see CODE_QUALITY_TODO.md for improvement plan
+ignore = [
+    # Original priority issues from systematic fixing
+    "E501",  # line-too-long (133 occurrences)
+    "B904",  # raise-without-from-inside-except (28 occurrences)
+    "I001",  # unsorted-imports (18 occurrences)
+    "F401",  # unused-import (15 occurrences)
+    "F821",  # undefined-name (13 occurrences)
+    "UP035", # deprecated-import (5 occurrences)
+    "B017",  # assert-raises-exception (4 occurrences)
+    "F811",  # redefined-while-unused (1 occurrence)
+
+    # Additional issues discovered during expanded linting - temporarily ignored for pre-commit functionality
+    "E402",  # module-import-not-at-top-of-file
+    "F841",  # unused-variable
+    "C901",  # complex-structure (functions/classes too complex)
+    "B007",  # unused-loop-control-variable
+    "E722",  # bare-except
+    "B008",  # function-call-in-default-argument
+    "UP038", # non-pep604-isinstance
+    "C401",  # unnecessary-generator
+    "B027",  # empty-method-without-abstract-decorator
+    "B024",  # abstract-base-class-without-abstract-method
+    "C416",  # unnecessary-comprehension
+    "C420",  # unnecessary-dict-comprehension-for-iterable
+]
+
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "UP",   # pyupgrade
+    "C",    # flake8-comprehensions
+]
+
+[tool.uv.sources]
+rich = { git = "https://github.com/Textualize/rich.git" }

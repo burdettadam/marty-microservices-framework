@@ -6,27 +6,15 @@ destination rules, gateways, circuit breakers, and deployment strategies.
 """
 
 import asyncio
+import builtins
 import logging
 import random
-import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Dict, List, Optional, dict, list
 
-from .core import HealthStatus, LoadBalancingStrategy, ServiceEndpoint, ServiceMetadata
+from .core import LoadBalancingStrategy, ServiceEndpoint
 
 logger = logging.getLogger(__name__)
 
@@ -52,23 +40,23 @@ class CircuitBreakerState(Enum):
 class HTTPRoute:
     """HTTP route configuration."""
 
-    match: Dict[str, Any] = field(default_factory=dict)
+    match: builtins.dict[str, Any] = field(default_factory=dict)
     destination: str = ""
     weight: int = 100
-    headers: Dict[str, str] = field(default_factory=dict)
+    headers: builtins.dict[str, str] = field(default_factory=dict)
 
     # Advanced routing
-    uri_prefix: Optional[str] = None
-    uri_exact: Optional[str] = None
-    uri_regex: Optional[str] = None
-    method: Optional[str] = None
+    uri_prefix: str | None = None
+    uri_exact: str | None = None
+    uri_regex: str | None = None
+    method: str | None = None
 
     # Fault injection
-    fault_delay: Optional[timedelta] = None
+    fault_delay: timedelta | None = None
     fault_abort_percent: float = 0.0
     fault_abort_status: int = 500
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "match": self.match,
@@ -93,23 +81,23 @@ class VirtualService:
 
     name: str
     namespace: str = "default"
-    hosts: List[str] = field(default_factory=list)
-    gateways: List[str] = field(default_factory=list)
-    http_routes: List[HTTPRoute] = field(default_factory=list)
+    hosts: builtins.list[str] = field(default_factory=list)
+    gateways: builtins.list[str] = field(default_factory=list)
+    http_routes: builtins.list[HTTPRoute] = field(default_factory=list)
 
     # TCP/TLS routes
-    tcp_routes: List[Dict[str, Any]] = field(default_factory=list)
-    tls_routes: List[Dict[str, Any]] = field(default_factory=list)
+    tcp_routes: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
+    tls_routes: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
     def add_http_route(self, route: HTTPRoute) -> None:
         """Add HTTP route."""
         self.http_routes.append(route)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -140,7 +128,7 @@ class ConnectionPool:
     max_retries: int = 3
     idle_timeout: timedelta = field(default_factory=lambda: timedelta(minutes=5))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "max_connections": self.max_connections,
@@ -164,24 +152,27 @@ class DestinationRule:
 
     # Traffic policy
     load_balancer: LoadBalancingStrategy = LoadBalancingStrategy.ROUND_ROBIN
-    connection_pool: Optional[ConnectionPool] = None
-    outlier_detection: Optional[Dict[str, Any]] = None
+    connection_pool: ConnectionPool | None = None
+    outlier_detection: builtins.dict[str, Any] | None = None
 
     # Subsets for version-based routing
-    subsets: List[Dict[str, Any]] = field(default_factory=list)
+    subsets: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # TLS settings
     tls_mode: str = "ISTIO_MUTUAL"
-    tls_client_certificate: Optional[str] = None
-    tls_private_key: Optional[str] = None
-    tls_ca_certificates: Optional[str] = None
+    tls_client_certificate: str | None = None
+    tls_private_key: str | None = None
+    tls_ca_certificates: str | None = None
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
     def add_subset(
-        self, name: str, labels: Dict[str, str], traffic_policy: Dict[str, Any] = None
+        self,
+        name: str,
+        labels: builtins.dict[str, str],
+        traffic_policy: builtins.dict[str, Any] = None,
     ) -> None:
         """Add subset configuration."""
         subset = {
@@ -191,7 +182,7 @@ class DestinationRule:
         }
         self.subsets.append(subset)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -218,17 +209,17 @@ class Gateway:
 
     name: str
     namespace: str = "default"
-    selector: Dict[str, str] = field(default_factory=dict)
-    servers: List[Dict[str, Any]] = field(default_factory=list)
+    selector: builtins.dict[str, str] = field(default_factory=dict)
+    servers: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
     def add_server(
         self,
         port: int,
-        hosts: List[str],
+        hosts: builtins.list[str],
         protocol: str = "HTTP",
         tls_mode: str = None,
         credential_name: str = None,
@@ -248,7 +239,7 @@ class Gateway:
 
         self.servers.append(server)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -265,32 +256,32 @@ class ServiceEntry:
     """Service entry for external services."""
 
     name: str
-    hosts: List[str]
+    hosts: builtins.list[str]
     namespace: str = "default"
     location: str = "MESH_EXTERNAL"  # MESH_EXTERNAL or MESH_INTERNAL
     resolution: str = "DNS"  # DNS, STATIC, or NONE
 
     # Endpoints for static resolution
-    endpoints: List[Dict[str, Any]] = field(default_factory=list)
+    endpoints: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Ports
-    ports: List[Dict[str, Any]] = field(default_factory=list)
+    ports: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
     def add_port(self, number: int, name: str, protocol: str = "HTTP") -> None:
         """Add port configuration."""
         port = {"number": number, "name": name, "protocol": protocol}
         self.ports.append(port)
 
-    def add_endpoint(self, address: str, ports: Dict[str, int] = None) -> None:
+    def add_endpoint(self, address: str, ports: builtins.dict[str, int] = None) -> None:
         """Add endpoint for static resolution."""
         endpoint = {"address": address, "ports": ports or {}}
         self.endpoints.append(endpoint)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -320,7 +311,7 @@ class CircuitBreaker:
 
         self.state = CircuitBreakerState.CLOSED
         self.failure_count = 0
-        self.last_failure_time: Optional[datetime] = None
+        self.last_failure_time: datetime | None = None
         self.half_open_calls = 0
         self._lock = asyncio.Lock()
 
@@ -377,7 +368,7 @@ class CircuitBreaker:
 
         return datetime.utcnow() - self.last_failure_time >= self.recovery_timeout
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> builtins.dict[str, Any]:
         """Get circuit breaker state."""
         return {
             "state": self.state.value,
@@ -398,7 +389,7 @@ class RetryPolicy:
 
     attempts: int = 3
     per_try_timeout: timedelta = field(default_factory=lambda: timedelta(seconds=5))
-    retry_on: List[str] = field(
+    retry_on: builtins.list[str] = field(
         default_factory=lambda: ["5xx", "gateway-error", "connect-failure"]
     )
     backoff_base_interval: timedelta = field(
@@ -408,7 +399,7 @@ class RetryPolicy:
         default_factory=lambda: timedelta(seconds=10)
     )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "attempts": self.attempts,
@@ -426,7 +417,7 @@ class TimeoutPolicy:
     request_timeout: timedelta = field(default_factory=lambda: timedelta(seconds=30))
     idle_timeout: timedelta = field(default_factory=lambda: timedelta(minutes=5))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "request_timeout": self.request_timeout.total_seconds(),
@@ -439,12 +430,12 @@ class TrafficPolicy:
     """Comprehensive traffic policy."""
 
     load_balancer: LoadBalancingStrategy = LoadBalancingStrategy.ROUND_ROBIN
-    connection_pool: Optional[ConnectionPool] = None
-    circuit_breaker: Optional[CircuitBreaker] = None
-    retry_policy: Optional[RetryPolicy] = None
-    timeout_policy: Optional[TimeoutPolicy] = None
+    connection_pool: ConnectionPool | None = None
+    circuit_breaker: CircuitBreaker | None = None
+    retry_policy: RetryPolicy | None = None
+    timeout_policy: TimeoutPolicy | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "load_balancer": self.load_balancer.value,
@@ -472,8 +463,10 @@ class LoadBalancer:
         self._lock = asyncio.Lock()
 
     async def select_endpoint(
-        self, endpoints: List[ServiceEndpoint], request_context: Dict[str, Any] = None
-    ) -> Optional[ServiceEndpoint]:
+        self,
+        endpoints: builtins.list[ServiceEndpoint],
+        request_context: builtins.dict[str, Any] = None,
+    ) -> ServiceEndpoint | None:
         """Select endpoint based on load balancing strategy."""
         healthy_endpoints = [ep for ep in endpoints if ep.is_healthy()]
 
@@ -482,21 +475,20 @@ class LoadBalancer:
 
         if self.strategy == LoadBalancingStrategy.ROUND_ROBIN:
             return await self._round_robin_selection(healthy_endpoints)
-        elif self.strategy == LoadBalancingStrategy.RANDOM:
+        if self.strategy == LoadBalancingStrategy.RANDOM:
             return random.choice(healthy_endpoints)
-        elif self.strategy == LoadBalancingStrategy.LEAST_REQUESTS:
+        if self.strategy == LoadBalancingStrategy.LEAST_REQUESTS:
             return min(healthy_endpoints, key=lambda ep: ep.active_requests)
-        elif self.strategy == LoadBalancingStrategy.WEIGHTED:
+        if self.strategy == LoadBalancingStrategy.WEIGHTED:
             return await self._weighted_selection(healthy_endpoints)
-        elif self.strategy == LoadBalancingStrategy.CONSISTENT_HASH:
+        if self.strategy == LoadBalancingStrategy.CONSISTENT_HASH:
             return await self._consistent_hash_selection(
                 healthy_endpoints, request_context
             )
-        else:
-            return healthy_endpoints[0]
+        return healthy_endpoints[0]
 
     async def _round_robin_selection(
-        self, endpoints: List[ServiceEndpoint]
+        self, endpoints: builtins.list[ServiceEndpoint]
     ) -> ServiceEndpoint:
         """Round robin selection."""
         async with self._lock:
@@ -505,7 +497,7 @@ class LoadBalancer:
             return endpoint
 
     async def _weighted_selection(
-        self, endpoints: List[ServiceEndpoint]
+        self, endpoints: builtins.list[ServiceEndpoint]
     ) -> ServiceEndpoint:
         """Weighted random selection."""
         total_weight = sum(ep.weight for ep in endpoints)
@@ -523,7 +515,9 @@ class LoadBalancer:
         return endpoints[-1]
 
     async def _consistent_hash_selection(
-        self, endpoints: List[ServiceEndpoint], request_context: Dict[str, Any]
+        self,
+        endpoints: builtins.list[ServiceEndpoint],
+        request_context: builtins.dict[str, Any],
     ) -> ServiceEndpoint:
         """Consistent hash selection."""
         if not request_context:
@@ -548,7 +542,7 @@ class CanaryDeployment:
         self.namespace = namespace
         self.canary_weight = 0
         self.stable_weight = 100
-        self.virtual_service: Optional[VirtualService] = None
+        self.virtual_service: VirtualService | None = None
 
     def create_traffic_split(
         self, canary_version: str, stable_version: str, canary_weight: int
@@ -607,7 +601,7 @@ class BlueGreenDeployment:
         self.service_name = service_name
         self.namespace = namespace
         self.active_version = "blue"
-        self.virtual_service: Optional[VirtualService] = None
+        self.virtual_service: VirtualService | None = None
 
     def setup_deployment(self, blue_version: str, green_version: str) -> VirtualService:
         """Setup blue-green deployment."""
@@ -649,12 +643,12 @@ class TrafficManager:
     """Comprehensive traffic management."""
 
     def __init__(self):
-        self._virtual_services: Dict[str, VirtualService] = {}
-        self._destination_rules: Dict[str, DestinationRule] = {}
-        self._gateways: Dict[str, Gateway] = {}
-        self._service_entries: Dict[str, ServiceEntry] = {}
-        self._load_balancers: Dict[str, LoadBalancer] = {}
-        self._circuit_breakers: Dict[str, CircuitBreaker] = {}
+        self._virtual_services: builtins.dict[str, VirtualService] = {}
+        self._destination_rules: builtins.dict[str, DestinationRule] = {}
+        self._gateways: builtins.dict[str, Gateway] = {}
+        self._service_entries: builtins.dict[str, ServiceEntry] = {}
+        self._load_balancers: builtins.dict[str, LoadBalancer] = {}
+        self._circuit_breakers: builtins.dict[str, CircuitBreaker] = {}
 
     async def create_virtual_service(self, virtual_service: VirtualService) -> None:
         """Create virtual service."""
@@ -680,7 +674,9 @@ class TrafficManager:
         self._service_entries[key] = service_entry
         logger.info(f"Created service entry: {key}")
 
-    async def get_traffic_configuration(self, namespace: str = None) -> Dict[str, Any]:
+    async def get_traffic_configuration(
+        self, namespace: str = None
+    ) -> builtins.dict[str, Any]:
         """Get traffic configuration."""
         config = {
             "virtual_services": {},
@@ -715,7 +711,7 @@ def create_http_route(
     destination: str,
     weight: int = 100,
     uri_prefix: str = None,
-    headers: Dict[str, str] = None,
+    headers: builtins.dict[str, str] = None,
 ) -> HTTPRoute:
     """Create HTTP route."""
     return HTTPRoute(

@@ -11,14 +11,13 @@ Provides comprehensive risk assessment and management capabilities including:
 """
 
 import asyncio
-import json
-import time
+import builtins
 import uuid
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, dict, list
 
 # External dependencies
 try:
@@ -98,9 +97,9 @@ class RiskFactor:
     impact: float  # 0.0 - 1.0
 
     # Context
-    affected_assets: List[str] = field(default_factory=list)
-    vulnerabilities: List[str] = field(default_factory=list)
-    existing_controls: List[str] = field(default_factory=list)
+    affected_assets: builtins.list[str] = field(default_factory=list)
+    vulnerabilities: builtins.list[str] = field(default_factory=list)
+    existing_controls: builtins.list[str] = field(default_factory=list)
 
     # Metadata
     identified_by: str = ""
@@ -122,29 +121,29 @@ class RiskMitigationAction:
     action_type: str  # preventive, detective, corrective, compensating
 
     # Implementation details
-    implementation_steps: List[str] = field(default_factory=list)
+    implementation_steps: builtins.list[str] = field(default_factory=list)
     estimated_cost: float = 0.0
     estimated_effort_hours: int = 0
 
     # Timeline
-    planned_start_date: Optional[datetime] = None
-    planned_completion_date: Optional[datetime] = None
-    actual_start_date: Optional[datetime] = None
-    actual_completion_date: Optional[datetime] = None
+    planned_start_date: datetime | None = None
+    planned_completion_date: datetime | None = None
+    actual_start_date: datetime | None = None
+    actual_completion_date: datetime | None = None
 
     # Assignment
-    assigned_to: Optional[str] = None
-    responsible_team: Optional[str] = None
+    assigned_to: str | None = None
+    responsible_team: str | None = None
 
     # Effectiveness
     expected_risk_reduction: float = 0.0  # 0.0 - 1.0
-    actual_risk_reduction: Optional[float] = None
+    actual_risk_reduction: float | None = None
 
     # Status
     status: str = "planned"  # planned, in_progress, completed, cancelled
     completion_percentage: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "planned_start_date": self.planned_start_date.isoformat()
@@ -172,7 +171,7 @@ class Risk:
     category: RiskCategory
 
     # Risk factors
-    factors: List[RiskFactor] = field(default_factory=list)
+    factors: builtins.list[RiskFactor] = field(default_factory=list)
 
     # Assessment
     inherent_likelihood: float = 0.0  # Before controls
@@ -183,11 +182,13 @@ class Risk:
     # Business context
     business_process: str = ""
     asset_value: float = 0.0
-    regulatory_requirements: List[str] = field(default_factory=list)
+    regulatory_requirements: builtins.list[str] = field(default_factory=list)
 
     # Mitigation
-    mitigation_actions: List[RiskMitigationAction] = field(default_factory=list)
-    risk_owner: Optional[str] = None
+    mitigation_actions: builtins.list[RiskMitigationAction] = field(
+        default_factory=list
+    )
+    risk_owner: str | None = None
     risk_status: RiskStatus = RiskStatus.IDENTIFIED
 
     # Timeline
@@ -198,7 +199,9 @@ class Risk:
     )
 
     # Tracking
-    assessment_history: List[Dict[str, Any]] = field(default_factory=list)
+    assessment_history: builtins.list[builtins.dict[str, Any]] = field(
+        default_factory=list
+    )
 
     def calculate_inherent_risk_score(self) -> float:
         """Calculate inherent risk score (before controls)"""
@@ -214,16 +217,15 @@ class Risk:
 
         if score >= 0.9:
             return RiskLevel.CRITICAL
-        elif score >= 0.7:
+        if score >= 0.7:
             return RiskLevel.VERY_HIGH
-        elif score >= 0.5:
+        if score >= 0.5:
             return RiskLevel.HIGH
-        elif score >= 0.3:
+        if score >= 0.3:
             return RiskLevel.MEDIUM
-        elif score >= 0.1:
+        if score >= 0.1:
             return RiskLevel.LOW
-        else:
-            return RiskLevel.VERY_LOW
+        return RiskLevel.VERY_LOW
 
     def add_assessment_record(self, assessor: str, notes: str = ""):
         """Add assessment record to history"""
@@ -239,7 +241,7 @@ class Risk:
         )
         self.last_assessed = datetime.now()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "identified_at": self.identified_at.isoformat(),
@@ -269,9 +271,9 @@ class RiskAssessmentEngine:
     """
 
     def __init__(self):
-        self.risk_templates: Dict[str, Risk] = {}
-        self.vulnerability_database: Dict[str, Dict[str, Any]] = {}
-        self.threat_intelligence: Dict[str, Dict[str, Any]] = {}
+        self.risk_templates: builtins.dict[str, Risk] = {}
+        self.vulnerability_database: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.threat_intelligence: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Initialize risk templates
         self._initialize_risk_templates()
@@ -361,7 +363,9 @@ class RiskAssessmentEngine:
 
         self.risk_templates["COMPLIANCE"] = compliance_risk
 
-    async def assess_system_risks(self, system_context: Dict[str, Any]) -> List[Risk]:
+    async def assess_system_risks(
+        self, system_context: builtins.dict[str, Any]
+    ) -> builtins.list[Risk]:
         """Assess risks based on system context"""
 
         identified_risks = []
@@ -384,7 +388,9 @@ class RiskAssessmentEngine:
 
         return identified_risks
 
-    async def _assess_security_risks(self, context: Dict[str, Any]) -> List[Risk]:
+    async def _assess_security_risks(
+        self, context: builtins.dict[str, Any]
+    ) -> builtins.list[Risk]:
         """Assess cybersecurity risks"""
 
         risks = []
@@ -438,7 +444,9 @@ class RiskAssessmentEngine:
 
         return risks
 
-    async def _assess_operational_risks(self, context: Dict[str, Any]) -> List[Risk]:
+    async def _assess_operational_risks(
+        self, context: builtins.dict[str, Any]
+    ) -> builtins.list[Risk]:
         """Assess operational risks"""
 
         risks = []
@@ -475,7 +483,9 @@ class RiskAssessmentEngine:
 
         return risks
 
-    async def _assess_compliance_risks(self, context: Dict[str, Any]) -> List[Risk]:
+    async def _assess_compliance_risks(
+        self, context: builtins.dict[str, Any]
+    ) -> builtins.list[Risk]:
         """Assess compliance risks"""
 
         risks = []
@@ -514,7 +524,9 @@ class RiskAssessmentEngine:
 
         return risks
 
-    def generate_risk_mitigation_plan(self, risk: Risk) -> List[RiskMitigationAction]:
+    def generate_risk_mitigation_plan(
+        self, risk: Risk
+    ) -> builtins.list[RiskMitigationAction]:
         """Generate mitigation plan for a risk"""
 
         mitigation_actions = []
@@ -626,8 +638,8 @@ class RiskManager:
 
     def __init__(self):
         self.assessment_engine = RiskAssessmentEngine()
-        self.risks: Dict[str, Risk] = {}
-        self.risk_registers: Dict[str, List[str]] = {}  # By category
+        self.risks: builtins.dict[str, Risk] = {}
+        self.risk_registers: builtins.dict[str, builtins.list[str]] = {}  # By category
 
         # Monitoring
         self.monitoring_enabled = True
@@ -645,8 +657,11 @@ class RiskManager:
             )
 
     async def conduct_risk_assessment(
-        self, assessment_name: str, system_context: Dict[str, Any], assessor: str
-    ) -> List[Risk]:
+        self,
+        assessment_name: str,
+        system_context: builtins.dict[str, Any],
+        assessor: str,
+    ) -> builtins.list[Risk]:
         """Conduct comprehensive risk assessment"""
 
         print(f"Starting risk assessment: {assessment_name}")
@@ -681,7 +696,7 @@ class RiskManager:
         print(f"Identified {len(identified_risks)} risks")
         return identified_risks
 
-    def get_risk_dashboard(self) -> Dict[str, Any]:
+    def get_risk_dashboard(self) -> builtins.dict[str, Any]:
         """Get risk management dashboard data"""
 
         if not self.risks:
@@ -753,8 +768,8 @@ class RiskManager:
         }
 
     def get_risk_report(
-        self, category: Optional[RiskCategory] = None
-    ) -> Dict[str, Any]:
+        self, category: RiskCategory | None = None
+    ) -> builtins.dict[str, Any]:
         """Generate detailed risk report"""
 
         risks_to_include = self.risks.values()
@@ -792,7 +807,9 @@ class RiskManager:
             "mitigation_summary": self._get_mitigation_summary(list(risks_to_include)),
         }
 
-    def _get_mitigation_summary(self, risks: List[Risk]) -> Dict[str, Any]:
+    def _get_mitigation_summary(
+        self, risks: builtins.list[Risk]
+    ) -> builtins.dict[str, Any]:
         """Get mitigation action summary"""
 
         all_actions = []
@@ -896,7 +913,7 @@ async def main():
 
     # Show risk dashboard
     dashboard = risk_manager.get_risk_dashboard()
-    print(f"\nRisk Dashboard:")
+    print("\nRisk Dashboard:")
     print(f"Total Risks: {dashboard['total_risks']}")
     print(f"High Priority Risks: {len(dashboard['high_priority_risks'])}")
     print(f"Overdue Actions: {len(dashboard['overdue_actions'])}")
@@ -907,7 +924,7 @@ async def main():
 
     # Generate detailed report
     report = risk_manager.get_risk_report()
-    print(f"\nRisk Report:")
+    print("\nRisk Report:")
     print(f"Risk Reduction: {report['risk_reduction_percentage']:.1f}%")
     print(
         f"Total Mitigation Cost: ${report['mitigation_summary']['total_estimated_cost']:,.2f}"

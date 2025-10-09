@@ -12,8 +12,9 @@ This module provides:
 import asyncio
 import functools
 import time
+from collections.abc import Callable
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union, dict
 
 from tenacity import (
     AsyncRetrying,
@@ -48,7 +49,7 @@ class CircuitBreaker:
         failure_threshold: int = 5,
         recovery_timeout: int = 60,
         expected_exception: type = Exception,
-        name: Optional[str] = None,
+        name: str | None = None,
     ):
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
@@ -56,7 +57,7 @@ class CircuitBreaker:
         self.name = name or "circuit_breaker"
 
         self.failure_count = 0
-        self.last_failure_time: Optional[float] = None
+        self.last_failure_time: float | None = None
         self.state = CircuitState.CLOSED
 
         logger.info(
@@ -186,7 +187,7 @@ def circuit_breaker(
     failure_threshold: int = 5,
     recovery_timeout: int = 60,
     expected_exception: type = Exception,
-    name: Optional[str] = None,
+    name: str | None = None,
 ):
     """Decorator for circuit breaker pattern."""
 
@@ -224,7 +225,7 @@ class RetryPolicy:
         max_wait: float = 60.0,
         multiplier: float = 2.0,
         retry_exceptions: tuple = (Exception,),
-        name: Optional[str] = None,
+        name: str | None = None,
     ):
         self.max_attempts = max_attempts
         self.min_wait = min_wait
@@ -282,7 +283,7 @@ def retry(
     max_wait: float = 60.0,
     multiplier: float = 2.0,
     retry_exceptions: tuple = (Exception,),
-    name: Optional[str] = None,
+    name: str | None = None,
 ):
     """Decorator for retry pattern."""
 
@@ -308,7 +309,7 @@ def retry(
 class BulkheadPattern:
     """Bulkhead pattern for resource isolation."""
 
-    def __init__(self, max_concurrent: int = 10, name: Optional[str] = None):
+    def __init__(self, max_concurrent: int = 10, name: str | None = None):
         self.max_concurrent = max_concurrent
         self.name = name or "bulkhead"
         self.semaphore = asyncio.Semaphore(max_concurrent)
@@ -355,7 +356,7 @@ class BulkheadPattern:
         return self.available_permits == 0
 
 
-def bulkhead(max_concurrent: int = 10, name: Optional[str] = None):
+def bulkhead(max_concurrent: int = 10, name: str | None = None):
     """Decorator for bulkhead pattern."""
 
     def decorator(func):
@@ -375,7 +376,7 @@ def bulkhead(max_concurrent: int = 10, name: Optional[str] = None):
 class TimeoutHandler:
     """Timeout handler for operations."""
 
-    def __init__(self, timeout_seconds: float, name: Optional[str] = None):
+    def __init__(self, timeout_seconds: float, name: str | None = None):
         self.timeout_seconds = timeout_seconds
         self.name = name or "timeout_handler"
 
@@ -409,7 +410,7 @@ class TimeoutHandler:
             raise
 
 
-def timeout(timeout_seconds: float, name: Optional[str] = None):
+def timeout(timeout_seconds: float, name: str | None = None):
     """Decorator for timeout handling."""
 
     def decorator(func):
@@ -431,11 +432,11 @@ class ResilienceStack:
 
     def __init__(
         self,
-        circuit_breaker_config: Optional[Dict[str, Any]] = None,
-        retry_config: Optional[Dict[str, Any]] = None,
-        bulkhead_config: Optional[Dict[str, Any]] = None,
-        timeout_config: Optional[Dict[str, Any]] = None,
-        name: Optional[str] = None,
+        circuit_breaker_config: dict[str, Any] | None = None,
+        retry_config: dict[str, Any] | None = None,
+        bulkhead_config: dict[str, Any] | None = None,
+        timeout_config: dict[str, Any] | None = None,
+        name: str | None = None,
     ):
         self.name = name or "resilience_stack"
 
@@ -472,26 +473,38 @@ class ResilienceStack:
 
             # Apply timeout if configured
             if self.timeout_handler:
-                result = lambda: self.timeout_handler.execute(func, *args, **kwargs)
+
+                def result():
+                    return self.timeout_handler.execute(func, *args, **kwargs)
+
                 args, kwargs = (), {}
 
             # Apply bulkhead if configured
             if self.bulkhead:
                 original_result = result
-                result = lambda: self.bulkhead.execute(original_result, *args, **kwargs)
+
+                def result():
+                    return self.bulkhead.execute(original_result, *args, **kwargs)
+
                 args, kwargs = (), {}
 
             # Apply circuit breaker if configured
             if self.circuit_breaker:
                 original_result = result
                 if asyncio.iscoroutinefunction(func):
-                    result = lambda: self.circuit_breaker.acall(
-                        original_result, *args, **kwargs
-                    )
+
+                    def result():
+                        return self.circuit_breaker.acall(
+                            original_result, *args, **kwargs
+                        )
+
                 else:
-                    result = lambda: self.circuit_breaker.call(
-                        original_result, *args, **kwargs
-                    )
+
+                    def result():
+                        return self.circuit_breaker.call(
+                            original_result, *args, **kwargs
+                        )
+
                 args, kwargs = (), {}
 
             # Execute the function
@@ -510,11 +523,11 @@ class ResilienceStack:
 
 
 def resilience_stack(
-    circuit_breaker_config: Optional[Dict[str, Any]] = None,
-    retry_config: Optional[Dict[str, Any]] = None,
-    bulkhead_config: Optional[Dict[str, Any]] = None,
-    timeout_config: Optional[Dict[str, Any]] = None,
-    name: Optional[str] = None,
+    circuit_breaker_config: dict[str, Any] | None = None,
+    retry_config: dict[str, Any] | None = None,
+    bulkhead_config: dict[str, Any] | None = None,
+    timeout_config: dict[str, Any] | None = None,
+    name: str | None = None,
 ):
     """Decorator for applying multiple resilience patterns."""
 

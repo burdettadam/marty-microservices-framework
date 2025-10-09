@@ -12,9 +12,7 @@ import asyncio
 import json
 import time
 from pathlib import Path
-from typing import Dict, List
 
-import pytest
 import pytest_asyncio
 from tests.e2e.conftest import PerformanceAnalyzer, TimeoutMonitor
 
@@ -542,13 +540,13 @@ class TestTimeoutDetection:
 
         insights = report["insights"]
         if insights:
-            print(f"\\n💡 KEY INSIGHTS:")
+            print("\\n💡 KEY INSIGHTS:")
             for insight in insights[:3]:
                 print(f"   • {insight['message']} ({insight['severity']})")
 
         recommendations = report["recommendations"]
         if recommendations:
-            print(f"\\n🎯 RECOMMENDATIONS:")
+            print("\\n🎯 RECOMMENDATIONS:")
             for rec in recommendations[:2]:
                 print(f"   📋 {rec['category']} ({rec['priority']} priority)")
                 for action in rec["actions"][:2]:

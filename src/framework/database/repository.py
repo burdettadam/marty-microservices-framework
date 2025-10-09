@@ -3,31 +3,18 @@ Repository pattern implementation for the enterprise database framework.
 """
 
 import logging
-from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager
+from abc import ABC
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import datetime
-from typing import (
-    Any,
-    AsyncContextManager,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Sequence,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Dict, Generic, List, Optional, Set, Type, TypeVar, Union
 from uuid import UUID
 
-from sqlalchemy import and_, asc, delete, desc, func, or_, select, update
-from sqlalchemy.exc import IntegrityError, NoResultFound
+from sqlalchemy import asc, desc, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy.sql import Select
 
 from .manager import DatabaseManager
-from .models import AuditMixin, BaseModel, SoftDeleteMixin, TimestampMixin
+from .models import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -40,49 +27,41 @@ UpdateSchemaType = TypeVar("UpdateSchemaType")
 class RepositoryError(Exception):
     """Base repository error."""
 
-    pass
-
 
 class NotFoundError(RepositoryError):
     """Entity not found error."""
-
-    pass
 
 
 class ConflictError(RepositoryError):
     """Entity conflict error (e.g., duplicate key)."""
 
-    pass
-
 
 class ValidationError(RepositoryError):
     """Validation error."""
-
-    pass
 
 
 class BaseRepository(Generic[ModelType], ABC):
     """Abstract base repository with common CRUD operations."""
 
-    def __init__(self, db_manager: DatabaseManager, model_class: Type[ModelType]):
+    def __init__(self, db_manager: DatabaseManager, model_class: type[ModelType]):
         self.db_manager = db_manager
         self.model_class = model_class
         self.table_name = model_class.__tablename__
 
     @asynccontextmanager
-    async def get_session(self) -> AsyncContextManager[AsyncSession]:
+    async def get_session(self) -> AbstractAsyncContextManager[AsyncSession]:
         """Get a database session."""
         async with self.db_manager.get_session() as session:
             yield session
 
     @asynccontextmanager
-    async def get_transaction(self) -> AsyncContextManager[AsyncSession]:
+    async def get_transaction(self) -> AbstractAsyncContextManager[AsyncSession]:
         """Get a database session with transaction."""
         async with self.db_manager.get_transaction() as session:
             yield session
 
     async def create(
-        self, obj_in: Union[CreateSchemaType, Dict[str, Any]], **kwargs
+        self, obj_in: CreateSchemaType | dict[str, Any], **kwargs
     ) -> ModelType:
         """Create a new entity."""
         async with self.get_transaction() as session:
@@ -127,7 +106,7 @@ class BaseRepository(Generic[ModelType], ABC):
                 logger.error("Error creating %s: %s", self.model_class.__name__, e)
                 raise RepositoryError(f"Error creating entity: {e}") from e
 
-    async def get_by_id(self, entity_id: Union[int, str, UUID]) -> Optional[ModelType]:
+    async def get_by_id(self, entity_id: int | str | UUID) -> ModelType | None:
         """Get entity by ID."""
         async with self.get_session() as session:
             try:
@@ -149,7 +128,7 @@ class BaseRepository(Generic[ModelType], ABC):
                 )
                 raise RepositoryError(f"Error getting entity: {e}") from e
 
-    async def get_by_id_or_404(self, entity_id: Union[int, str, UUID]) -> ModelType:
+    async def get_by_id_or_404(self, entity_id: int | str | UUID) -> ModelType:
         """Get entity by ID or raise NotFoundError."""
         entity = await self.get_by_id(entity_id)
         if not entity:
@@ -162,9 +141,9 @@ class BaseRepository(Generic[ModelType], ABC):
         self,
         skip: int = 0,
         limit: int = 100,
-        order_by: Optional[str] = None,
+        order_by: str | None = None,
         order_desc: bool = False,
-    ) -> List[ModelType]:
+    ) -> list[ModelType]:
         """Get all entities with pagination."""
         async with self.get_session() as session:
             try:
@@ -196,10 +175,10 @@ class BaseRepository(Generic[ModelType], ABC):
 
     async def update(
         self,
-        entity_id: Union[int, str, UUID],
-        obj_in: Union[UpdateSchemaType, Dict[str, Any]],
+        entity_id: int | str | UUID,
+        obj_in: UpdateSchemaType | dict[str, Any],
         **kwargs,
-    ) -> Optional[ModelType]:
+    ) -> ModelType | None:
         """Update an entity."""
         async with self.get_transaction() as session:
             try:
@@ -254,7 +233,7 @@ class BaseRepository(Generic[ModelType], ABC):
                 raise RepositoryError(f"Error updating entity: {e}") from e
 
     async def delete(
-        self, entity_id: Union[int, str, UUID], hard_delete: bool = False
+        self, entity_id: int | str | UUID, hard_delete: bool = False
     ) -> bool:
         """Delete an entity (soft delete by default if supported)."""
         async with self.get_transaction() as session:
@@ -309,12 +288,12 @@ class BaseRepository(Generic[ModelType], ABC):
                 logger.error("Error counting %s: %s", self.model_class.__name__, e)
                 raise RepositoryError(f"Error counting entities: {e}") from e
 
-    async def exists(self, entity_id: Union[int, str, UUID]) -> bool:
+    async def exists(self, entity_id: int | str | UUID) -> bool:
         """Check if entity exists."""
         entity = await self.get_by_id(entity_id)
         return entity is not None
 
-    async def find_by_field(self, field_name: str, value: Any) -> List[ModelType]:
+    async def find_by_field(self, field_name: str, value: Any) -> list[ModelType]:
         """Find entities by a specific field value."""
         async with self.get_session() as session:
             try:
@@ -343,16 +322,14 @@ class BaseRepository(Generic[ModelType], ABC):
                 )
                 raise RepositoryError(f"Error finding entities: {e}") from e
 
-    async def find_one_by_field(
-        self, field_name: str, value: Any
-    ) -> Optional[ModelType]:
+    async def find_one_by_field(self, field_name: str, value: Any) -> ModelType | None:
         """Find one entity by a specific field value."""
         results = await self.find_by_field(field_name, value)
         return results[0] if results else None
 
     async def bulk_create(
-        self, objects_in: List[Union[CreateSchemaType, Dict[str, Any]]]
-    ) -> List[ModelType]:
+        self, objects_in: list[CreateSchemaType | dict[str, Any]]
+    ) -> list[ModelType]:
         """Create multiple entities in bulk."""
         async with self.get_transaction() as session:
             try:
@@ -400,14 +377,14 @@ class BaseRepository(Generic[ModelType], ABC):
 
     async def search(
         self,
-        filters: Optional[Dict[str, Any]] = None,
-        search_term: Optional[str] = None,
-        search_fields: Optional[List[str]] = None,
+        filters: dict[str, Any] | None = None,
+        search_term: str | None = None,
+        search_fields: list[str] | None = None,
         skip: int = 0,
         limit: int = 100,
-        order_by: Optional[str] = None,
+        order_by: str | None = None,
         order_desc: bool = False,
-    ) -> List[ModelType]:
+    ) -> list[ModelType]:
         """Advanced search with filters and text search."""
         async with self.get_session() as session:
             try:
@@ -480,12 +457,10 @@ class BaseRepository(Generic[ModelType], ABC):
 class Repository(BaseRepository[ModelType]):
     """Concrete repository implementation."""
 
-    pass
-
 
 # Repository factory
 def create_repository(
-    model_class: Type[ModelType], db_manager: DatabaseManager
+    model_class: type[ModelType], db_manager: DatabaseManager
 ) -> Repository[ModelType]:
     """Create a repository for a model class."""
     return Repository(db_manager, model_class)

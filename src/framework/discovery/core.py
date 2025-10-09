@@ -5,13 +5,14 @@ Fundamental classes and interfaces for service discovery including
 service instances, metadata, health status, and configuration.
 """
 
+import builtins
 import logging
 import time
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, dict, list, set
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +63,8 @@ class ServiceEndpoint:
     # SSL/TLS configuration
     ssl_enabled: bool = False
     ssl_verify: bool = True
-    ssl_cert_path: Optional[str] = None
-    ssl_key_path: Optional[str] = None
+    ssl_cert_path: str | None = None
+    ssl_key_path: str | None = None
 
     # Connection settings
     connection_timeout: float = 5.0
@@ -102,28 +103,28 @@ class ServiceMetadata:
     availability_zone: str = "default"
 
     # Deployment information
-    deployment_id: Optional[str] = None
-    build_id: Optional[str] = None
-    git_commit: Optional[str] = None
+    deployment_id: str | None = None
+    build_id: str | None = None
+    git_commit: str | None = None
 
     # Resource information
-    cpu_cores: Optional[int] = None
-    memory_mb: Optional[int] = None
-    disk_gb: Optional[int] = None
+    cpu_cores: int | None = None
+    memory_mb: int | None = None
+    disk_gb: int | None = None
 
     # Network information
-    public_ip: Optional[str] = None
-    private_ip: Optional[str] = None
-    subnet: Optional[str] = None
+    public_ip: str | None = None
+    private_ip: str | None = None
+    subnet: str | None = None
 
     # Service configuration
-    max_connections: Optional[int] = None
-    request_timeout: Optional[float] = None
+    max_connections: int | None = None
+    request_timeout: float | None = None
 
     # Custom metadata
-    tags: Set[str] = field(default_factory=set)
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    tags: builtins.set[str] = field(default_factory=set)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
     def add_tag(self, tag: str):
         """Add a tag."""
@@ -141,7 +142,7 @@ class ServiceMetadata:
         """Set a label."""
         self.labels[key] = value
 
-    def get_label(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_label(self, key: str, default: str | None = None) -> str | None:
         """Get a label value."""
         return self.labels.get(key, default)
 
@@ -149,7 +150,7 @@ class ServiceMetadata:
         """Set an annotation."""
         self.annotations[key] = value
 
-    def get_annotation(self, key: str, default: Optional[str] = None) -> Optional[str]:
+    def get_annotation(self, key: str, default: str | None = None) -> str | None:
         """Get an annotation value."""
         return self.annotations.get(key, default)
 
@@ -159,17 +160,17 @@ class HealthCheck:
     """Health check configuration."""
 
     # Health check type and configuration
-    url: Optional[str] = None
+    url: str | None = None
     method: str = "GET"
-    headers: Dict[str, str] = field(default_factory=dict)
+    headers: builtins.dict[str, str] = field(default_factory=dict)
     expected_status: int = 200
     timeout: float = 5.0
 
     # TCP health check
-    tcp_port: Optional[int] = None
+    tcp_port: int | None = None
 
     # Custom health check
-    custom_check: Optional[str] = None
+    custom_check: str | None = None
 
     # Check intervals
     interval: float = 30.0  # Seconds between checks
@@ -192,12 +193,12 @@ class ServiceInstance:
     def __init__(
         self,
         service_name: str,
-        instance_id: Optional[str] = None,
-        endpoint: Optional[ServiceEndpoint] = None,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        metadata: Optional[ServiceMetadata] = None,
-        health_check: Optional[HealthCheck] = None,
+        instance_id: str | None = None,
+        endpoint: ServiceEndpoint | None = None,
+        host: str | None = None,
+        port: int | None = None,
+        metadata: ServiceMetadata | None = None,
+        health_check: HealthCheck | None = None,
     ):
         self.service_name = service_name
         self.instance_id = instance_id or str(uuid.uuid4())
@@ -216,7 +217,7 @@ class ServiceInstance:
         # State management
         self.status = ServiceStatus.UNKNOWN
         self.health_status = HealthStatus.UNKNOWN
-        self.last_health_check: Optional[float] = None
+        self.last_health_check: float | None = None
         self.registration_time = time.time()
         self.last_seen = time.time()
 
@@ -224,12 +225,12 @@ class ServiceInstance:
         self.total_requests = 0
         self.active_connections = 0
         self.total_failures = 0
-        self.response_times: List[float] = []
+        self.response_times: builtins.list[float] = []
 
         # Circuit breaker state
         self.circuit_breaker_open = False
         self.circuit_breaker_failures = 0
-        self.circuit_breaker_last_failure: Optional[float] = None
+        self.circuit_breaker_last_failure: float | None = None
 
     def update_health_status(self, status: HealthStatus):
         """Update health status."""
@@ -254,9 +255,7 @@ class ServiceInstance:
                 status.value,
             )
 
-    def record_request(
-        self, response_time: Optional[float] = None, success: bool = True
-    ):
+    def record_request(self, response_time: float | None = None, success: bool = True):
         """Record a request to this instance."""
         self.total_requests += 1
         self.last_seen = time.time()
@@ -330,7 +329,7 @@ class ServiceInstance:
 
         return max(0.1, weight)  # Minimum weight of 0.1
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "service_name": self.service_name,
@@ -396,17 +395,17 @@ class ServiceRegistryConfig:
 
     # Clustering and replication
     enable_clustering: bool = False
-    cluster_nodes: List[str] = field(default_factory=list)
+    cluster_nodes: builtins.list[str] = field(default_factory=list)
     replication_factor: int = 3
 
     # Storage configuration
     persistence_enabled: bool = False
-    persistence_path: Optional[str] = None
+    persistence_path: str | None = None
     backup_interval: float = 3600.0  # 1 hour
 
     # Security
     enable_authentication: bool = False
-    auth_token: Optional[str] = None
+    auth_token: str | None = None
     enable_encryption: bool = False
 
     # Performance
@@ -420,7 +419,7 @@ class ServiceRegistryConfig:
 
     # Notifications
     enable_notifications: bool = True
-    notification_channels: List[str] = field(default_factory=list)
+    notification_channels: builtins.list[str] = field(default_factory=list)
 
 
 class ServiceRegistry(ABC):
@@ -429,46 +428,40 @@ class ServiceRegistry(ABC):
     @abstractmethod
     async def register(self, instance: ServiceInstance) -> bool:
         """Register a service instance."""
-        pass
 
     @abstractmethod
     async def deregister(self, service_name: str, instance_id: str) -> bool:
         """Deregister a service instance."""
-        pass
 
     @abstractmethod
-    async def discover(self, service_name: str) -> List[ServiceInstance]:
+    async def discover(self, service_name: str) -> builtins.list[ServiceInstance]:
         """Discover all instances of a service."""
-        pass
 
     @abstractmethod
     async def get_instance(
         self, service_name: str, instance_id: str
-    ) -> Optional[ServiceInstance]:
+    ) -> ServiceInstance | None:
         """Get a specific service instance."""
-        pass
 
     @abstractmethod
     async def update_instance(self, instance: ServiceInstance) -> bool:
         """Update a service instance."""
-        pass
 
     @abstractmethod
-    async def list_services(self) -> List[str]:
+    async def list_services(self) -> builtins.list[str]:
         """List all registered services."""
-        pass
 
     @abstractmethod
-    async def get_healthy_instances(self, service_name: str) -> List[ServiceInstance]:
+    async def get_healthy_instances(
+        self, service_name: str
+    ) -> builtins.list[ServiceInstance]:
         """Get healthy instances of a service."""
-        pass
 
     @abstractmethod
     async def update_health_status(
         self, service_name: str, instance_id: str, status: HealthStatus
     ) -> bool:
         """Update health status of an instance."""
-        pass
 
 
 class ServiceEvent:
@@ -479,8 +472,8 @@ class ServiceEvent:
         event_type: str,
         service_name: str,
         instance_id: str,
-        instance: Optional[ServiceInstance] = None,
-        timestamp: Optional[float] = None,
+        instance: ServiceInstance | None = None,
+        timestamp: float | None = None,
     ):
         self.event_type = event_type  # register, deregister, health_change, etc.
         self.service_name = service_name
@@ -489,7 +482,7 @@ class ServiceEvent:
         self.timestamp = timestamp or time.time()
         self.event_id = str(uuid.uuid4())
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "event_id": self.event_id,
@@ -505,21 +498,17 @@ class ServiceWatcher(ABC):
     """Abstract service registry watcher."""
 
     @abstractmethod
-    async def watch(self, service_name: Optional[str] = None) -> None:
+    async def watch(self, service_name: str | None = None) -> None:
         """Watch for service registry changes."""
-        pass
 
     @abstractmethod
     async def on_service_registered(self, event: ServiceEvent) -> None:
         """Handle service registration event."""
-        pass
 
     @abstractmethod
     async def on_service_deregistered(self, event: ServiceEvent) -> None:
         """Handle service deregistration event."""
-        pass
 
     @abstractmethod
     async def on_health_changed(self, event: ServiceEvent) -> None:
         """Handle health status change event."""
-        pass

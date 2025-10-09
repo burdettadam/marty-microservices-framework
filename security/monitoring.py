@@ -11,16 +11,15 @@ Provides comprehensive security monitoring capabilities including:
 """
 
 import asyncio
+import builtins
 import hashlib
 import json
-import re
-import time
 import uuid
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Generic, List, Optional, Set, dict, list, set
 
 # External dependencies
 try:
@@ -97,34 +96,34 @@ class SecurityEvent:
     timestamp: datetime
 
     # Event details
-    source_ip: Optional[str] = None
-    user_id: Optional[str] = None
-    service_name: Optional[str] = None
-    resource: Optional[str] = None
-    action: Optional[str] = None
+    source_ip: str | None = None
+    user_id: str | None = None
+    service_name: str | None = None
+    resource: str | None = None
+    action: str | None = None
 
     # Additional context
-    user_agent: Optional[str] = None
-    session_id: Optional[str] = None
-    request_id: Optional[str] = None
-    correlation_id: Optional[str] = None
+    user_agent: str | None = None
+    session_id: str | None = None
+    request_id: str | None = None
+    correlation_id: str | None = None
 
     # Event data
-    raw_data: Dict[str, Any] = field(default_factory=dict)
-    normalized_data: Dict[str, Any] = field(default_factory=dict)
-    enrichment_data: Dict[str, Any] = field(default_factory=dict)
+    raw_data: builtins.dict[str, Any] = field(default_factory=dict)
+    normalized_data: builtins.dict[str, Any] = field(default_factory=dict)
+    enrichment_data: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Investigation
     status: SecurityEventStatus = SecurityEventStatus.NEW
-    assigned_analyst: Optional[str] = None
-    investigation_notes: List[str] = field(default_factory=list)
-    related_events: List[str] = field(default_factory=list)
+    assigned_analyst: str | None = None
+    investigation_notes: builtins.list[str] = field(default_factory=list)
+    related_events: builtins.list[str] = field(default_factory=list)
 
     # Response
-    response_actions: List[str] = field(default_factory=list)
+    response_actions: builtins.list[str] = field(default_factory=list)
     mitigation_applied: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "event_type": self.event_type.value,
@@ -168,21 +167,21 @@ class SecurityAlert:
     created_at: datetime
 
     # Alert conditions
-    trigger_conditions: List[str] = field(default_factory=list)
-    related_events: List[str] = field(default_factory=list)
+    trigger_conditions: builtins.list[str] = field(default_factory=list)
+    related_events: builtins.list[str] = field(default_factory=list)
 
     # Alert context
-    affected_resources: List[str] = field(default_factory=list)
-    threat_indicators: List[str] = field(default_factory=list)
-    recommended_actions: List[str] = field(default_factory=list)
+    affected_resources: builtins.list[str] = field(default_factory=list)
+    threat_indicators: builtins.list[str] = field(default_factory=list)
+    recommended_actions: builtins.list[str] = field(default_factory=list)
 
     # Response tracking
     status: SecurityEventStatus = SecurityEventStatus.NEW
-    assigned_team: Optional[str] = None
+    assigned_team: str | None = None
     escalation_level: int = 0
-    resolution_time: Optional[datetime] = None
+    resolution_time: datetime | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "severity": self.severity.value,
@@ -206,14 +205,14 @@ class SecurityEventCollector:
     """
 
     def __init__(self):
-        self.event_sources: Dict[str, Any] = {}
-        self.event_processors: List[Any] = []
+        self.event_sources: builtins.dict[str, Any] = {}
+        self.event_processors: builtins.list[Any] = []
         self.event_queue = asyncio.Queue()
-        self.processed_events: Dict[str, SecurityEvent] = {}
+        self.processed_events: builtins.dict[str, SecurityEvent] = {}
 
         # Event deduplication
         self.recent_events = deque(maxlen=10000)
-        self.event_hashes: Set[str] = set()
+        self.event_hashes: builtins.set[str] = set()
 
         # Metrics
         if METRICS_AVAILABLE:
@@ -229,7 +228,9 @@ class SecurityEventCollector:
                 ["status"],
             )
 
-    def register_event_source(self, source_name: str, source_config: Dict[str, Any]):
+    def register_event_source(
+        self, source_name: str, source_config: builtins.dict[str, Any]
+    ):
         """Register a new event source"""
         self.event_sources[source_name] = source_config
         print(f"Registered event source: {source_name}")
@@ -239,7 +240,7 @@ class SecurityEventCollector:
         source: str,
         event_type: SecurityEventType,
         severity: SecurityEventSeverity,
-        event_data: Dict[str, Any],
+        event_data: builtins.dict[str, Any],
     ) -> SecurityEvent:
         """Collect and process a security event"""
 
@@ -299,9 +300,9 @@ class SecurityEventCollector:
         hash_data = (
             f"{event.event_type.value}_{event.source_ip}_{event.user_id}_{event.action}"
         )
-        return hashlib.md5(hash_data.encode()).hexdigest()
+        return hashlib.sha256(hash_data.encode()).hexdigest()[:16]
 
-    def _normalize_event_data(self, event: SecurityEvent) -> Dict[str, Any]:
+    def _normalize_event_data(self, event: SecurityEvent) -> builtins.dict[str, Any]:
         """Normalize event data to standard format"""
 
         normalized = {
@@ -327,7 +328,7 @@ class SecurityEventCollector:
 
         return normalized
 
-    async def _enrich_event(self, event: SecurityEvent) -> Dict[str, Any]:
+    async def _enrich_event(self, event: SecurityEvent) -> builtins.dict[str, Any]:
         """Enrich event with additional context"""
 
         enrichment = {}
@@ -352,7 +353,7 @@ class SecurityEventCollector:
 
         return enrichment
 
-    def _lookup_geo_location(self, ip_address: str) -> Dict[str, Any]:
+    def _lookup_geo_location(self, ip_address: str) -> builtins.dict[str, Any]:
         """Lookup geographic location of IP address"""
         # Mock implementation - would use real GeoIP service
         return {
@@ -363,7 +364,7 @@ class SecurityEventCollector:
             "longitude": -122.4194,
         }
 
-    async def _get_user_context(self, user_id: str) -> Dict[str, Any]:
+    async def _get_user_context(self, user_id: str) -> builtins.dict[str, Any]:
         """Get additional user context"""
         # Mock implementation - would query user database
         return {
@@ -373,7 +374,9 @@ class SecurityEventCollector:
             "risk_score": 0.2,
         }
 
-    async def _lookup_threat_intelligence(self, ip_address: str) -> Dict[str, Any]:
+    async def _lookup_threat_intelligence(
+        self, ip_address: str
+    ) -> builtins.dict[str, Any]:
         """Lookup threat intelligence for IP"""
         # Mock implementation - would query threat intel feeds
         return {
@@ -383,7 +386,7 @@ class SecurityEventCollector:
             "last_seen": None,
         }
 
-    async def _get_asset_information(self, resource: str) -> Dict[str, Any]:
+    async def _get_asset_information(self, resource: str) -> builtins.dict[str, Any]:
         """Get asset information for resource"""
         # Mock implementation - would query asset database
         return {
@@ -406,9 +409,9 @@ class SecurityAnalyticsEngine:
     """
 
     def __init__(self):
-        self.correlation_rules: List[Dict[str, Any]] = []
-        self.behavioral_baselines: Dict[str, Dict[str, Any]] = {}
-        self.threat_patterns: List[Dict[str, Any]] = []
+        self.correlation_rules: builtins.list[builtins.dict[str, Any]] = []
+        self.behavioral_baselines: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.threat_patterns: builtins.list[builtins.dict[str, Any]] = []
 
         # Analytics cache
         if REDIS_AVAILABLE:
@@ -500,7 +503,9 @@ class SecurityAnalyticsEngine:
             }
         )
 
-    async def analyze_events(self, events: List[SecurityEvent]) -> List[SecurityAlert]:
+    async def analyze_events(
+        self, events: builtins.list[SecurityEvent]
+    ) -> builtins.list[SecurityAlert]:
         """Analyze events for correlations and anomalies"""
 
         alerts = []
@@ -520,8 +525,8 @@ class SecurityAnalyticsEngine:
         return alerts
 
     async def _run_correlation_analysis(
-        self, events: List[SecurityEvent]
-    ) -> List[SecurityAlert]:
+        self, events: builtins.list[SecurityEvent]
+    ) -> builtins.list[SecurityAlert]:
         """Run correlation analysis on events"""
 
         alerts = []
@@ -551,7 +556,7 @@ class SecurityAnalyticsEngine:
         return alerts
 
     async def _evaluate_correlation_rule(
-        self, rule: Dict[str, Any], events: List[SecurityEvent]
+        self, rule: builtins.dict[str, Any], events: builtins.list[SecurityEvent]
     ) -> bool:
         """Evaluate if correlation rule conditions are met"""
 
@@ -580,8 +585,8 @@ class SecurityAnalyticsEngine:
         return True
 
     async def _run_anomaly_detection(
-        self, events: List[SecurityEvent]
-    ) -> List[SecurityAlert]:
+        self, events: builtins.list[SecurityEvent]
+    ) -> builtins.list[SecurityAlert]:
         """Run anomaly detection on events"""
 
         alerts = []
@@ -625,8 +630,8 @@ class SecurityAnalyticsEngine:
         return baselines.get(event_type, 100)
 
     async def _run_behavioral_analysis(
-        self, events: List[SecurityEvent]
-    ) -> List[SecurityAlert]:
+        self, events: builtins.list[SecurityEvent]
+    ) -> builtins.list[SecurityAlert]:
         """Run behavioral analysis on events"""
 
         alerts = []
@@ -657,7 +662,7 @@ class SecurityAnalyticsEngine:
 
         return alerts
 
-    def _check_unusual_access_hours(self, events: List[SecurityEvent]) -> bool:
+    def _check_unusual_access_hours(self, events: builtins.list[SecurityEvent]) -> bool:
         """Check if user is accessing system at unusual hours"""
         # Mock implementation - check for access outside 9-5
         for event in events:
@@ -679,8 +684,8 @@ class SIEMIntegration:
     """
 
     def __init__(self):
-        self.siem_connections: Dict[str, Any] = {}
-        self.log_forwarders: List[Any] = []
+        self.siem_connections: builtins.dict[str, Any] = {}
+        self.log_forwarders: builtins.list[Any] = []
 
         # Elasticsearch integration for log storage
         if ELASTICSEARCH_AVAILABLE:
@@ -696,7 +701,9 @@ class SIEMIntegration:
                 ["destination"],
             )
 
-    def configure_siem_connection(self, siem_name: str, config: Dict[str, Any]):
+    def configure_siem_connection(
+        self, siem_name: str, config: builtins.dict[str, Any]
+    ):
         """Configure connection to SIEM platform"""
         self.siem_connections[siem_name] = config
         print(f"Configured SIEM connection: {siem_name}")
@@ -729,7 +736,7 @@ class SIEMIntegration:
 
     def _convert_to_siem_format(
         self, event: SecurityEvent, siem_name: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Convert event to SIEM-specific format"""
 
         if siem_name == "elasticsearch":
@@ -751,7 +758,7 @@ class SIEMIntegration:
                 "enrichment_data": event.enrichment_data,
             }
 
-        elif siem_name == "splunk":
+        if siem_name == "splunk":
             return {
                 "time": event.timestamp.timestamp(),
                 "source": "marty_security",
@@ -759,22 +766,21 @@ class SIEMIntegration:
                 "event": json.dumps(event.to_dict()),
             }
 
-        else:
-            # Generic format
-            return event.to_dict()
+        # Generic format
+        return event.to_dict()
 
-    async def _forward_to_elasticsearch(self, event_data: Dict[str, Any]):
+    async def _forward_to_elasticsearch(self, event_data: builtins.dict[str, Any]):
         """Forward event to Elasticsearch"""
         if self.elasticsearch:
             index_name = f"marty-security-{datetime.now().strftime('%Y.%m.%d')}"
             await self.elasticsearch.index(index=index_name, document=event_data)
 
-    async def _forward_to_splunk(self, event_data: Dict[str, Any]):
+    async def _forward_to_splunk(self, event_data: builtins.dict[str, Any]):
         """Forward event to Splunk"""
         # Mock implementation - would use Splunk HEC or Universal Forwarder
         print(f"Forwarding to Splunk: {event_data}")
 
-    async def _forward_to_qradar(self, event_data: Dict[str, Any]):
+    async def _forward_to_qradar(self, event_data: builtins.dict[str, Any]):
         """Forward event to IBM QRadar"""
         # Mock implementation - would use QRadar REST API
         print(f"Forwarding to QRadar: {event_data}")
@@ -793,7 +799,7 @@ class SecurityMonitoringDashboard:
 
     def __init__(self):
         self.metrics_registry = CollectorRegistry() if METRICS_AVAILABLE else None
-        self.active_alerts: Dict[str, SecurityAlert] = {}
+        self.active_alerts: builtins.dict[str, SecurityAlert] = {}
 
         # Dashboard metrics
         if METRICS_AVAILABLE:
@@ -809,7 +815,7 @@ class SecurityMonitoringDashboard:
                 registry=self.metrics_registry,
             )
 
-    def get_security_dashboard(self) -> Dict[str, Any]:
+    def get_security_dashboard(self) -> builtins.dict[str, Any]:
         """Get security dashboard data"""
 
         # Calculate security metrics
@@ -884,14 +890,13 @@ class SecurityMonitoringDashboard:
 
         if critical_count > 0:
             return "CRITICAL"
-        elif high_count > 3:
+        if high_count > 3:
             return "HIGH"
-        elif high_count > 0:
+        if high_count > 0:
             return "ELEVATED"
-        else:
-            return "NORMAL"
+        return "NORMAL"
 
-    def _get_alert_summary(self) -> Dict[str, Any]:
+    def _get_alert_summary(self) -> builtins.dict[str, Any]:
         """Get alert summary by severity and status"""
 
         by_severity = defaultdict(int)
@@ -903,7 +908,7 @@ class SecurityMonitoringDashboard:
 
         return {"by_severity": dict(by_severity), "by_status": dict(by_status)}
 
-    def _get_top_threats(self) -> List[Dict[str, Any]]:
+    def _get_top_threats(self) -> builtins.list[builtins.dict[str, Any]]:
         """Get top security threats"""
 
         # Mock implementation - would analyze actual threat data
@@ -1000,7 +1005,7 @@ class SecurityMonitoringSystem:
         metrics_updater = asyncio.create_task(self._update_metrics_worker())
         workers.append(metrics_updater)
 
-        print("Security monitoring started with {} workers".format(len(workers)))
+        print(f"Security monitoring started with {len(workers)} workers")
 
         # Wait for all workers
         await asyncio.gather(*workers)
@@ -1120,7 +1125,7 @@ class SecurityMonitoringSystem:
         # Would integrate with ticketing system
 
     async def _send_alert_notification(
-        self, alert: SecurityAlert, recipients: List[str]
+        self, alert: SecurityAlert, recipients: builtins.list[str]
     ):
         """Send alert notification"""
 
@@ -1158,7 +1163,7 @@ class SecurityMonitoringSystem:
                 print(f"Error updating metrics: {e}")
                 await asyncio.sleep(60)
 
-    def get_monitoring_status(self) -> Dict[str, Any]:
+    def get_monitoring_status(self) -> builtins.dict[str, Any]:
         """Get monitoring system status"""
 
         return {
@@ -1237,7 +1242,7 @@ async def main():
 
     # Show dashboard
     dashboard_data = monitoring.dashboard.get_security_dashboard()
-    print(f"\nSecurity Dashboard:")
+    print("\nSecurity Dashboard:")
     print(f"Security Score: {dashboard_data['security_score']}")
     print(f"Threat Level: {dashboard_data['threat_level']}")
     print(f"Active Alerts: {dashboard_data['total_active_alerts']}")
@@ -1245,7 +1250,7 @@ async def main():
 
     # Show monitoring status
     status = monitoring.get_monitoring_status()
-    print(f"\nMonitoring Status:")
+    print("\nMonitoring Status:")
     print(f"Events Processed: {status['processed_events']}")
     print(f"Active Alerts: {status['active_alerts']}")
     print(f"SIEM Connections: {status['siem_connections']}")

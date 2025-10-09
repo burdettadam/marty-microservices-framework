@@ -9,6 +9,7 @@ This module provides:
 - Validation and error handling
 """
 
+import builtins
 import logging
 import os
 import re
@@ -16,7 +17,19 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, get_type_hints
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Type,
+    TypeVar,
+    Union,
+    dict,
+    list,
+    type,
+)
 
 import yaml
 
@@ -37,19 +50,13 @@ class Environment(Enum):
 class ConfigurationError(Exception):
     """Base configuration error."""
 
-    pass
-
 
 class ValidationError(ConfigurationError):
     """Configuration validation error."""
 
-    pass
-
 
 class EnvironmentError(ConfigurationError):
     """Environment configuration error."""
-
-    pass
 
 
 @dataclass
@@ -58,13 +65,11 @@ class BaseConfigSection(ABC):
 
     @classmethod
     @abstractmethod
-    def from_dict(cls: Type[T], data: Dict[str, Any]) -> T:
+    def from_dict(cls: builtins.type[T], data: builtins.dict[str, Any]) -> T:  # type: ignore[name-defined]
         """Create instance from dictionary."""
-        pass
 
     def validate(self) -> None:
         """Validate configuration section."""
-        pass
 
 
 @dataclass
@@ -84,7 +89,7 @@ class DatabaseConfigSection(BaseConfigSection):
     connection_timeout: int = 30
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DatabaseConfigSection":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "DatabaseConfigSection":
         return cls(
             host=data.get("host", "localhost"),
             port=data.get("port", 5432),
@@ -154,7 +159,7 @@ class SecurityConfigSection(BaseConfigSection):
     authz: AuthzConfig = field(default_factory=AuthzConfig)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SecurityConfigSection":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "SecurityConfigSection":
         tls_data = data.get("grpc_tls", {})
         tls_config = cls.TLSConfig(
             enabled=tls_data.get("enabled", True),
@@ -215,13 +220,13 @@ class LoggingConfigSection(BaseConfigSection):
 
     level: str = "INFO"
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    handlers: List[str] = field(default_factory=lambda: ["console"])
-    file: Optional[str] = None
+    handlers: builtins.list[str] = field(default_factory=lambda: ["console"])
+    file: str | None = None
     max_bytes: int = 10485760  # 10MB
     backup_count: int = 5
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "LoggingConfigSection":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "LoggingConfigSection":
         return cls(
             level=data.get("level", "INFO"),
             format=data.get(
@@ -260,7 +265,7 @@ class MonitoringConfigSection(BaseConfigSection):
     service_name: str = ""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "MonitoringConfigSection":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "MonitoringConfigSection":
         return cls(
             enabled=data.get("enabled", True),
             metrics_port=data.get("metrics_port", 9090),
@@ -302,7 +307,7 @@ class ResilienceConfigSection(BaseConfigSection):
     retry_policy: RetryPolicyConfig = field(default_factory=RetryPolicyConfig)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ResilienceConfigSection":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "ResilienceConfigSection":
         cb_data = data.get("circuit_breaker", {})
         circuit_breaker = cls.CircuitBreakerConfig(
             failure_threshold=cb_data.get("failure_threshold", 5),
@@ -332,8 +337,8 @@ class ServiceConfig:
     def __init__(
         self,
         service_name: str,
-        environment: Union[str, Environment] = Environment.DEVELOPMENT,
-        config_path: Optional[Path] = None,
+        environment: str | Environment = Environment.DEVELOPMENT,
+        config_path: Path | None = None,
     ):
         self.service_name = service_name
         self.environment = (
@@ -341,12 +346,12 @@ class ServiceConfig:
         )
         self.config_path = config_path
 
-        self._raw_config: Dict[str, Any] = {}
-        self._database: Optional[DatabaseConfigSection] = None
-        self._security: Optional[SecurityConfigSection] = None
-        self._logging: Optional[LoggingConfigSection] = None
-        self._monitoring: Optional[MonitoringConfigSection] = None
-        self._resilience: Optional[ResilienceConfigSection] = None
+        self._raw_config: builtins.dict[str, Any] = {}
+        self._database: DatabaseConfigSection | None = None
+        self._security: SecurityConfigSection | None = None
+        self._logging: LoggingConfigSection | None = None
+        self._monitoring: MonitoringConfigSection | None = None
+        self._resilience: ResilienceConfigSection | None = None
 
         self._load_configuration()
 
@@ -370,7 +375,7 @@ class ServiceConfig:
         # 6. Validate configuration
         self._validate_configuration()
 
-    def _load_base_config(self) -> Dict[str, Any]:
+    def _load_base_config(self) -> builtins.dict[str, Any]:
         """Load base configuration file."""
         if self.config_path:
             base_path = self.config_path / "base.yaml"
@@ -381,7 +386,7 @@ class ServiceConfig:
             return self._load_yaml_file(base_path)
         return {}
 
-    def _load_environment_config(self) -> Dict[str, Any]:
+    def _load_environment_config(self) -> builtins.dict[str, Any]:
         """Load environment-specific configuration."""
         if self.config_path:
             env_path = self.config_path / f"{self.environment.value}.yaml"
@@ -392,7 +397,7 @@ class ServiceConfig:
             return self._load_yaml_file(env_path)
         return {}
 
-    def _load_service_config(self) -> Dict[str, Any]:
+    def _load_service_config(self) -> builtins.dict[str, Any]:
         """Load service-specific configuration."""
         if self.config_path:
             service_path = self.config_path / "services" / f"{self.service_name}.yaml"
@@ -403,17 +408,19 @@ class ServiceConfig:
             return self._load_yaml_file(service_path)
         return {}
 
-    def _load_yaml_file(self, path: Path) -> Dict[str, Any]:
+    def _load_yaml_file(self, path: Path) -> builtins.dict[str, Any]:
         """Load YAML configuration file."""
         try:
-            with open(path, "r", encoding="utf-8") as file:
+            with open(path, encoding="utf-8") as file:
                 return yaml.safe_load(file) or {}
         except yaml.YAMLError as e:
             raise ConfigurationError(f"Error parsing YAML file {path}: {e}")
         except OSError as e:
             raise ConfigurationError(f"Error reading file {path}: {e}")
 
-    def _merge_configs(self, *configs: Dict[str, Any]) -> Dict[str, Any]:
+    def _merge_configs(
+        self, *configs: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Merge multiple configuration dictionaries."""
         result = {}
         for config in configs:
@@ -422,8 +429,8 @@ class ServiceConfig:
         return result
 
     def _deep_merge(
-        self, base: Dict[str, Any], override: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, base: builtins.dict[str, Any], override: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Deep merge two dictionaries."""
         result = base.copy()
 
@@ -443,12 +450,11 @@ class ServiceConfig:
         """Recursively expand environment variables in configuration."""
         if isinstance(obj, dict):
             return {key: self._expand_env_vars(value) for key, value in obj.items()}
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return [self._expand_env_vars(item) for item in obj]
-        elif isinstance(obj, str):
+        if isinstance(obj, str):
             return self._expand_env_var_string(obj)
-        else:
-            return obj
+        return obj
 
     def _expand_env_var_string(self, value: str) -> str:
         """Expand environment variables in a string using ${VAR:-default} syntax."""
@@ -459,8 +465,7 @@ class ServiceConfig:
             if ":-" in var_expr:
                 var_name, default_value = var_expr.split(":-", 1)
                 return os.environ.get(var_name, default_value)
-            else:
-                return os.environ.get(var_expr, "")
+            return os.environ.get(var_expr, "")
 
         return re.sub(pattern, replace_var, value)
 
@@ -554,12 +559,12 @@ class ServiceConfig:
 
         return value
 
-    def get_service_config(self) -> Dict[str, Any]:
+    def get_service_config(self) -> builtins.dict[str, Any]:
         """Get service-specific configuration section."""
         services_config = self._raw_config.get("services", {})
         return services_config.get(self.service_name, {})
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Export configuration as dictionary."""
         return self._raw_config.copy()
 
@@ -576,8 +581,8 @@ def get_environment() -> Environment:
 
 def create_service_config(
     service_name: str,
-    environment: Optional[Union[str, Environment]] = None,
-    config_path: Optional[Path] = None,
+    environment: str | Environment | None = None,
+    config_path: Path | None = None,
 ) -> ServiceConfig:
     """Create a service configuration instance."""
     if environment is None:

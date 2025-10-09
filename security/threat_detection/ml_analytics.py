@@ -10,16 +10,13 @@ Provides advanced machine learning capabilities for security analysis including:
 """
 
 import asyncio
-import hashlib
-import json
-import math
-import pickle
+import builtins
 import statistics
 import time
-from collections import defaultdict, deque
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, dict, list
 
 # External dependencies (optional)
 try:
@@ -52,10 +49,10 @@ class UserBehaviorProfile:
     updated_at: datetime
 
     # Access patterns
-    typical_access_hours: List[int] = field(default_factory=list)
-    typical_services: List[str] = field(default_factory=list)
-    typical_endpoints: List[str] = field(default_factory=list)
-    typical_ip_ranges: List[str] = field(default_factory=list)
+    typical_access_hours: builtins.list[int] = field(default_factory=list)
+    typical_services: builtins.list[str] = field(default_factory=list)
+    typical_endpoints: builtins.list[str] = field(default_factory=list)
+    typical_ip_ranges: builtins.list[str] = field(default_factory=list)
 
     # Behavioral metrics
     avg_requests_per_hour: float = 0.0
@@ -68,7 +65,7 @@ class UserBehaviorProfile:
     unusual_access_count: int = 0
 
     # ML features
-    feature_vector: List[float] = field(default_factory=list)
+    feature_vector: builtins.list[float] = field(default_factory=list)
     anomaly_score: float = 0.0
 
 
@@ -88,9 +85,9 @@ class ServiceBehaviorProfile:
     avg_memory_usage: float = 0.0
 
     # Traffic patterns
-    typical_request_patterns: Dict[str, float] = field(default_factory=dict)
-    typical_user_agents: List[str] = field(default_factory=list)
-    typical_source_countries: List[str] = field(default_factory=list)
+    typical_request_patterns: builtins.dict[str, float] = field(default_factory=dict)
+    typical_user_agents: builtins.list[str] = field(default_factory=list)
+    typical_source_countries: builtins.list[str] = field(default_factory=list)
 
     # Security metrics
     auth_failure_rate: float = 0.0
@@ -98,7 +95,7 @@ class ServiceBehaviorProfile:
     malicious_ip_access_rate: float = 0.0
 
     # ML features
-    feature_vector: List[float] = field(default_factory=list)
+    feature_vector: builtins.list[float] = field(default_factory=list)
     anomaly_score: float = 0.0
 
 
@@ -111,10 +108,10 @@ class ThreatPrediction:
     threat_type: str
     confidence: float
     predicted_at: datetime
-    features_used: List[str]
+    features_used: builtins.list[str]
     model_version: str
     risk_score: float
-    recommended_actions: List[str]
+    recommended_actions: builtins.list[str]
 
 
 class SecurityMLAnalyzer:
@@ -133,8 +130,8 @@ class SecurityMLAnalyzer:
         self.model_update_interval = model_update_interval
 
         # User and service profiles
-        self.user_profiles: Dict[str, UserBehaviorProfile] = {}
-        self.service_profiles: Dict[str, ServiceBehaviorProfile] = {}
+        self.user_profiles: builtins.dict[str, UserBehaviorProfile] = {}
+        self.service_profiles: builtins.dict[str, ServiceBehaviorProfile] = {}
 
         # ML Models
         self.anomaly_detector = None
@@ -143,8 +140,8 @@ class SecurityMLAnalyzer:
         self.scaler = StandardScaler() if ML_AVAILABLE else None
 
         # Training data
-        self.training_data: List[Dict[str, Any]] = []
-        self.feature_names: List[str] = []
+        self.training_data: builtins.list[builtins.dict[str, Any]] = []
+        self.feature_names: builtins.list[str] = []
 
         # Model performance tracking
         self.model_accuracy = 0.0
@@ -181,7 +178,9 @@ class SecurityMLAnalyzer:
 
         # Anomaly detection model
         self.anomaly_detector = IsolationForest(
-            contamination=0.1, random_state=42, n_estimators=100  # Expect 10% anomalies
+            contamination=0.1,
+            random_state=42,
+            n_estimators=100,  # Expect 10% anomalies
         )
 
         # Threat classification model
@@ -211,7 +210,7 @@ class SecurityMLAnalyzer:
         print("Initialized ML models for security analytics")
 
     async def analyze_user_behavior(
-        self, user_id: str, recent_events: List[Dict[str, Any]]
+        self, user_id: str, recent_events: builtins.list[builtins.dict[str, Any]]
     ) -> UserBehaviorProfile:
         """Analyze user behavior and update profile"""
 
@@ -314,8 +313,10 @@ class SecurityMLAnalyzer:
         return profile
 
     def _extract_user_features(
-        self, profile: UserBehaviorProfile, recent_events: List[Dict[str, Any]]
-    ) -> List[float]:
+        self,
+        profile: UserBehaviorProfile,
+        recent_events: builtins.list[builtins.dict[str, Any]],
+    ) -> builtins.list[float]:
         """Extract ML features from user behavior"""
 
         if not recent_events:
@@ -449,7 +450,7 @@ class SecurityMLAnalyzer:
         return min(1.0, score)
 
     async def analyze_service_behavior(
-        self, service_name: str, recent_metrics: List[Dict[str, Any]]
+        self, service_name: str, recent_metrics: builtins.list[builtins.dict[str, Any]]
     ) -> ServiceBehaviorProfile:
         """Analyze service behavior and update profile"""
 
@@ -531,8 +532,10 @@ class SecurityMLAnalyzer:
         return profile
 
     def _extract_service_features(
-        self, profile: ServiceBehaviorProfile, recent_metrics: List[Dict[str, Any]]
-    ) -> List[float]:
+        self,
+        profile: ServiceBehaviorProfile,
+        recent_metrics: builtins.list[builtins.dict[str, Any]],
+    ) -> builtins.list[float]:
         """Extract ML features from service behavior"""
 
         features = []
@@ -601,8 +604,8 @@ class SecurityMLAnalyzer:
         return min(1.0, score)
 
     async def predict_threat(
-        self, event_data: Dict[str, Any]
-    ) -> Optional[ThreatPrediction]:
+        self, event_data: builtins.dict[str, Any]
+    ) -> ThreatPrediction | None:
         """Predict threat likelihood using ML models"""
 
         if not ML_AVAILABLE or not self.threat_classifier:
@@ -661,7 +664,9 @@ class SecurityMLAnalyzer:
             print(f"Error in ML threat prediction: {e}")
             return self._predict_threat_fallback(event_data)
 
-    def _extract_prediction_features(self, event_data: Dict[str, Any]) -> List[float]:
+    def _extract_prediction_features(
+        self, event_data: builtins.dict[str, Any]
+    ) -> builtins.list[float]:
         """Extract features for threat prediction"""
 
         features = []
@@ -736,8 +741,8 @@ class SecurityMLAnalyzer:
         return features
 
     def _predict_threat_fallback(
-        self, event_data: Dict[str, Any]
-    ) -> Optional[ThreatPrediction]:
+        self, event_data: builtins.dict[str, Any]
+    ) -> ThreatPrediction | None:
         """Fallback threat prediction without ML"""
 
         risk_score = 0.0
@@ -789,7 +794,7 @@ class SecurityMLAnalyzer:
 
         return None
 
-    def _get_threat_recommendations(self, threat_type: str) -> List[str]:
+    def _get_threat_recommendations(self, threat_type: str) -> builtins.list[str]:
         """Get recommended actions for threat type"""
 
         recommendations = {
@@ -829,7 +834,9 @@ class SecurityMLAnalyzer:
             threat_type, ["Monitor situation closely", "Alert security team"]
         )
 
-    async def train_models(self, training_events: List[Dict[str, Any]]) -> bool:
+    async def train_models(
+        self, training_events: builtins.list[builtins.dict[str, Any]]
+    ) -> bool:
         """Train ML models with security event data"""
 
         if not ML_AVAILABLE:
@@ -883,7 +890,7 @@ class SecurityMLAnalyzer:
             print(f"Error training ML models: {e}")
             return False
 
-    def get_user_risk_summary(self) -> Dict[str, Any]:
+    def get_user_risk_summary(self) -> builtins.dict[str, Any]:
         """Get summary of user risk profiles"""
 
         if not self.user_profiles:
@@ -906,7 +913,7 @@ class SecurityMLAnalyzer:
             "high_risk_user_ids": [profile.user_id for profile in high_risk_users],
         }
 
-    def get_service_risk_summary(self) -> Dict[str, Any]:
+    def get_service_risk_summary(self) -> builtins.dict[str, Any]:
         """Get summary of service risk profiles"""
 
         if not self.service_profiles:
@@ -931,7 +938,7 @@ class SecurityMLAnalyzer:
             ],
         }
 
-    def get_ml_model_status(self) -> Dict[str, Any]:
+    def get_ml_model_status(self) -> builtins.dict[str, Any]:
         """Get ML model status and performance"""
 
         return {

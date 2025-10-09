@@ -10,9 +10,9 @@ This example shows:
 """
 
 import asyncio
+import builtins
 import logging
-from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, list
 
 from framework.database import (
     AuditMixin,
@@ -90,12 +90,12 @@ class UserService:
         logger.info("Created user: %s", user.username)
         return user
 
-    async def get_user_by_username(self, username: str) -> Optional[User]:
+    async def get_user_by_username(self, username: str) -> User | None:
         """Get user by username."""
         users = await self.user_repository.find_by_field("username", username)
         return users[0] if users else None
 
-    async def update_user(self, user_id: int, **updates) -> Optional[User]:
+    async def update_user(self, user_id: int, **updates) -> User | None:
         """Update user with audit trail."""
         return await self.user_repository.update(user_id, updates)
 
@@ -105,7 +105,7 @@ class UserService:
 
     async def search_users(
         self, search_term: str, skip: int = 0, limit: int = 10
-    ) -> List[User]:
+    ) -> builtins.list[User]:
         """Search users by name or username."""
         return await self.user_repository.search(
             search_term=search_term,
@@ -142,11 +142,13 @@ class UserService:
         logger.info("Created user %s with post %s", user.username, post.title)
         return user, post
 
-    async def get_user_posts(self, user_id: int) -> List[Post]:
+    async def get_user_posts(self, user_id: int) -> builtins.list[Post]:
         """Get all posts by a user."""
         return await self.post_repository.find_by_field("author_id", user_id)
 
-    async def bulk_create_users(self, users_data: List[dict]) -> List[User]:
+    async def bulk_create_users(
+        self, users_data: builtins.list[dict]
+    ) -> builtins.list[User]:
         """Create multiple users in bulk."""
         return await self.user_repository.bulk_create(users_data)
 

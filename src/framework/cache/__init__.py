@@ -59,25 +59,25 @@ from .manager import (  # Core classes; Configuration and data classes; Enums; G
 )
 
 __all__ = [
-    # Core classes
-    "CacheManager",
-    "CacheBackendInterface",
-    "InMemoryCache",
-    "RedisCache",
-    "CacheSerializer",
-    "CacheFactory",
-    # Configuration and data classes
-    "CacheConfig",
-    "CacheStats",
     # Enums
     "CacheBackend",
+    "CacheBackendInterface",
+    # Configuration and data classes
+    "CacheConfig",
+    "CacheFactory",
+    # Core classes
+    "CacheManager",
     "CachePattern",
+    "CacheSerializer",
+    "CacheStats",
+    "InMemoryCache",
+    "RedisCache",
     "SerializationFormat",
-    # Global functions
-    "get_cache_manager",
-    "create_cache_manager",
     "cache_context",
+    "cache_invalidate",
     # Decorators
     "cached",
-    "cache_invalidate",
+    "create_cache_manager",
+    # Global functions
+    "get_cache_manager",
 ]

@@ -11,14 +11,14 @@ Provides comprehensive rate limiting capabilities:
 """
 
 import asyncio
+import builtins
 import logging
 import time
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple, dict, list, tuple
 
 import redis.asyncio as redis
-from fastapi import HTTPException, Request, Response
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
@@ -31,22 +31,22 @@ class RateLimitRule:
 
     requests: int  # Number of requests allowed
     window_seconds: int  # Time window in seconds
-    burst_requests: Optional[int] = None  # Burst limit
-    burst_window_seconds: Optional[int] = None  # Burst window
+    burst_requests: int | None = None  # Burst limit
+    burst_window_seconds: int | None = None  # Burst window
 
 
 @dataclass
 class RateLimitConfig:
     """Rate limiting configuration"""
 
-    redis_url: Optional[str] = None
+    redis_url: str | None = None
     enabled: bool = True
     default_rule: RateLimitRule = None
-    per_user_rules: Optional[Dict[str, RateLimitRule]] = None
-    per_endpoint_rules: Optional[Dict[str, RateLimitRule]] = None
-    per_ip_rules: Optional[Dict[str, RateLimitRule]] = None
-    whitelist_ips: Optional[List[str]] = None
-    whitelist_users: Optional[List[str]] = None
+    per_user_rules: builtins.dict[str, RateLimitRule] | None = None
+    per_endpoint_rules: builtins.dict[str, RateLimitRule] | None = None
+    per_ip_rules: builtins.dict[str, RateLimitRule] | None = None
+    whitelist_ips: builtins.list[str] | None = None
+    whitelist_users: builtins.list[str] | None = None
     enable_distributed: bool = True
 
     def __post_init__(self):
@@ -76,8 +76,8 @@ class SlidingWindowRateLimiter:
             self.redis_client = redis.from_url(config.redis_url)
 
     async def is_rate_limited(
-        self, key: str, rule: RateLimitRule, current_time: Optional[float] = None
-    ) -> Tuple[bool, Dict[str, any]]:
+        self, key: str, rule: RateLimitRule, current_time: float | None = None
+    ) -> builtins.tuple[bool, builtins.dict[str, any]]:
         """
         Check if request should be rate limited
 
@@ -89,12 +89,11 @@ class SlidingWindowRateLimiter:
 
         if self.redis_client:
             return await self._check_redis_rate_limit(key, rule, current_time)
-        else:
-            return await self._check_local_rate_limit(key, rule, current_time)
+        return await self._check_local_rate_limit(key, rule, current_time)
 
     async def _check_redis_rate_limit(
         self, key: str, rule: RateLimitRule, current_time: float
-    ) -> Tuple[bool, Dict[str, any]]:
+    ) -> builtins.tuple[bool, builtins.dict[str, any]]:
         """Redis-based rate limiting"""
         window_start = current_time - rule.window_seconds
 
@@ -151,7 +150,7 @@ class SlidingWindowRateLimiter:
 
     async def _check_local_rate_limit(
         self, key: str, rule: RateLimitRule, current_time: float
-    ) -> Tuple[bool, Dict[str, any]]:
+    ) -> builtins.tuple[bool, builtins.dict[str, any]]:
         """Local in-memory rate limiting (fallback)"""
         if key not in self.local_store:
             self.local_store[key] = []
@@ -180,8 +179,8 @@ class SlidingWindowRateLimiter:
         return is_limited, rate_limit_info
 
     async def get_rate_limit_key(
-        self, request: Request, user_id: Optional[str] = None
-    ) -> List[Tuple[str, RateLimitRule]]:
+        self, request: Request, user_id: str | None = None
+    ) -> builtins.list[builtins.tuple[str, RateLimitRule]]:
         """Generate rate limit keys and rules for a request"""
         keys_and_rules = []
 
@@ -233,7 +232,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     """Rate limiting middleware"""
 
     def __init__(
-        self, app, config: RateLimitConfig, excluded_paths: Optional[List[str]] = None
+        self,
+        app,
+        config: RateLimitConfig,
+        excluded_paths: builtins.list[str] | None = None,
     ):
         super().__init__(app)
         self.config = config
@@ -305,7 +307,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Continue processing on rate limiting errors
             return await call_next(request)
 
-    def _rate_limit_response(self, rate_limit_info: Dict, key: str) -> JSONResponse:
+    def _rate_limit_response(
+        self, rate_limit_info: builtins.dict, key: str
+    ) -> JSONResponse:
         """Return rate limit exceeded response"""
         retry_after = rate_limit_info.get("retry_after", 60)
 
@@ -343,11 +347,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
 
 def create_rate_limit_config(
-    redis_url: Optional[str] = None,
+    redis_url: str | None = None,
     default_requests_per_hour: int = 1000,
     enable_per_user_limits: bool = True,
     enable_per_ip_limits: bool = True,
-    api_tier_limits: Optional[Dict[str, RateLimitRule]] = None,
+    api_tier_limits: builtins.dict[str, RateLimitRule] | None = None,
 ) -> RateLimitConfig:
     """Factory function to create rate limit configuration"""
 
@@ -389,9 +393,9 @@ def create_rate_limit_config(
 
 
 def create_rate_limit_middleware(
-    redis_url: Optional[str] = None,
+    redis_url: str | None = None,
     default_requests_per_hour: int = 1000,
-    excluded_paths: Optional[List[str]] = None,
+    excluded_paths: builtins.list[str] | None = None,
 ) -> RateLimitMiddleware:
     """Factory function to create rate limiting middleware"""
     config = create_rate_limit_config(
@@ -402,9 +406,7 @@ def create_rate_limit_middleware(
 
 
 # Decorator for custom endpoint rate limits
-def rate_limit(
-    requests: int, window_seconds: int, burst_requests: Optional[int] = None
-):
+def rate_limit(requests: int, window_seconds: int, burst_requests: int | None = None):
     """Decorator to apply custom rate limits to specific endpoints"""
 
     def decorator(func):
@@ -419,7 +421,7 @@ def rate_limit(
 
 
 # FastAPI dependency for rate limit information
-async def get_rate_limit_info(request: Request) -> Dict[str, any]:
+async def get_rate_limit_info(request: Request) -> builtins.dict[str, any]:
     """FastAPI dependency to get current rate limit information"""
     return {
         "headers": {

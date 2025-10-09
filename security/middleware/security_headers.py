@@ -12,9 +12,10 @@ Implements comprehensive security headers to protect against common web vulnerab
 - Cross-Origin policies
 """
 
+import builtins
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, dict, list
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -27,29 +28,29 @@ class SecurityHeadersConfig:
     """Configuration for security headers"""
 
     # Content Security Policy
-    csp_default_src: List[str] = field(default_factory=lambda: ["'self'"])
-    csp_script_src: List[str] = field(default_factory=lambda: ["'self'"])
-    csp_style_src: List[str] = field(
+    csp_default_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
+    csp_script_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
+    csp_style_src: builtins.list[str] = field(
         default_factory=lambda: ["'self'", "'unsafe-inline'"]
     )
-    csp_img_src: List[str] = field(
+    csp_img_src: builtins.list[str] = field(
         default_factory=lambda: ["'self'", "data:", "https:"]
     )
-    csp_font_src: List[str] = field(default_factory=lambda: ["'self'"])
-    csp_connect_src: List[str] = field(default_factory=lambda: ["'self'"])
-    csp_object_src: List[str] = field(default_factory=lambda: ["'none'"])
-    csp_media_src: List[str] = field(default_factory=lambda: ["'self'"])
-    csp_frame_src: List[str] = field(default_factory=lambda: ["'none'"])
-    csp_child_src: List[str] = field(default_factory=lambda: ["'none'"])
-    csp_worker_src: List[str] = field(default_factory=lambda: ["'self'"])
-    csp_manifest_src: List[str] = field(default_factory=lambda: ["'self'"])
-    csp_base_uri: List[str] = field(default_factory=lambda: ["'self'"])
-    csp_form_action: List[str] = field(default_factory=lambda: ["'self'"])
-    csp_frame_ancestors: List[str] = field(default_factory=lambda: ["'none'"])
+    csp_font_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
+    csp_connect_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
+    csp_object_src: builtins.list[str] = field(default_factory=lambda: ["'none'"])
+    csp_media_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
+    csp_frame_src: builtins.list[str] = field(default_factory=lambda: ["'none'"])
+    csp_child_src: builtins.list[str] = field(default_factory=lambda: ["'none'"])
+    csp_worker_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
+    csp_manifest_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
+    csp_base_uri: builtins.list[str] = field(default_factory=lambda: ["'self'"])
+    csp_form_action: builtins.list[str] = field(default_factory=lambda: ["'self'"])
+    csp_frame_ancestors: builtins.list[str] = field(default_factory=lambda: ["'none'"])
     csp_upgrade_insecure_requests: bool = True
     csp_block_all_mixed_content: bool = True
-    csp_report_uri: Optional[str] = None
-    csp_report_to: Optional[str] = None
+    csp_report_uri: str | None = None
+    csp_report_to: str | None = None
 
     # HTTP Strict Transport Security
     hsts_enabled: bool = True
@@ -70,7 +71,7 @@ class SecurityHeadersConfig:
     referrer_policy: str = "strict-origin-when-cross-origin"
 
     # Permissions Policy (Feature Policy replacement)
-    permissions_policy: Dict[str, Union[List[str], str]] = field(
+    permissions_policy: builtins.dict[str, builtins.list[str] | str] = field(
         default_factory=lambda: {
             "camera": "('none')",
             "microphone": "('none')",
@@ -92,17 +93,17 @@ class SecurityHeadersConfig:
 
     # CORS settings
     cors_allow_credentials: bool = False
-    cors_allow_origins: List[str] = field(default_factory=lambda: [])
-    cors_allow_methods: List[str] = field(
+    cors_allow_origins: builtins.list[str] = field(default_factory=list)
+    cors_allow_methods: builtins.list[str] = field(
         default_factory=lambda: ["GET", "POST", "PUT", "DELETE"]
     )
-    cors_allow_headers: List[str] = field(default_factory=lambda: ["*"])
-    cors_expose_headers: List[str] = field(default_factory=lambda: [])
+    cors_allow_headers: builtins.list[str] = field(default_factory=lambda: ["*"])
+    cors_expose_headers: builtins.list[str] = field(default_factory=list)
     cors_max_age: int = 600
 
     # Additional security headers
     x_permitted_cross_domain_policies: str = "none"
-    expect_ct: Optional[str] = None  # Certificate Transparency
+    expect_ct: str | None = None  # Certificate Transparency
 
     # Environment-specific settings
     enforce_https: bool = True
@@ -116,7 +117,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         self,
         app,
         config: SecurityHeadersConfig,
-        excluded_paths: Optional[List[str]] = None,
+        excluded_paths: builtins.list[str] | None = None,
     ):
         super().__init__(app)
         self.config = config
@@ -157,7 +158,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Add conditional headers
         self._add_conditional_headers(request, response)
 
-    def _compile_static_headers(self) -> Dict[str, str]:
+    def _compile_static_headers(self) -> builtins.dict[str, str]:
         """Compile static security headers that don't change per request"""
         headers = {}
 
@@ -372,7 +373,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 def create_security_headers_config(
     environment: str = "production",
     api_only: bool = False,
-    allow_origins: Optional[List[str]] = None,
+    allow_origins: builtins.list[str] | None = None,
 ) -> SecurityHeadersConfig:
     """Factory function to create security headers configuration"""
 
@@ -425,8 +426,8 @@ def create_security_headers_config(
 def create_security_headers_middleware(
     environment: str = "production",
     api_only: bool = False,
-    allow_origins: Optional[List[str]] = None,
-    excluded_paths: Optional[List[str]] = None,
+    allow_origins: builtins.list[str] | None = None,
+    excluded_paths: builtins.list[str] | None = None,
 ) -> SecurityHeadersMiddleware:
     """Factory function to create security headers middleware"""
 

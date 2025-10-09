@@ -1,6 +1,16 @@
 """
-Event bus implementation with transactional outbox pattern.
-
+Event bus ifrom typing import (
+    Type,
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    dict,
+    list,
+    type,
+)n with transactional outbox pattern.
 Provides reliable event publishing with guaranteed delivery and transaction support.
 """
 
@@ -11,22 +21,21 @@ import json
 import logging
 import uuid
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Type, TypeVar
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+from sqlalchemy import Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base
 
 logger = logging.getLogger(__name__)
-
 # Type variables
 EventType = TypeVar("EventType", bound="BaseEvent")
 HandlerType = TypeVar("HandlerType", bound="EventHandler")
-
 # Base for outbox table
 OutboxBase = declarative_base()
 
@@ -50,13 +59,13 @@ class BaseEvent(ABC):
         self.event_type = self.__class__.__name__
 
     @abstractmethod
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert event to dictionary."""
         ...
 
     @classmethod
     @abstractmethod
-    def from_dict(cls, data: Dict[str, Any]) -> BaseEvent:
+    def from_dict(cls, data: dict[str, Any]) -> BaseEvent:
         """Create event from dictionary."""
         ...
 
@@ -71,7 +80,7 @@ class EventHandler(ABC):
 
     @property
     @abstractmethod
-    def event_types(self) -> List[str]:
+    def event_types(self) -> list[str]:
         """List of event types this handler can process."""
         ...
 
@@ -82,20 +91,19 @@ class EventMetadata:
 
     event_id: str
     event_type: str
-    correlation_id: Optional[str] = None
-    causation_id: Optional[str] = None
-    user_id: Optional[str] = None
-    tenant_id: Optional[str] = None
-    source_service: Optional[str] = None
+    correlation_id: str | None = None
+    causation_id: str | None = None
+    user_id: str | None = None
+    tenant_id: str | None = None
+    source_service: str | None = None
     version: int = 1
-    headers: Dict[str, str] = field(default_factory=dict)
+    headers: dict[str, str] = field(default_factory=dict)
 
 
 class OutboxEvent(OutboxBase):
     """Outbox table for transactional event publishing."""
 
     __tablename__ = "event_outbox"
-
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     event_id = Column(String(36), nullable=False, unique=True)
     event_type = Column(String(255), nullable=False)
@@ -151,7 +159,7 @@ class InMemoryEventBus(EventBus):
     """In-memory event bus implementation for testing."""
 
     def __init__(self):
-        self._handlers: Dict[str, List[EventHandler]] = {}
+        self._handlers: dict[str, list[EventHandler]] = {}
         self._running = False
 
     async def publish(
@@ -160,10 +168,8 @@ class InMemoryEventBus(EventBus):
         """Publish an event immediately."""
         if not self._running:
             logger.warning("Event bus not running, event will be processed immediately")
-
         event_type = event.event_type
         handlers = self._handlers.get(event_type, [])
-
         for handler in handlers:
             try:
                 await handler.handle(event)
@@ -181,7 +187,6 @@ class InMemoryEventBus(EventBus):
             if event_type not in self._handlers:
                 self._handlers[event_type] = []
             self._handlers[event_type].append(handler)
-
         logger.info(
             "Subscribed handler %s for events: %s",
             handler.__class__.__name__,
@@ -195,7 +200,6 @@ class InMemoryEventBus(EventBus):
                 self._handlers[event_type] = [
                     h for h in self._handlers[event_type] if h != handler
                 ]
-
         logger.info("Unsubscribed handler %s", handler.__class__.__name__)
 
     async def start(self) -> None:
@@ -214,9 +218,9 @@ class TransactionalOutboxEventBus(EventBus):
 
     def __init__(self, session_factory: Callable[[], AsyncSession]):
         self._session_factory = session_factory
-        self._handlers: Dict[str, List[EventHandler]] = {}
+        self._handlers: dict[str, list[EventHandler]] = {}
         self._running = False
-        self._processor_task: Optional[asyncio.Task] = None
+        self._processor_task: asyncio.Task | None = None
         self._processing_interval = 5.0  # seconds
 
     async def publish(
@@ -227,7 +231,6 @@ class TransactionalOutboxEventBus(EventBus):
             # Serialize event data
             event_data = json.dumps(event.to_dict())
             metadata_data = json.dumps(metadata.__dict__ if metadata else {})
-
             # Create outbox entry
             outbox_event = OutboxEvent(
                 event_id=event.event_id,
@@ -235,10 +238,8 @@ class TransactionalOutboxEventBus(EventBus):
                 event_data=event_data,
                 metadata=metadata_data,
             )
-
             session.add(outbox_event)
             await session.commit()
-
             logger.debug("Event %s published to outbox", event.event_id)
 
     async def subscribe(self, handler: EventHandler) -> None:
@@ -247,7 +248,6 @@ class TransactionalOutboxEventBus(EventBus):
             if event_type not in self._handlers:
                 self._handlers[event_type] = []
             self._handlers[event_type].append(handler)
-
         logger.info(
             "Subscribed handler %s for events: %s",
             handler.__class__.__name__,
@@ -261,14 +261,12 @@ class TransactionalOutboxEventBus(EventBus):
                 self._handlers[event_type] = [
                     h for h in self._handlers[event_type] if h != handler
                 ]
-
         logger.info("Unsubscribed handler %s", handler.__class__.__name__)
 
     async def start(self) -> None:
         """Start the event bus and background processor."""
         if self._running:
             return
-
         self._running = True
         self._processor_task = asyncio.create_task(self._process_events())
         logger.info("Transactional outbox event bus started")
@@ -277,16 +275,13 @@ class TransactionalOutboxEventBus(EventBus):
         """Stop the event bus and background processor."""
         if not self._running:
             return
-
         self._running = False
-
         if self._processor_task:
             self._processor_task.cancel()
             try:
                 await self._processor_task
             except asyncio.CancelledError:
                 pass
-
         logger.info("Transactional outbox event bus stopped")
 
     @asynccontextmanager
@@ -322,10 +317,8 @@ class TransactionalOutboxEventBus(EventBus):
                 .order_by(OutboxEvent.created_at)
                 .limit(10)
             )
-
             result = await session.execute(stmt)
             events = result.scalars().all()
-
             for outbox_event in events:
                 await self._process_single_event(session, outbox_event)
 
@@ -338,10 +331,8 @@ class TransactionalOutboxEventBus(EventBus):
             outbox_event.status = EventStatus.PROCESSING.value
             outbox_event.attempts += 1
             await session.commit()
-
             # Get handlers for this event type
             handlers = self._handlers.get(outbox_event.event_type, [])
-
             if not handlers:
                 logger.warning(
                     "No handlers for event type: %s", outbox_event.event_type
@@ -350,11 +341,9 @@ class TransactionalOutboxEventBus(EventBus):
                 outbox_event.processed_at = datetime.now(timezone.utc)
                 await session.commit()
                 return
-
             # Deserialize event data
             event_data = json.loads(outbox_event.event_data)
             event = self._reconstruct_event(outbox_event.event_type, event_data)
-
             # Process with each handler
             success = True
             for handler in handlers:
@@ -369,20 +358,16 @@ class TransactionalOutboxEventBus(EventBus):
                     )
                     success = False
                     break
-
             if success:
                 outbox_event.status = EventStatus.COMPLETED.value
                 outbox_event.processed_at = datetime.now(timezone.utc)
                 outbox_event.error_message = None
+            elif outbox_event.attempts >= outbox_event.max_attempts:
+                outbox_event.status = EventStatus.FAILED.value
+                outbox_event.error_message = "Max attempts exceeded"
             else:
-                if outbox_event.attempts >= outbox_event.max_attempts:
-                    outbox_event.status = EventStatus.FAILED.value
-                    outbox_event.error_message = "Max attempts exceeded"
-                else:
-                    outbox_event.status = EventStatus.PENDING.value
-
+                outbox_event.status = EventStatus.PENDING.value
             await session.commit()
-
         except Exception as e:
             logger.error("Error processing event %s: %s", outbox_event.event_id, e)
             outbox_event.status = EventStatus.FAILED.value
@@ -390,7 +375,7 @@ class TransactionalOutboxEventBus(EventBus):
             await session.commit()
 
     def _reconstruct_event(
-        self, event_type: str, event_data: Dict[str, Any]
+        self, event_type: str, event_data: dict[str, Any]
     ) -> BaseEvent:
         """Reconstruct event from data."""
         # This is a simplified reconstruction - in practice you'd have a registry
@@ -400,7 +385,6 @@ class TransactionalOutboxEventBus(EventBus):
         event_class = EVENT_REGISTRY.get(event_type)
         if not event_class:
             raise ValueError(f"Unknown event type: {event_type}")
-
         return event_class.from_dict(event_data)
 
 
@@ -408,18 +392,18 @@ class EventRegistry:
     """Registry for event types."""
 
     def __init__(self):
-        self._events: Dict[str, Type[BaseEvent]] = {}
+        self._events: dict[str, type[BaseEvent]] = {}
 
-    def register(self, event_class: Type[BaseEvent]) -> None:
+    def register(self, event_class: type[BaseEvent]) -> None:
         """Register an event class."""
         self._events[event_class.__name__] = event_class
         logger.debug("Registered event type: %s", event_class.__name__)
 
-    def get(self, event_type: str) -> Optional[Type[BaseEvent]]:
+    def get(self, event_type: str) -> type[BaseEvent] | None:
         """Get event class by type name."""
         return self._events.get(event_type)
 
-    def list_types(self) -> List[str]:
+    def list_types(self) -> list[str]:
         """List all registered event types."""
         return list(self._events.keys())
 
@@ -428,7 +412,7 @@ class EventRegistry:
 EVENT_REGISTRY = EventRegistry()
 
 
-def register_event(event_class: Type[BaseEvent]) -> Type[BaseEvent]:
+def register_event(event_class: type[BaseEvent]) -> type[BaseEvent]:
     """Decorator to register an event class."""
     EVENT_REGISTRY.register(event_class)
     return event_class
@@ -444,7 +428,7 @@ class DomainEvent(BaseEvent):
         self.aggregate_id = aggregate_id
         self.aggregate_type = aggregate_type
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "event_id": self.event_id,
             "event_type": self.event_type,
@@ -454,7 +438,7 @@ class DomainEvent(BaseEvent):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> DomainEvent:
+    def from_dict(cls, data: dict[str, Any]) -> DomainEvent:
         return cls(
             event_id=data["event_id"],
             timestamp=datetime.fromisoformat(data["timestamp"]),
@@ -468,14 +452,14 @@ class SystemEvent(BaseEvent):
     """System-level event."""
 
     def __init__(
-        self, source: str, action: str, details: Dict[str, Any] | None = None, **kwargs
+        self, source: str, action: str, details: dict[str, Any] | None = None, **kwargs
     ):
         super().__init__(**kwargs)
         self.source = source
         self.action = action
         self.details = details or {}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "event_id": self.event_id,
             "event_type": self.event_type,
@@ -486,7 +470,7 @@ class SystemEvent(BaseEvent):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> SystemEvent:
+    def from_dict(cls, data: dict[str, Any]) -> SystemEvent:
         return cls(
             event_id=data["event_id"],
             timestamp=datetime.fromisoformat(data["timestamp"]),
@@ -516,7 +500,7 @@ async def publish_system_event(
     event_bus: EventBus,
     source: str,
     action: str,
-    details: Dict[str, Any] | None = None,
+    details: dict[str, Any] | None = None,
     metadata: EventMetadata | None = None,
     **kwargs,
 ) -> None:
@@ -529,19 +513,15 @@ async def publish_system_event(
 @asynccontextmanager
 async def event_transaction(
     event_bus: TransactionalOutboxEventBus, session: AsyncSession
-) -> AsyncIterator[List[BaseEvent]]:
+) -> AsyncIterator[list[BaseEvent]]:
     """Context manager for collecting events within a transaction."""
-    events: List[BaseEvent] = []
-
+    events: list[BaseEvent] = []
     try:
         yield events
-
         # Publish all collected events
         for event in events:
             await event_bus.publish(event)
-
         await session.commit()
-
     except Exception:
         await session.rollback()
         raise

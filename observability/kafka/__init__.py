@@ -16,6 +16,6 @@ __all__ = [
     "EventMessage",
     "KafkaConfig",
     "event_bus_context",
-    "publish_service_event",
     "publish_domain_event",
+    "publish_service_event",
 ]

@@ -6,15 +6,14 @@ automatic infrastructure integration for generated microservices.
 """
 
 import asyncio
-import json
+import builtins
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, dict, list
 
 import networkx as nx
 import yaml
-from pydantic import BaseModel, Field
 
 
 class DependencyType(Enum):
@@ -55,12 +54,12 @@ class DependencySpec:
     version: str
     scope: DependencyScope = DependencyScope.SINGLETON
     required: bool = True
-    interface: Optional[str] = None
-    implementation: Optional[str] = None
-    configuration: Dict[str, Any] = field(default_factory=dict)
-    health_check: Optional[str] = None
-    retry_policy: Dict[str, Any] = field(default_factory=dict)
-    circuit_breaker: Dict[str, Any] = field(default_factory=dict)
+    interface: str | None = None
+    implementation: str | None = None
+    configuration: builtins.dict[str, Any] = field(default_factory=dict)
+    health_check: str | None = None
+    retry_policy: builtins.dict[str, Any] = field(default_factory=dict)
+    circuit_breaker: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -68,9 +67,9 @@ class ServiceInterface:
     """Interface definition for a service."""
 
     name: str
-    methods: List[str]
-    events: List[str] = field(default_factory=list)
-    schema: Optional[Dict[str, Any]] = None
+    methods: builtins.list[str]
+    events: builtins.list[str] = field(default_factory=list)
+    schema: builtins.dict[str, Any] | None = None
 
 
 @dataclass
@@ -81,10 +80,10 @@ class ServiceRegistration:
     address: str
     port: int
     protocol: str
-    interfaces: List[ServiceInterface]
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    health_check_endpoint: Optional[str] = None
-    tags: List[str] = field(default_factory=list)
+    interfaces: builtins.list[ServiceInterface]
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
+    health_check_endpoint: str | None = None
+    tags: builtins.list[str] = field(default_factory=list)
 
 
 class DependencyGraph:
@@ -93,8 +92,8 @@ class DependencyGraph:
     def __init__(self):
         """Initialize the dependency graph."""
         self.graph = nx.DiGraph()
-        self.services: Dict[str, ServiceRegistration] = {}
-        self.dependencies: Dict[str, List[DependencySpec]] = {}
+        self.services: builtins.dict[str, ServiceRegistration] = {}
+        self.dependencies: builtins.dict[str, builtins.list[DependencySpec]] = {}
 
     def add_service(self, service: ServiceRegistration) -> None:
         """Add a service to the graph."""
@@ -115,22 +114,22 @@ class DependencyGraph:
         ):
             self.graph.add_edge(service_name, dependency.name, dependency=dependency)
 
-    def get_dependencies(self, service_name: str) -> List[DependencySpec]:
+    def get_dependencies(self, service_name: str) -> builtins.list[DependencySpec]:
         """Get all dependencies for a service."""
         return self.dependencies.get(service_name, [])
 
-    def get_dependents(self, service_name: str) -> List[str]:
+    def get_dependents(self, service_name: str) -> builtins.list[str]:
         """Get all services that depend on this service."""
         return list(self.graph.predecessors(service_name))
 
-    def resolve_startup_order(self) -> List[str]:
+    def resolve_startup_order(self) -> builtins.list[str]:
         """Resolve the startup order for services."""
         try:
             return list(nx.topological_sort(self.graph))
         except nx.NetworkXError as e:
             raise ValueError(f"Circular dependency detected: {e}")
 
-    def detect_cycles(self) -> List[List[str]]:
+    def detect_cycles(self) -> builtins.list[builtins.list[str]]:
         """Detect circular dependencies."""
         try:
             cycles = list(nx.simple_cycles(self.graph))
@@ -138,7 +137,9 @@ class DependencyGraph:
         except nx.NetworkXError:
             return []
 
-    def get_critical_path(self, start_service: str, end_service: str) -> List[str]:
+    def get_critical_path(
+        self, start_service: str, end_service: str
+    ) -> builtins.list[str]:
         """Get the critical path between two services."""
         try:
             return nx.shortest_path(self.graph, start_service, end_service)
@@ -152,9 +153,9 @@ class ServiceDiscovery:
     def __init__(self, framework_root: Path):
         """Initialize service discovery."""
         self.framework_root = framework_root
-        self.registry: Dict[str, ServiceRegistration] = {}
-        self.watchers: List[callable] = []
-        self.health_checks: Dict[str, Dict[str, Any]] = {}
+        self.registry: builtins.dict[str, ServiceRegistration] = {}
+        self.watchers: builtins.list[callable] = []
+        self.health_checks: builtins.dict[str, builtins.dict[str, Any]] = {}
 
     async def register_service(self, service: ServiceRegistration) -> None:
         """Register a service."""
@@ -167,19 +168,19 @@ class ServiceDiscovery:
             service = self.registry.pop(service_name)
             await self._notify_watchers("deregister", service)
 
-    async def discover_service(
-        self, service_name: str
-    ) -> Optional[ServiceRegistration]:
+    async def discover_service(self, service_name: str) -> ServiceRegistration | None:
         """Discover a service by name."""
         return self.registry.get(service_name)
 
-    async def discover_services_by_tag(self, tag: str) -> List[ServiceRegistration]:
+    async def discover_services_by_tag(
+        self, tag: str
+    ) -> builtins.list[ServiceRegistration]:
         """Discover services by tag."""
         return [service for service in self.registry.values() if tag in service.tags]
 
     async def discover_services_by_interface(
         self, interface_name: str
-    ) -> List[ServiceRegistration]:
+    ) -> builtins.list[ServiceRegistration]:
         """Discover services by interface."""
         return [
             service
@@ -208,13 +209,13 @@ class DependencyInjectionContainer:
 
     def __init__(self):
         """Initialize the DI container."""
-        self.dependencies: Dict[str, DependencySpec] = {}
-        self.instances: Dict[str, Any] = {}
-        self.factories: Dict[str, callable] = {}
-        self.lifecycle_managers: Dict[str, "ServiceLifecycleManager"] = {}
+        self.dependencies: builtins.dict[str, DependencySpec] = {}
+        self.instances: builtins.dict[str, Any] = {}
+        self.factories: builtins.dict[str, callable] = {}
+        self.lifecycle_managers: builtins.dict[str, ServiceLifecycleManager] = {}
 
     def register_dependency(
-        self, spec: DependencySpec, factory: Optional[callable] = None
+        self, spec: DependencySpec, factory: callable | None = None
     ) -> None:
         """Register a dependency."""
         self.dependencies[spec.name] = spec
@@ -251,8 +252,7 @@ class DependencyInjectionContainer:
             factory = self.factories[spec.name]
             if asyncio.iscoroutinefunction(factory):
                 return await factory()
-            else:
-                return factory()
+            return factory()
 
         # Default factory for infrastructure components
         if spec.type == DependencyType.INFRASTRUCTURE:
@@ -267,23 +267,22 @@ class DependencyInjectionContainer:
 
             return BaseServiceConfig(**spec.configuration)
 
-        elif spec.name.startswith("framework-cache"):
+        if spec.name.startswith("framework-cache"):
             from src.framework.cache.manager import CacheManager
 
             return CacheManager(spec.configuration)
 
-        elif spec.name.startswith("framework-messaging"):
+        if spec.name.startswith("framework-messaging"):
             from src.framework.messaging.queue import MessageQueue
 
             return MessageQueue(spec.configuration)
 
-        elif spec.name.startswith("framework-events"):
+        if spec.name.startswith("framework-events"):
             from src.framework.messaging.streams import EventStreamManager
 
             return EventStreamManager(spec.configuration)
 
-        else:
-            raise ValueError(f"Unknown infrastructure component: {spec.name}")
+        raise ValueError(f"Unknown infrastructure component: {spec.name}")
 
 
 class ServiceLifecycleManager:
@@ -294,9 +293,9 @@ class ServiceLifecycleManager:
         self.service_name = service_name
         self.dependency_graph = dependency_graph
         self.state = ServiceLifecycle.INACTIVE
-        self.health_checks: List[callable] = []
-        self.startup_hooks: List[callable] = []
-        self.shutdown_hooks: List[callable] = []
+        self.health_checks: builtins.list[callable] = []
+        self.startup_hooks: builtins.list[callable] = []
+        self.shutdown_hooks: builtins.list[callable] = []
 
     async def start(self) -> None:
         """Start the service."""
@@ -390,7 +389,7 @@ class SmartDependencyManager:
         self.dependency_graph = DependencyGraph()
         self.service_discovery = ServiceDiscovery(framework_root)
         self.di_container = DependencyInjectionContainer()
-        self.lifecycle_managers: Dict[str, ServiceLifecycleManager] = {}
+        self.lifecycle_managers: builtins.dict[str, ServiceLifecycleManager] = {}
 
         # Configuration paths
         self.config_dir = framework_root / "config" / "dependencies"
@@ -402,7 +401,7 @@ class SmartDependencyManager:
         await self._setup_infrastructure_dependencies()
         await self._register_builtin_services()
 
-    async def add_service(self, service_config: Dict[str, Any]) -> None:
+    async def add_service(self, service_config: builtins.dict[str, Any]) -> None:
         """Add a service with automatic dependency resolution."""
         service_name = service_config["name"]
 
@@ -455,7 +454,7 @@ class SmartDependencyManager:
         lifecycle_manager = ServiceLifecycleManager(service_name, self.dependency_graph)
         self.lifecycle_managers[service_name] = lifecycle_manager
 
-    async def start_services(self, services: Optional[List[str]] = None) -> None:
+    async def start_services(self, services: builtins.list[str] | None = None) -> None:
         """Start services in dependency order."""
         if services is None:
             services = list(self.dependency_graph.services.keys())
@@ -471,7 +470,7 @@ class SmartDependencyManager:
             if service_name in self.lifecycle_managers:
                 await self.lifecycle_managers[service_name].start()
 
-    async def stop_services(self, services: Optional[List[str]] = None) -> None:
+    async def stop_services(self, services: builtins.list[str] | None = None) -> None:
         """Stop services in reverse dependency order."""
         if services is None:
             services = list(self.dependency_graph.services.keys())
@@ -485,7 +484,7 @@ class SmartDependencyManager:
             if service_name in self.lifecycle_managers:
                 await self.lifecycle_managers[service_name].stop()
 
-    async def health_check_all(self) -> Dict[str, bool]:
+    async def health_check_all(self) -> builtins.dict[str, bool]:
         """Perform health checks on all services."""
         results = {}
 
@@ -528,7 +527,7 @@ class SmartDependencyManager:
             yaml.dump(config, default_flow_style=False), encoding="utf-8"
         )
 
-    def analyze_dependencies(self, service_name: str) -> Dict[str, Any]:
+    def analyze_dependencies(self, service_name: str) -> builtins.dict[str, Any]:
         """Analyze dependencies for a service."""
         dependencies = self.dependency_graph.get_dependencies(service_name)
         dependents = self.dependency_graph.get_dependents(service_name)
@@ -583,7 +582,7 @@ class SmartDependencyManager:
 
         for config_file in config_files:
             try:
-                with open(config_file, "r", encoding="utf-8") as f:
+                with open(config_file, encoding="utf-8") as f:
                     config = yaml.safe_load(f)
 
                 if "services" in config:

@@ -6,15 +6,15 @@ to prevent resource exhaustion and improve system responsiveness.
 """
 
 import asyncio
+import builtins
 import logging
-import signal
 import threading
 import time
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, TypeVar, dict
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ class TimeoutConfig:
     log_timeouts: bool = True
 
     # Custom timeout handler
-    timeout_handler: Optional[Callable[[str, float], None]] = None
+    timeout_handler: Callable[[str, float], None] | None = None
 
     # Propagate timeout to nested operations
     propagate_timeout: bool = True
@@ -92,7 +92,7 @@ class TimeoutContext:
         self.cancelled = True
         self._cancel_event.set()
 
-    def wait_for_cancel(self, timeout: Optional[float] = None) -> bool:
+    def wait_for_cancel(self, timeout: float | None = None) -> bool:
         """Wait for timeout to be cancelled."""
         return self._cancel_event.wait(timeout)
 
@@ -100,9 +100,9 @@ class TimeoutContext:
 class TimeoutManager:
     """Manages timeout operations and contexts."""
 
-    def __init__(self, config: Optional[TimeoutConfig] = None):
+    def __init__(self, config: TimeoutConfig | None = None):
         self.config = config or TimeoutConfig()
-        self._active_timeouts: Dict[str, TimeoutContext] = {}
+        self._active_timeouts: builtins.dict[str, TimeoutContext] = {}
         self._lock = threading.Lock()
 
         # Metrics
@@ -111,7 +111,7 @@ class TimeoutManager:
         self._total_timeout_time = 0.0
 
     def create_timeout_context(
-        self, timeout_seconds: Optional[float] = None, operation: str = "operation"
+        self, timeout_seconds: float | None = None, operation: str = "operation"
     ) -> TimeoutContext:
         """Create a new timeout context."""
         timeout = timeout_seconds or self.config.default_timeout
@@ -136,7 +136,7 @@ class TimeoutManager:
     async def execute_with_timeout(
         self,
         func: Callable[..., T],
-        timeout_seconds: Optional[float] = None,
+        timeout_seconds: float | None = None,
         operation: str = "async_operation",
         *args,
         **kwargs,
@@ -177,7 +177,7 @@ class TimeoutManager:
     def execute_sync_with_timeout(
         self,
         func: Callable[..., T],
-        timeout_seconds: Optional[float] = None,
+        timeout_seconds: float | None = None,
         operation: str = "sync_operation",
         *args,
         **kwargs,
@@ -206,25 +206,24 @@ class TimeoutManager:
                 if exception[0]:
                     raise exception[0]
                 return result[0]
-            else:
-                if self.config.log_timeouts:
-                    logger.warning(
-                        f"Operation '{operation}' timed out after {timeout} seconds"
-                    )
-
-                if self.config.timeout_handler:
-                    self.config.timeout_handler(operation, timeout)
-
-                raise ResilienceTimeoutError(
-                    f"Operation '{operation}' timed out after {timeout} seconds",
-                    timeout,
-                    operation,
+            if self.config.log_timeouts:
+                logger.warning(
+                    f"Operation '{operation}' timed out after {timeout} seconds"
                 )
+
+            if self.config.timeout_handler:
+                self.config.timeout_handler(operation, timeout)
+
+            raise ResilienceTimeoutError(
+                f"Operation '{operation}' timed out after {timeout} seconds",
+                timeout,
+                operation,
+            )
         finally:
             self.remove_timeout_context(operation)
             # Note: Thread will continue running but we can't forcefully kill it
 
-    def get_active_timeouts(self) -> Dict[str, Dict[str, Any]]:
+    def get_active_timeouts(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Get information about active timeouts."""
         with self._lock:
             return {
@@ -238,7 +237,7 @@ class TimeoutManager:
                 for name, context in self._active_timeouts.items()
             }
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get timeout manager statistics."""
         with self._lock:
             timeout_rate = self._timed_out_operations / max(1, self._total_operations)
@@ -267,7 +266,7 @@ def get_timeout_manager() -> TimeoutManager:
 
 async def with_timeout(
     func: Callable[..., T],
-    timeout_seconds: Optional[float] = None,
+    timeout_seconds: float | None = None,
     operation: str = "operation",
     *args,
     **kwargs,
@@ -296,7 +295,7 @@ async def with_timeout(
 
 def with_sync_timeout(
     func: Callable[..., T],
-    timeout_seconds: Optional[float] = None,
+    timeout_seconds: float | None = None,
     operation: str = "operation",
     *args,
     **kwargs,
@@ -325,7 +324,7 @@ def with_sync_timeout(
 
 @asynccontextmanager
 async def timeout_context(
-    timeout_seconds: Optional[float] = None, operation: str = "context_operation"
+    timeout_seconds: float | None = None, operation: str = "context_operation"
 ):
     """
     Async context manager for timeout operations.
@@ -362,7 +361,7 @@ async def timeout_context(
         context.cancel()
         timeout_handle.cancel()
 
-    except Exception as e:
+    except Exception:
         context.cancel()
         timeout_handle.cancel()
         raise
@@ -375,7 +374,7 @@ async def timeout_context(
 
 @contextmanager
 def sync_timeout_context(
-    timeout_seconds: Optional[float] = None, operation: str = "sync_context_operation"
+    timeout_seconds: float | None = None, operation: str = "sync_context_operation"
 ):
     """
     Sync context manager for timeout operations.
@@ -416,9 +415,7 @@ def sync_timeout_context(
         manager.remove_timeout_context(operation)
 
 
-def timeout_async(
-    timeout_seconds: Optional[float] = None, operation: Optional[str] = None
-):
+def timeout_async(timeout_seconds: float | None = None, operation: str | None = None):
     """
     Decorator to add timeout to async functions.
 
@@ -442,9 +439,7 @@ def timeout_async(
     return decorator
 
 
-def timeout_sync(
-    timeout_seconds: Optional[float] = None, operation: Optional[str] = None
-):
+def timeout_sync(timeout_seconds: float | None = None, operation: str | None = None):
     """
     Decorator to add timeout to sync functions.
 

@@ -10,7 +10,7 @@ Provides comprehensive middleware system for API gateway including:
 - Error handling
 """
 
-import asyncio
+import builtins
 import json
 import logging
 import re
@@ -19,8 +19,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, List, Optional
-from urllib.parse import urlparse
+from typing import Any, Callable, Dict, List, Optional, dict, list
 
 logger = logging.getLogger(__name__)
 
@@ -39,10 +38,10 @@ class MiddlewareContext:
 
     request_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     start_time: float = field(default_factory=time.time)
-    request_data: Dict[str, Any] = field(default_factory=dict)
-    response_data: Optional[Dict[str, Any]] = None
-    error: Optional[Exception] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    request_data: builtins.dict[str, Any] = field(default_factory=dict)
+    response_data: builtins.dict[str, Any] | None = None
+    error: Exception | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     @property
     def processing_time(self) -> float:
@@ -109,9 +108,9 @@ class CORSMiddleware(Middleware):
 
     def __init__(
         self,
-        allowed_origins: List[str] = None,
-        allowed_methods: List[str] = None,
-        allowed_headers: List[str] = None,
+        allowed_origins: builtins.list[str] = None,
+        allowed_methods: builtins.list[str] = None,
+        allowed_headers: builtins.list[str] = None,
         allow_credentials: bool = False,
         max_age: int = 86400,
     ):
@@ -174,7 +173,7 @@ class CORSMiddleware(Middleware):
         """Pass through errors."""
         return context
 
-    def _is_origin_allowed(self, origin: Optional[str]) -> bool:
+    def _is_origin_allowed(self, origin: str | None) -> bool:
         """Check if origin is allowed."""
         if not origin:
             return False
@@ -188,7 +187,7 @@ class CORSMiddleware(Middleware):
 class ValidationMiddleware(Middleware):
     """Request validation middleware."""
 
-    def __init__(self, validators: Dict[str, Callable] = None):
+    def __init__(self, validators: builtins.dict[str, Callable] = None):
         self.validators = validators or {}
 
     async def process_request(self, context: MiddlewareContext) -> MiddlewareContext:
@@ -292,7 +291,7 @@ class CachingMiddleware(Middleware):
         """Pass through errors."""
         return context
 
-    def _get_cache_key(self, request: Dict[str, Any]) -> str:
+    def _get_cache_key(self, request: builtins.dict[str, Any]) -> str:
         """Generate cache key for request."""
         path = request.get("path", "/")
         query = request.get("query_params", {})
@@ -302,8 +301,7 @@ class CachingMiddleware(Middleware):
 
         if query_string:
             return f"gateway_cache:{path}?{query_string}"
-        else:
-            return f"gateway_cache:{path}"
+        return f"gateway_cache:{path}"
 
 
 class MetricsMiddleware(Middleware):
@@ -359,8 +357,8 @@ class TransformationMiddleware(Middleware):
 
     def __init__(
         self,
-        request_transformers: Dict[str, Callable] = None,
-        response_transformers: Dict[str, Callable] = None,
+        request_transformers: builtins.dict[str, Callable] = None,
+        response_transformers: builtins.dict[str, Callable] = None,
     ):
         self.request_transformers = request_transformers or {}
         self.response_transformers = response_transformers or {}
@@ -439,7 +437,7 @@ class MiddlewareChain:
     """Middleware execution chain."""
 
     def __init__(self):
-        self.middlewares: List[Middleware] = []
+        self.middlewares: builtins.list[Middleware] = []
 
     def add_middleware(self, middleware: Middleware) -> None:
         """Add middleware to chain."""
@@ -450,7 +448,9 @@ class MiddlewareChain:
         if middleware in self.middlewares:
             self.middlewares.remove(middleware)
 
-    async def process_request(self, request_data: Dict[str, Any]) -> MiddlewareContext:
+    async def process_request(
+        self, request_data: builtins.dict[str, Any]
+    ) -> MiddlewareContext:
         """Process request through middleware chain."""
         context = MiddlewareContext(request_data=request_data)
 
@@ -527,15 +527,15 @@ def create_standard_middleware_chain(
 
 
 def create_api_validation_middleware(
-    validators: Dict[str, Callable]
+    validators: builtins.dict[str, Callable],
 ) -> ValidationMiddleware:
     """Create API validation middleware."""
     return ValidationMiddleware(validators)
 
 
 def create_transformation_middleware(
-    request_transformers: Dict[str, Callable] = None,
-    response_transformers: Dict[str, Callable] = None,
+    request_transformers: builtins.dict[str, Callable] = None,
+    response_transformers: builtins.dict[str, Callable] = None,
 ) -> TransformationMiddleware:
     """Create transformation middleware."""
     return TransformationMiddleware(request_transformers, response_transformers)

@@ -7,24 +7,19 @@ communication patterns for microservices orchestration.
 """
 
 import asyncio
-import base64
 import hashlib
-import json
 import logging
 import threading
 import time
 import uuid
-from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
-from urllib.parse import urljoin, urlparse
+from typing import Any, Callable, Dict, List, Optional, Set
 
 # For networking and HTTP operations
 import aiohttp
-import yaml
 
 
 class ServiceMeshType(Enum):
@@ -88,7 +83,7 @@ class ServiceEndpoint:
     version: str = "v1"
     region: str = "default"
     zone: str = "default"
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
     weight: int = 100
     is_healthy: bool = True
 
@@ -99,12 +94,12 @@ class TrafficRule:
 
     rule_id: str
     service_name: str
-    match_conditions: List[Dict[str, Any]]
-    destination_rules: List[Dict[str, Any]]
+    match_conditions: list[dict[str, Any]]
+    destination_rules: list[dict[str, Any]]
     weight: int = 100
-    timeout: Optional[int] = None
-    retry_policy: Optional[Dict[str, Any]] = None
-    fault_injection: Optional[Dict[str, Any]] = None
+    timeout: int | None = None
+    retry_policy: dict[str, Any] | None = None
+    fault_injection: dict[str, Any] | None = None
 
 
 @dataclass
@@ -118,9 +113,9 @@ class ServiceMeshConfig:
     telemetry_enabled: bool = True
     tracing_enabled: bool = True
     access_logging: bool = True
-    ingress_gateway: Optional[str] = None
-    egress_gateway: Optional[str] = None
-    custom_config: Dict[str, Any] = field(default_factory=dict)
+    ingress_gateway: str | None = None
+    egress_gateway: str | None = None
+    custom_config: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -132,8 +127,8 @@ class ServiceDiscoveryConfig:
     health_check_interval: int = 10  # seconds
     unhealthy_threshold: int = 3
     healthy_threshold: int = 2
-    endpoints: List[str] = field(default_factory=list)
-    auth_config: Dict[str, Any] = field(default_factory=dict)
+    endpoints: list[str] = field(default_factory=list)
+    auth_config: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -153,9 +148,9 @@ class LoadBalancingConfig:
     """Load balancing configuration."""
 
     policy: TrafficPolicy = TrafficPolicy.ROUND_ROBIN
-    hash_policy: Optional[Dict[str, str]] = None
-    locality_lb_setting: Optional[Dict[str, Any]] = None
-    outlier_detection: Optional[CircuitBreakerConfig] = None
+    hash_policy: dict[str, str] | None = None
+    locality_lb_setting: dict[str, Any] | None = None
+    outlier_detection: CircuitBreakerConfig | None = None
 
 
 @dataclass
@@ -168,7 +163,7 @@ class ServiceCommunication:
     success_count: int = 0
     error_count: int = 0
     total_latency: float = 0.0
-    last_communication: Optional[datetime] = None
+    last_communication: datetime | None = None
     circuit_breaker_state: str = "closed"
 
 
@@ -180,15 +175,15 @@ class ServiceRegistry:
         self.config = config
 
         # Service storage
-        self.services: Dict[str, List[ServiceEndpoint]] = defaultdict(list)
-        self.service_metadata: Dict[str, Dict[str, Any]] = {}
+        self.services: dict[str, list[ServiceEndpoint]] = defaultdict(list)
+        self.service_metadata: dict[str, dict[str, Any]] = {}
 
         # Health tracking
-        self.health_status: Dict[str, Dict[str, Any]] = defaultdict(dict)
-        self.health_check_tasks: Dict[str, asyncio.Task] = {}
+        self.health_status: dict[str, dict[str, Any]] = defaultdict(dict)
+        self.health_check_tasks: dict[str, asyncio.Task] = {}
 
         # Service watchers and callbacks
-        self.service_watchers: List[Callable] = []
+        self.service_watchers: list[Callable] = []
 
         # Thread safety
         self._lock = threading.RLock()
@@ -225,7 +220,7 @@ class ServiceRegistry:
                 return True
 
         except Exception as e:
-            logging.error(f"Failed to register service {service.service_name}: {e}")
+            logging.exception(f"Failed to register service {service.service_name}: {e}")
             return False
 
     def deregister_service(self, service_name: str, host: str, port: int) -> bool:
@@ -264,12 +259,12 @@ class ServiceRegistry:
                     return True
 
         except Exception as e:
-            logging.error(f"Failed to deregister service {service_name}: {e}")
+            logging.exception(f"Failed to deregister service {service_name}: {e}")
             return False
 
     def discover_services(
         self, service_name: str, healthy_only: bool = True
-    ) -> List[ServiceEndpoint]:
+    ) -> list[ServiceEndpoint]:
         """Discover available service endpoints."""
         with self._lock:
             if service_name not in self.services:
@@ -289,11 +284,11 @@ class ServiceRegistry:
 
             return endpoints
 
-    def get_service_metadata(self, service_name: str) -> Dict[str, Any]:
+    def get_service_metadata(self, service_name: str) -> dict[str, Any]:
         """Get service metadata."""
         return self.service_metadata.get(service_name, {})
 
-    def set_service_metadata(self, service_name: str, metadata: Dict[str, Any]):
+    def set_service_metadata(self, service_name: str, metadata: dict[str, Any]):
         """Set service metadata."""
         self.service_metadata[service_name] = metadata
 
@@ -315,7 +310,7 @@ class ServiceRegistry:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logging.error(f"Health check error for {service_name}: {e}")
+                logging.exception(f"Health check error for {service_name}: {e}")
                 await asyncio.sleep(self.config.health_check_interval)
 
     async def _perform_health_checks(self, service_name: str):
@@ -365,7 +360,7 @@ class ServiceRegistry:
                                 health_info["healthy"] = False
                                 self._notify_watchers("endpoint_unhealthy", endpoint)
 
-            except Exception as e:
+            except Exception:
                 # Health check failed
                 with self._lock:
                     health_info = self.health_status[service_name][endpoint_key]
@@ -390,9 +385,9 @@ class ServiceRegistry:
                 else:
                     watcher(event_type, data)
             except Exception as e:
-                logging.error(f"Service watcher error: {e}")
+                logging.exception(f"Service watcher error: {e}")
 
-    def get_registry_status(self) -> Dict[str, Any]:
+    def get_registry_status(self) -> dict[str, Any]:
         """Get service registry status."""
         with self._lock:
             total_services = len(self.services)
@@ -430,12 +425,12 @@ class LoadBalancer:
         self.config = config
 
         # Load balancing state
-        self.current_index: Dict[str, int] = defaultdict(int)
-        self.connection_counts: Dict[str, int] = defaultdict(int)
+        self.current_index: dict[str, int] = defaultdict(int)
+        self.connection_counts: dict[str, int] = defaultdict(int)
 
         # Statistics
-        self.request_counts: Dict[str, int] = defaultdict(int)
-        self.response_times: Dict[str, List[float]] = defaultdict(list)
+        self.request_counts: dict[str, int] = defaultdict(int)
+        self.response_times: dict[str, list[float]] = defaultdict(list)
 
         # Thread safety
         self._lock = threading.RLock()
@@ -443,9 +438,9 @@ class LoadBalancer:
     def select_endpoint(
         self,
         service_name: str,
-        endpoints: List[ServiceEndpoint],
-        request_context: Dict[str, Any] = None,
-    ) -> Optional[ServiceEndpoint]:
+        endpoints: list[ServiceEndpoint],
+        request_context: dict[str, Any] = None,
+    ) -> ServiceEndpoint | None:
         """Select an endpoint using the configured policy."""
         if not endpoints:
             return None
@@ -455,21 +450,20 @@ class LoadBalancer:
         with self._lock:
             if self.config.policy == TrafficPolicy.ROUND_ROBIN:
                 return self._round_robin_select(service_name, endpoints)
-            elif self.config.policy == TrafficPolicy.WEIGHTED_ROUND_ROBIN:
+            if self.config.policy == TrafficPolicy.WEIGHTED_ROUND_ROBIN:
                 return self._weighted_round_robin_select(service_name, endpoints)
-            elif self.config.policy == TrafficPolicy.LEAST_CONN:
+            if self.config.policy == TrafficPolicy.LEAST_CONN:
                 return self._least_conn_select(endpoints)
-            elif self.config.policy == TrafficPolicy.RANDOM:
+            if self.config.policy == TrafficPolicy.RANDOM:
                 return self._random_select(endpoints)
-            elif self.config.policy == TrafficPolicy.CONSISTENT_HASH:
+            if self.config.policy == TrafficPolicy.CONSISTENT_HASH:
                 return self._consistent_hash_select(endpoints, request_context)
-            elif self.config.policy == TrafficPolicy.LOCALITY_AWARE:
+            if self.config.policy == TrafficPolicy.LOCALITY_AWARE:
                 return self._locality_aware_select(endpoints, request_context)
-            else:
-                return self._round_robin_select(service_name, endpoints)
+            return self._round_robin_select(service_name, endpoints)
 
     def _round_robin_select(
-        self, service_name: str, endpoints: List[ServiceEndpoint]
+        self, service_name: str, endpoints: list[ServiceEndpoint]
     ) -> ServiceEndpoint:
         """Round-robin endpoint selection."""
         index = self.current_index[service_name] % len(endpoints)
@@ -477,7 +471,7 @@ class LoadBalancer:
         return endpoints[index]
 
     def _weighted_round_robin_select(
-        self, service_name: str, endpoints: List[ServiceEndpoint]
+        self, service_name: str, endpoints: list[ServiceEndpoint]
     ) -> ServiceEndpoint:
         """Weighted round-robin endpoint selection."""
         # Calculate total weight
@@ -496,7 +490,7 @@ class LoadBalancer:
         self.current_index[service_name] = (index + 1) % len(weighted_endpoints)
         return weighted_endpoints[index]
 
-    def _least_conn_select(self, endpoints: List[ServiceEndpoint]) -> ServiceEndpoint:
+    def _least_conn_select(self, endpoints: list[ServiceEndpoint]) -> ServiceEndpoint:
         """Least connections endpoint selection."""
         min_connections = float("inf")
         selected_endpoint = endpoints[0]
@@ -511,14 +505,14 @@ class LoadBalancer:
 
         return selected_endpoint
 
-    def _random_select(self, endpoints: List[ServiceEndpoint]) -> ServiceEndpoint:
+    def _random_select(self, endpoints: list[ServiceEndpoint]) -> ServiceEndpoint:
         """Random endpoint selection."""
         import random
 
         return random.choice(endpoints)
 
     def _consistent_hash_select(
-        self, endpoints: List[ServiceEndpoint], request_context: Dict[str, Any]
+        self, endpoints: list[ServiceEndpoint], request_context: dict[str, Any]
     ) -> ServiceEndpoint:
         """Consistent hash endpoint selection."""
         if not self.config.hash_policy:
@@ -526,24 +520,24 @@ class LoadBalancer:
 
         # Get hash key from request context
         hash_key = ""
-        for field in self.config.hash_policy.get("header_fields", []):
-            hash_key += request_context.get("headers", {}).get(field, "")
+        for header_field in self.config.hash_policy.get("header_fields", []):
+            hash_key += request_context.get("headers", {}).get(header_field, "")
 
-        for field in self.config.hash_policy.get("query_parameters", []):
-            hash_key += request_context.get("query_params", {}).get(field, "")
+        for query_field in self.config.hash_policy.get("query_parameters", []):
+            hash_key += request_context.get("query_params", {}).get(query_field, "")
 
         if "cookie" in self.config.hash_policy:
             cookie_name = self.config.hash_policy["cookie"]
             hash_key += request_context.get("cookies", {}).get(cookie_name, "")
 
         # Calculate hash
-        hash_value = int(hashlib.md5(hash_key.encode()).hexdigest(), 16)
+        hash_value = int(hashlib.sha256(hash_key.encode()).hexdigest()[:8], 16)
         index = hash_value % len(endpoints)
 
         return endpoints[index]
 
     def _locality_aware_select(
-        self, endpoints: List[ServiceEndpoint], request_context: Dict[str, Any]
+        self, endpoints: list[ServiceEndpoint], request_context: dict[str, Any]
     ) -> ServiceEndpoint:
         """Locality-aware endpoint selection."""
         client_region = request_context.get("client_region", "default")
@@ -584,7 +578,7 @@ class LoadBalancer:
                 ]
             self.response_times[endpoint_key].append(response_time)
 
-    def get_load_balancer_stats(self) -> Dict[str, Any]:
+    def get_load_balancer_stats(self) -> dict[str, Any]:
         """Get load balancer statistics."""
         with self._lock:
             stats = {
@@ -618,17 +612,17 @@ class TrafficManager:
         self.mesh_config = mesh_config
 
         # Traffic rules
-        self.traffic_rules: Dict[str, List[TrafficRule]] = defaultdict(list)
-        self.active_rules: Set[str] = set()
+        self.traffic_rules: dict[str, list[TrafficRule]] = defaultdict(list)
+        self.active_rules: set[str] = set()
 
         # Traffic splitting
-        self.traffic_splits: Dict[str, Dict[str, float]] = {}
+        self.traffic_splits: dict[str, dict[str, float]] = {}
 
         # Fault injection
-        self.fault_injection_rules: Dict[str, Dict[str, Any]] = {}
+        self.fault_injection_rules: dict[str, dict[str, Any]] = {}
 
         # Circuit breakers
-        self.circuit_breakers: Dict[str, Dict[str, Any]] = {}
+        self.circuit_breakers: dict[str, dict[str, Any]] = {}
 
         # Metrics
         self.traffic_metrics: deque = deque(maxlen=10000)
@@ -645,7 +639,7 @@ class TrafficManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to add traffic rule: {e}")
+            logging.exception(f"Failed to add traffic rule: {e}")
             return False
 
     def remove_traffic_rule(self, rule_id: str) -> bool:
@@ -662,11 +656,11 @@ class TrafficManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to remove traffic rule: {e}")
+            logging.exception(f"Failed to remove traffic rule: {e}")
             return False
 
     def configure_traffic_split(
-        self, service_name: str, version_weights: Dict[str, float]
+        self, service_name: str, version_weights: dict[str, float]
     ) -> bool:
         """Configure traffic splitting between service versions."""
         try:
@@ -685,10 +679,10 @@ class TrafficManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to configure traffic split: {e}")
+            logging.exception(f"Failed to configure traffic split: {e}")
             return False
 
-    def inject_fault(self, service_name: str, fault_config: Dict[str, Any]) -> bool:
+    def inject_fault(self, service_name: str, fault_config: dict[str, Any]) -> bool:
         """Configure fault injection for a service."""
         try:
             self.fault_injection_rules[service_name] = fault_config
@@ -699,7 +693,7 @@ class TrafficManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to configure fault injection: {e}")
+            logging.exception(f"Failed to configure fault injection: {e}")
             return False
 
     def configure_circuit_breaker(
@@ -723,11 +717,11 @@ class TrafficManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to configure circuit breaker: {e}")
+            logging.exception(f"Failed to configure circuit breaker: {e}")
             return False
 
     def should_route_request(
-        self, service_name: str, request_context: Dict[str, Any]
+        self, service_name: str, request_context: dict[str, Any]
     ) -> bool:
         """Determine if request should be routed based on traffic rules."""
         # Check fault injection
@@ -744,8 +738,8 @@ class TrafficManager:
         return True
 
     def select_service_version(
-        self, service_name: str, request_context: Dict[str, Any]
-    ) -> Optional[str]:
+        self, service_name: str, request_context: dict[str, Any]
+    ) -> str | None:
         """Select service version based on traffic splitting rules."""
         if service_name not in self.traffic_splits:
             return None
@@ -755,7 +749,7 @@ class TrafficManager:
         # Use user ID for consistent routing if available
         user_id = request_context.get("user_id", "anonymous")
         hash_value = int(
-            hashlib.md5(f"{service_name}:{user_id}".encode()).hexdigest(), 16
+            hashlib.sha256(f"{service_name}:{user_id}".encode()).hexdigest()[:8], 16
         )
         random_value = (hash_value % 10000) / 10000.0
 
@@ -769,7 +763,7 @@ class TrafficManager:
         # Fallback to first version
         return list(version_weights.keys())[0] if version_weights else None
 
-    def _should_inject_fault(self, fault_config: Dict[str, Any]) -> bool:
+    def _should_inject_fault(self, fault_config: dict[str, Any]) -> bool:
         """Determine if fault should be injected."""
         import random
 
@@ -835,7 +829,7 @@ class TrafficManager:
             }
         )
 
-    def get_traffic_stats(self) -> Dict[str, Any]:
+    def get_traffic_stats(self) -> dict[str, Any]:
         """Get traffic management statistics."""
         # Calculate service-level statistics
         service_stats = defaultdict(
@@ -893,14 +887,14 @@ class ServiceMeshOrchestrator:
         self.traffic_manager = TrafficManager(config)
 
         # Service communication tracking
-        self.service_communications: Dict[str, ServiceCommunication] = {}
+        self.service_communications: dict[str, ServiceCommunication] = {}
 
         # Mesh status
         self.mesh_status = "initializing"
-        self.connected_services: Set[str] = set()
+        self.connected_services: set[str] = set()
 
         # Configuration management
-        self.mesh_configurations: Dict[str, Any] = {}
+        self.mesh_configurations: dict[str, Any] = {}
 
         # Event tracking
         self.mesh_events: deque = deque(maxlen=10000)
@@ -967,8 +961,8 @@ class ServiceMeshOrchestrator:
         return success
 
     async def route_request(
-        self, source_service: str, target_service: str, request_context: Dict[str, Any]
-    ) -> Optional[ServiceEndpoint]:
+        self, source_service: str, target_service: str, request_context: dict[str, Any]
+    ) -> ServiceEndpoint | None:
         """Route a request through the service mesh."""
         if not all([self.service_registry, self.load_balancer, self.traffic_manager]):
             logging.error("Service mesh not fully initialized")
@@ -1039,7 +1033,7 @@ class ServiceMeshOrchestrator:
             return selected_endpoint
 
         except Exception as e:
-            logging.error(f"Request routing error: {e}")
+            logging.exception(f"Request routing error: {e}")
             return None
 
     def record_request_completion(
@@ -1081,7 +1075,7 @@ class ServiceMeshOrchestrator:
             },
         )
 
-    def configure_traffic_policies(self, policies: Dict[str, Any]) -> bool:
+    def configure_traffic_policies(self, policies: dict[str, Any]) -> bool:
         """Configure traffic management policies."""
         try:
             for service_name, policy_config in policies.items():
@@ -1111,10 +1105,10 @@ class ServiceMeshOrchestrator:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to configure traffic policies: {e}")
+            logging.exception(f"Failed to configure traffic policies: {e}")
             return False
 
-    def apply_security_policies(self, security_policies: Dict[str, Any]) -> bool:
+    def apply_security_policies(self, security_policies: dict[str, Any]) -> bool:
         """Apply security policies to the mesh."""
         try:
             # Store security configurations
@@ -1134,21 +1128,20 @@ class ServiceMeshOrchestrator:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to apply security policies: {e}")
+            logging.exception(f"Failed to apply security policies: {e}")
             return False
 
-    def generate_mesh_configuration(self) -> Dict[str, Any]:
+    def generate_mesh_configuration(self) -> dict[str, Any]:
         """Generate service mesh configuration for deployment."""
         if self.config.mesh_type == ServiceMeshType.ISTIO:
             return self._generate_istio_config()
-        elif self.config.mesh_type == ServiceMeshType.LINKERD:
+        if self.config.mesh_type == ServiceMeshType.LINKERD:
             return self._generate_linkerd_config()
-        elif self.config.mesh_type == ServiceMeshType.CONSUL_CONNECT:
+        if self.config.mesh_type == ServiceMeshType.CONSUL_CONNECT:
             return self._generate_consul_config()
-        else:
-            return self._generate_generic_config()
+        return self._generate_generic_config()
 
-    def _generate_istio_config(self) -> Dict[str, Any]:
+    def _generate_istio_config(self) -> dict[str, Any]:
         """Generate Istio service mesh configuration."""
         configs = {}
 
@@ -1215,7 +1208,7 @@ class ServiceMeshOrchestrator:
 
         return configs
 
-    def _generate_linkerd_config(self) -> Dict[str, Any]:
+    def _generate_linkerd_config(self) -> dict[str, Any]:
         """Generate Linkerd service mesh configuration."""
         # Simplified Linkerd configuration
         return {
@@ -1224,12 +1217,12 @@ class ServiceMeshOrchestrator:
             "tap_configs": {},
         }
 
-    def _generate_consul_config(self) -> Dict[str, Any]:
+    def _generate_consul_config(self) -> dict[str, Any]:
         """Generate Consul Connect configuration."""
         # Simplified Consul Connect configuration
         return {"service_configs": {}, "proxy_configs": {}, "intentions": {}}
 
-    def _generate_generic_config(self) -> Dict[str, Any]:
+    def _generate_generic_config(self) -> dict[str, Any]:
         """Generate generic service mesh configuration."""
         return {
             "services": list(self.connected_services),
@@ -1255,7 +1248,7 @@ class ServiceMeshOrchestrator:
         """Handle service registry events."""
         self._log_mesh_event(f"service_discovery_{event_type}", data)
 
-    def _log_mesh_event(self, event_type: str, details: Dict[str, Any]):
+    def _log_mesh_event(self, event_type: str, details: dict[str, Any]):
         """Log mesh events."""
         event = {
             "event_id": str(uuid.uuid4()),
@@ -1267,7 +1260,7 @@ class ServiceMeshOrchestrator:
         self.mesh_events.append(event)
         logging.info(f"Mesh event: {event_type} - {details}")
 
-    def get_mesh_status(self) -> Dict[str, Any]:
+    def get_mesh_status(self) -> dict[str, Any]:
         """Get comprehensive mesh status."""
         registry_status = (
             self.service_registry.get_registry_status() if self.service_registry else {}

@@ -6,7 +6,7 @@ management, event-driven architecture, message brokers, external system connecto
 and enterprise service bus patterns.
 """
 
-import asyncio
+import builtins
 import hashlib
 import json
 import logging
@@ -14,29 +14,16 @@ import re
 import threading
 import time
 import uuid
-from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from typing import Any, Dict, List, Optional, dict, list
 from urllib.parse import parse_qs, urlparse
 
 # For HTTP operations
 import aiohttp
 import jwt
-import yaml
 
 
 class IntegrationType(Enum):
@@ -127,28 +114,28 @@ class APIRoute:
 
     # Backend configuration
     backend_service: str
-    backend_path: Optional[str] = None
+    backend_path: str | None = None
     backend_protocol: ProtocolType = ProtocolType.HTTP
 
     # Security
     authentication: AuthenticationType = AuthenticationType.NONE
     authorization_required: bool = False
-    required_scopes: List[str] = field(default_factory=list)
+    required_scopes: builtins.list[str] = field(default_factory=list)
 
     # Rate limiting
-    rate_limit_requests: Optional[int] = None
-    rate_limit_window: Optional[int] = None  # seconds
+    rate_limit_requests: int | None = None
+    rate_limit_window: int | None = None  # seconds
 
     # Transformation
-    request_transformation: Optional[str] = None
-    response_transformation: Optional[str] = None
+    request_transformation: str | None = None
+    response_transformation: str | None = None
 
     # Caching
     cache_enabled: bool = False
     cache_ttl: int = 300  # seconds
 
     # Metadata
-    tags: List[str] = field(default_factory=list)
+    tags: builtins.list[str] = field(default_factory=list)
     description: str = ""
     deprecated: bool = False
 
@@ -167,9 +154,9 @@ class BackendService:
     protocol: ProtocolType = ProtocolType.HTTP
 
     # Load balancing
-    endpoints: List[str] = field(default_factory=list)
+    endpoints: builtins.list[str] = field(default_factory=list)
     load_balancing: LoadBalancingStrategy = LoadBalancingStrategy.ROUND_ROBIN
-    weights: Dict[str, float] = field(default_factory=dict)
+    weights: builtins.dict[str, float] = field(default_factory=dict)
 
     # Health checking
     health_check_path: str = "/health"
@@ -189,12 +176,12 @@ class BackendService:
 
     # Security
     ssl_verify: bool = True
-    client_certificate: Optional[str] = None
+    client_certificate: str | None = None
 
     # Metadata
     version: str = "1.0.0"
     environment: str = "production"
-    tags: Dict[str, str] = field(default_factory=dict)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -206,33 +193,33 @@ class SecurityPolicy:
     description: str
 
     # Authentication requirements
-    authentication_methods: List[AuthenticationType]
+    authentication_methods: builtins.list[AuthenticationType]
 
     # Authorization rules
-    required_roles: List[str] = field(default_factory=list)
-    required_permissions: List[str] = field(default_factory=list)
+    required_roles: builtins.list[str] = field(default_factory=list)
+    required_permissions: builtins.list[str] = field(default_factory=list)
 
     # IP restrictions
-    allowed_ips: List[str] = field(default_factory=list)
-    blocked_ips: List[str] = field(default_factory=list)
+    allowed_ips: builtins.list[str] = field(default_factory=list)
+    blocked_ips: builtins.list[str] = field(default_factory=list)
 
     # Request validation
-    request_size_limit: Optional[int] = None  # bytes
-    content_type_restrictions: List[str] = field(default_factory=list)
+    request_size_limit: int | None = None  # bytes
+    content_type_restrictions: builtins.list[str] = field(default_factory=list)
 
     # Headers
-    required_headers: List[str] = field(default_factory=list)
-    forbidden_headers: List[str] = field(default_factory=list)
+    required_headers: builtins.list[str] = field(default_factory=list)
+    forbidden_headers: builtins.list[str] = field(default_factory=list)
 
     # Rate limiting
-    global_rate_limit: Optional[int] = None
-    per_user_rate_limit: Optional[int] = None
+    global_rate_limit: int | None = None
+    per_user_rate_limit: int | None = None
 
     # CORS
     cors_enabled: bool = False
-    cors_origins: List[str] = field(default_factory=list)
-    cors_methods: List[str] = field(default_factory=list)
-    cors_headers: List[str] = field(default_factory=list)
+    cors_origins: builtins.list[str] = field(default_factory=list)
+    cors_methods: builtins.list[str] = field(default_factory=list)
+    cors_headers: builtins.list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -242,19 +229,19 @@ class EventDefinition:
     event_id: str
     event_type: str
     version: str
-    schema: Dict[str, Any]
+    schema: builtins.dict[str, Any]
 
     # Event metadata
     source: str
     description: str = ""
 
     # Routing
-    routing_key: Optional[str] = None
-    topic: Optional[str] = None
+    routing_key: str | None = None
+    topic: str | None = None
 
     # Persistence
     persistent: bool = True
-    ttl: Optional[int] = None  # seconds
+    ttl: int | None = None  # seconds
 
     # Serialization
     content_type: str = "application/json"
@@ -262,7 +249,7 @@ class EventDefinition:
 
     # Validation
     schema_validation: bool = True
-    schema_registry: Optional[str] = None
+    schema_registry: str | None = None
 
 
 @dataclass
@@ -275,8 +262,8 @@ class MessageEndpoint:
     connection_string: str
 
     # Authentication
-    username: Optional[str] = None
-    password: Optional[str] = None
+    username: str | None = None
+    password: str | None = None
     ssl_enabled: bool = False
 
     # Connection pooling
@@ -286,7 +273,7 @@ class MessageEndpoint:
     # Message handling
     message_pattern: MessagePattern = MessagePattern.PUBLISH_SUBSCRIBE
     acknowledgment_required: bool = True
-    retry_policy: Dict[str, Any] = field(default_factory=dict)
+    retry_policy: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Monitoring
     metrics_enabled: bool = True
@@ -303,13 +290,15 @@ class IntegrationFlow:
     integration_type: IntegrationType
 
     # Flow configuration
-    source: Dict[str, Any]
-    destination: Dict[str, Any]
-    transformations: List[Dict[str, Any]] = field(default_factory=list)
+    source: builtins.dict[str, Any]
+    destination: builtins.dict[str, Any]
+    transformations: builtins.list[builtins.dict[str, Any]] = field(
+        default_factory=list
+    )
 
     # Error handling
-    error_handling: Dict[str, Any] = field(default_factory=dict)
-    dead_letter_queue: Optional[str] = None
+    error_handling: builtins.dict[str, Any] = field(default_factory=dict)
+    dead_letter_queue: str | None = None
 
     # Flow control
     enabled: bool = True
@@ -317,7 +306,7 @@ class IntegrationFlow:
     batch_size: int = 1
 
     # Monitoring
-    metrics: Dict[str, Any] = field(default_factory=dict)
+    metrics: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Timestamps
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -329,25 +318,29 @@ class APIGateway:
 
     def __init__(self):
         """Initialize API Gateway."""
-        self.routes: Dict[str, APIRoute] = {}
-        self.backend_services: Dict[str, BackendService] = {}
-        self.security_policies: Dict[str, SecurityPolicy] = {}
+        self.routes: builtins.dict[str, APIRoute] = {}
+        self.backend_services: builtins.dict[str, BackendService] = {}
+        self.security_policies: builtins.dict[str, SecurityPolicy] = {}
 
         # Route matching cache
-        self.route_cache: Dict[str, str] = {}
+        self.route_cache: builtins.dict[str, str] = {}
 
         # Rate limiting
-        self.rate_limiters: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        self.rate_limiters: builtins.dict[str, builtins.dict[str, Any]] = defaultdict(
+            dict
+        )
 
         # Circuit breakers
-        self.circuit_breakers: Dict[str, Dict[str, Any]] = {}
+        self.circuit_breakers: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Request/response cache
-        self.response_cache: Dict[str, Dict[str, Any]] = {}
+        self.response_cache: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Metrics
-        self.metrics: Dict[str, Any] = defaultdict(int)
-        self.latency_metrics: Dict[str, List[float]] = defaultdict(list)
+        self.metrics: builtins.dict[str, Any] = defaultdict(int)
+        self.latency_metrics: builtins.dict[str, builtins.list[float]] = defaultdict(
+            list
+        )
 
         # Thread safety
         self._lock = threading.RLock()
@@ -365,7 +358,7 @@ class APIGateway:
                 return True
 
         except Exception as e:
-            logging.error(f"Failed to register route: {e}")
+            logging.exception(f"Failed to register route: {e}")
             return False
 
     def register_backend_service(self, service: BackendService) -> bool:
@@ -388,7 +381,7 @@ class APIGateway:
                 return True
 
         except Exception as e:
-            logging.error(f"Failed to register backend service: {e}")
+            logging.exception(f"Failed to register backend service: {e}")
             return False
 
     def register_security_policy(self, policy: SecurityPolicy) -> bool:
@@ -401,17 +394,17 @@ class APIGateway:
                 return True
 
         except Exception as e:
-            logging.error(f"Failed to register security policy: {e}")
+            logging.exception(f"Failed to register security policy: {e}")
             return False
 
     async def handle_request(
         self,
         method: str,
         path: str,
-        headers: Dict[str, str],
+        headers: builtins.dict[str, str],
         body: bytes,
         client_ip: str,
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Handle incoming API request."""
         start_time = time.time()
         request_id = str(uuid.uuid4())
@@ -473,10 +466,10 @@ class APIGateway:
             latency = (time.time() - start_time) * 1000
             self._record_metrics("unknown", latency, 500)
 
-            logging.error(f"Request handling error: {e}")
+            logging.exception(f"Request handling error: {e}")
             return self._create_error_response(500, "Internal server error", request_id)
 
-    def _find_matching_route(self, method: str, path: str) -> Optional[APIRoute]:
+    def _find_matching_route(self, method: str, path: str) -> APIRoute | None:
         """Find matching route for request."""
         cache_key = f"{method}:{path}"
 
@@ -501,13 +494,13 @@ class APIGateway:
         if route.route_type == RouteType.EXACT:
             return route.path == path
 
-        elif route.route_type == RouteType.PREFIX:
+        if route.route_type == RouteType.PREFIX:
             return path.startswith(route.path)
 
-        elif route.route_type == RouteType.REGEX:
+        if route.route_type == RouteType.REGEX:
             return bool(re.match(route.path, path))
 
-        elif route.route_type == RouteType.WILDCARD:
+        if route.route_type == RouteType.WILDCARD:
             # Simple wildcard matching (*, **)
             pattern = route.path.replace("*", "[^/]*").replace("[^/]*[^/]*", ".*")
             return bool(re.match(f"^{pattern}$", path))
@@ -515,8 +508,8 @@ class APIGateway:
         return False
 
     async def _validate_security(
-        self, route: APIRoute, headers: Dict[str, str], client_ip: str
-    ) -> Dict[str, Any]:
+        self, route: APIRoute, headers: builtins.dict[str, str], client_ip: str
+    ) -> builtins.dict[str, Any]:
         """Validate security for request."""
         result = {"valid": True, "user_id": None, "roles": [], "permissions": []}
 
@@ -558,8 +551,8 @@ class APIGateway:
         return result
 
     async def _authenticate_request(
-        self, auth_type: AuthenticationType, headers: Dict[str, str]
-    ) -> Dict[str, Any]:
+        self, auth_type: AuthenticationType, headers: builtins.dict[str, str]
+    ) -> builtins.dict[str, Any]:
         """Authenticate request based on authentication type."""
         if auth_type == AuthenticationType.API_KEY:
             api_key = headers.get("X-API-Key") or headers.get(
@@ -576,10 +569,9 @@ class APIGateway:
                     "user_id": f"user_{api_key[-8:]}",
                     "scopes": ["read", "write"],
                 }
-            else:
-                return {"valid": False, "message": "Invalid API key"}
+            return {"valid": False, "message": "Invalid API key"}
 
-        elif auth_type == AuthenticationType.BEARER_TOKEN:
+        if auth_type == AuthenticationType.BEARER_TOKEN:
             auth_header = headers.get("Authorization", "")
             if not auth_header.startswith("Bearer "):
                 return {"valid": False, "message": "Bearer token required"}
@@ -593,10 +585,9 @@ class APIGateway:
                     "user_id": f"user_{token[-8:]}",
                     "scopes": ["read", "write"],
                 }
-            else:
-                return {"valid": False, "message": "Invalid bearer token"}
+            return {"valid": False, "message": "Invalid bearer token"}
 
-        elif auth_type == AuthenticationType.JWT:
+        if auth_type == AuthenticationType.JWT:
             auth_header = headers.get("Authorization", "")
             if not auth_header.startswith("Bearer "):
                 return {"valid": False, "message": "JWT token required"}
@@ -636,8 +627,7 @@ class APIGateway:
                 # Validate credentials (simplified)
                 if username == "admin" and password == "password":  # Demo only!
                     return {"valid": True, "user_id": username, "scopes": ["admin"]}
-                else:
-                    return {"valid": False, "message": "Invalid credentials"}
+                return {"valid": False, "message": "Invalid credentials"}
 
             except Exception as e:
                 return {"valid": False, "message": f"Invalid basic auth: {e}"}
@@ -648,8 +638,8 @@ class APIGateway:
         }
 
     async def _check_rate_limit(
-        self, route: APIRoute, client_ip: str, user_id: Optional[str] = None
-    ) -> Dict[str, bool]:
+        self, route: APIRoute, client_ip: str, user_id: str | None = None
+    ) -> builtins.dict[str, bool]:
         """Check rate limiting for request."""
         if not route.rate_limit_requests:
             return {"allowed": True}
@@ -683,8 +673,8 @@ class APIGateway:
         return {"allowed": True}
 
     async def _transform_request(
-        self, route: APIRoute, headers: Dict[str, str], body: bytes
-    ) -> Dict[str, Any]:
+        self, route: APIRoute, headers: builtins.dict[str, str], body: bytes
+    ) -> builtins.dict[str, Any]:
         """Transform request before sending to backend."""
         if not route.request_transformation:
             return {"headers": headers, "body": body}
@@ -708,13 +698,13 @@ class APIGateway:
                     transformed_body = xml_data.encode("utf-8")
                     transformed_headers["Content-Type"] = "application/xml"
                 except Exception as e:
-                    logging.error(f"JSON to XML transformation error: {e}")
+                    logging.exception(f"JSON to XML transformation error: {e}")
 
         return {"headers": transformed_headers, "body": transformed_body}
 
     async def _route_to_backend(
-        self, route: APIRoute, headers: Dict[str, str], body: bytes
-    ) -> Dict[str, Any]:
+        self, route: APIRoute, headers: builtins.dict[str, str], body: bytes
+    ) -> builtins.dict[str, Any]:
         """Route request to backend service."""
         backend_service = self.backend_services.get(route.backend_service)
         if not backend_service:
@@ -774,7 +764,7 @@ class APIGateway:
 
             return random.choice(service.endpoints)
 
-        elif service.load_balancing == LoadBalancingStrategy.WEIGHTED_ROUND_ROBIN:
+        if service.load_balancing == LoadBalancingStrategy.WEIGHTED_ROUND_ROBIN:
             # Weighted selection
             if service.weights:
                 endpoints = []
@@ -789,14 +779,13 @@ class APIGateway:
 
             return random.choice(service.endpoints)
 
-        elif service.load_balancing == LoadBalancingStrategy.RANDOM:
+        if service.load_balancing == LoadBalancingStrategy.RANDOM:
             import random
 
             return random.choice(service.endpoints)
 
-        else:
-            # Default to first endpoint
-            return service.endpoints[0]
+        # Default to first endpoint
+        return service.endpoints[0]
 
     def _is_circuit_breaker_closed(self, service_id: str) -> bool:
         """Check if circuit breaker is closed (allowing requests)."""
@@ -808,7 +797,7 @@ class APIGateway:
         if cb["state"] == "closed":
             return True
 
-        elif cb["state"] == "open":
+        if cb["state"] == "open":
             # Check if recovery timeout has passed
             if cb["last_failure_time"]:
                 elapsed = time.time() - cb["last_failure_time"]
@@ -817,7 +806,7 @@ class APIGateway:
                     return True
             return False
 
-        elif cb["state"] == "half_open":
+        if cb["state"] == "half_open":
             return True
 
         return False
@@ -841,8 +830,8 @@ class APIGateway:
                 cb["state"] = "open"
 
     async def _transform_response(
-        self, route: APIRoute, response: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, route: APIRoute, response: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Transform response before returning to client."""
         if not route.response_transformation:
             return response
@@ -866,7 +855,7 @@ class APIGateway:
                     transformed_response["body"] = json.dumps(json_data).encode("utf-8")
                     transformed_response["headers"]["Content-Type"] = "application/json"
                 except Exception as e:
-                    logging.error(f"XML to JSON transformation error: {e}")
+                    logging.exception(f"XML to JSON transformation error: {e}")
 
         return transformed_response
 
@@ -875,7 +864,7 @@ class APIGateway:
         route: APIRoute,
         method: str,
         path: str,
-        headers: Dict[str, str],
+        headers: builtins.dict[str, str],
         body: bytes,
     ) -> str:
         """Generate cache key for response."""
@@ -885,13 +874,13 @@ class APIGateway:
             "method": method,
             "path": path,
             "query_params": parse_qs(urlparse(path).query),
-            "body_hash": hashlib.md5(body).hexdigest() if body else None,
+            "body_hash": hashlib.sha256(body).hexdigest() if body else None,
         }
 
         cache_string = json.dumps(cache_input, sort_keys=True)
-        return hashlib.md5(cache_string.encode()).hexdigest()
+        return hashlib.sha256(cache_string.encode()).hexdigest()[:16]
 
-    def _get_cached_response(self, cache_key: str) -> Optional[Dict[str, Any]]:
+    def _get_cached_response(self, cache_key: str) -> builtins.dict[str, Any] | None:
         """Get cached response."""
         if cache_key in self.response_cache:
             cache_entry = self.response_cache[cache_key]
@@ -899,13 +888,14 @@ class APIGateway:
             # Check expiration
             if time.time() < cache_entry["expires_at"]:
                 return cache_entry["response"]
-            else:
-                # Remove expired entry
-                del self.response_cache[cache_key]
+            # Remove expired entry
+            del self.response_cache[cache_key]
 
         return None
 
-    def _cache_response(self, cache_key: str, response: Dict[str, Any], ttl: int):
+    def _cache_response(
+        self, cache_key: str, response: builtins.dict[str, Any], ttl: int
+    ):
         """Cache response."""
         self.response_cache[cache_key] = {
             "response": response,
@@ -915,7 +905,7 @@ class APIGateway:
 
     def _create_error_response(
         self, status_code: int, message: str, request_id: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Create error response."""
         return {
             "status_code": status_code,
@@ -953,7 +943,7 @@ class APIGateway:
             if len(self.latency_metrics[route_id]) > 1000:
                 self.latency_metrics[route_id] = self.latency_metrics[route_id][-1000:]
 
-    def get_gateway_status(self) -> Dict[str, Any]:
+    def get_gateway_status(self) -> builtins.dict[str, Any]:
         """Get gateway status and metrics."""
         with self._lock:
             # Calculate average latencies

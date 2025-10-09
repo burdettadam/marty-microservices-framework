@@ -2,10 +2,11 @@
 Security configuration for the enterprise security framework.
 """
 
+import builtins
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, dict, list
 
 
 class SecurityLevel(Enum):
@@ -25,8 +26,8 @@ class JWTConfig:
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
-    issuer: Optional[str] = None
-    audience: Optional[str] = None
+    issuer: str | None = None
+    audience: str | None = None
 
     def __post_init__(self):
         if not self.secret_key:
@@ -37,11 +38,11 @@ class JWTConfig:
 class MTLSConfig:
     """Mutual TLS configuration."""
 
-    ca_cert_path: Optional[str] = None
-    cert_path: Optional[str] = None
-    key_path: Optional[str] = None
+    ca_cert_path: str | None = None
+    cert_path: str | None = None
+    key_path: str | None = None
     verify_client_cert: bool = True
-    allowed_issuers: List[str] = field(default_factory=list)
+    allowed_issuers: builtins.list[str] = field(default_factory=list)
 
     def __post_init__(self):
         if self.verify_client_cert and not self.ca_cert_path:
@@ -58,8 +59,10 @@ class APIKeyConfig:
     query_param_name: str = "api_key"
     allow_header: bool = True
     allow_query_param: bool = False
-    valid_keys: List[str] = field(default_factory=list)
-    key_sources: List[str] = field(default_factory=list)  # URLs, files, databases
+    valid_keys: builtins.list[str] = field(default_factory=list)
+    key_sources: builtins.list[str] = field(
+        default_factory=list
+    )  # URLs, files, databases
 
 
 @dataclass
@@ -68,11 +71,11 @@ class RateLimitConfig:
 
     enabled: bool = True
     default_rate: str = "100/minute"  # Format: "count/period"
-    redis_url: Optional[str] = None
+    redis_url: str | None = None
     use_memory_backend: bool = True
     key_prefix: str = "rate_limit"
-    per_endpoint_limits: Dict[str, str] = field(default_factory=dict)
-    per_user_limits: Dict[str, str] = field(default_factory=dict)
+    per_endpoint_limits: builtins.dict[str, str] = field(default_factory=dict)
+    per_user_limits: builtins.dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -84,15 +87,15 @@ class SecurityConfig:
     service_name: str = "microservice"
 
     # Authentication settings
-    jwt_config: Optional[JWTConfig] = None
-    mtls_config: Optional[MTLSConfig] = None
-    api_key_config: Optional[APIKeyConfig] = None
+    jwt_config: JWTConfig | None = None
+    mtls_config: MTLSConfig | None = None
+    api_key_config: APIKeyConfig | None = None
 
     # Rate limiting
     rate_limit_config: RateLimitConfig = field(default_factory=RateLimitConfig)
 
     # Security headers
-    security_headers: Dict[str, str] = field(
+    security_headers: builtins.dict[str, str] = field(
         default_factory=lambda: {
             "X-Content-Type-Options": "nosniff",
             "X-Frame-Options": "DENY",
@@ -103,11 +106,11 @@ class SecurityConfig:
     )
 
     # CORS settings
-    cors_origins: List[str] = field(default_factory=lambda: ["*"])
-    cors_methods: List[str] = field(
+    cors_origins: builtins.list[str] = field(default_factory=lambda: ["*"])
+    cors_methods: builtins.list[str] = field(
         default_factory=lambda: ["GET", "POST", "PUT", "DELETE"]
     )
-    cors_headers: List[str] = field(default_factory=lambda: ["*"])
+    cors_headers: builtins.list[str] = field(default_factory=lambda: ["*"])
     cors_credentials: bool = True
 
     # Session settings
@@ -209,7 +212,7 @@ class SecurityConfig:
         """Check if mTLS is required based on security level."""
         return self.security_level == SecurityLevel.CRITICAL or self.enable_mtls
 
-    def get_cors_config(self) -> Dict[str, Any]:
+    def get_cors_config(self) -> builtins.dict[str, Any]:
         """Get CORS configuration for FastAPI."""
         return {
             "allow_origins": self.cors_origins,

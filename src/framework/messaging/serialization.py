@@ -5,17 +5,54 @@ Provides comprehensive message serialization and deserialization support
 for various formats including JSON, Pickle, Protocol Buffers, and Avro.
 """
 
+import builtins
 import gzip
+import io
 import json
 import logging
 import pickle
+import warnings
 import zlib
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Protocol, Type, Union, dict, list, type
 
 logger = logging.getLogger(__name__)
+
+
+class RestrictedUnpickler(pickle.Unpickler):
+    """Restricted unpickler that only allows safe types to prevent code execution."""
+
+    SAFE_BUILTINS = {
+        "str",
+        "int",
+        "float",
+        "bool",
+        "list",
+        "tuple",
+        "dict",
+        "set",
+        "frozenset",
+        "bytes",
+        "bytearray",
+        "complex",
+        "type",
+        "slice",
+        "range",
+    }
+
+    def find_class(self, module, name):
+        # Only allow safe built-in types and specific allowed modules
+        if module == "builtins" and name in self.SAFE_BUILTINS:
+            return getattr(builtins, name)
+        # Allow datetime objects which are commonly serialized in messages
+        if module == "datetime" and name in {"datetime", "date", "time", "timedelta"}:
+            import datetime
+
+            return getattr(datetime, name)
+        # Block everything else
+        raise pickle.UnpicklingError(f"Forbidden class {module}.{name}")
 
 
 class SerializationFormat(Enum):
@@ -41,7 +78,7 @@ class SerializationError(Exception):
     """Exception raised during serialization/deserialization."""
 
     def __init__(
-        self, message: str, format_type: str, original_error: Optional[Exception] = None
+        self, message: str, format_type: str, original_error: Exception | None = None
     ):
         super().__init__(message)
         self.format_type = format_type
@@ -60,62 +97,58 @@ class SerializationConfig:
     # JSON specific
     json_ensure_ascii: bool = False
     json_sort_keys: bool = False
-    json_indent: Optional[int] = None
+    json_indent: int | None = None
 
     # Pickle specific
     pickle_protocol: int = pickle.HIGHEST_PROTOCOL
 
     # Protobuf specific
-    protobuf_message_type: Optional[Type] = None
+    protobuf_message_type: builtins.type | None = None
 
     # Custom serialization hooks
-    custom_encoder: Optional[Any] = None
-    custom_decoder: Optional[Any] = None
+    custom_encoder: Any | None = None
+    custom_decoder: Any | None = None
 
 
 class MessageSerializer(ABC):
     """Abstract base class for message serializers."""
 
-    def __init__(self, config: Optional[SerializationConfig] = None):
+    def __init__(self, config: SerializationConfig | None = None):
         self.config = config or SerializationConfig()
 
     @abstractmethod
     def serialize(self, data: Any) -> bytes:
         """Serialize data to bytes."""
-        pass
 
     @abstractmethod
     def deserialize(self, data: bytes) -> Any:
         """Deserialize bytes to data."""
-        pass
 
     def compress(self, data: bytes) -> bytes:
         """Compress serialized data."""
         if self.config.compression == CompressionType.NONE:
             return data
-        elif self.config.compression == CompressionType.GZIP:
+        if self.config.compression == CompressionType.GZIP:
             return gzip.compress(data, compresslevel=self.config.compression_level)
-        elif self.config.compression == CompressionType.ZLIB:
+        if self.config.compression == CompressionType.ZLIB:
             return zlib.compress(data, level=self.config.compression_level)
-        else:
-            raise SerializationError(
-                f"Unsupported compression type: {self.config.compression}",
-                self.config.format.value,
-            )
+        raise SerializationError(
+            f"Unsupported compression type: {self.config.compression}",
+            self.config.format.value,
+        )
 
     def decompress(self, data: bytes) -> bytes:
         """Decompress data."""
         if self.config.compression == CompressionType.NONE:
             return data
-        elif self.config.compression == CompressionType.GZIP:
+        if self.config.compression == CompressionType.GZIP:
             return gzip.decompress(data)
-        elif self.config.compression == CompressionType.ZLIB:
+        if self.config.compression == CompressionType.ZLIB:
             return zlib.decompress(data)
-        else:
-            raise SerializationError(
-                f"Unsupported compression type: {self.config.compression}",
-                self.config.format.value,
-            )
+        raise SerializationError(
+            f"Unsupported compression type: {self.config.compression}",
+            self.config.format.value,
+        )
 
     def get_content_type(self) -> str:
         """Get content type for this serializer."""
@@ -132,7 +165,7 @@ class MessageSerializer(ABC):
 class JSONSerializer(MessageSerializer):
     """JSON message serializer."""
 
-    def __init__(self, config: Optional[SerializationConfig] = None):
+    def __init__(self, config: SerializationConfig | None = None):
         super().__init__(config)
         if self.config.format != SerializationFormat.JSON:
             self.config.format = SerializationFormat.JSON
@@ -152,9 +185,7 @@ class JSONSerializer(MessageSerializer):
             return self.compress(json_bytes)
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to serialize to JSON: {str(e)}", "json", e
-            )
+            raise SerializationError(f"Failed to serialize to JSON: {e!s}", "json", e)
 
     def deserialize(self, data: bytes) -> Any:
         """Deserialize JSON bytes to data."""
@@ -166,14 +197,14 @@ class JSONSerializer(MessageSerializer):
 
         except Exception as e:
             raise SerializationError(
-                f"Failed to deserialize from JSON: {str(e)}", "json", e
+                f"Failed to deserialize from JSON: {e!s}", "json", e
             )
 
 
 class PickleSerializer(MessageSerializer):
     """Pickle message serializer."""
 
-    def __init__(self, config: Optional[SerializationConfig] = None):
+    def __init__(self, config: SerializationConfig | None = None):
         super().__init__(config)
         if self.config.format != SerializationFormat.PICKLE:
             self.config.format = SerializationFormat.PICKLE
@@ -186,25 +217,32 @@ class PickleSerializer(MessageSerializer):
 
         except Exception as e:
             raise SerializationError(
-                f"Failed to serialize to pickle: {str(e)}", "pickle", e
+                f"Failed to serialize to pickle: {e!s}", "pickle", e
             )
 
     def deserialize(self, data: bytes) -> Any:
         """Deserialize pickle bytes to data."""
         try:
             decompressed = self.decompress(data)
-            return pickle.loads(decompressed)
+
+            # Security: Use restricted unpickler to prevent arbitrary code execution
+            warnings.warn(
+                "Pickle deserialization is potentially unsafe. Consider using JSON or Protocol Buffers for better security.",
+                UserWarning,
+                stacklevel=2,
+            )
+            return RestrictedUnpickler(io.BytesIO(decompressed)).load()
 
         except Exception as e:
             raise SerializationError(
-                f"Failed to deserialize from pickle: {str(e)}", "pickle", e
+                f"Failed to deserialize from pickle: {e!s}", "pickle", e
             )
 
 
 class ProtobufSerializer(MessageSerializer):
     """Protocol Buffers message serializer."""
 
-    def __init__(self, config: Optional[SerializationConfig] = None):
+    def __init__(self, config: SerializationConfig | None = None):
         super().__init__(config)
         if self.config.format != SerializationFormat.PROTOBUF:
             self.config.format = SerializationFormat.PROTOBUF
@@ -235,7 +273,7 @@ class ProtobufSerializer(MessageSerializer):
 
         except Exception as e:
             raise SerializationError(
-                f"Failed to serialize to protobuf: {str(e)}", "protobuf", e
+                f"Failed to serialize to protobuf: {e!s}", "protobuf", e
             )
 
     def deserialize(self, data: bytes) -> Any:
@@ -248,7 +286,7 @@ class ProtobufSerializer(MessageSerializer):
 
         except Exception as e:
             raise SerializationError(
-                f"Failed to deserialize from protobuf: {str(e)}", "protobuf", e
+                f"Failed to deserialize from protobuf: {e!s}", "protobuf", e
             )
 
 
@@ -257,8 +295,8 @@ class AvroSerializer(MessageSerializer):
 
     def __init__(
         self,
-        config: Optional[SerializationConfig] = None,
-        schema: Optional[Dict] = None,
+        config: SerializationConfig | None = None,
+        schema: builtins.dict | None = None,
     ):
         super().__init__(config)
         if self.config.format != SerializationFormat.AVRO:
@@ -300,9 +338,7 @@ class AvroSerializer(MessageSerializer):
             return self.compress(avro_bytes)
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to serialize to Avro: {str(e)}", "avro", e
-            )
+            raise SerializationError(f"Failed to serialize to Avro: {e!s}", "avro", e)
 
     def deserialize(self, data: bytes) -> Any:
         """Deserialize Avro bytes to data."""
@@ -325,14 +361,14 @@ class AvroSerializer(MessageSerializer):
 
         except Exception as e:
             raise SerializationError(
-                f"Failed to deserialize from Avro: {str(e)}", "avro", e
+                f"Failed to deserialize from Avro: {e!s}", "avro", e
             )
 
 
 class MessagePackSerializer(MessageSerializer):
     """MessagePack message serializer."""
 
-    def __init__(self, config: Optional[SerializationConfig] = None):
+    def __init__(self, config: SerializationConfig | None = None):
         super().__init__(config)
         if self.config.format != SerializationFormat.MSGPACK:
             self.config.format = SerializationFormat.MSGPACK
@@ -359,7 +395,7 @@ class MessagePackSerializer(MessageSerializer):
 
         except Exception as e:
             raise SerializationError(
-                f"Failed to serialize to MessagePack: {str(e)}", "msgpack", e
+                f"Failed to serialize to MessagePack: {e!s}", "msgpack", e
             )
 
     def deserialize(self, data: bytes) -> Any:
@@ -373,7 +409,7 @@ class MessagePackSerializer(MessageSerializer):
 
         except Exception as e:
             raise SerializationError(
-                f"Failed to deserialize from MessagePack: {str(e)}", "msgpack", e
+                f"Failed to deserialize from MessagePack: {e!s}", "msgpack", e
             )
 
 
@@ -391,8 +427,8 @@ class SerializerFactory:
     @classmethod
     def create_serializer(
         cls,
-        format_type: Union[SerializationFormat, str],
-        config: Optional[SerializationConfig] = None,
+        format_type: SerializationFormat | str,
+        config: SerializationConfig | None = None,
         **kwargs,
     ) -> MessageSerializer:
         """Create serializer for specified format."""
@@ -417,13 +453,15 @@ class SerializerFactory:
 
     @classmethod
     def register_serializer(
-        cls, format_type: SerializationFormat, serializer_class: Type[MessageSerializer]
+        cls,
+        format_type: SerializationFormat,
+        serializer_class: builtins.type[MessageSerializer],
     ):
         """Register custom serializer."""
         cls._serializers[format_type] = serializer_class
 
     @classmethod
-    def get_supported_formats(cls) -> List[SerializationFormat]:
+    def get_supported_formats(cls) -> builtins.list[SerializationFormat]:
         """Get list of supported serialization formats."""
         return list(cls._serializers.keys())
 
@@ -448,7 +486,7 @@ def create_pickle_serializer(compressed: bool = False) -> PickleSerializer:
 
 
 def create_protobuf_serializer(
-    message_type: Type, compressed: bool = False
+    message_type: builtins.type, compressed: bool = False
 ) -> ProtobufSerializer:
     """Create Protobuf serializer with message type."""
     config = SerializationConfig(
@@ -459,7 +497,9 @@ def create_protobuf_serializer(
     return ProtobufSerializer(config)
 
 
-def create_avro_serializer(schema: Dict, compressed: bool = False) -> AvroSerializer:
+def create_avro_serializer(
+    schema: builtins.dict, compressed: bool = False
+) -> AvroSerializer:
     """Create Avro serializer with schema."""
     config = SerializationConfig(
         format=SerializationFormat.AVRO,

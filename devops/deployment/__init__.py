@@ -12,7 +12,8 @@ This module integrates:
 - Health monitoring and validation
 """
 
-from typing import List, Optional, Tuple
+import builtins
+from typing import List, Optional, Tuple, list, tuple
 
 from .automation import (  # Automation engine; Configuration; Components
     DeploymentAutomationEngine,
@@ -56,39 +57,39 @@ __author__ = "Marty Microservices Framework"
 
 # Main exports
 __all__ = [
-    # Strategy enums and classes
-    "DeploymentStrategy",
-    "DeploymentPhase",
-    "DeploymentTarget",
-    "DeploymentValidation",
-    "DeploymentOperation",
     # Strategy implementations
     "BlueGreenDeploymentStrategy",
     "CanaryDeploymentStrategy",
-    "RollingDeploymentStrategy",
+    "DeploymentAutomationEngine",
+    "DeploymentOperation",
     "DeploymentOrchestrator",
-    # Traffic management
-    "TrafficBackend",
-    "RoutingRule",
-    "TrafficDestination",
-    "TrafficRoute",
-    "TrafficPolicy",
-    "TrafficSplit",
-    "TrafficSplitMethod",
-    "IstioTrafficManager",
-    "NginxTrafficManager",
-    "TrafficManagerFactory",
-    "TrafficOrchestrator",
+    "DeploymentPhase",
+    "DeploymentPipeline",
+    # Strategy enums and classes
+    "DeploymentStrategy",
+    "DeploymentTarget",
+    "DeploymentTrigger",
+    "DeploymentValidation",
     # Automation
     "Environment",
-    "DeploymentTrigger",
-    "ValidationLevel",
     "EnvironmentConfig",
-    "DeploymentPipeline",
-    "PipelineExecution",
     "FeatureFlagManager",
     "HealthMonitor",
-    "DeploymentAutomationEngine",
+    "IstioTrafficManager",
+    "NginxTrafficManager",
+    "PipelineExecution",
+    "RollingDeploymentStrategy",
+    "RoutingRule",
+    # Traffic management
+    "TrafficBackend",
+    "TrafficDestination",
+    "TrafficManagerFactory",
+    "TrafficOrchestrator",
+    "TrafficPolicy",
+    "TrafficRoute",
+    "TrafficSplit",
+    "TrafficSplitMethod",
+    "ValidationLevel",
 ]
 
 
@@ -172,7 +173,7 @@ def create_standard_validation() -> DeploymentValidation:
 def create_environment_config(
     name: str,
     environment: Environment,
-    namespace: Optional[str] = None,
+    namespace: str | None = None,
     replicas: int = 3,
     validation_level: ValidationLevel = ValidationLevel.STANDARD,
 ) -> EnvironmentConfig:
@@ -206,7 +207,7 @@ class DeploymentPatterns:
 
     @staticmethod
     def microservice_pipeline(
-        app_name: str, environments: Optional[List[str]] = None
+        app_name: str, environments: builtins.list[str] | None = None
     ) -> DeploymentPipeline:
         """
         Create a standard microservice deployment pipeline
@@ -316,7 +317,7 @@ class DeploymentPatterns:
         new_tag: str,
         namespace: str = "default",
         replicas: int = 3,
-    ) -> Tuple[DeploymentTarget, DeploymentValidation]:
+    ) -> builtins.tuple[DeploymentTarget, DeploymentValidation]:
         """
         Create blue-green deployment configuration
 

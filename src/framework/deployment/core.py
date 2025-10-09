@@ -6,6 +6,7 @@ including deployment orchestration, environment management, and deployment lifec
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import subprocess
@@ -13,10 +14,9 @@ import uuid
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, dict, list
 
 import yaml
 
@@ -74,10 +74,10 @@ class DeploymentTarget:
     name: str
     environment: EnvironmentType
     provider: InfrastructureProvider
-    region: Optional[str] = None
-    cluster: Optional[str] = None
-    namespace: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    region: str | None = None
+    cluster: str | None = None
+    namespace: str | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -88,11 +88,11 @@ class ResourceRequirements:
     cpu_limit: str = "500m"
     memory_request: str = "128Mi"
     memory_limit: str = "512Mi"
-    storage: Optional[str] = None
+    storage: str | None = None
     replicas: int = 1
     min_replicas: int = 1
     max_replicas: int = 10
-    custom_resources: Dict[str, Any] = field(default_factory=dict)
+    custom_resources: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -120,15 +120,19 @@ class DeploymentConfig:
     strategy: DeploymentStrategy = DeploymentStrategy.ROLLING_UPDATE
     resources: ResourceRequirements = field(default_factory=ResourceRequirements)
     health_check: HealthCheck = field(default_factory=HealthCheck)
-    environment_variables: Dict[str, str] = field(default_factory=dict)
-    secrets: Dict[str, str] = field(default_factory=dict)
-    config_maps: Dict[str, Dict[str, str]] = field(default_factory=dict)
-    volumes: List[Dict[str, Any]] = field(default_factory=list)
-    network_policies: List[Dict[str, Any]] = field(default_factory=list)
-    service_account: Optional[str] = None
-    annotations: Dict[str, str] = field(default_factory=dict)
-    labels: Dict[str, str] = field(default_factory=dict)
-    custom_spec: Dict[str, Any] = field(default_factory=dict)
+    environment_variables: builtins.dict[str, str] = field(default_factory=dict)
+    secrets: builtins.dict[str, str] = field(default_factory=dict)
+    config_maps: builtins.dict[str, builtins.dict[str, str]] = field(
+        default_factory=dict
+    )
+    volumes: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
+    network_policies: builtins.list[builtins.dict[str, Any]] = field(
+        default_factory=list
+    )
+    service_account: str | None = None
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    custom_spec: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -141,7 +145,7 @@ class DeploymentEvent:
     event_type: str
     message: str
     level: str = "info"
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -153,11 +157,11 @@ class Deployment:
     status: DeploymentStatus = DeploymentStatus.PENDING
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
-    deployed_at: Optional[datetime] = None
-    events: List[DeploymentEvent] = field(default_factory=list)
-    previous_version: Optional[str] = None
-    rollback_config: Optional[DeploymentConfig] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    deployed_at: datetime | None = None
+    events: builtins.list[DeploymentEvent] = field(default_factory=list)
+    previous_version: str | None = None
+    rollback_config: DeploymentConfig | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     def add_event(self, event_type: str, message: str, level: str = "info", **metadata):
         """Add deployment event."""
@@ -179,37 +183,33 @@ class DeploymentProvider(ABC):
 
     def __init__(self, provider_type: InfrastructureProvider):
         self.provider_type = provider_type
-        self.active_deployments: Dict[str, Deployment] = {}
+        self.active_deployments: builtins.dict[str, Deployment] = {}
 
     @abstractmethod
     async def deploy(self, deployment: Deployment) -> bool:
         """Deploy service to target environment."""
-        pass
 
     @abstractmethod
     async def rollback(self, deployment: Deployment) -> bool:
         """Rollback deployment to previous version."""
-        pass
 
     @abstractmethod
     async def scale(self, deployment: Deployment, replicas: int) -> bool:
         """Scale deployment."""
-        pass
 
     @abstractmethod
-    async def get_status(self, deployment: Deployment) -> Dict[str, Any]:
+    async def get_status(self, deployment: Deployment) -> builtins.dict[str, Any]:
         """Get deployment status."""
-        pass
 
     @abstractmethod
-    async def get_logs(self, deployment: Deployment, lines: int = 100) -> List[str]:
+    async def get_logs(
+        self, deployment: Deployment, lines: int = 100
+    ) -> builtins.list[str]:
         """Get deployment logs."""
-        pass
 
     @abstractmethod
     async def terminate(self, deployment: Deployment) -> bool:
         """Terminate deployment."""
-        pass
 
     async def health_check(self, deployment: Deployment) -> bool:
         """Perform health check on deployment."""
@@ -224,7 +224,7 @@ class DeploymentProvider(ABC):
 class KubernetesProvider(DeploymentProvider):
     """Kubernetes deployment provider."""
 
-    def __init__(self, kubeconfig_path: Optional[str] = None):
+    def __init__(self, kubeconfig_path: str | None = None):
         super().__init__(InfrastructureProvider.KUBERNETES)
         self.kubeconfig_path = kubeconfig_path
         self.kubectl_binary = "kubectl"
@@ -259,17 +259,16 @@ class KubernetesProvider(DeploymentProvider):
                     "Kubernetes deployment completed successfully",
                 )
                 return True
-            else:
-                deployment.status = DeploymentStatus.FAILED
-                deployment.add_event(
-                    "deployment_failed", "Deployment did not become ready", "error"
-                )
-                return False
+            deployment.status = DeploymentStatus.FAILED
+            deployment.add_event(
+                "deployment_failed", "Deployment did not become ready", "error"
+            )
+            return False
 
         except Exception as e:
             deployment.status = DeploymentStatus.FAILED
             deployment.add_event(
-                "deployment_error", f"Deployment error: {str(e)}", "error"
+                "deployment_error", f"Deployment error: {e!s}", "error"
             )
             logger.error(f"Kubernetes deployment failed: {e}")
             return False
@@ -308,7 +307,7 @@ class KubernetesProvider(DeploymentProvider):
 
         except Exception as e:
             deployment.status = DeploymentStatus.FAILED
-            deployment.add_event("rollback_error", f"Rollback error: {str(e)}", "error")
+            deployment.add_event("rollback_error", f"Rollback error: {e!s}", "error")
             logger.error(f"Kubernetes rollback failed: {e}")
             return False
 
@@ -344,11 +343,11 @@ class KubernetesProvider(DeploymentProvider):
             return False
 
         except Exception as e:
-            deployment.add_event("scaling_error", f"Scaling error: {str(e)}", "error")
+            deployment.add_event("scaling_error", f"Scaling error: {e!s}", "error")
             logger.error(f"Kubernetes scaling failed: {e}")
             return False
 
-    async def get_status(self, deployment: Deployment) -> Dict[str, Any]:
+    async def get_status(self, deployment: Deployment) -> builtins.dict[str, Any]:
         """Get Kubernetes deployment status."""
         try:
             cmd = [
@@ -388,7 +387,9 @@ class KubernetesProvider(DeploymentProvider):
             logger.error(f"Failed to get Kubernetes status: {e}")
             return {"healthy": False, "error": str(e)}
 
-    async def get_logs(self, deployment: Deployment, lines: int = 100) -> List[str]:
+    async def get_logs(
+        self, deployment: Deployment, lines: int = 100
+    ) -> builtins.list[str]:
         """Get Kubernetes deployment logs."""
         try:
             cmd = [
@@ -413,7 +414,7 @@ class KubernetesProvider(DeploymentProvider):
 
         except Exception as e:
             logger.error(f"Failed to get Kubernetes logs: {e}")
-            return [f"Error getting logs: {str(e)}"]
+            return [f"Error getting logs: {e!s}"]
 
     async def terminate(self, deployment: Deployment) -> bool:
         """Terminate Kubernetes deployment."""
@@ -451,12 +452,14 @@ class KubernetesProvider(DeploymentProvider):
 
         except Exception as e:
             deployment.add_event(
-                "termination_error", f"Termination error: {str(e)}", "error"
+                "termination_error", f"Termination error: {e!s}", "error"
             )
             logger.error(f"Kubernetes termination failed: {e}")
             return False
 
-    def _generate_manifests(self, deployment: Deployment) -> List[Dict[str, Any]]:
+    def _generate_manifests(
+        self, deployment: Deployment
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Generate Kubernetes manifests."""
         manifests = []
         config = deployment.config
@@ -631,24 +634,25 @@ class KubernetesProvider(DeploymentProvider):
 
         return manifests
 
-    def _get_deployment_strategy(self, strategy: DeploymentStrategy) -> Dict[str, Any]:
+    def _get_deployment_strategy(
+        self, strategy: DeploymentStrategy
+    ) -> builtins.dict[str, Any]:
         """Get Kubernetes deployment strategy configuration."""
         if strategy == DeploymentStrategy.ROLLING_UPDATE:
             return {
                 "type": "RollingUpdate",
                 "rollingUpdate": {"maxUnavailable": "25%", "maxSurge": "25%"},
             }
-        elif strategy == DeploymentStrategy.RECREATE:
+        if strategy == DeploymentStrategy.RECREATE:
             return {"type": "Recreate"}
-        else:
-            # Default to rolling update
-            return {
-                "type": "RollingUpdate",
-                "rollingUpdate": {"maxUnavailable": "25%", "maxSurge": "25%"},
-            }
+        # Default to rolling update
+        return {
+            "type": "RollingUpdate",
+            "rollingUpdate": {"maxUnavailable": "25%", "maxSurge": "25%"},
+        }
 
     async def _apply_manifest(
-        self, deployment: Deployment, manifest: Dict[str, Any]
+        self, deployment: Deployment, manifest: builtins.dict[str, Any]
     ) -> bool:
         """Apply Kubernetes manifest."""
         try:
@@ -679,17 +683,16 @@ class KubernetesProvider(DeploymentProvider):
                     f"Applied {manifest['kind']}: {manifest['metadata']['name']}",
                 )
                 return True
-            else:
-                deployment.add_event(
-                    "manifest_failed",
-                    f"Failed to apply {manifest['kind']}: {stderr.decode()}",
-                    "error",
-                )
-                return False
+            deployment.add_event(
+                "manifest_failed",
+                f"Failed to apply {manifest['kind']}: {stderr.decode()}",
+                "error",
+            )
+            return False
 
         except Exception as e:
             deployment.add_event(
-                "manifest_error", f"Error applying manifest: {str(e)}", "error"
+                "manifest_error", f"Error applying manifest: {e!s}", "error"
             )
             return False
 
@@ -709,7 +712,9 @@ class KubernetesProvider(DeploymentProvider):
 
         return False
 
-    async def _run_kubectl_command(self, cmd: List[str]) -> subprocess.CompletedProcess:
+    async def _run_kubectl_command(
+        self, cmd: builtins.list[str]
+    ) -> subprocess.CompletedProcess:
         """Run kubectl command."""
         process = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -729,9 +734,9 @@ class DeploymentManager:
     """Manages deployment lifecycle and coordination."""
 
     def __init__(self):
-        self.providers: Dict[InfrastructureProvider, DeploymentProvider] = {}
-        self.deployments: Dict[str, Deployment] = {}
-        self.deployment_history: Dict[str, List[Deployment]] = {}
+        self.providers: builtins.dict[InfrastructureProvider, DeploymentProvider] = {}
+        self.deployments: builtins.dict[str, Deployment] = {}
+        self.deployment_history: builtins.dict[str, builtins.list[Deployment]] = {}
 
     def register_provider(self, provider: DeploymentProvider):
         """Register deployment provider."""
@@ -812,7 +817,7 @@ class DeploymentManager:
 
     async def get_deployment_status(
         self, deployment_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> builtins.dict[str, Any] | None:
         """Get deployment status."""
         deployment = self.deployments.get(deployment_id)
         if not deployment:
@@ -848,7 +853,7 @@ class DeploymentManager:
 
     async def get_deployment_logs(
         self, deployment_id: str, lines: int = 100
-    ) -> List[str]:
+    ) -> builtins.list[str]:
         """Get deployment logs."""
         deployment = self.deployments.get(deployment_id)
         if not deployment:
@@ -878,7 +883,7 @@ class DeploymentManager:
 
     def get_service_deployments(
         self, service_name: str, environment: EnvironmentType = None
-    ) -> List[Deployment]:
+    ) -> builtins.list[Deployment]:
         """Get all deployments for a service."""
         deployments = []
 
@@ -894,7 +899,7 @@ class DeploymentManager:
 
     def get_environment_deployments(
         self, environment: EnvironmentType
-    ) -> List[Deployment]:
+    ) -> builtins.list[Deployment]:
         """Get all deployments for an environment."""
         deployments = []
 

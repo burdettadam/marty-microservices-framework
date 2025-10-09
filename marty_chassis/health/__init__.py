@@ -12,7 +12,7 @@ import asyncio
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union, dict, list
 
 from pydantic import BaseModel
 
@@ -36,7 +36,7 @@ class HealthCheckResult(BaseModel):
     name: str
     status: HealthStatus
     message: str
-    details: Dict[str, Any] = {}
+    details: dict[str, Any] = {}
     duration_ms: float
     timestamp: float
 
@@ -290,7 +290,7 @@ class HealthManager:
     """Manager for running and aggregating health checks."""
 
     def __init__(self):
-        self.checks: List[HealthCheck] = []
+        self.checks: list[HealthCheck] = []
 
     def add_check(self, check: HealthCheck) -> None:
         """Add a health check."""
@@ -302,7 +302,7 @@ class HealthManager:
         self.checks = [check for check in self.checks if check.name != name]
         logger.info(f"Removed health check: {name}")
 
-    async def run_all_checks(self) -> Dict[str, HealthCheckResult]:
+    async def run_all_checks(self) -> dict[str, HealthCheckResult]:
         """Run all health checks concurrently."""
         if not self.checks:
             return {}
@@ -314,7 +314,7 @@ class HealthManager:
 
         return {result.name: result for result in results}
 
-    async def get_health_status(self) -> Dict[str, Any]:
+    async def get_health_status(self) -> dict[str, Any]:
         """Get aggregated health status."""
         results = await self.run_all_checks()
 
@@ -346,13 +346,13 @@ class HealthManager:
             "timestamp": time.time(),
         }
 
-    async def get_readiness_status(self) -> Dict[str, Any]:
+    async def get_readiness_status(self) -> dict[str, Any]:
         """Get readiness status (critical checks only)."""
         # For now, treat all checks as critical
         # In the future, we could add a 'critical' flag to health checks
         return await self.get_health_status()
 
-    async def get_liveness_status(self) -> Dict[str, Any]:
+    async def get_liveness_status(self) -> dict[str, Any]:
         """Get liveness status (basic service health)."""
         # Simple liveness check - service is running
         return {
@@ -363,7 +363,7 @@ class HealthManager:
 
 
 # Global health manager instance
-_global_health_manager: Optional[HealthManager] = None
+_global_health_manager: HealthManager | None = None
 
 
 def get_health_manager() -> HealthManager:
@@ -375,8 +375,8 @@ def get_health_manager() -> HealthManager:
 
 
 def setup_default_health_checks(
-    database_url: Optional[str] = None,
-    external_dependencies: Optional[List[str]] = None,
+    database_url: str | None = None,
+    external_dependencies: list[str] | None = None,
 ) -> None:
     """Setup default health checks."""
     manager = get_health_manager()

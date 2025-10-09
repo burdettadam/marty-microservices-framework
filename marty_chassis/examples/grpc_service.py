@@ -5,10 +5,9 @@ This example demonstrates how to create a gRPC service with the chassis.
 """
 
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import grpc
-from grpc import aio
 from marty_chassis import (
     ChassisConfig,
     HealthCheck,
@@ -159,8 +158,8 @@ async def serve():
     server = create_grpc_service(config)
 
     # Add service implementations
-    echo_servicer = EchoServicer()
-    calculator_servicer = CalculatorServicer()
+    EchoServicer()
+    CalculatorServicer()
 
     # In a real app, these would be properly registered with generated stubs
     # server.add_servicer(echo_servicer)

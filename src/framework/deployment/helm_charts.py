@@ -7,28 +7,21 @@ orchestration for microservices architectures.
 """
 
 import asyncio
+import builtins
 import json
 import logging
-import shutil
 import subprocess
 import tempfile
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, dict, list, tuple
 
 import jinja2
 import yaml
 
-from .core import (
-    DeploymentConfig,
-    DeploymentStatus,
-    DeploymentTarget,
-    EnvironmentType,
-    InfrastructureProvider,
-)
+from .core import DeploymentConfig
 
 logger = logging.getLogger(__name__)
 
@@ -59,18 +52,18 @@ class ChartType(Enum):
 class HelmValues:
     """Helm chart values configuration."""
 
-    image: Dict[str, Any] = field(default_factory=dict)
-    service: Dict[str, Any] = field(default_factory=dict)
-    ingress: Dict[str, Any] = field(default_factory=dict)
-    resources: Dict[str, Any] = field(default_factory=dict)
-    autoscaling: Dict[str, Any] = field(default_factory=dict)
-    config: Dict[str, Any] = field(default_factory=dict)
-    secrets: Dict[str, Any] = field(default_factory=dict)
-    persistence: Dict[str, Any] = field(default_factory=dict)
-    monitoring: Dict[str, Any] = field(default_factory=dict)
-    custom_values: Dict[str, Any] = field(default_factory=dict)
+    image: builtins.dict[str, Any] = field(default_factory=dict)
+    service: builtins.dict[str, Any] = field(default_factory=dict)
+    ingress: builtins.dict[str, Any] = field(default_factory=dict)
+    resources: builtins.dict[str, Any] = field(default_factory=dict)
+    autoscaling: builtins.dict[str, Any] = field(default_factory=dict)
+    config: builtins.dict[str, Any] = field(default_factory=dict)
+    secrets: builtins.dict[str, Any] = field(default_factory=dict)
+    persistence: builtins.dict[str, Any] = field(default_factory=dict)
+    monitoring: builtins.dict[str, Any] = field(default_factory=dict)
+    custom_values: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         values = {}
 
@@ -103,11 +96,11 @@ class HelmChart:
     version: str
     chart_type: ChartType
     description: str = ""
-    app_version: Optional[str] = None
-    dependencies: List[Dict[str, Any]] = field(default_factory=list)
-    templates: Dict[str, str] = field(default_factory=dict)
+    app_version: str | None = None
+    dependencies: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
+    templates: builtins.dict[str, str] = field(default_factory=dict)
     values: HelmValues = field(default_factory=HelmValues)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -120,8 +113,8 @@ class HelmRelease:
     version: str
     status: str
     updated: datetime
-    values: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    values: builtins.dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class HelmTemplateGenerator:
@@ -129,7 +122,9 @@ class HelmTemplateGenerator:
 
     def __init__(self):
         self.jinja_env = jinja2.Environment(
-            loader=jinja2.DictLoader({}), undefined=jinja2.StrictUndefined
+            loader=jinja2.DictLoader({}),
+            undefined=jinja2.StrictUndefined,
+            autoescape=True,
         )
 
     def generate_microservice_chart(
@@ -713,9 +708,7 @@ spec:
 class HelmManager:
     """Manages Helm operations and chart lifecycle."""
 
-    def __init__(
-        self, helm_binary: str = "helm", kubeconfig_path: Optional[str] = None
-    ):
+    def __init__(self, helm_binary: str = "helm", kubeconfig_path: str | None = None):
         self.helm_binary = helm_binary
         self.kubeconfig_path = kubeconfig_path
         self.template_generator = HelmTemplateGenerator()
@@ -760,9 +753,9 @@ class HelmManager:
     async def install_release(
         self,
         release_name: str,
-        chart_path: Union[str, Path],
+        chart_path: str | Path,
         namespace: str,
-        values: Optional[Dict[str, Any]] = None,
+        values: builtins.dict[str, Any] | None = None,
         wait: bool = True,
         timeout: str = "5m",
     ) -> bool:
@@ -802,9 +795,8 @@ class HelmManager:
             if result.returncode == 0:
                 logger.info(f"Helm release {release_name} installed successfully")
                 return True
-            else:
-                logger.error(f"Helm install failed: {result.stderr}")
-                return False
+            logger.error(f"Helm install failed: {result.stderr}")
+            return False
 
         except Exception as e:
             logger.error(f"Helm install error: {e}")
@@ -813,9 +805,9 @@ class HelmManager:
     async def upgrade_release(
         self,
         release_name: str,
-        chart_path: Union[str, Path],
+        chart_path: str | Path,
         namespace: str,
-        values: Optional[Dict[str, Any]] = None,
+        values: builtins.dict[str, Any] | None = None,
         wait: bool = True,
         timeout: str = "5m",
     ) -> bool:
@@ -854,16 +846,15 @@ class HelmManager:
             if result.returncode == 0:
                 logger.info(f"Helm release {release_name} upgraded successfully")
                 return True
-            else:
-                logger.error(f"Helm upgrade failed: {result.stderr}")
-                return False
+            logger.error(f"Helm upgrade failed: {result.stderr}")
+            return False
 
         except Exception as e:
             logger.error(f"Helm upgrade error: {e}")
             return False
 
     async def rollback_release(
-        self, release_name: str, namespace: str, revision: Optional[int] = None
+        self, release_name: str, namespace: str, revision: int | None = None
     ) -> bool:
         """Rollback Helm release."""
         try:
@@ -880,9 +871,8 @@ class HelmManager:
             if result.returncode == 0:
                 logger.info(f"Helm release {release_name} rolled back successfully")
                 return True
-            else:
-                logger.error(f"Helm rollback failed: {result.stderr}")
-                return False
+            logger.error(f"Helm rollback failed: {result.stderr}")
+            return False
 
         except Exception as e:
             logger.error(f"Helm rollback error: {e}")
@@ -907,9 +897,8 @@ class HelmManager:
             if result.returncode == 0:
                 logger.info(f"Helm release {release_name} uninstalled successfully")
                 return True
-            else:
-                logger.error(f"Helm uninstall failed: {result.stderr}")
-                return False
+            logger.error(f"Helm uninstall failed: {result.stderr}")
+            return False
 
         except Exception as e:
             logger.error(f"Helm uninstall error: {e}")
@@ -917,7 +906,7 @@ class HelmManager:
 
     async def get_release_status(
         self, release_name: str, namespace: str
-    ) -> Optional[HelmRelease]:
+    ) -> HelmRelease | None:
         """Get Helm release status."""
         try:
             cmd = [
@@ -961,7 +950,9 @@ class HelmManager:
             logger.error(f"Helm status error: {e}")
             return None
 
-    async def list_releases(self, namespace: Optional[str] = None) -> List[HelmRelease]:
+    async def list_releases(
+        self, namespace: str | None = None
+    ) -> builtins.list[HelmRelease]:
         """List Helm releases."""
         try:
             cmd = [self.helm_binary, "list", "--output", "json"]
@@ -1004,11 +995,11 @@ class HelmManager:
 
     async def template_chart(
         self,
-        chart_path: Union[str, Path],
+        chart_path: str | Path,
         release_name: str,
         namespace: str,
-        values: Optional[Dict[str, Any]] = None,
-    ) -> Optional[str]:
+        values: builtins.dict[str, Any] | None = None,
+    ) -> str | None:
         """Template Helm chart to see generated manifests."""
         try:
             cmd = [
@@ -1040,15 +1031,16 @@ class HelmManager:
 
             if result.returncode == 0:
                 return result.stdout
-            else:
-                logger.error(f"Helm template failed: {result.stderr}")
-                return None
+            logger.error(f"Helm template failed: {result.stderr}")
+            return None
 
         except Exception as e:
             logger.error(f"Helm template error: {e}")
             return None
 
-    async def _run_helm_command(self, cmd: List[str]) -> subprocess.CompletedProcess:
+    async def _run_helm_command(
+        self, cmd: builtins.list[str]
+    ) -> subprocess.CompletedProcess:
         """Run Helm command."""
         process = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -1075,7 +1067,7 @@ class HelmManager:
 
 
 # Utility functions
-def create_helm_values_from_config(config: DeploymentConfig) -> Dict[str, Any]:
+def create_helm_values_from_config(config: DeploymentConfig) -> builtins.dict[str, Any]:
     """Create Helm values from deployment config."""
     generator = HelmTemplateGenerator()
     values = generator._generate_values_from_config(config)
@@ -1083,8 +1075,8 @@ def create_helm_values_from_config(config: DeploymentConfig) -> Dict[str, Any]:
 
 
 async def deploy_with_helm(
-    manager: HelmManager, config: DeploymentConfig, chart_dir: Optional[Path] = None
-) -> Tuple[bool, Optional[str]]:
+    manager: HelmManager, config: DeploymentConfig, chart_dir: Path | None = None
+) -> builtins.tuple[bool, str | None]:
     """Deploy service using Helm."""
     try:
         # Generate chart if not provided
@@ -1110,8 +1102,7 @@ async def deploy_with_helm(
 
         if success:
             return True, f"Release {release_name} {action} successfully"
-        else:
-            return False, f"Failed to {action} release {release_name}"
+        return False, f"Failed to {action} release {release_name}"
 
     except Exception as e:
-        return False, f"Helm deployment error: {str(e)}"
+        return False, f"Helm deployment error: {e!s}"

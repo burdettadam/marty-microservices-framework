@@ -14,7 +14,7 @@ This template provides a comprehensive API gateway implementation with:
 import asyncio
 import logging
 from contextlib import asynccontextmanager
-from typing import Any, Dict
+from typing import Any, dict
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request

@@ -12,15 +12,14 @@ Provides comprehensive deployment strategy implementations including:
 """
 
 import asyncio
-import json
+import builtins
 import random
 import time
-import uuid
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Final, Generic, List, Optional, dict, list
 
 # External dependencies
 try:
@@ -97,10 +96,10 @@ class DeploymentTarget:
     health_check_timeout: int = 30
 
     # Labels and annotations
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -115,17 +114,17 @@ class TrafficSplit:
     green_weight: int = 0
 
     # Header-based splitting
-    header_name: Optional[str] = None
-    header_values: Dict[str, str] = field(default_factory=dict)
+    header_name: str | None = None
+    header_values: builtins.dict[str, str] = field(default_factory=dict)
 
     # User-based splitting
     user_percentage: int = 0
-    user_groups: List[str] = field(default_factory=list)
+    user_groups: builtins.list[str] = field(default_factory=list)
 
     # Geographic splitting
-    geographic_rules: Dict[str, str] = field(default_factory=dict)
+    geographic_rules: builtins.dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {**asdict(self), "method": self.method.value}
 
 
@@ -146,14 +145,16 @@ class DeploymentValidation:
     min_success_rate: float = 0.95
 
     # Custom validation
-    custom_validations: List[Dict[str, Any]] = field(default_factory=list)
+    custom_validations: builtins.list[builtins.dict[str, Any]] = field(
+        default_factory=list
+    )
 
     # Rollback triggers
     auto_rollback_enabled: bool = True
     error_threshold: float = 0.05  # 5% error rate
     latency_threshold: int = 2000  # 2 seconds
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -169,30 +170,30 @@ class DeploymentOperation:
     # Configuration
     source_version: str = ""
     target_version: str = ""
-    target_config: Optional[DeploymentTarget] = None
-    traffic_config: Optional[TrafficSplit] = None
-    validation_config: Optional[DeploymentValidation] = None
+    target_config: DeploymentTarget | None = None
+    traffic_config: TrafficSplit | None = None
+    validation_config: DeploymentValidation | None = None
 
     # State tracking
     current_phase: DeploymentPhase = DeploymentPhase.PLANNING
     progress_percentage: int = 0
 
     # Execution details
-    blue_deployment: Optional[str] = None
-    green_deployment: Optional[str] = None
-    canary_deployment: Optional[str] = None
+    blue_deployment: str | None = None
+    green_deployment: str | None = None
+    canary_deployment: str | None = None
 
     # Results
     status: str = "running"  # running, succeeded, failed, rolled_back
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
-    rollback_reason: Optional[str] = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
+    rollback_reason: str | None = None
 
     # Metrics
-    deployment_duration: Optional[float] = None
-    validation_results: Dict[str, Any] = field(default_factory=dict)
+    deployment_duration: float | None = None
+    validation_results: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "strategy": self.strategy.value,
@@ -222,7 +223,7 @@ class DeploymentStrategyBase(ABC):
 
     def __init__(self, name: str):
         self.name = name
-        self.operations: Dict[str, DeploymentOperation] = {}
+        self.operations: builtins.dict[str, DeploymentOperation] = {}
 
         # Metrics
         if METRICS_AVAILABLE:
@@ -240,21 +241,18 @@ class DeploymentStrategyBase(ABC):
     @abstractmethod
     async def deploy(self, operation: DeploymentOperation) -> bool:
         """Execute deployment strategy"""
-        pass
 
     @abstractmethod
     async def rollback(
         self, operation_id: str, reason: str = "Manual rollback"
     ) -> bool:
         """Rollback deployment"""
-        pass
 
     @abstractmethod
     async def validate_deployment(
         self, operation: DeploymentOperation
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Validate deployment success"""
-        pass
 
     def _update_operation_phase(
         self,
@@ -429,7 +427,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
         """Switch traffic from blue to green"""
 
         try:
-            print(f"🔄 Switching traffic to green environment")
+            print("🔄 Switching traffic to green environment")
 
             if not self.kubernetes_client and KUBERNETES_AVAILABLE:
                 # Mock traffic switching
@@ -530,9 +528,8 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
                 print(f"✅ Rollback completed for {operation.application_name}")
                 return True
-            else:
-                print(f"❌ Rollback failed for {operation.application_name}")
-                return False
+            print(f"❌ Rollback failed for {operation.application_name}")
+            return False
 
         except Exception as e:
             print(f"❌ Rollback error for {operation.application_name}: {e}")
@@ -542,7 +539,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
         """Switch traffic back to blue environment"""
 
         try:
-            print(f"🔄 Switching traffic back to blue environment")
+            print("🔄 Switching traffic back to blue environment")
 
             if not self.kubernetes_client and KUBERNETES_AVAILABLE:
                 # Mock traffic switching
@@ -572,7 +569,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
     async def validate_deployment(
         self, operation: DeploymentOperation
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Validate Blue-Green deployment"""
 
         validation_results = {"success": False, "checks": {}, "error": None}
@@ -627,7 +624,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
     async def _perform_health_check(
         self, operation: DeploymentOperation
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Perform health check validation"""
 
         try:
@@ -657,7 +654,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
     async def _perform_performance_check(
         self, operation: DeploymentOperation
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Perform performance validation"""
 
         try:
@@ -684,8 +681,8 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
             return {"success": False, "error": str(e)}
 
     async def _perform_custom_validation(
-        self, operation: DeploymentOperation, validation: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, operation: DeploymentOperation, validation: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Perform custom validation"""
 
         try:
@@ -697,13 +694,12 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
             if validation_type == "database_connectivity":
                 return {"success": True, "message": "Database connectivity verified"}
-            elif validation_type == "external_api_check":
+            if validation_type == "external_api_check":
                 return {
                     "success": True,
                     "message": "External API connectivity verified",
                 }
-            else:
-                return {"success": True, "message": "Generic validation passed"}
+            return {"success": True, "message": "Generic validation passed"}
 
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -719,7 +715,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
     def _create_deployment_manifest(
         self, operation: DeploymentOperation, color: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Create Kubernetes deployment manifest"""
 
         target = operation.target_config
@@ -935,7 +931,7 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
         """Complete canary promotion by replacing stable version"""
 
         try:
-            print(f"🎯 Promoting canary to stable")
+            print("🎯 Promoting canary to stable")
 
             # Mock promotion
             await asyncio.sleep(1)
@@ -972,9 +968,8 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
 
                 print(f"✅ Canary rollback completed for {operation.application_name}")
                 return True
-            else:
-                print(f"❌ Canary rollback failed for {operation.application_name}")
-                return False
+            print(f"❌ Canary rollback failed for {operation.application_name}")
+            return False
 
         except Exception as e:
             print(f"❌ Canary rollback error for {operation.application_name}: {e}")
@@ -994,7 +989,7 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
 
     async def validate_deployment(
         self, operation: DeploymentOperation
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Validate canary deployment performance"""
 
         validation_results = {"success": False, "metrics": {}, "error": None}
@@ -1141,7 +1136,7 @@ class RollingDeploymentStrategy(DeploymentStrategyBase):
         """Monitor rolling deployment progress"""
 
         try:
-            print(f"👀 Monitoring rollout progress")
+            print("👀 Monitoring rollout progress")
 
             # Mock rollout monitoring
             for i in range(5):
@@ -1194,7 +1189,7 @@ class RollingDeploymentStrategy(DeploymentStrategyBase):
 
     async def validate_deployment(
         self, operation: DeploymentOperation
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Validate rolling deployment"""
 
         validation_results = {"success": False, "pod_status": {}, "error": None}
@@ -1235,7 +1230,7 @@ class DeploymentOrchestrator:
         }
 
         # Operation tracking
-        self.operations: Dict[str, DeploymentOperation] = {}
+        self.operations: builtins.dict[str, DeploymentOperation] = {}
 
         # Metrics
         if METRICS_AVAILABLE:
@@ -1252,8 +1247,8 @@ class DeploymentOrchestrator:
         target_config: DeploymentTarget,
         source_version: str = "",
         target_version: str = "",
-        validation_config: Optional[DeploymentValidation] = None,
-        traffic_config: Optional[TrafficSplit] = None,
+        validation_config: DeploymentValidation | None = None,
+        traffic_config: TrafficSplit | None = None,
     ) -> DeploymentOperation:
         """Execute deployment with specified strategy"""
 
@@ -1320,7 +1315,9 @@ class DeploymentOrchestrator:
 
         return await strategy_impl.rollback(operation_id, reason)
 
-    def get_deployment_status(self, operation_id: str) -> Optional[Dict[str, Any]]:
+    def get_deployment_status(
+        self, operation_id: str
+    ) -> builtins.dict[str, Any] | None:
         """Get deployment operation status"""
 
         if operation_id not in self.operations:
@@ -1329,14 +1326,14 @@ class DeploymentOrchestrator:
         operation = self.operations[operation_id]
         return operation.to_dict()
 
-    def list_active_deployments(self) -> List[Dict[str, Any]]:
+    def list_active_deployments(self) -> builtins.list[builtins.dict[str, Any]]:
         """List all active deployments"""
 
         active_ops = [op for op in self.operations.values() if op.status == "running"]
 
         return [op.to_dict() for op in active_ops]
 
-    def get_deployment_metrics(self) -> Dict[str, Any]:
+    def get_deployment_metrics(self) -> builtins.dict[str, Any]:
         """Get deployment metrics and statistics"""
 
         total_deployments = len(self.operations)
@@ -1448,7 +1445,7 @@ async def main():
 
     # Show deployment metrics
     metrics = orchestrator.get_deployment_metrics()
-    print(f"\n📊 Deployment Metrics:")
+    print("\n📊 Deployment Metrics:")
     print(f"Total deployments: {metrics['total_deployments']}")
     print(f"By strategy: {metrics['deployments_by_strategy']}")
     print(f"By status: {metrics['deployments_by_status']}")

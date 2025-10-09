@@ -6,23 +6,32 @@ health monitoring, and service dependency management for microservices orchestra
 """
 
 import asyncio
-import hashlib
-import json
+import builtins
 import logging
+import random
 import threading
 import time
 import uuid
-from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
-from urllib.parse import urlparse
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    dict,
+    list,
+    set,
+    tuple,
+)
 
 # For networking operations
 import aiohttp
-import dns.resolver
 
 
 class CommunicationProtocol(Enum):
@@ -102,24 +111,24 @@ class ServiceInstance:
     # Health and status
     health_status: HealthStatus = HealthStatus.UNKNOWN
     service_state: ServiceState = ServiceState.STARTING
-    last_health_check: Optional[datetime] = None
+    last_health_check: datetime | None = None
     health_check_url: str = "/health"
     readiness_check_url: str = "/ready"
 
     # Capabilities and metadata
-    capabilities: List[str] = field(default_factory=list)
-    tags: Dict[str, str] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    capabilities: builtins.list[str] = field(default_factory=list)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Performance characteristics
-    cpu_limit: Optional[float] = None  # CPU cores
-    memory_limit: Optional[int] = None  # MB
-    max_connections: Optional[int] = None
-    rate_limit: Optional[int] = None  # requests per second
+    cpu_limit: float | None = None  # CPU cores
+    memory_limit: int | None = None  # MB
+    max_connections: int | None = None
+    rate_limit: int | None = None  # requests per second
 
     # Networking
     ssl_enabled: bool = False
-    certificate_info: Optional[Dict[str, str]] = None
+    certificate_info: builtins.dict[str, str] | None = None
 
     # Timestamps
     registered_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -134,8 +143,8 @@ class ServiceDependency:
     source_service: str
     target_service: str
     dependency_type: DependencyType
-    required_version: Optional[str] = None
-    fallback_service: Optional[str] = None
+    required_version: str | None = None
+    fallback_service: str | None = None
     timeout: int = 30  # seconds
     retry_attempts: int = 3
     circuit_breaker_enabled: bool = True
@@ -150,10 +159,10 @@ class ServiceContract:
     service_name: str
     version: str
     contract_type: str  # "openapi", "grpc", "graphql", etc.
-    schema: Dict[str, Any]
-    endpoints: List[Dict[str, Any]] = field(default_factory=list)
-    breaking_changes: List[str] = field(default_factory=list)
-    deprecated_endpoints: List[str] = field(default_factory=list)
+    schema: builtins.dict[str, Any]
+    endpoints: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
+    breaking_changes: builtins.list[str] = field(default_factory=list)
+    deprecated_endpoints: builtins.list[str] = field(default_factory=list)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -169,8 +178,8 @@ class CommunicationMetrics:
     total_latency: float = 0.0
     min_latency: float = float("inf")
     max_latency: float = 0.0
-    last_request: Optional[datetime] = None
-    error_distribution: Dict[str, int] = field(default_factory=dict)
+    last_request: datetime | None = None
+    error_distribution: builtins.dict[str, int] = field(default_factory=dict)
 
 
 class ServiceHealthChecker:
@@ -182,11 +191,11 @@ class ServiceHealthChecker:
         self.timeout = timeout
 
         # Health check tasks
-        self.health_tasks: Dict[str, asyncio.Task] = {}
-        self.health_results: Dict[str, Dict[str, Any]] = {}
+        self.health_tasks: builtins.dict[str, asyncio.Task] = {}
+        self.health_results: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Health check strategies
-        self.check_strategies: Dict[str, Callable] = {
+        self.check_strategies: builtins.dict[str, Callable] = {
             "http": self._http_health_check,
             "https": self._http_health_check,
             "tcp": self._tcp_health_check,
@@ -195,7 +204,9 @@ class ServiceHealthChecker:
         }
 
         # Health check history
-        self.health_history: Dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
+        self.health_history: builtins.dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=100)
+        )
 
     async def start_health_monitoring(self, service: ServiceInstance):
         """Start health monitoring for a service."""
@@ -227,7 +238,7 @@ class ServiceHealthChecker:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logging.error(f"Health check error for {service.instance_id}: {e}")
+                logging.exception(f"Health check error for {service.instance_id}: {e}")
                 await asyncio.sleep(self.check_interval)
 
     async def _perform_health_check(self, service: ServiceInstance):
@@ -276,7 +287,9 @@ class ServiceHealthChecker:
             self.health_results[service.instance_id] = error_data
             self.health_history[service.instance_id].append(error_data)
 
-    async def _http_health_check(self, service: ServiceInstance) -> Dict[str, Any]:
+    async def _http_health_check(
+        self, service: ServiceInstance
+    ) -> builtins.dict[str, Any]:
         """HTTP/HTTPS health check."""
         scheme = "https" if service.ssl_enabled else "http"
         health_url = (
@@ -300,7 +313,9 @@ class ServiceHealthChecker:
                     },
                 }
 
-    async def _tcp_health_check(self, service: ServiceInstance) -> Dict[str, Any]:
+    async def _tcp_health_check(
+        self, service: ServiceInstance
+    ) -> builtins.dict[str, Any]:
         """TCP health check."""
         try:
             reader, writer = await asyncio.wait_for(
@@ -316,7 +331,9 @@ class ServiceHealthChecker:
         except Exception as e:
             return {"healthy": False, "error": str(e)}
 
-    async def _grpc_health_check(self, service: ServiceInstance) -> Dict[str, Any]:
+    async def _grpc_health_check(
+        self, service: ServiceInstance
+    ) -> builtins.dict[str, Any]:
         """gRPC health check."""
         # Simplified gRPC health check
         # In practice, this would use the gRPC health checking protocol
@@ -326,7 +343,9 @@ class ServiceHealthChecker:
         except Exception as e:
             return {"healthy": False, "error": str(e)}
 
-    async def _custom_health_check(self, service: ServiceInstance) -> Dict[str, Any]:
+    async def _custom_health_check(
+        self, service: ServiceInstance
+    ) -> builtins.dict[str, Any]:
         """Custom health check based on service configuration."""
         # Custom health check logic based on service metadata
         custom_check = service.metadata.get("health_check")
@@ -337,13 +356,13 @@ class ServiceHealthChecker:
         # Implement custom check based on configuration
         return {"healthy": True, "details": {"custom_check": "not_implemented"}}
 
-    def get_health_status(self, instance_id: str) -> Optional[Dict[str, Any]]:
+    def get_health_status(self, instance_id: str) -> builtins.dict[str, Any] | None:
         """Get current health status for an instance."""
         return self.health_results.get(instance_id)
 
     def get_health_history(
         self, instance_id: str, limit: int = 50
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Get health check history for an instance."""
         history = self.health_history.get(instance_id, deque())
         return list(history)[-limit:]
@@ -375,18 +394,22 @@ class ServiceCommunicationManager:
 
     def __init__(self):
         """Initialize communication manager."""
-        self.communication_metrics: Dict[str, CommunicationMetrics] = {}
-        self.active_connections: Dict[str, Set[str]] = defaultdict(set)
-        self.connection_pools: Dict[str, Any] = {}
+        self.communication_metrics: builtins.dict[str, CommunicationMetrics] = {}
+        self.active_connections: builtins.dict[str, builtins.set[str]] = defaultdict(
+            set
+        )
+        self.connection_pools: builtins.dict[str, Any] = {}
 
         # Circuit breaker states
-        self.circuit_breakers: Dict[str, Dict[str, Any]] = {}
+        self.circuit_breakers: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Communication patterns
-        self.communication_patterns: Dict[str, List[str]] = defaultdict(list)
+        self.communication_patterns: builtins.dict[
+            str, builtins.list[str]
+        ] = defaultdict(list)
 
         # Request tracking
-        self.active_requests: Dict[str, Dict[str, Any]] = {}
+        self.active_requests: builtins.dict[str, builtins.dict[str, Any]] = {}
 
     async def establish_connection(
         self, source_service: str, target_service: str, target_instance: ServiceInstance
@@ -419,7 +442,7 @@ class ServiceCommunicationManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to establish connection {connection_key}: {e}")
+            logging.exception(f"Failed to establish connection {connection_key}: {e}")
             return False
 
     async def send_request(
@@ -427,9 +450,9 @@ class ServiceCommunicationManager:
         source_service: str,
         target_service: str,
         target_instance: ServiceInstance,
-        request_data: Dict[str, Any],
+        request_data: builtins.dict[str, Any],
         timeout: int = 30,
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Send request to target service."""
         connection_key = f"{source_service}->{target_service}"
         request_id = str(uuid.uuid4())
@@ -507,13 +530,15 @@ class ServiceCommunicationManager:
                 limit_per_host=instance.max_connections or 100,
             )
             return aiohttp.ClientSession(connector=connector)
-        else:
-            # For other protocols, return a placeholder
-            return {"protocol": instance.protocol.value, "instance": instance}
+        # For other protocols, return a placeholder
+        return {"protocol": instance.protocol.value, "instance": instance}
 
     async def _send_http_request(
-        self, instance: ServiceInstance, request_data: Dict[str, Any], timeout: int
-    ) -> Dict[str, Any]:
+        self,
+        instance: ServiceInstance,
+        request_data: builtins.dict[str, Any],
+        timeout: int,
+    ) -> builtins.dict[str, Any]:
         """Send HTTP request to service instance."""
         scheme = "https" if instance.ssl_enabled else "http"
         base_url = f"{scheme}://{instance.host}:{instance.port}"
@@ -547,8 +572,11 @@ class ServiceCommunicationManager:
                 }
 
     async def _send_grpc_request(
-        self, instance: ServiceInstance, request_data: Dict[str, Any], timeout: int
-    ) -> Dict[str, Any]:
+        self,
+        instance: ServiceInstance,
+        request_data: builtins.dict[str, Any],
+        timeout: int,
+    ) -> builtins.dict[str, Any]:
         """Send gRPC request to service instance."""
         # Simplified gRPC request
         # In practice, this would use grpcio library
@@ -566,8 +594,11 @@ class ServiceCommunicationManager:
         }
 
     async def _send_websocket_request(
-        self, instance: ServiceInstance, request_data: Dict[str, Any], timeout: int
-    ) -> Dict[str, Any]:
+        self,
+        instance: ServiceInstance,
+        request_data: builtins.dict[str, Any],
+        timeout: int,
+    ) -> builtins.dict[str, Any]:
         """Send WebSocket message to service instance."""
         scheme = "wss" if instance.ssl_enabled else "ws"
         ws_url = f"{scheme}://{instance.host}:{instance.port}/ws"
@@ -653,7 +684,7 @@ class ServiceCommunicationManager:
         if cb["failure_count"] >= cb["failure_threshold"]:
             cb["state"] = "open"
 
-    def get_communication_stats(self) -> Dict[str, Any]:
+    def get_communication_stats(self) -> builtins.dict[str, Any]:
         """Get communication statistics."""
         stats = {
             "total_connections": len(self.communication_metrics),
@@ -697,16 +728,18 @@ class ServiceDependencyManager:
 
     def __init__(self):
         """Initialize dependency manager."""
-        self.dependencies: Dict[str, ServiceDependency] = {}
-        self.dependency_graph: Dict[str, Set[str]] = defaultdict(set)
-        self.reverse_dependency_graph: Dict[str, Set[str]] = defaultdict(set)
+        self.dependencies: builtins.dict[str, ServiceDependency] = {}
+        self.dependency_graph: builtins.dict[str, builtins.set[str]] = defaultdict(set)
+        self.reverse_dependency_graph: builtins.dict[
+            str, builtins.set[str]
+        ] = defaultdict(set)
 
         # Dependency health tracking
-        self.dependency_health: Dict[str, bool] = {}
+        self.dependency_health: builtins.dict[str, bool] = {}
 
         # Startup order
-        self.startup_order: List[str] = []
-        self.shutdown_order: List[str] = []
+        self.startup_order: builtins.list[str] = []
+        self.shutdown_order: builtins.list[str] = []
 
     def add_dependency(self, dependency: ServiceDependency) -> bool:
         """Add a service dependency."""
@@ -739,7 +772,7 @@ class ServiceDependencyManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to add dependency: {e}")
+            logging.exception(f"Failed to add dependency: {e}")
             return False
 
     def remove_dependency(self, dependency_id: str) -> bool:
@@ -768,10 +801,10 @@ class ServiceDependencyManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to remove dependency: {e}")
+            logging.exception(f"Failed to remove dependency: {e}")
             return False
 
-    def get_dependencies(self, service_name: str) -> List[ServiceDependency]:
+    def get_dependencies(self, service_name: str) -> builtins.list[ServiceDependency]:
         """Get dependencies for a service."""
         return [
             dep
@@ -779,11 +812,11 @@ class ServiceDependencyManager:
             if dep.source_service == service_name
         ]
 
-    def get_dependents(self, service_name: str) -> List[str]:
+    def get_dependents(self, service_name: str) -> builtins.list[str]:
         """Get services that depend on this service."""
         return list(self.reverse_dependency_graph.get(service_name, set()))
 
-    def check_dependency_health(self, service_name: str) -> Dict[str, Any]:
+    def check_dependency_health(self, service_name: str) -> builtins.dict[str, Any]:
         """Check health of service dependencies."""
         dependencies = self.get_dependencies(service_name)
 
@@ -815,7 +848,9 @@ class ServiceDependencyManager:
 
         return health_status
 
-    def can_start_service(self, service_name: str) -> Tuple[bool, List[str]]:
+    def can_start_service(
+        self, service_name: str
+    ) -> builtins.tuple[bool, builtins.list[str]]:
         """Check if service can start based on dependencies."""
         dependencies = self.get_dependencies(service_name)
         blocking_dependencies = []
@@ -828,11 +863,11 @@ class ServiceDependencyManager:
         can_start = len(blocking_dependencies) == 0
         return can_start, blocking_dependencies
 
-    def get_startup_order(self) -> List[str]:
+    def get_startup_order(self) -> builtins.list[str]:
         """Get recommended startup order for services."""
         return self.startup_order.copy()
 
-    def get_shutdown_order(self) -> List[str]:
+    def get_shutdown_order(self) -> builtins.list[str]:
         """Get recommended shutdown order for services."""
         return self.shutdown_order.copy()
 
@@ -906,7 +941,7 @@ class ServiceDependencyManager:
         """Update health status for a service dependency."""
         self.dependency_health[service_name] = is_healthy
 
-    def get_dependency_graph(self) -> Dict[str, Any]:
+    def get_dependency_graph(self) -> builtins.dict[str, Any]:
         """Get dependency graph visualization data."""
         return {
             "nodes": list(
@@ -938,8 +973,10 @@ class AdvancedServiceDiscovery:
 
     def __init__(self):
         """Initialize advanced service discovery."""
-        self.service_instances: Dict[str, List[ServiceInstance]] = defaultdict(list)
-        self.service_contracts: Dict[str, ServiceContract] = {}
+        self.service_instances: builtins.dict[
+            str, builtins.list[ServiceInstance]
+        ] = defaultdict(list)
+        self.service_contracts: builtins.dict[str, ServiceContract] = {}
 
         # Components
         self.health_checker = ServiceHealthChecker()
@@ -947,10 +984,10 @@ class AdvancedServiceDiscovery:
         self.dependency_manager = ServiceDependencyManager()
 
         # Service watchers
-        self.service_watchers: List[Callable] = []
+        self.service_watchers: builtins.list[Callable] = []
 
         # Discovery statistics
-        self.discovery_metrics: Dict[str, Any] = defaultdict(int)
+        self.discovery_metrics: builtins.dict[str, Any] = defaultdict(int)
 
         # Thread safety
         self._lock = threading.RLock()
@@ -974,7 +1011,7 @@ class AdvancedServiceDiscovery:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to register service instance: {e}")
+            logging.exception(f"Failed to register service instance: {e}")
             return False
 
     async def deregister_service_instance(
@@ -1002,12 +1039,12 @@ class AdvancedServiceDiscovery:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to deregister service instance: {e}")
+            logging.exception(f"Failed to deregister service instance: {e}")
             return False
 
     def discover_service_instances(
-        self, service_name: str, filters: Dict[str, Any] = None
-    ) -> List[ServiceInstance]:
+        self, service_name: str, filters: builtins.dict[str, Any] = None
+    ) -> builtins.list[ServiceInstance]:
         """Discover service instances with advanced filtering."""
         with self._lock:
             instances = self.service_instances.get(service_name, []).copy()
@@ -1026,8 +1063,10 @@ class AdvancedServiceDiscovery:
         return instances
 
     def _apply_filters(
-        self, instances: List[ServiceInstance], filters: Dict[str, Any]
-    ) -> List[ServiceInstance]:
+        self,
+        instances: builtins.list[ServiceInstance],
+        filters: builtins.dict[str, Any],
+    ) -> builtins.list[ServiceInstance]:
         """Apply filters to service instances."""
         filtered_instances = instances
 
@@ -1080,8 +1119,10 @@ class AdvancedServiceDiscovery:
         return filtered_instances
 
     def _sort_by_preference(
-        self, instances: List[ServiceInstance], filters: Dict[str, Any]
-    ) -> List[ServiceInstance]:
+        self,
+        instances: builtins.list[ServiceInstance],
+        filters: builtins.dict[str, Any],
+    ) -> builtins.list[ServiceInstance]:
         """Sort instances by preference criteria."""
 
         def preference_score(instance: ServiceInstance) -> float:
@@ -1123,18 +1164,18 @@ class AdvancedServiceDiscovery:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to register service contract: {e}")
+            logging.exception(f"Failed to register service contract: {e}")
             return False
 
     def get_service_contract(
         self, service_name: str, version: str
-    ) -> Optional[ServiceContract]:
+    ) -> ServiceContract | None:
         """Get service contract for compatibility checking."""
         return self.service_contracts.get(f"{service_name}:{version}")
 
     def check_compatibility(
         self, client_contract: ServiceContract, server_contract: ServiceContract
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Check API compatibility between service contracts."""
         compatibility_result = {
             "compatible": True,
@@ -1177,7 +1218,7 @@ class AdvancedServiceDiscovery:
                 else:
                     watcher(event_type, data)
             except Exception as e:
-                logging.error(f"Service watcher error: {e}")
+                logging.exception(f"Service watcher error: {e}")
 
     def add_service_watcher(self, watcher: Callable):
         """Add service discovery watcher."""
@@ -1188,7 +1229,7 @@ class AdvancedServiceDiscovery:
         if watcher in self.service_watchers:
             self.service_watchers.remove(watcher)
 
-    def get_discovery_status(self) -> Dict[str, Any]:
+    def get_discovery_status(self) -> builtins.dict[str, Any]:
         """Get comprehensive discovery status."""
         with self._lock:
             total_instances = sum(

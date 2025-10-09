@@ -5,9 +5,8 @@ This module provides factory functions to create gRPC services with
 all cross-cutting concerns automatically configured.
 """
 
-import asyncio
 from concurrent import futures
-from typing import Any, List, Optional, Type
+from typing import Any
 
 import grpc
 from grpc import aio
@@ -23,11 +22,11 @@ logger = get_logger(__name__)
 class GRPCServiceBuilder:
     """Builder class for creating gRPC services with chassis features."""
 
-    def __init__(self, service_name: str, config: Optional[ChassisConfig] = None):
+    def __init__(self, service_name: str, config: ChassisConfig | None = None):
         self.service_name = service_name
         self.config = config or ChassisConfig.from_env()
-        self.servicers: List[Any] = []
-        self.interceptors: List[Any] = []
+        self.servicers: list[Any] = []
+        self.interceptors: list[Any] = []
         self.enable_reflection = False
         self.enable_metrics = True
         self.enable_auth = True
@@ -43,7 +42,7 @@ class GRPCServiceBuilder:
 
         logger.info("Initializing gRPC service builder", service_name=service_name)
 
-    def add_servicer(self, servicer: Any, service_class: Type) -> "GRPCServiceBuilder":
+    def add_servicer(self, servicer: Any, service_class: type) -> "GRPCServiceBuilder":
         """Add a gRPC servicer to the server."""
         self.servicers.append((servicer, service_class))
         logger.info(f"Added servicer: {service_class.__name__}")
@@ -139,7 +138,7 @@ class GRPCServiceBuilder:
 
 def create_grpc_service(
     service_name: str,
-    config: Optional[ChassisConfig] = None,
+    config: ChassisConfig | None = None,
     enable_auth: bool = True,
     enable_metrics: bool = True,
     enable_reflection: bool = False,
@@ -169,7 +168,7 @@ def create_grpc_service(
 class AuthInterceptor(grpc.aio.ServerInterceptor):
     """gRPC authentication interceptor."""
 
-    def __init__(self, jwt_auth: JWTAuth, rbac: Optional[RBACMiddleware] = None):
+    def __init__(self, jwt_auth: JWTAuth, rbac: RBACMiddleware | None = None):
         self.jwt_auth = jwt_auth
         self.rbac = rbac
 

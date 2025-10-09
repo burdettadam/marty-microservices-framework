@@ -5,27 +5,26 @@ Domain services contain business logic that doesn't naturally fit within entitie
 They coordinate between multiple entities and enforce business rules that span multiple objects.
 """
 
+import builtins
 from datetime import datetime
-from typing import List, Optional
-from uuid import UUID
+from typing import List, Optional, list
 
 from .entities import Task, User
 from .events import TaskAssigned, TaskCompleted, TaskCreated
-from .value_objects import TaskPriority
 
 
 class TaskManagementService:
     """Domain service for managing task-related business operations."""
 
     def __init__(self):
-        self._events: List = []
+        self._events: builtins.list = []
 
     def create_task(
         self,
         title: str,
         description: str,
         priority: str = "medium",
-        assignee: Optional[User] = None,
+        assignee: User | None = None,
     ) -> Task:
         """Create a new task with proper validation and event generation."""
 
@@ -92,7 +91,7 @@ class TaskManagementService:
         )
         self._events.append(event)
 
-    def prioritize_tasks(self, tasks: List[Task]) -> List[Task]:
+    def prioritize_tasks(self, tasks: builtins.list[Task]) -> builtins.list[Task]:
         """Sort tasks by priority and creation date."""
 
         def priority_sort_key(task: Task) -> tuple:
@@ -101,7 +100,7 @@ class TaskManagementService:
 
         return sorted(tasks, key=priority_sort_key)
 
-    def get_pending_events(self) -> List:
+    def get_pending_events(self) -> builtins.list:
         """Get all pending domain events."""
         return self._events.copy()
 
@@ -114,7 +113,7 @@ class UserManagementService:
     """Domain service for managing user-related business operations."""
 
     def __init__(self):
-        self._events: List = []
+        self._events: builtins.list = []
 
     def calculate_user_workload(self, user: User) -> dict:
         """Calculate workload metrics for a user."""
@@ -145,8 +144,8 @@ class UserManagementService:
         }
 
     def find_best_assignee(
-        self, users: List[User], task_priority: str
-    ) -> Optional[User]:
+        self, users: builtins.list[User], task_priority: str
+    ) -> User | None:
         """Find the best user to assign a task to based on workload and availability."""
 
         # Filter active users only
@@ -170,7 +169,7 @@ class UserManagementService:
 
         return user_workloads[0][0]
 
-    def get_pending_events(self) -> List:
+    def get_pending_events(self) -> builtins.list:
         """Get all pending domain events."""
         return self._events.copy()
 

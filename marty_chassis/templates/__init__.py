@@ -8,7 +8,7 @@ configuration files, and deployment manifests.
 import os
 import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional, dict, list
 
 from jinja2 import Environment, FileSystemLoader, Template
 from marty_chassis.exceptions import TemplateError
@@ -25,7 +25,7 @@ class ServiceTemplate:
         self.template_dir = template_dir
         self.description = description
 
-    def get_files(self) -> List[Path]:
+    def get_files(self) -> list[Path]:
         """Get all template files."""
         if not self.template_dir.exists():
             return []
@@ -41,7 +41,7 @@ class ServiceTemplate:
 class TemplateGenerator:
     """Template generator for creating services from templates."""
 
-    def __init__(self, templates_dir: Optional[Path] = None):
+    def __init__(self, templates_dir: Path | None = None):
         if templates_dir is None:
             # Use package templates directory
             package_dir = Path(__file__).parent.parent
@@ -52,11 +52,12 @@ class TemplateGenerator:
             loader=FileSystemLoader(str(templates_dir)),
             trim_blocks=True,
             lstrip_blocks=True,
+            autoescape=True,
         )
 
         logger.info("Template generator initialized", templates_dir=str(templates_dir))
 
-    def get_available_templates(self) -> List[ServiceTemplate]:
+    def get_available_templates(self) -> list[ServiceTemplate]:
         """Get list of available service templates."""
         templates = []
 
@@ -92,8 +93,8 @@ class TemplateGenerator:
         service_name: str,
         service_type: str,
         output_dir: str,
-        template_data: Dict[str, Any],
-        custom_template: Optional[str] = None,
+        template_data: dict[str, Any],
+        custom_template: str | None = None,
     ) -> None:
         """Generate a service from template."""
         template_name = custom_template or service_type
@@ -137,7 +138,7 @@ class TemplateGenerator:
         self,
         template_file: Path,
         output_file: Path,
-        template_data: Dict[str, Any],
+        template_data: dict[str, Any],
     ) -> None:
         """Process a single template file."""
         # Create output directory
@@ -152,7 +153,7 @@ class TemplateGenerator:
 
         try:
             # Read template content
-            with open(template_file, "r", encoding="utf-8") as f:
+            with open(template_file, encoding="utf-8") as f:
                 content = f.read()
 
             # Check if file should be templated (based on extension or content)
@@ -197,7 +198,7 @@ class TemplateGenerator:
         return False
 
     def _render_template_string(
-        self, template_string: str, data: Dict[str, Any]
+        self, template_string: str, data: dict[str, Any]
     ) -> str:
         """Render a template string with data."""
         try:
@@ -210,7 +211,7 @@ class TemplateGenerator:
         self,
         template_name: str,
         output_path: Path,
-        template_data: Dict[str, Any],
+        template_data: dict[str, Any],
     ) -> None:
         """Generate a single file from template."""
         try:

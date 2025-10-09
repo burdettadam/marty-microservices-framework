@@ -6,16 +6,14 @@ for advanced service discovery, traffic management, and security.
 """
 
 import asyncio
-import json
+import builtins
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, dict, list
 
-import yaml
-
-from .core import ServiceEndpoint, ServiceInstance, ServiceMetadata
+from .core import ServiceEndpoint, ServiceInstance
 from .discovery import DiscoveryResult, ServiceQuery
 
 logger = logging.getLogger(__name__)
@@ -50,18 +48,18 @@ class ServiceMeshConfig:
 
     # Mesh type and connection
     mesh_type: ServiceMeshType = ServiceMeshType.ISTIO
-    control_plane_url: Optional[str] = None
+    control_plane_url: str | None = None
     namespace: str = "default"
 
     # Authentication
     auth_enabled: bool = True
-    cert_path: Optional[str] = None
-    key_path: Optional[str] = None
-    ca_cert_path: Optional[str] = None
+    cert_path: str | None = None
+    key_path: str | None = None
+    ca_cert_path: str | None = None
 
     # Discovery configuration
     auto_discovery: bool = True
-    service_label_selector: Dict[str, str] = field(default_factory=dict)
+    service_label_selector: builtins.dict[str, str] = field(default_factory=dict)
 
     # Traffic management
     enable_traffic_policies: bool = True
@@ -89,13 +87,13 @@ class TrafficPolicy:
 
     policy_type: TrafficPolicyType
     service_name: str
-    version: Optional[str] = None
-    configuration: Dict[str, Any] = field(default_factory=dict)
+    version: str | None = None
+    configuration: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Policy metadata
-    created_at: Optional[float] = None
-    updated_at: Optional[float] = None
-    description: Optional[str] = None
+    created_at: float | None = None
+    updated_at: float | None = None
+    description: str | None = None
 
 
 @dataclass
@@ -107,20 +105,20 @@ class ServiceMeshEndpoint:
 
     # Mesh specific metadata
     sidecar_present: bool = False
-    sidecar_version: Optional[str] = None
-    mesh_version: Optional[str] = None
+    sidecar_version: str | None = None
+    mesh_version: str | None = None
 
     # Security configuration
     mtls_enabled: bool = False
-    certificates: Dict[str, str] = field(default_factory=dict)
+    certificates: builtins.dict[str, str] = field(default_factory=dict)
 
     # Traffic configuration
-    load_balancing_policy: Optional[str] = None
-    circuit_breaker_config: Dict[str, Any] = field(default_factory=dict)
-    retry_policy: Dict[str, Any] = field(default_factory=dict)
+    load_balancing_policy: str | None = None
+    circuit_breaker_config: builtins.dict[str, Any] = field(default_factory=dict)
+    retry_policy: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Monitoring
-    telemetry_config: Dict[str, Any] = field(default_factory=dict)
+    telemetry_config: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class ServiceMeshClient(ABC):
@@ -133,41 +131,36 @@ class ServiceMeshClient(ABC):
     @abstractmethod
     async def connect(self):
         """Connect to service mesh control plane."""
-        pass
 
     @abstractmethod
     async def disconnect(self):
         """Disconnect from service mesh control plane."""
-        pass
 
     @abstractmethod
     async def discover_services(self, query: ServiceQuery) -> DiscoveryResult:
         """Discover services through service mesh."""
-        pass
 
     @abstractmethod
     async def get_service_endpoints(
         self, service_name: str
-    ) -> List[ServiceMeshEndpoint]:
+    ) -> builtins.list[ServiceMeshEndpoint]:
         """Get service endpoints with mesh metadata."""
-        pass
 
     @abstractmethod
     async def apply_traffic_policy(self, policy: TrafficPolicy) -> bool:
         """Apply traffic management policy."""
-        pass
 
     @abstractmethod
     async def remove_traffic_policy(
         self, service_name: str, policy_type: TrafficPolicyType
     ) -> bool:
         """Remove traffic management policy."""
-        pass
 
     @abstractmethod
-    async def get_traffic_policies(self, service_name: str) -> List[TrafficPolicy]:
+    async def get_traffic_policies(
+        self, service_name: str
+    ) -> builtins.list[TrafficPolicy]:
         """Get traffic policies for service."""
-        pass
 
     async def health_check(self) -> bool:
         """Check health of service mesh connection."""
@@ -234,7 +227,9 @@ class IstioClient(ServiceMeshClient):
             logger.error("Istio service discovery failed: %s", e)
             raise
 
-    async def _query_istio_services(self, query: ServiceQuery) -> List[ServiceInstance]:
+    async def _query_istio_services(
+        self, query: ServiceQuery
+    ) -> builtins.list[ServiceInstance]:
         """Query Istio for services matching query."""
 
         # This would use Istio APIs to discover services
@@ -251,7 +246,7 @@ class IstioClient(ServiceMeshClient):
 
     async def get_service_endpoints(
         self, service_name: str
-    ) -> List[ServiceMeshEndpoint]:
+    ) -> builtins.list[ServiceMeshEndpoint]:
         """Get Istio service endpoints."""
 
         endpoints = []
@@ -400,7 +395,9 @@ class IstioClient(ServiceMeshClient):
         # Delete via Kubernetes API
         logger.info("Deleted VirtualService: %s", name)
 
-    async def get_traffic_policies(self, service_name: str) -> List[TrafficPolicy]:
+    async def get_traffic_policies(
+        self, service_name: str
+    ) -> builtins.list[TrafficPolicy]:
         """Get Istio traffic policies for service."""
 
         policies = []
@@ -456,14 +453,14 @@ class LinkerdClient(ServiceMeshClient):
 
     async def _query_linkerd_services(
         self, query: ServiceQuery
-    ) -> List[ServiceInstance]:
+    ) -> builtins.list[ServiceInstance]:
         """Query Linkerd for services."""
         # Implementation would use Linkerd APIs
         return []
 
     async def get_service_endpoints(
         self, service_name: str
-    ) -> List[ServiceMeshEndpoint]:
+    ) -> builtins.list[ServiceMeshEndpoint]:
         """Get Linkerd service endpoints."""
         return []
 
@@ -478,7 +475,9 @@ class LinkerdClient(ServiceMeshClient):
         """Remove Linkerd traffic policy."""
         return True
 
-    async def get_traffic_policies(self, service_name: str) -> List[TrafficPolicy]:
+    async def get_traffic_policies(
+        self, service_name: str
+    ) -> builtins.list[TrafficPolicy]:
         """Get Linkerd traffic policies."""
         return []
 
@@ -528,14 +527,14 @@ class ConsulConnectClient(ServiceMeshClient):
 
     async def _query_consul_services(
         self, query: ServiceQuery
-    ) -> List[ServiceInstance]:
+    ) -> builtins.list[ServiceInstance]:
         """Query Consul for services."""
         # Implementation would use Consul APIs
         return []
 
     async def get_service_endpoints(
         self, service_name: str
-    ) -> List[ServiceMeshEndpoint]:
+    ) -> builtins.list[ServiceMeshEndpoint]:
         """Get Consul Connect service endpoints."""
         return []
 
@@ -550,7 +549,9 @@ class ConsulConnectClient(ServiceMeshClient):
         """Remove Consul Connect traffic policy."""
         return True
 
-    async def get_traffic_policies(self, service_name: str) -> List[TrafficPolicy]:
+    async def get_traffic_policies(
+        self, service_name: str
+    ) -> builtins.list[TrafficPolicy]:
         """Get Consul Connect traffic policies."""
         return []
 
@@ -559,8 +560,8 @@ class ServiceMeshManager:
     """Manager for service mesh integrations."""
 
     def __init__(self):
-        self._clients: Dict[str, ServiceMeshClient] = {}
-        self._active_policies: Dict[str, List[TrafficPolicy]] = {}
+        self._clients: builtins.dict[str, ServiceMeshClient] = {}
+        self._active_policies: builtins.dict[str, builtins.list[TrafficPolicy]] = {}
 
     def add_mesh_client(self, name: str, client: ServiceMeshClient):
         """Add service mesh client."""
@@ -572,7 +573,7 @@ class ServiceMeshManager:
 
     async def discover_services_from_all_meshes(
         self, query: ServiceQuery
-    ) -> List[DiscoveryResult]:
+    ) -> builtins.list[DiscoveryResult]:
         """Discover services from all configured service meshes."""
 
         results = []
@@ -589,7 +590,7 @@ class ServiceMeshManager:
 
     async def apply_policy_to_all_meshes(
         self, policy: TrafficPolicy
-    ) -> Dict[str, bool]:
+    ) -> builtins.dict[str, bool]:
         """Apply traffic policy to all service meshes."""
 
         results = {}
@@ -612,7 +613,7 @@ class ServiceMeshManager:
 
     async def remove_policy_from_all_meshes(
         self, service_name: str, policy_type: TrafficPolicyType
-    ) -> Dict[str, bool]:
+    ) -> builtins.dict[str, bool]:
         """Remove traffic policy from all service meshes."""
 
         results = {}
@@ -635,11 +636,11 @@ class ServiceMeshManager:
 
         return results
 
-    def get_active_policies(self, service_name: str) -> List[TrafficPolicy]:
+    def get_active_policies(self, service_name: str) -> builtins.list[TrafficPolicy]:
         """Get active traffic policies for service."""
         return self._active_policies.get(service_name, [])
 
-    async def health_check_all_meshes(self) -> Dict[str, bool]:
+    async def health_check_all_meshes(self) -> builtins.dict[str, bool]:
         """Health check all service mesh connections."""
 
         results = {}
@@ -660,17 +661,16 @@ def create_service_mesh_client(config: ServiceMeshConfig) -> ServiceMeshClient:
 
     if config.mesh_type == ServiceMeshType.ISTIO:
         return IstioClient(config)
-    elif config.mesh_type == ServiceMeshType.LINKERD:
+    if config.mesh_type == ServiceMeshType.LINKERD:
         return LinkerdClient(config)
-    elif config.mesh_type == ServiceMeshType.CONSUL_CONNECT:
+    if config.mesh_type == ServiceMeshType.CONSUL_CONNECT:
         return ConsulConnectClient(config)
-    else:
-        raise ValueError(f"Unsupported service mesh type: {config.mesh_type}")
+    raise ValueError(f"Unsupported service mesh type: {config.mesh_type}")
 
 
 # Utility functions for creating common traffic policies
 def create_load_balancing_policy(
-    service_name: str, algorithm: str = "round_robin", version: Optional[str] = None
+    service_name: str, algorithm: str = "round_robin", version: str | None = None
 ) -> TrafficPolicy:
     """Create load balancing traffic policy."""
 
@@ -687,7 +687,7 @@ def create_circuit_breaker_policy(
     failure_threshold: int = 5,
     interval: int = 30,
     ejection_time: int = 30,
-    version: Optional[str] = None,
+    version: str | None = None,
 ) -> TrafficPolicy:
     """Create circuit breaker traffic policy."""
 
@@ -707,7 +707,7 @@ def create_retry_policy(
     service_name: str,
     attempts: int = 3,
     timeout: int = 5,
-    version: Optional[str] = None,
+    version: str | None = None,
 ) -> TrafficPolicy:
     """Create retry traffic policy."""
 

@@ -9,6 +9,7 @@ Provides comprehensive structured logging capabilities with:
 - Centralized log aggregation and analysis
 """
 
+import builtins
 import json
 import logging
 import os
@@ -20,7 +21,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, dict, list
 
 # OpenTelemetry integration for trace context
 try:
@@ -70,18 +71,18 @@ class LogContext:
     """Context information for logging"""
 
     correlation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    trace_id: Optional[str] = None
-    span_id: Optional[str] = None
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
-    request_id: Optional[str] = None
+    trace_id: str | None = None
+    span_id: str | None = None
+    user_id: str | None = None
+    session_id: str | None = None
+    request_id: str | None = None
     service_name: str = "unknown"
     service_version: str = "1.0.0"
     environment: str = "production"
     namespace: str = "default"
-    custom_fields: Dict[str, Any] = field(default_factory=dict)
+    custom_fields: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary for JSON serialization"""
         result = asdict(self)
         # Remove None values and empty custom_fields
@@ -100,11 +101,11 @@ class StructuredLogEntry:
     message: str
     category: str
     service_name: str
-    context: Dict[str, Any]
-    fields: Dict[str, Any] = field(default_factory=dict)
-    error: Optional[Dict[str, Any]] = None
-    performance: Optional[Dict[str, Any]] = None
-    business: Optional[Dict[str, Any]] = None
+    context: builtins.dict[str, Any]
+    fields: builtins.dict[str, Any] = field(default_factory=dict)
+    error: builtins.dict[str, Any] | None = None
+    performance: builtins.dict[str, Any] | None = None
+    business: builtins.dict[str, Any] | None = None
 
     def to_json(self) -> str:
         """Convert to JSON string"""
@@ -134,7 +135,7 @@ class StructuredLogger:
         log_level: LogLevel = LogLevel.INFO,
         enable_console_output: bool = True,
         enable_file_output: bool = False,
-        file_path: Optional[str] = None,
+        file_path: str | None = None,
         max_field_length: int = 1000,
     ):
         self.name = name
@@ -159,7 +160,7 @@ class StructuredLogger:
             self._setup_file_handler(file_path)
 
         # Context storage
-        self._context_stack: List[LogContext] = []
+        self._context_stack: builtins.list[LogContext] = []
 
         self.logger.info(f"Structured logger initialized for {service_name}")
 
@@ -243,10 +244,10 @@ class StructuredLogger:
         level: LogLevel,
         message: str,
         category: LogCategory,
-        fields: Optional[Dict[str, Any]] = None,
-        error: Optional[Exception] = None,
-        performance_data: Optional[Dict[str, Any]] = None,
-        business_data: Optional[Dict[str, Any]] = None,
+        fields: builtins.dict[str, Any] | None = None,
+        error: Exception | None = None,
+        performance_data: builtins.dict[str, Any] | None = None,
+        business_data: builtins.dict[str, Any] | None = None,
     ) -> StructuredLogEntry:
         """Create structured log entry"""
         context = self._get_current_context()
@@ -283,7 +284,7 @@ class StructuredLogger:
         self,
         message: str,
         category: LogCategory = LogCategory.APPLICATION,
-        fields: Optional[Dict[str, Any]] = None,
+        fields: builtins.dict[str, Any] | None = None,
         **kwargs,
     ):
         """Debug level logging"""
@@ -296,7 +297,7 @@ class StructuredLogger:
         self,
         message: str,
         category: LogCategory = LogCategory.APPLICATION,
-        fields: Optional[Dict[str, Any]] = None,
+        fields: builtins.dict[str, Any] | None = None,
         **kwargs,
     ):
         """Info level logging"""
@@ -309,7 +310,7 @@ class StructuredLogger:
         self,
         message: str,
         category: LogCategory = LogCategory.APPLICATION,
-        fields: Optional[Dict[str, Any]] = None,
+        fields: builtins.dict[str, Any] | None = None,
         **kwargs,
     ):
         """Warning level logging"""
@@ -321,9 +322,9 @@ class StructuredLogger:
     def error(
         self,
         message: str,
-        error: Optional[Exception] = None,
+        error: Exception | None = None,
         category: LogCategory = LogCategory.ERROR,
-        fields: Optional[Dict[str, Any]] = None,
+        fields: builtins.dict[str, Any] | None = None,
         **kwargs,
     ):
         """Error level logging"""
@@ -335,9 +336,9 @@ class StructuredLogger:
     def critical(
         self,
         message: str,
-        error: Optional[Exception] = None,
+        error: Exception | None = None,
         category: LogCategory = LogCategory.ERROR,
-        fields: Optional[Dict[str, Any]] = None,
+        fields: builtins.dict[str, Any] | None = None,
         **kwargs,
     ):
         """Critical level logging"""
@@ -350,9 +351,9 @@ class StructuredLogger:
         self,
         message: str,
         security_event: str,
-        user_id: Optional[str] = None,
-        source_ip: Optional[str] = None,
-        fields: Optional[Dict[str, Any]] = None,
+        user_id: str | None = None,
+        source_ip: str | None = None,
+        fields: builtins.dict[str, Any] | None = None,
     ):
         """Security event logging"""
         security_fields = {
@@ -372,7 +373,7 @@ class StructuredLogger:
         message: str,
         operation: str,
         duration_ms: float,
-        fields: Optional[Dict[str, Any]] = None,
+        fields: builtins.dict[str, Any] | None = None,
     ):
         """Performance logging"""
         performance_data = {
@@ -394,11 +395,11 @@ class StructuredLogger:
         self,
         message: str,
         event_type: str,
-        entity_type: Optional[str] = None,
-        entity_id: Optional[str] = None,
-        amount: Optional[float] = None,
-        currency: Optional[str] = None,
-        fields: Optional[Dict[str, Any]] = None,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        amount: float | None = None,
+        currency: str | None = None,
+        fields: builtins.dict[str, Any] | None = None,
     ):
         """Business event logging"""
         business_data = {
@@ -423,9 +424,9 @@ class StructuredLogger:
         message: str,
         action: str,
         resource: str,
-        user_id: Optional[str] = None,
+        user_id: str | None = None,
         success: bool = True,
-        fields: Optional[Dict[str, Any]] = None,
+        fields: builtins.dict[str, Any] | None = None,
     ):
         """Audit logging"""
         audit_fields = {
@@ -448,9 +449,9 @@ class StructuredLogger:
         path: str,
         status_code: int,
         duration_ms: float,
-        user_id: Optional[str] = None,
-        source_ip: Optional[str] = None,
-        user_agent: Optional[str] = None,
+        user_id: str | None = None,
+        source_ip: str | None = None,
+        user_agent: str | None = None,
     ):
         """Access logging"""
         access_fields = {

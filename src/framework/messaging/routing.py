@@ -5,16 +5,17 @@ Provides advanced message routing capabilities including content-based routing,
 header-based routing, topic patterns, and routing rules with dynamic updates.
 """
 
+import builtins
 import fnmatch
 import logging
 import re
 import time
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Pattern, Set, Union
+from re import Pattern
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list, set
 
-from .core import Message, MessageHeaders
+from .core import Message
 
 logger = logging.getLogger(__name__)
 
@@ -54,27 +55,27 @@ class RoutingRule:
     match_type: MatchType = MatchType.EXACT
 
     # Target configuration
-    target_queues: List[str] = field(default_factory=list)
-    target_exchanges: List[str] = field(default_factory=list)
+    target_queues: builtins.list[str] = field(default_factory=list)
+    target_exchanges: builtins.list[str] = field(default_factory=list)
 
     # Conditions
-    header_conditions: Dict[str, Any] = field(default_factory=dict)
-    content_conditions: Dict[str, Any] = field(default_factory=dict)
+    header_conditions: builtins.dict[str, Any] = field(default_factory=dict)
+    content_conditions: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Custom routing function
-    custom_router: Optional[Callable[[Message], List[str]]] = None
+    custom_router: Callable[[Message], builtins.list[str]] | None = None
 
     # Filters
-    message_filter: Optional[Callable[[Message], bool]] = None
+    message_filter: Callable[[Message], bool] | None = None
 
     # Metadata
     description: str = ""
     created_at: float = field(default_factory=time.time)
-    tags: Set[str] = field(default_factory=set)
+    tags: builtins.set[str] = field(default_factory=set)
 
     # Statistics
     match_count: int = 0
-    last_match_time: Optional[float] = None
+    last_match_time: float | None = None
 
 
 @dataclass
@@ -82,8 +83,8 @@ class RoutingConfig:
     """Configuration for message routing."""
 
     # Default routing
-    default_queue: Optional[str] = None
-    default_exchange: Optional[str] = None
+    default_queue: str | None = None
+    default_exchange: str | None = None
 
     # Routing behavior
     allow_multiple_targets: bool = True
@@ -109,12 +110,12 @@ class RoutingEngine:
 
     def __init__(self, config: RoutingConfig):
         self.config = config
-        self._rules: List[RoutingRule] = []
-        self._routing_cache: Dict[str, List[str]] = {}
-        self._cache_timestamps: Dict[str, float] = {}
+        self._rules: builtins.list[RoutingRule] = []
+        self._routing_cache: builtins.dict[str, builtins.list[str]] = {}
+        self._cache_timestamps: builtins.dict[str, float] = {}
 
         # Compiled patterns for performance
-        self._compiled_patterns: Dict[str, Pattern] = {}
+        self._compiled_patterns: builtins.dict[str, Pattern] = {}
 
         # Statistics
         self._total_routed = 0
@@ -138,7 +139,7 @@ class RoutingEngine:
                 return True
         return False
 
-    def update_rule(self, rule_name: str, updates: Dict[str, Any]) -> bool:
+    def update_rule(self, rule_name: str, updates: builtins.dict[str, Any]) -> bool:
         """Update a routing rule."""
         for rule in self._rules:
             if rule.name == rule_name:
@@ -152,14 +153,14 @@ class RoutingEngine:
                 return True
         return False
 
-    def get_rule(self, rule_name: str) -> Optional[RoutingRule]:
+    def get_rule(self, rule_name: str) -> RoutingRule | None:
         """Get a routing rule by name."""
         for rule in self._rules:
             if rule.name == rule_name:
                 return rule
         return None
 
-    def list_rules(self, enabled_only: bool = False) -> List[RoutingRule]:
+    def list_rules(self, enabled_only: bool = False) -> builtins.list[RoutingRule]:
         """List all routing rules."""
         if enabled_only:
             return [rule for rule in self._rules if rule.enabled]
@@ -195,7 +196,7 @@ class RoutingEngine:
         age = time.time() - self._cache_timestamps[cache_key]
         return age < self.config.cache_ttl
 
-    def route_message(self, message: Message) -> List[str]:
+    def route_message(self, message: Message) -> builtins.list[str]:
         """
         Route a message to appropriate targets.
 
@@ -243,7 +244,7 @@ class RoutingEngine:
             logger.error("Error routing message %s: %s", message.id, e)
             return self._handle_routing_error(message)
 
-    def _route_through_rules(self, message: Message) -> List[str]:
+    def _route_through_rules(self, message: Message) -> builtins.list[str]:
         """Route message through enabled rules."""
         targets = []
         matched_rules = []
@@ -293,19 +294,19 @@ class RoutingEngine:
             if rule.routing_type == RoutingType.DIRECT:
                 return self._match_direct(rule, message)
 
-            elif rule.routing_type == RoutingType.TOPIC:
+            if rule.routing_type == RoutingType.TOPIC:
                 return self._match_topic(rule, message)
 
-            elif rule.routing_type == RoutingType.FANOUT:
+            if rule.routing_type == RoutingType.FANOUT:
                 return True  # Fanout matches all messages
 
-            elif rule.routing_type == RoutingType.HEADERS:
+            if rule.routing_type == RoutingType.HEADERS:
                 return self._match_headers(rule, message)
 
-            elif rule.routing_type == RoutingType.CONTENT:
+            if rule.routing_type == RoutingType.CONTENT:
                 return self._match_content(rule, message)
 
-            elif rule.routing_type == RoutingType.CUSTOM:
+            if rule.routing_type == RoutingType.CUSTOM:
                 return self._match_custom(rule, message)
 
             return False
@@ -323,13 +324,10 @@ class RoutingEngine:
         if rule.match_type == MatchType.EXACT:
             return routing_key == rule.pattern
 
-        elif rule.match_type == MatchType.WILDCARD:
+        if rule.match_type == MatchType.WILDCARD or rule.match_type == MatchType.GLOB:
             return fnmatch.fnmatch(routing_key, rule.pattern)
 
-        elif rule.match_type == MatchType.GLOB:
-            return fnmatch.fnmatch(routing_key, rule.pattern)
-
-        elif rule.match_type == MatchType.REGEX:
+        if rule.match_type == MatchType.REGEX:
             pattern = self._get_compiled_pattern(rule.name, rule.pattern)
             return bool(pattern.match(routing_key))
 
@@ -423,7 +421,9 @@ class RoutingEngine:
             self._compiled_patterns[cache_key] = re.compile(pattern)
         return self._compiled_patterns[cache_key]
 
-    def _get_rule_targets(self, rule: RoutingRule, message: Message) -> List[str]:
+    def _get_rule_targets(
+        self, rule: RoutingRule, message: Message
+    ) -> builtins.list[str]:
         """Get targets for a matched rule."""
         if rule.routing_type == RoutingType.CUSTOM and rule.custom_router:
             return rule.custom_router(message)
@@ -435,7 +435,7 @@ class RoutingEngine:
 
         return targets
 
-    def _handle_no_match(self, message: Message) -> List[str]:
+    def _handle_no_match(self, message: Message) -> builtins.list[str]:
         """Handle case where no rules match."""
         if self.config.on_no_match == "default":
             targets = []
@@ -445,30 +445,30 @@ class RoutingEngine:
                 targets.append(self.config.default_exchange)
             return targets
 
-        elif self.config.on_no_match == "drop":
+        if self.config.on_no_match == "drop":
             logger.warning("Dropping message %s - no routing rules matched", message.id)
             return []
 
-        elif self.config.on_no_match == "error":
+        if self.config.on_no_match == "error":
             raise RuntimeError(f"No routing rules matched for message {message.id}")
 
         return []
 
-    def _handle_routing_error(self, message: Message) -> List[str]:
+    def _handle_routing_error(self, message: Message) -> builtins.list[str]:
         """Handle routing error."""
         if self.config.on_routing_error == "default":
             return self._handle_no_match(message)
 
-        elif self.config.on_routing_error == "drop":
+        if self.config.on_routing_error == "drop":
             logger.warning("Dropping message %s due to routing error", message.id)
             return []
 
-        elif self.config.on_routing_error == "error":
+        if self.config.on_routing_error == "error":
             raise
 
         return []
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get routing engine statistics."""
         cache_hit_rate = 0.0
         if self._cache_hits + self._cache_misses > 0:
@@ -517,8 +517,8 @@ class MessageRouter:
     """High-level message router with multiple routing engines."""
 
     def __init__(self):
-        self._engines: Dict[str, RoutingEngine] = {}
-        self._default_engine: Optional[str] = None
+        self._engines: builtins.dict[str, RoutingEngine] = {}
+        self._default_engine: str | None = None
 
     def add_engine(self, name: str, engine: RoutingEngine, is_default: bool = False):
         """Add a routing engine."""
@@ -535,7 +535,9 @@ class MessageRouter:
             if self._default_engine == name:
                 self._default_engine = next(iter(self._engines), None)
 
-    def route(self, message: Message, engine_name: Optional[str] = None) -> List[str]:
+    def route(
+        self, message: Message, engine_name: str | None = None
+    ) -> builtins.list[str]:
         """Route a message using specified or default engine."""
         engine_name = engine_name or self._default_engine
 
@@ -545,15 +547,15 @@ class MessageRouter:
         engine = self._engines[engine_name]
         return engine.route_message(message)
 
-    def get_engine(self, name: str) -> Optional[RoutingEngine]:
+    def get_engine(self, name: str) -> RoutingEngine | None:
         """Get a routing engine by name."""
         return self._engines.get(name)
 
-    def list_engines(self) -> List[str]:
+    def list_engines(self) -> builtins.list[str]:
         """List all routing engine names."""
         return list(self._engines.keys())
 
-    def get_all_stats(self) -> Dict[str, Any]:
+    def get_all_stats(self) -> builtins.dict[str, Any]:
         """Get statistics for all routing engines."""
         return {name: engine.get_stats() for name, engine in self._engines.items()}
 
@@ -578,7 +580,10 @@ class RoutingRuleBuilder:
 
     @staticmethod
     def topic_route(
-        name: str, topic_pattern: str, target_queues: List[str], priority: int = 0
+        name: str,
+        topic_pattern: str,
+        target_queues: builtins.list[str],
+        priority: int = 0,
     ) -> RoutingRule:
         """Create a topic routing rule."""
         return RoutingRule(
@@ -591,7 +596,7 @@ class RoutingRuleBuilder:
 
     @staticmethod
     def fanout_route(
-        name: str, target_queues: List[str], priority: int = 0
+        name: str, target_queues: builtins.list[str], priority: int = 0
     ) -> RoutingRule:
         """Create a fanout routing rule."""
         return RoutingRule(
@@ -604,8 +609,8 @@ class RoutingRuleBuilder:
     @staticmethod
     def header_route(
         name: str,
-        header_conditions: Dict[str, Any],
-        target_queues: List[str],
+        header_conditions: builtins.dict[str, Any],
+        target_queues: builtins.list[str],
         priority: int = 0,
     ) -> RoutingRule:
         """Create a header-based routing rule."""
@@ -620,8 +625,8 @@ class RoutingRuleBuilder:
     @staticmethod
     def content_route(
         name: str,
-        content_conditions: Dict[str, Any],
-        target_queues: List[str],
+        content_conditions: builtins.dict[str, Any],
+        target_queues: builtins.list[str],
         priority: int = 0,
     ) -> RoutingRule:
         """Create a content-based routing rule."""
@@ -635,7 +640,9 @@ class RoutingRuleBuilder:
 
     @staticmethod
     def custom_route(
-        name: str, custom_router: Callable[[Message], List[str]], priority: int = 0
+        name: str,
+        custom_router: Callable[[Message], builtins.list[str]],
+        priority: int = 0,
     ) -> RoutingRule:
         """Create a custom routing rule."""
         return RoutingRule(

@@ -6,10 +6,9 @@ failure tracking, and automatic recovery mechanisms.
 """
 
 import asyncio
-import random
 import time
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from ..decorators import plugin
 from ..interfaces import IMiddlewarePlugin, PluginContext, PluginMetadata
@@ -72,7 +71,7 @@ class CircuitBreakerPlugin(IMiddlewarePlugin):
         }
 
         # Timers for testing
-        self._recovery_timer: Optional[asyncio.Task] = None
+        self._recovery_timer: asyncio.Task | None = None
 
     async def initialize(self, context: PluginContext) -> None:
         """Initialize the circuit breaker plugin."""
@@ -389,7 +388,7 @@ class CircuitBreakerPlugin(IMiddlewarePlugin):
                 source=self.plugin_metadata.name,
             )
 
-    async def get_circuit_stats(self) -> Dict[str, Any]:
+    async def get_circuit_stats(self) -> dict[str, Any]:
         """Get circuit breaker statistics."""
         current_time = time.time()
 
@@ -434,7 +433,7 @@ class CircuitBreakerPlugin(IMiddlewarePlugin):
                 f"Invalid state: {new_state}. Valid states: {[s.value for s in CircuitState]}"
             )
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check with circuit breaker status."""
         health = await super().health_check()
 

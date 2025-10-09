@@ -6,6 +6,7 @@ for service discovery and load balancing systems.
 """
 
 import asyncio
+import builtins
 import logging
 import socket
 import ssl
@@ -13,11 +14,11 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, dict, list
 
 import aiohttp
 
-from .core import HealthStatus, ServiceInstance
+from .core import ServiceInstance
 
 logger = logging.getLogger(__name__)
 
@@ -58,21 +59,21 @@ class HealthCheckConfig:
     # HTTP/HTTPS specific
     http_method: str = "GET"
     http_path: str = "/health"
-    http_headers: Dict[str, str] = field(default_factory=dict)
-    expected_status_codes: List[int] = field(default_factory=lambda: [200])
-    expected_response_body: Optional[str] = None
+    http_headers: builtins.dict[str, str] = field(default_factory=dict)
+    expected_status_codes: builtins.list[int] = field(default_factory=lambda: [200])
+    expected_response_body: str | None = None
     follow_redirects: bool = False
     verify_ssl: bool = True
 
     # TCP/UDP specific
-    tcp_port: Optional[int] = None
-    udp_port: Optional[int] = None
-    send_data: Optional[bytes] = None
-    expected_response: Optional[bytes] = None
+    tcp_port: int | None = None
+    udp_port: int | None = None
+    send_data: bytes | None = None
+    expected_response: bytes | None = None
 
     # Custom check specific
-    custom_check_function: Optional[Callable] = None
-    custom_check_args: Dict[str, Any] = field(default_factory=dict)
+    custom_check_function: Callable | None = None
+    custom_check_args: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Thresholds
     healthy_threshold: int = 2  # Consecutive successes to mark healthy
@@ -97,14 +98,14 @@ class HealthCheckResult:
     response_time: float
     timestamp: float
     message: str = ""
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: builtins.dict[str, Any] = field(default_factory=dict)
 
     # HTTP specific
-    http_status_code: Optional[int] = None
-    http_response_body: Optional[str] = None
+    http_status_code: int | None = None
+    http_response_body: str | None = None
 
     # Network specific
-    network_error: Optional[str] = None
+    network_error: str | None = None
 
     def is_healthy(self) -> bool:
         """Check if result indicates healthy status."""
@@ -127,7 +128,6 @@ class HealthChecker(ABC):
     @abstractmethod
     async def check_health(self, instance: ServiceInstance) -> HealthCheckResult:
         """Perform health check on service instance."""
-        pass
 
     async def check_with_circuit_breaker(
         self, instance: ServiceInstance
@@ -199,7 +199,7 @@ class HTTPHealthChecker(HealthChecker):
 
     def __init__(self, config: HealthCheckConfig):
         super().__init__(config)
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._session: aiohttp.ClientSession | None = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create HTTP session."""
@@ -359,7 +359,7 @@ class TCPHealthChecker(HealthChecker):
             finally:
                 sock.close()
 
-        except socket.timeout:
+        except TimeoutError:
             response_time = time.time() - start_time
             return HealthCheckResult(
                 status=HealthCheckStatus.TIMEOUT,
@@ -432,7 +432,7 @@ class UDPHealthChecker(HealthChecker):
             finally:
                 sock.close()
 
-        except socket.timeout:
+        except TimeoutError:
             response_time = time.time() - start_time
             return HealthCheckResult(
                 status=HealthCheckStatus.TIMEOUT,
@@ -524,7 +524,9 @@ class CustomHealthChecker(HealthChecker):
 class CompositeHealthChecker(HealthChecker):
     """Composite health checker that runs multiple checks."""
 
-    def __init__(self, config: HealthCheckConfig, checkers: List[HealthChecker]):
+    def __init__(
+        self, config: HealthCheckConfig, checkers: builtins.list[HealthChecker]
+    ):
         super().__init__(config)
         self.checkers = checkers
         self.require_all_healthy = True  # Configurable
@@ -586,15 +588,14 @@ class CompositeHealthChecker(HealthChecker):
                 status = HealthCheckStatus.WARNING
             else:
                 status = HealthCheckStatus.UNHEALTHY
-        else:
-            # At least one healthy check required
-            if healthy_count > 0:
-                if unhealthy_count == 0 and timeout_count == 0 and error_count == 0:
-                    status = HealthCheckStatus.HEALTHY
-                else:
-                    status = HealthCheckStatus.WARNING
+        # At least one healthy check required
+        elif healthy_count > 0:
+            if unhealthy_count == 0 and timeout_count == 0 and error_count == 0:
+                status = HealthCheckStatus.HEALTHY
             else:
-                status = HealthCheckStatus.UNHEALTHY
+                status = HealthCheckStatus.WARNING
+        else:
+            status = HealthCheckStatus.UNHEALTHY
 
         return HealthCheckResult(
             status=status,
@@ -619,10 +620,10 @@ class HealthMonitor:
     """Health monitor that manages multiple health checkers."""
 
     def __init__(self):
-        self._checkers: Dict[str, HealthChecker] = {}
-        self._monitoring_tasks: Dict[str, asyncio.Task] = {}
-        self._health_callbacks: Dict[str, List[Callable]] = {}
-        self._health_history: Dict[str, List[HealthCheckResult]] = {}
+        self._checkers: builtins.dict[str, HealthChecker] = {}
+        self._monitoring_tasks: builtins.dict[str, asyncio.Task] = {}
+        self._health_callbacks: builtins.dict[str, builtins.list[Callable]] = {}
+        self._health_history: builtins.dict[str, builtins.list[HealthCheckResult]] = {}
         self._running = False
 
     def add_checker(self, name: str, checker: HealthChecker):
@@ -718,17 +719,19 @@ class HealthMonitor:
                 if last_status != current_status:
                     # Check thresholds for status changes
                     if (
-                        current_status == HealthCheckStatus.HEALTHY
-                        and consecutive_successes >= checker.config.healthy_threshold
+                        (
+                            current_status == HealthCheckStatus.HEALTHY
+                            and consecutive_successes
+                            >= checker.config.healthy_threshold
+                        )
+                        or (
+                            current_status
+                            in [HealthCheckStatus.UNHEALTHY, HealthCheckStatus.TIMEOUT]
+                            and consecutive_failures
+                            >= checker.config.unhealthy_threshold
+                        )
+                        or current_status == HealthCheckStatus.WARNING
                     ):
-                        status_changed = True
-                    elif (
-                        current_status
-                        in [HealthCheckStatus.UNHEALTHY, HealthCheckStatus.TIMEOUT]
-                        and consecutive_failures >= checker.config.unhealthy_threshold
-                    ):
-                        status_changed = True
-                    elif current_status == HealthCheckStatus.WARNING:
                         status_changed = True
 
                 # Notify callbacks on status change
@@ -753,19 +756,19 @@ class HealthMonitor:
                 logger.error("Health monitoring error for %s: %s", checker_name, e)
                 await asyncio.sleep(checker.config.interval)
 
-    def get_health_status(self, checker_name: str) -> Optional[HealthCheckResult]:
+    def get_health_status(self, checker_name: str) -> HealthCheckResult | None:
         """Get latest health status for a checker."""
         history = self._health_history.get(checker_name, [])
         return history[-1] if history else None
 
     def get_health_history(
         self, checker_name: str, limit: int = 10
-    ) -> List[HealthCheckResult]:
+    ) -> builtins.list[HealthCheckResult]:
         """Get health check history for a checker."""
         history = self._health_history.get(checker_name, [])
         return history[-limit:] if history else []
 
-    def get_all_health_status(self) -> Dict[str, HealthCheckResult]:
+    def get_all_health_status(self) -> builtins.dict[str, HealthCheckResult]:
         """Get latest health status for all checkers."""
         return {name: self.get_health_status(name) for name in self._checkers.keys()}
 
@@ -775,14 +778,13 @@ def create_health_checker(config: HealthCheckConfig) -> HealthChecker:
 
     if config.check_type in [HealthCheckType.HTTP, HealthCheckType.HTTPS]:
         return HTTPHealthChecker(config)
-    elif config.check_type == HealthCheckType.TCP:
+    if config.check_type == HealthCheckType.TCP:
         return TCPHealthChecker(config)
-    elif config.check_type == HealthCheckType.UDP:
+    if config.check_type == HealthCheckType.UDP:
         return UDPHealthChecker(config)
-    elif config.check_type == HealthCheckType.CUSTOM:
+    if config.check_type == HealthCheckType.CUSTOM:
         return CustomHealthChecker(config)
-    else:
-        raise ValueError(f"Unsupported health check type: {config.check_type}")
+    raise ValueError(f"Unsupported health check type: {config.check_type}")
 
 
 # Pre-configured health check configs

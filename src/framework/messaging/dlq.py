@@ -6,16 +6,16 @@ failure analysis, message recovery, and DLQ monitoring.
 """
 
 import asyncio
+import builtins
 import logging
 import statistics
 import time
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list
 
-from .backends import BackendConfig, MessageBackend
-from .core import Message, MessagePriority, MessageStatus, QueueConfig
+from .backends import MessageBackend
+from .core import Message, MessageStatus
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +54,14 @@ class RetryConfig:
     jitter: bool = True  # Add randomness to prevent thundering herd
 
     # Custom retry function
-    custom_delay_func: Optional[Callable[[int], float]] = None
+    custom_delay_func: Callable[[int], float] | None = None
 
     # Retry conditions
-    retry_on_exceptions: List[type] = field(default_factory=list)
-    no_retry_on_exceptions: List[type] = field(default_factory=list)
+    retry_on_exceptions: builtins.list[type] = field(default_factory=list)
+    no_retry_on_exceptions: builtins.list[type] = field(default_factory=list)
 
     # Message inspection
-    retry_filter: Optional[Callable[[Message, Exception], bool]] = None
+    retry_filter: Callable[[Message, Exception], bool] | None = None
 
 
 @dataclass
@@ -76,8 +76,8 @@ class DLQConfig:
     policy: DLQPolicy = DLQPolicy.RETRY_THEN_DLQ
 
     # Storage settings
-    dlq_ttl: Optional[float] = None  # Messages expire after this time
-    max_dlq_size: Optional[int] = None  # Max messages in DLQ
+    dlq_ttl: float | None = None  # Messages expire after this time
+    max_dlq_size: int | None = None  # Max messages in DLQ
 
     # Retry settings
     retry_config: RetryConfig = field(default_factory=RetryConfig)
@@ -87,8 +87,8 @@ class DLQConfig:
     alert_threshold: int = 100  # Alert when DLQ size exceeds this
 
     # Custom handlers
-    on_dlq_message: Optional[Callable[[Message], None]] = None
-    on_retry_exhausted: Optional[Callable[[Message], None]] = None
+    on_dlq_message: Callable[[Message], None] | None = None
+    on_retry_exhausted: Callable[[Message], None] | None = None
 
 
 @dataclass
@@ -111,8 +111,8 @@ class DLQStats:
     avg_retry_delay: float = 0.0
 
     # Failure analysis
-    failure_reasons: Dict[str, int] = field(default_factory=dict)
-    top_failed_queues: List[str] = field(default_factory=list)
+    failure_reasons: builtins.dict[str, int] = field(default_factory=dict)
+    top_failed_queues: builtins.list[str] = field(default_factory=list)
 
     # Performance metrics
     dlq_throughput: float = 0.0
@@ -129,10 +129,10 @@ class DLQMessage:
         self.retry_attempts = 0
         self.first_failure_time = time.time()
         self.last_failure_time = time.time()
-        self.failure_reasons: List[str] = []
-        self.retry_history: List[Dict[str, Any]] = []
+        self.failure_reasons: builtins.list[str] = []
+        self.retry_history: builtins.list[builtins.dict[str, Any]] = []
 
-    def add_failure(self, reason: str, exception: Optional[Exception] = None):
+    def add_failure(self, reason: str, exception: Exception | None = None):
         """Record a failure."""
         self.failure_count += 1
         self.last_failure_time = time.time()
@@ -164,7 +164,7 @@ class DLQMessage:
         if retry_config.strategy == RetryStrategy.IMMEDIATE:
             return 0.0
 
-        elif retry_config.strategy == RetryStrategy.FIXED_DELAY:
+        if retry_config.strategy == RetryStrategy.FIXED_DELAY:
             delay = retry_config.initial_delay
 
         elif retry_config.strategy == RetryStrategy.LINEAR_BACKOFF:
@@ -203,13 +203,19 @@ class DLQManager:
         self.backend = backend
 
         # State
-        self._dlq_messages: Dict[str, DLQMessage] = {}  # Message ID -> DLQMessage
-        self._retry_tasks: Dict[str, asyncio.Task] = {}  # Message ID -> Retry task
+        self._dlq_messages: builtins.dict[
+            str, DLQMessage
+        ] = {}  # Message ID -> DLQMessage
+        self._retry_tasks: builtins.dict[
+            str, asyncio.Task
+        ] = {}  # Message ID -> Retry task
         self._stats = DLQStats()
 
         # Monitoring
         self._last_stats_update = time.time()
-        self._stats_window_messages: List[float] = []  # Timestamps for throughput calc
+        self._stats_window_messages: builtins.list[
+            float
+        ] = []  # Timestamps for throughput calc
 
     async def handle_failed_message(
         self, message: Message, exception: Exception, original_queue: str
@@ -238,14 +244,14 @@ class DLQManager:
             if self.config.policy == DLQPolicy.IMMEDIATE_DLQ:
                 return await self._send_to_dlq(dlq_message)
 
-            elif self.config.policy == DLQPolicy.DROP_MESSAGE:
+            if self.config.policy == DLQPolicy.DROP_MESSAGE:
                 logger.warning(f"Dropping failed message {message.id}")
                 return True
 
-            elif self.config.policy == DLQPolicy.RETRY_THEN_DLQ:
+            if self.config.policy == DLQPolicy.RETRY_THEN_DLQ:
                 return await self._handle_retry_then_dlq(dlq_message, exception)
 
-            elif self.config.policy == DLQPolicy.CUSTOM_HANDLER:
+            if self.config.policy == DLQPolicy.CUSTOM_HANDLER:
                 if self.config.on_dlq_message:
                     self.config.on_dlq_message(message)
                 return True
@@ -470,9 +476,9 @@ class DLQManager:
     async def recover_dlq_messages(
         self,
         dlq_queue: str,
-        target_queue: Optional[str] = None,
-        filter_func: Optional[Callable[[Message], bool]] = None,
-        max_messages: Optional[int] = None,
+        target_queue: str | None = None,
+        filter_func: Callable[[Message], bool] | None = None,
+        max_messages: int | None = None,
     ) -> int:
         """
         Recover messages from DLQ back to original or target queue.

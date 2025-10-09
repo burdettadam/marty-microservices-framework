@@ -5,14 +5,14 @@ Provides fundamental message and queue abstractions that form the foundation
 of the messaging framework.
 """
 
-import asyncio
+import builtins
 import logging
 import time
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, dict, list
 
 logger = logging.getLogger(__name__)
 
@@ -52,17 +52,17 @@ class MessageHeaders:
 
     # Standard headers
     message_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    correlation_id: Optional[str] = None
+    correlation_id: str | None = None
     timestamp: float = field(default_factory=time.time)
     content_type: str = "application/json"
     content_encoding: str = "utf-8"
     priority: MessagePriority = MessagePriority.NORMAL
-    expiration: Optional[float] = None
-    reply_to: Optional[str] = None
+    expiration: float | None = None
+    reply_to: str | None = None
 
     # Routing headers
-    routing_key: Optional[str] = None
-    exchange: Optional[str] = None
+    routing_key: str | None = None
+    exchange: str | None = None
 
     # Processing headers
     retry_count: int = 0
@@ -70,7 +70,7 @@ class MessageHeaders:
     delay_seconds: float = 0.0
 
     # Custom headers
-    custom: Dict[str, Any] = field(default_factory=dict)
+    custom: builtins.dict[str, Any] = field(default_factory=dict)
 
     def is_expired(self) -> bool:
         """Check if message has expired."""
@@ -86,7 +86,7 @@ class MessageHeaders:
         """Increment retry counter."""
         self.retry_count += 1
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert headers to dictionary."""
         return {
             "message_id": self.message_id,
@@ -106,7 +106,7 @@ class MessageHeaders:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "MessageHeaders":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "MessageHeaders":
         """Create headers from dictionary."""
         headers = cls()
         headers.message_id = data.get("message_id", headers.message_id)
@@ -147,12 +147,12 @@ class Message:
         return self.headers.message_id
 
     @property
-    def correlation_id(self) -> Optional[str]:
+    def correlation_id(self) -> str | None:
         """Get correlation ID."""
         return self.headers.correlation_id
 
     @property
-    def routing_key(self) -> Optional[str]:
+    def routing_key(self) -> str | None:
         """Get routing key."""
         return self.headers.routing_key
 
@@ -186,7 +186,7 @@ class Message:
         """Mark message as dead letter."""
         self.status = MessageStatus.DEAD_LETTER
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert message to dictionary."""
         return {
             "body": self.body,
@@ -195,7 +195,7 @@ class Message:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Message":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "Message":
         """Create message from dictionary."""
         return cls(
             body=data["body"],
@@ -212,12 +212,12 @@ class QueueConfig:
     durable: bool = True
     auto_delete: bool = False
     exclusive: bool = False
-    max_length: Optional[int] = None
+    max_length: int | None = None
     max_priority: int = 15
-    message_ttl: Optional[int] = None
-    dead_letter_exchange: Optional[str] = None
-    dead_letter_routing_key: Optional[str] = None
-    arguments: Dict[str, Any] = field(default_factory=dict)
+    message_ttl: int | None = None
+    dead_letter_exchange: str | None = None
+    dead_letter_routing_key: str | None = None
+    arguments: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -229,7 +229,7 @@ class ExchangeConfig:
     durable: bool = True
     auto_delete: bool = False
     internal: bool = False
-    arguments: Dict[str, Any] = field(default_factory=dict)
+    arguments: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class MessageQueue(ABC):
@@ -249,44 +249,36 @@ class MessageQueue(ABC):
     @abstractmethod
     async def publish(self, message: Message) -> bool:
         """Publish a message to the queue."""
-        pass
 
     @abstractmethod
-    async def consume(self, timeout: Optional[float] = None) -> Optional[Message]:
+    async def consume(self, timeout: float | None = None) -> Message | None:
         """Consume a message from the queue."""
-        pass
 
     @abstractmethod
     async def ack(self, message: Message) -> bool:
         """Acknowledge message processing."""
-        pass
 
     @abstractmethod
     async def nack(self, message: Message, requeue: bool = True) -> bool:
         """Negative acknowledge message."""
-        pass
 
     @abstractmethod
     async def purge(self) -> int:
         """Purge all messages from queue."""
-        pass
 
     @abstractmethod
     async def delete(self) -> bool:
         """Delete the queue."""
-        pass
 
     @abstractmethod
     async def get_message_count(self) -> int:
         """Get number of messages in queue."""
-        pass
 
     @abstractmethod
     async def get_consumer_count(self) -> int:
         """Get number of active consumers."""
-        pass
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get queue statistics."""
         return {
             "name": self.name,
@@ -315,7 +307,9 @@ class MessageExchange(ABC):
         self.exchange_type = config.exchange_type
 
         # Bound queues
-        self._bindings: Dict[str, List[str]] = {}  # routing_key -> queue_names
+        self._bindings: builtins.dict[
+            str, builtins.list[str]
+        ] = {}  # routing_key -> queue_names
 
         # Metrics
         self._published_count = 0
@@ -325,28 +319,24 @@ class MessageExchange(ABC):
     @abstractmethod
     async def publish(self, message: Message, routing_key: str = "") -> bool:
         """Publish message to exchange."""
-        pass
 
     @abstractmethod
     async def bind_queue(self, queue_name: str, routing_key: str = "") -> bool:
         """Bind queue to exchange."""
-        pass
 
     @abstractmethod
     async def unbind_queue(self, queue_name: str, routing_key: str = "") -> bool:
         """Unbind queue from exchange."""
-        pass
 
     @abstractmethod
     async def delete(self) -> bool:
         """Delete the exchange."""
-        pass
 
-    def get_bindings(self) -> Dict[str, List[str]]:
+    def get_bindings(self) -> builtins.dict[str, builtins.list[str]]:
         """Get exchange bindings."""
         return self._bindings.copy()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get exchange statistics."""
         return {
             "name": self.name,
@@ -369,61 +359,54 @@ class QueueManager(ABC):
     """Abstract base class for queue managers."""
 
     def __init__(self):
-        self._queues: Dict[str, MessageQueue] = {}
-        self._exchanges: Dict[str, MessageExchange] = {}
+        self._queues: builtins.dict[str, MessageQueue] = {}
+        self._exchanges: builtins.dict[str, MessageExchange] = {}
 
     @abstractmethod
     async def create_queue(self, config: QueueConfig) -> MessageQueue:
         """Create a new queue."""
-        pass
 
     @abstractmethod
     async def create_exchange(self, config: ExchangeConfig) -> MessageExchange:
         """Create a new exchange."""
-        pass
 
     @abstractmethod
     async def delete_queue(self, name: str) -> bool:
         """Delete a queue."""
-        pass
 
     @abstractmethod
     async def delete_exchange(self, name: str) -> bool:
         """Delete an exchange."""
-        pass
 
-    async def get_queue(self, name: str) -> Optional[MessageQueue]:
+    async def get_queue(self, name: str) -> MessageQueue | None:
         """Get queue by name."""
         return self._queues.get(name)
 
-    async def get_exchange(self, name: str) -> Optional[MessageExchange]:
+    async def get_exchange(self, name: str) -> MessageExchange | None:
         """Get exchange by name."""
         return self._exchanges.get(name)
 
-    async def list_queues(self) -> List[str]:
+    async def list_queues(self) -> builtins.list[str]:
         """List all queue names."""
         return list(self._queues.keys())
 
-    async def list_exchanges(self) -> List[str]:
+    async def list_exchanges(self) -> builtins.list[str]:
         """List all exchange names."""
         return list(self._exchanges.keys())
 
     @abstractmethod
     async def connect(self) -> bool:
         """Connect to message broker."""
-        pass
 
     @abstractmethod
     async def disconnect(self) -> bool:
         """Disconnect from message broker."""
-        pass
 
     @abstractmethod
     async def is_connected(self) -> bool:
         """Check if connected to message broker."""
-        pass
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get manager statistics."""
         queue_stats = {}
         exchange_stats = {}

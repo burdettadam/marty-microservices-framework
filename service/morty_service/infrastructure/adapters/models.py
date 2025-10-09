@@ -6,9 +6,7 @@ They are separate from domain entities to maintain clean separation of concerns.
 """
 
 from datetime import datetime
-from uuid import UUID
 
-import sqlalchemy as sa
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.ext.declarative import declarative_base

@@ -5,17 +5,17 @@ This module provides comprehensive monitoring capabilities beyond basic Promethe
 including custom metrics, distributed tracing, health checks, and observability middleware.
 """
 
-import asyncio
+import builtins
 import logging
 import threading
 import time
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import defaultdict
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union, dict, list
 
 # Optional dependencies
 try:
@@ -72,8 +72,8 @@ class MetricDefinition:
     name: str
     metric_type: MetricType
     description: str
-    labels: List[str] = field(default_factory=list)
-    buckets: Optional[List[float]] = None  # For histograms
+    labels: builtins.list[str] = field(default_factory=list)
+    buckets: builtins.list[float] | None = None  # For histograms
     namespace: str = "microservice"
 
 
@@ -83,10 +83,10 @@ class HealthCheckResult:
 
     name: str
     status: HealthStatus
-    message: Optional[str] = None
-    details: Dict[str, Any] = field(default_factory=dict)
+    message: str | None = None
+    details: builtins.dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    duration_ms: Optional[float] = None
+    duration_ms: float | None = None
 
 
 @dataclass
@@ -106,42 +106,38 @@ class MetricsCollector(ABC):
 
     @abstractmethod
     async def collect_metric(
-        self, name: str, value: Union[int, float], labels: Dict[str, str] = None
+        self, name: str, value: int | float, labels: builtins.dict[str, str] = None
     ) -> None:
         """Collect a metric value."""
-        pass
 
     @abstractmethod
     async def increment_counter(
-        self, name: str, labels: Dict[str, str] = None, amount: float = 1.0
+        self, name: str, labels: builtins.dict[str, str] = None, amount: float = 1.0
     ) -> None:
         """Increment a counter metric."""
-        pass
 
     @abstractmethod
     async def set_gauge(
-        self, name: str, value: float, labels: Dict[str, str] = None
+        self, name: str, value: float, labels: builtins.dict[str, str] = None
     ) -> None:
         """Set a gauge metric value."""
-        pass
 
     @abstractmethod
     async def observe_histogram(
-        self, name: str, value: float, labels: Dict[str, str] = None
+        self, name: str, value: float, labels: builtins.dict[str, str] = None
     ) -> None:
         """Observe a value in a histogram."""
-        pass
 
 
 class PrometheusCollector(MetricsCollector):
     """Prometheus metrics collector."""
 
-    def __init__(self, registry: Optional[CollectorRegistry] = None):
+    def __init__(self, registry: CollectorRegistry | None = None):
         if not PROMETHEUS_AVAILABLE:
             raise ImportError("prometheus_client is required for PrometheusCollector")
 
         self.registry = registry or CollectorRegistry()
-        self.metrics: Dict[str, Any] = {}
+        self.metrics: builtins.dict[str, Any] = {}
         self._lock = threading.Lock()
         logger.info("Prometheus metrics collector initialized")
 
@@ -177,7 +173,7 @@ class PrometheusCollector(MetricsCollector):
             )
 
     async def collect_metric(
-        self, name: str, value: Union[int, float], labels: Dict[str, str] = None
+        self, name: str, value: int | float, labels: builtins.dict[str, str] = None
     ) -> None:
         """Collect a generic metric value."""
         if name not in self.metrics:
@@ -194,7 +190,7 @@ class PrometheusCollector(MetricsCollector):
                 metric.set(value)
 
     async def increment_counter(
-        self, name: str, labels: Dict[str, str] = None, amount: float = 1.0
+        self, name: str, labels: builtins.dict[str, str] = None, amount: float = 1.0
     ) -> None:
         """Increment a counter metric."""
         if name not in self.metrics:
@@ -210,7 +206,7 @@ class PrometheusCollector(MetricsCollector):
             counter.inc(amount)
 
     async def set_gauge(
-        self, name: str, value: float, labels: Dict[str, str] = None
+        self, name: str, value: float, labels: builtins.dict[str, str] = None
     ) -> None:
         """Set a gauge metric value."""
         if name not in self.metrics:
@@ -226,7 +222,7 @@ class PrometheusCollector(MetricsCollector):
             gauge.set(value)
 
     async def observe_histogram(
-        self, name: str, value: float, labels: Dict[str, str] = None
+        self, name: str, value: float, labels: builtins.dict[str, str] = None
     ) -> None:
         """Observe a value in a histogram."""
         if name not in self.metrics:
@@ -250,15 +246,15 @@ class InMemoryCollector(MetricsCollector):
     """In-memory metrics collector for testing/development."""
 
     def __init__(self):
-        self.metrics: Dict[str, Dict[str, Any]] = defaultdict(dict)
-        self.counters: Dict[str, float] = defaultdict(float)
-        self.gauges: Dict[str, float] = {}
-        self.histograms: Dict[str, List[float]] = defaultdict(list)
+        self.metrics: builtins.dict[str, builtins.dict[str, Any]] = defaultdict(dict)
+        self.counters: builtins.dict[str, float] = defaultdict(float)
+        self.gauges: builtins.dict[str, float] = {}
+        self.histograms: builtins.dict[str, builtins.list[float]] = defaultdict(list)
         self._lock = threading.Lock()
         logger.info("In-memory metrics collector initialized")
 
     async def collect_metric(
-        self, name: str, value: Union[int, float], labels: Dict[str, str] = None
+        self, name: str, value: int | float, labels: builtins.dict[str, str] = None
     ) -> None:
         """Collect a generic metric value."""
         with self._lock:
@@ -270,7 +266,7 @@ class InMemoryCollector(MetricsCollector):
             }
 
     async def increment_counter(
-        self, name: str, labels: Dict[str, str] = None, amount: float = 1.0
+        self, name: str, labels: builtins.dict[str, str] = None, amount: float = 1.0
     ) -> None:
         """Increment a counter metric."""
         with self._lock:
@@ -279,7 +275,7 @@ class InMemoryCollector(MetricsCollector):
             self.counters[key] += amount
 
     async def set_gauge(
-        self, name: str, value: float, labels: Dict[str, str] = None
+        self, name: str, value: float, labels: builtins.dict[str, str] = None
     ) -> None:
         """Set a gauge metric value."""
         with self._lock:
@@ -288,7 +284,7 @@ class InMemoryCollector(MetricsCollector):
             self.gauges[key] = value
 
     async def observe_histogram(
-        self, name: str, value: float, labels: Dict[str, str] = None
+        self, name: str, value: float, labels: builtins.dict[str, str] = None
     ) -> None:
         """Observe a value in a histogram."""
         with self._lock:
@@ -296,27 +292,29 @@ class InMemoryCollector(MetricsCollector):
             key = f"{name}:{label_key}"
             self.histograms[key].append(value)
 
-    def _make_label_key(self, labels: Optional[Dict[str, str]]) -> str:
+    def _make_label_key(self, labels: builtins.dict[str, str] | None) -> str:
         """Create a consistent key from labels."""
         if not labels:
             return ""
         return ",".join(f"{k}={v}" for k, v in sorted(labels.items()))
 
-    def get_counter(self, name: str, labels: Dict[str, str] = None) -> float:
+    def get_counter(self, name: str, labels: builtins.dict[str, str] = None) -> float:
         """Get counter value."""
         label_key = self._make_label_key(labels)
         key = f"{name}:{label_key}"
         return self.counters.get(key, 0.0)
 
-    def get_gauge(self, name: str, labels: Dict[str, str] = None) -> Optional[float]:
+    def get_gauge(
+        self, name: str, labels: builtins.dict[str, str] = None
+    ) -> float | None:
         """Get gauge value."""
         label_key = self._make_label_key(labels)
         key = f"{name}:{label_key}"
         return self.gauges.get(key)
 
     def get_histogram_values(
-        self, name: str, labels: Dict[str, str] = None
-    ) -> List[float]:
+        self, name: str, labels: builtins.dict[str, str] = None
+    ) -> builtins.list[float]:
         """Get histogram values."""
         label_key = self._make_label_key(labels)
         key = f"{name}:{label_key}"
@@ -332,7 +330,6 @@ class HealthCheck(ABC):
     @abstractmethod
     async def check(self) -> HealthCheckResult:
         """Perform the health check."""
-        pass
 
 
 class SimpleHealthCheck(HealthCheck):
@@ -378,7 +375,7 @@ class DatabaseHealthCheck(HealthCheck):
             return HealthCheckResult(
                 name=self.name,
                 status=HealthStatus.UNHEALTHY,
-                message=f"Database connection failed: {str(e)}",
+                message=f"Database connection failed: {e!s}",
                 duration_ms=duration_ms,
                 details={"error": str(e)},
             )
@@ -413,7 +410,7 @@ class RedisHealthCheck(HealthCheck):
             return HealthCheckResult(
                 name=self.name,
                 status=HealthStatus.UNHEALTHY,
-                message=f"Redis connection failed: {str(e)}",
+                message=f"Redis connection failed: {e!s}",
                 duration_ms=duration_ms,
                 details={"error": str(e)},
             )
@@ -451,24 +448,23 @@ class ExternalServiceHealthCheck(HealthCheck):
                                 "response_time_ms": duration_ms,
                             },
                         )
-                    else:
-                        return HealthCheckResult(
-                            name=self.name,
-                            status=HealthStatus.DEGRADED,
-                            message=f"External service returned HTTP {response.status}",
-                            duration_ms=duration_ms,
-                            details={
-                                "status_code": response.status,
-                                "response_time_ms": duration_ms,
-                            },
-                        )
+                    return HealthCheckResult(
+                        name=self.name,
+                        status=HealthStatus.DEGRADED,
+                        message=f"External service returned HTTP {response.status}",
+                        duration_ms=duration_ms,
+                        details={
+                            "status_code": response.status,
+                            "response_time_ms": duration_ms,
+                        },
+                    )
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
             return HealthCheckResult(
                 name=self.name,
                 status=HealthStatus.UNHEALTHY,
-                message=f"External service check failed: {str(e)}",
+                message=f"External service check failed: {e!s}",
                 duration_ms=duration_ms,
                 details={"error": str(e)},
             )
@@ -477,7 +473,7 @@ class ExternalServiceHealthCheck(HealthCheck):
 class DistributedTracer:
     """Distributed tracing integration."""
 
-    def __init__(self, service_name: str, jaeger_endpoint: Optional[str] = None):
+    def __init__(self, service_name: str, jaeger_endpoint: str | None = None):
         if not OPENTELEMETRY_AVAILABLE:
             logger.warning("OpenTelemetry not available, distributed tracing disabled")
             self.enabled = False
@@ -509,7 +505,7 @@ class DistributedTracer:
 
     @asynccontextmanager
     async def trace_operation(
-        self, operation_name: str, attributes: Dict[str, Any] = None
+        self, operation_name: str, attributes: builtins.dict[str, Any] = None
     ):
         """Create a trace span for an operation."""
         if not self.enabled:
@@ -548,13 +544,13 @@ class DistributedTracer:
 class MonitoringManager:
     """Central monitoring and observability manager."""
 
-    def __init__(self, service_name: str, collector: Optional[MetricsCollector] = None):
+    def __init__(self, service_name: str, collector: MetricsCollector | None = None):
         self.service_name = service_name
         self.collector = collector or InMemoryCollector()
-        self.health_checks: Dict[str, HealthCheck] = {}
-        self.metrics_definitions: Dict[str, MetricDefinition] = {}
+        self.health_checks: builtins.dict[str, HealthCheck] = {}
+        self.metrics_definitions: builtins.dict[str, MetricDefinition] = {}
         self.service_metrics = ServiceMetrics(service_name)
-        self.tracer: Optional[DistributedTracer] = None
+        self.tracer: DistributedTracer | None = None
 
         # Default metrics
         self._register_default_metrics()
@@ -613,7 +609,7 @@ class MonitoringManager:
             for metric_def in self.metrics_definitions.values():
                 collector.register_metric(metric_def)
 
-    def enable_distributed_tracing(self, jaeger_endpoint: Optional[str] = None) -> None:
+    def enable_distributed_tracing(self, jaeger_endpoint: str | None = None) -> None:
         """Enable distributed tracing."""
         self.tracer = DistributedTracer(self.service_name, jaeger_endpoint)
 
@@ -653,7 +649,7 @@ class MonitoringManager:
         await self.collector.set_gauge("active_connections", float(count))
         self.service_metrics.active_connections = count
 
-    async def perform_health_checks(self) -> Dict[str, HealthCheckResult]:
+    async def perform_health_checks(self) -> builtins.dict[str, HealthCheckResult]:
         """Perform all registered health checks."""
         results = {}
 
@@ -674,7 +670,7 @@ class MonitoringManager:
                 results[name] = HealthCheckResult(
                     name=name,
                     status=HealthStatus.UNHEALTHY,
-                    message=f"Health check failed: {str(e)}",
+                    message=f"Health check failed: {e!s}",
                     duration_ms=duration * 1000,
                     details={"error": str(e)},
                 )
@@ -682,7 +678,7 @@ class MonitoringManager:
 
         return results
 
-    async def get_service_health(self) -> Dict[str, Any]:
+    async def get_service_health(self) -> builtins.dict[str, Any]:
         """Get overall service health status."""
         health_results = await self.perform_health_checks()
 
@@ -724,7 +720,7 @@ class MonitoringManager:
             },
         }
 
-    def get_metrics_text(self) -> Optional[str]:
+    def get_metrics_text(self) -> str | None:
         """Get metrics in Prometheus text format."""
         if isinstance(self.collector, PrometheusCollector):
             return self.collector.get_metrics_text()
@@ -732,10 +728,10 @@ class MonitoringManager:
 
 
 # Global monitoring manager instance
-_monitoring_manager: Optional[MonitoringManager] = None
+_monitoring_manager: MonitoringManager | None = None
 
 
-def get_monitoring_manager() -> Optional[MonitoringManager]:
+def get_monitoring_manager() -> MonitoringManager | None:
     """Get the global monitoring manager instance."""
     return _monitoring_manager
 
@@ -749,7 +745,7 @@ def set_monitoring_manager(manager: MonitoringManager) -> None:
 def initialize_monitoring(
     service_name: str,
     use_prometheus: bool = True,
-    jaeger_endpoint: Optional[str] = None,
+    jaeger_endpoint: str | None = None,
 ) -> MonitoringManager:
     """Initialize monitoring for a service."""
 

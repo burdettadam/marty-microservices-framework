@@ -9,12 +9,10 @@ Integrates with Istio service mesh to provide:
 - Zero-trust network segmentation
 """
 
-import asyncio
-import json
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta
+import builtins
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, dict, list
 
 import yaml
 
@@ -38,11 +36,11 @@ class ServiceMeshPolicy:
     name: str
     namespace: str
     description: str
-    selector: Dict[str, str]
-    rules: List[Dict[str, Any]]
+    selector: builtins.dict[str, str]
+    rules: builtins.list[builtins.dict[str, Any]]
     action: TrafficAction = TrafficAction.ALLOW
 
-    def to_istio_authorization_policy(self) -> Dict[str, Any]:
+    def to_istio_authorization_policy(self) -> builtins.dict[str, Any]:
         """Convert to Istio AuthorizationPolicy"""
         return {
             "apiVersion": ISTIO_API_VERSION,
@@ -69,12 +67,12 @@ class NetworkSegment:
 
     name: str
     namespace: str
-    services: List[str]
-    ingress_rules: List[Dict[str, Any]]
-    egress_rules: List[Dict[str, Any]]
+    services: builtins.list[str]
+    ingress_rules: builtins.list[builtins.dict[str, Any]]
+    egress_rules: builtins.list[builtins.dict[str, Any]]
     security_level: str = "internal"
 
-    def to_network_policy(self) -> Dict[str, Any]:
+    def to_network_policy(self) -> builtins.dict[str, Any]:
         """Convert to Kubernetes NetworkPolicy"""
         return {
             "apiVersion": "networking.k8s.io/v1",
@@ -111,14 +109,14 @@ class ServiceMeshSecurityManager:
 
     def __init__(self, namespace: str = "istio-system"):
         self.namespace = namespace
-        self.policies: Dict[str, ServiceMeshPolicy] = {}
-        self.network_segments: Dict[str, NetworkSegment] = {}
+        self.policies: builtins.dict[str, ServiceMeshPolicy] = {}
+        self.network_segments: builtins.dict[str, NetworkSegment] = {}
 
         # Default security configuration
         self.default_mtls_enabled = True
         self.default_deny_all = True
 
-    def create_default_policies(self) -> List[Dict[str, Any]]:
+    def create_default_policies(self) -> builtins.list[builtins.dict[str, Any]]:
         """Create default zero-trust security policies"""
         policies = []
 
@@ -189,7 +187,7 @@ class ServiceMeshSecurityManager:
 
         return policies
 
-    def create_mtls_policy(self, namespace: str = None) -> Dict[str, Any]:
+    def create_mtls_policy(self, namespace: str = None) -> builtins.dict[str, Any]:
         """Create strict mTLS policy"""
         return {
             "apiVersion": ISTIO_API_VERSION,
@@ -206,8 +204,8 @@ class ServiceMeshSecurityManager:
         self,
         service_name: str,
         namespace: str,
-        allowed_sources: List[Dict[str, Any]],
-        allowed_operations: List[Dict[str, Any]] = None,
+        allowed_sources: builtins.list[builtins.dict[str, Any]],
+        allowed_operations: builtins.list[builtins.dict[str, Any]] = None,
     ) -> ServiceMeshPolicy:
         """Create authorization policy for a specific service"""
 
@@ -243,8 +241,8 @@ class ServiceMeshSecurityManager:
         source_namespace: str,
         target_service: str,
         target_namespace: str,
-        allowed_methods: List[str] = None,
-        allowed_paths: List[str] = None,
+        allowed_methods: builtins.list[str] = None,
+        allowed_paths: builtins.list[str] = None,
     ) -> ServiceMeshPolicy:
         """Create policy for inter-service communication"""
 
@@ -271,7 +269,7 @@ class ServiceMeshSecurityManager:
         self,
         segment_name: str,
         namespace: str,
-        services: List[str],
+        services: builtins.list[str],
         security_level: str = "internal",
     ) -> NetworkSegment:
         """Create network micro-segment"""
@@ -336,7 +334,7 @@ class ServiceMeshSecurityManager:
         self.network_segments[f"{namespace}/{segment_name}"] = segment
         return segment
 
-    def create_security_telemetry_config(self) -> Dict[str, Any]:
+    def create_security_telemetry_config(self) -> builtins.dict[str, Any]:
         """Create telemetry configuration for security monitoring"""
         return {
             "apiVersion": "telemetry.istio.io/v1alpha1",
@@ -372,7 +370,7 @@ class ServiceMeshSecurityManager:
             },
         }
 
-    def generate_kubernetes_manifests(self) -> List[Dict[str, Any]]:
+    def generate_kubernetes_manifests(self) -> builtins.list[builtins.dict[str, Any]]:
         """Generate all Kubernetes manifests for zero-trust setup"""
         manifests = []
 
@@ -410,9 +408,9 @@ class ServiceMeshSecurityManager:
         service_name: str,
         namespace: str = "default",
         security_level: str = "internal",
-        allowed_sources: List[str] = None,
+        allowed_sources: builtins.list[str] = None,
         external_access: bool = False,
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Create complete security configuration for a service"""
         configs = []
 

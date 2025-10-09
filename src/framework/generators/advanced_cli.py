@@ -11,14 +11,13 @@ This enhanced CLI provides intelligent service generation with:
 - Real-time dependency resolution
 """
 
-import asyncio
+import builtins
 import json
-import os
 import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, dict, list, set
 
 import click
 import questionary
@@ -31,7 +30,6 @@ from rich.tree import Tree
 
 # Framework imports
 sys.path.append(str(Path(__file__).resolve().parents[3]))
-from src.framework.config import BaseServiceConfig
 
 
 class ServiceType(Enum):
@@ -80,7 +78,7 @@ class ServiceDependency:
     component: InfrastructureComponent
     required: bool = True
     description: str = ""
-    config_key: Optional[str] = None
+    config_key: str | None = None
 
 
 @dataclass
@@ -95,8 +93,10 @@ class ServiceConfiguration:
     email: str = ""
 
     # Infrastructure integration
-    dependencies: List[ServiceDependency] = field(default_factory=list)
-    infrastructure_components: Set[InfrastructureComponent] = field(default_factory=set)
+    dependencies: builtins.list[ServiceDependency] = field(default_factory=list)
+    infrastructure_components: builtins.set[InfrastructureComponent] = field(
+        default_factory=set
+    )
 
     # Service-specific settings
     grpc_port: int = 50051
@@ -121,7 +121,7 @@ class ServiceConfiguration:
 
     # API Gateway integration
     use_api_gateway: bool = False
-    gateway_routes: List[str] = field(default_factory=list)
+    gateway_routes: builtins.list[str] = field(default_factory=list)
 
     # Deployment settings
     use_kubernetes: bool = True
@@ -129,7 +129,7 @@ class ServiceConfiguration:
     use_service_mesh: bool = True
 
     # Custom template variables
-    custom_vars: Dict[str, Any] = field(default_factory=dict)
+    custom_vars: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class InfrastructureDependencyResolver:
@@ -255,8 +255,8 @@ class InfrastructureDependencyResolver:
     }
 
     def resolve_dependencies(
-        self, components: Set[InfrastructureComponent]
-    ) -> List[ServiceDependency]:
+        self, components: builtins.set[InfrastructureComponent]
+    ) -> builtins.list[ServiceDependency]:
         """Resolve all dependencies for the given components."""
         resolved = set()
         dependencies = []
@@ -297,6 +297,7 @@ class AdvancedServiceGenerator:
             loader=FileSystemLoader(str(self.templates_dir)),
             trim_blocks=True,
             lstrip_blocks=True,
+            autoescape=True,
         )
 
         # Create output directory
@@ -560,7 +561,9 @@ class AdvancedServiceGenerator:
 
         return service_dir
 
-    def _prepare_template_vars(self, config: ServiceConfiguration) -> Dict[str, Any]:
+    def _prepare_template_vars(
+        self, config: ServiceConfiguration
+    ) -> builtins.dict[str, Any]:
         """Prepare template variables from configuration."""
         # Convert service name to various formats
         service_package = config.name.replace("-", "_")
@@ -623,7 +626,7 @@ class AdvancedServiceGenerator:
     def _generate_core_files(
         self,
         config: ServiceConfiguration,
-        template_vars: Dict[str, Any],
+        template_vars: builtins.dict[str, Any],
         service_dir: Path,
     ) -> None:
         """Generate core service files."""
@@ -663,7 +666,7 @@ class AdvancedServiceGenerator:
     def _generate_infrastructure_integration(
         self,
         config: ServiceConfiguration,
-        template_vars: Dict[str, Any],
+        template_vars: builtins.dict[str, Any],
         service_dir: Path,
     ) -> None:
         """Generate infrastructure integration files."""
@@ -684,7 +687,7 @@ class AdvancedServiceGenerator:
     def _generate_k8s_manifests(
         self,
         config: ServiceConfiguration,
-        template_vars: Dict[str, Any],
+        template_vars: builtins.dict[str, Any],
         service_dir: Path,
     ) -> None:
         """Generate Kubernetes manifests."""
@@ -712,7 +715,7 @@ metadata:
     def _generate_helm_charts(
         self,
         config: ServiceConfiguration,
-        template_vars: Dict[str, Any],
+        template_vars: builtins.dict[str, Any],
         service_dir: Path,
     ) -> None:
         """Generate Helm charts."""
@@ -736,7 +739,7 @@ dependencies:
     def _generate_cicd_pipeline(
         self,
         config: ServiceConfiguration,
-        template_vars: Dict[str, Any],
+        template_vars: builtins.dict[str, Any],
         service_dir: Path,
     ) -> None:
         """Generate CI/CD pipeline configuration."""
@@ -839,10 +842,10 @@ jobs:
 @click.option("--output-dir", "-o", type=click.Path(), help="Output directory")
 def main(
     interactive: bool,
-    config: Optional[str],
-    service_type: Optional[str],
-    service_name: Optional[str],
-    output_dir: Optional[str],
+    config: str | None,
+    service_type: str | None,
+    service_name: str | None,
+    output_dir: str | None,
 ) -> None:
     """Advanced Service Generator for Marty Microservices Framework."""
 

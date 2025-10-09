@@ -5,8 +5,6 @@ This module defines exceptions specific to the plugin architecture,
 providing clear error handling and debugging capabilities.
 """
 
-from typing import Optional
-
 
 class PluginError(Exception):
     """Base exception for all plugin-related errors."""
@@ -14,8 +12,8 @@ class PluginError(Exception):
     def __init__(
         self,
         message: str,
-        plugin_name: Optional[str] = None,
-        cause: Optional[Exception] = None,
+        plugin_name: str | None = None,
+        cause: Exception | None = None,
     ):
         self.plugin_name = plugin_name
         self.cause = cause
@@ -31,9 +29,7 @@ class PluginError(Exception):
 class PluginLoadError(PluginError):
     """Exception raised when a plugin fails to load."""
 
-    def __init__(
-        self, plugin_name: str, message: str, cause: Optional[Exception] = None
-    ):
+    def __init__(self, plugin_name: str, message: str, cause: Exception | None = None):
         super().__init__(f"Failed to load: {message}", plugin_name, cause)
 
 
@@ -64,7 +60,7 @@ class PluginConfigurationError(PluginError):
 class PluginDiscoveryError(PluginError):
     """Exception raised during plugin discovery."""
 
-    def __init__(self, message: str, path: Optional[str] = None):
+    def __init__(self, message: str, path: str | None = None):
         if path:
             full_message = f"Discovery error in '{path}': {message}"
         else:

@@ -6,15 +6,16 @@ one failing component from consuming all resources and affecting other component
 """
 
 import asyncio
+import builtins
 import logging
 import threading
 import time
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, TypeVar, dict
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -51,11 +52,11 @@ class BulkheadConfig:
     bulkhead_type: BulkheadType = BulkheadType.SEMAPHORE
 
     # Thread pool specific settings
-    max_workers: Optional[int] = None
+    max_workers: int | None = None
     thread_name_prefix: str = "BulkheadWorker"
 
     # Queue size for thread pool
-    queue_size: Optional[int] = None
+    queue_size: int | None = None
 
     # Reject requests when capacity exceeded
     reject_on_full: bool = False
@@ -84,27 +85,22 @@ class BulkheadPool(ABC):
     @abstractmethod
     async def execute_async(self, func: Callable[..., T], *args, **kwargs) -> T:
         """Execute async function with bulkhead protection."""
-        pass
 
     @abstractmethod
     def execute_sync(self, func: Callable[..., T], *args, **kwargs) -> T:
         """Execute sync function with bulkhead protection."""
-        pass
 
     @abstractmethod
     def get_current_load(self) -> int:
         """Get current number of active operations."""
-        pass
 
     @abstractmethod
     def get_capacity(self) -> int:
         """Get maximum capacity."""
-        pass
 
     @abstractmethod
     def is_available(self) -> bool:
         """Check if resources are available."""
-        pass
 
     def _record_request_start(self):
         """Record start of request."""
@@ -134,7 +130,7 @@ class BulkheadPool(ABC):
         with self._lock:
             self._total_wait_time += wait_time
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get bulkhead statistics."""
         with self._lock:
             avg_wait_time = (
@@ -206,7 +202,7 @@ class SemaphoreBulkhead(BulkheadPool):
                 self._record_request_end(True)
                 return result
 
-            except Exception as e:
+            except Exception:
                 self._record_request_end(False)
                 raise
             finally:
@@ -243,7 +239,7 @@ class SemaphoreBulkhead(BulkheadPool):
             self._record_request_end(True)
             return result
 
-        except Exception as e:
+        except Exception:
             self._record_request_end(False)
             raise
         finally:
@@ -317,7 +313,7 @@ class ThreadPoolBulkhead(BulkheadPool):
                 with self._futures_lock:
                     self._active_futures.discard(future)
 
-        except Exception as e:
+        except Exception:
             self._record_request_end(False)
             raise
 
@@ -359,7 +355,7 @@ class ThreadPoolBulkhead(BulkheadPool):
                 with self._futures_lock:
                     self._active_futures.discard(future)
 
-        except Exception as e:
+        except Exception:
             self._record_request_end(False)
             raise
 
@@ -385,7 +381,7 @@ class BulkheadManager:
     """Manages multiple bulkhead pools."""
 
     def __init__(self):
-        self._bulkheads: Dict[str, BulkheadPool] = {}
+        self._bulkheads: builtins.dict[str, BulkheadPool] = {}
         self._lock = threading.Lock()
 
     def create_bulkhead(self, name: str, config: BulkheadConfig) -> BulkheadPool:
@@ -410,7 +406,7 @@ class BulkheadManager:
             )
             return bulkhead
 
-    def get_bulkhead(self, name: str) -> Optional[BulkheadPool]:
+    def get_bulkhead(self, name: str) -> BulkheadPool | None:
         """Get existing bulkhead pool."""
         with self._lock:
             return self._bulkheads.get(name)
@@ -425,7 +421,7 @@ class BulkheadManager:
                 del self._bulkheads[name]
                 logger.info(f"Removed bulkhead '{name}'")
 
-    def get_all_stats(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_stats(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Get statistics for all bulkheads."""
         with self._lock:
             return {
@@ -452,8 +448,8 @@ def get_bulkhead_manager() -> BulkheadManager:
 
 def bulkhead_isolate(
     name: str,
-    config: Optional[BulkheadConfig] = None,
-    bulkhead: Optional[BulkheadPool] = None,
+    config: BulkheadConfig | None = None,
+    bulkhead: BulkheadPool | None = None,
 ):
     """
     Decorator to isolate function execution with bulkhead pattern.
@@ -485,13 +481,12 @@ def bulkhead_isolate(
                 return await bulkhead.execute_async(func, *args, **kwargs)
 
             return async_wrapper
-        else:
 
-            @wraps(func)
-            def sync_wrapper(*args, **kwargs) -> T:
-                return bulkhead.execute_sync(func, *args, **kwargs)
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs) -> T:
+            return bulkhead.execute_sync(func, *args, **kwargs)
 
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 

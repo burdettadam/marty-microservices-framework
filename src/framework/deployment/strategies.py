@@ -7,21 +7,18 @@ for safe production releases.
 """
 
 import asyncio
+import builtins
 import hashlib
-import json
 import logging
 import random
-import threading
 import time
 import uuid
-from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from concurrent.futures import Future, ThreadPoolExecutor
-from contextlib import asynccontextmanager
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, Final, List, Optional, Set, dict, list
 
 
 class DeploymentStrategy(Enum):
@@ -96,9 +93,9 @@ class DeploymentTarget:
     cluster: str
     namespace: str
     region: str
-    availability_zones: List[str] = field(default_factory=list)
-    capacity: Dict[str, Any] = field(default_factory=dict)
-    configuration: Dict[str, Any] = field(default_factory=dict)
+    availability_zones: builtins.list[str] = field(default_factory=list)
+    capacity: builtins.dict[str, Any] = field(default_factory=dict)
+    configuration: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -109,8 +106,8 @@ class ServiceVersion:
     version: str
     image_tag: str
     configuration_hash: str
-    artifacts: Dict[str, str] = field(default_factory=dict)
-    dependencies: List[str] = field(default_factory=list)
+    artifacts: builtins.dict[str, str] = field(default_factory=dict)
+    dependencies: builtins.list[str] = field(default_factory=list)
     health_check_endpoint: str = "/health"
     readiness_check_endpoint: str = "/ready"
 
@@ -119,10 +116,10 @@ class ServiceVersion:
 class TrafficSplit:
     """Traffic splitting configuration."""
 
-    version_weights: Dict[str, float]  # version -> weight (0.0 to 1.0)
-    routing_rules: List[Dict[str, Any]] = field(default_factory=list)
+    version_weights: builtins.dict[str, float]  # version -> weight (0.0 to 1.0)
+    routing_rules: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
     sticky_sessions: bool = False
-    session_affinity_key: Optional[str] = None
+    session_affinity_key: str | None = None
 
 
 @dataclass
@@ -134,7 +131,7 @@ class DeploymentValidation:
     type: str  # health_check, performance_test, smoke_test, etc.
     timeout_seconds: int = 300
     retry_attempts: int = 3
-    criteria: Dict[str, Any] = field(default_factory=dict)
+    criteria: builtins.dict[str, Any] = field(default_factory=dict)
     required: bool = True
 
 
@@ -148,10 +145,12 @@ class FeatureFlag:
     flag_type: FeatureFlagType
     enabled: bool = False
     value: Any = None
-    targeting_rules: List[Dict[str, Any]] = field(default_factory=list)
+    targeting_rules: builtins.list[builtins.dict[str, Any]] = field(
+        default_factory=list
+    )
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    tags: List[str] = field(default_factory=list)
+    tags: builtins.list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -163,7 +162,7 @@ class DeploymentEvent:
     event_type: str
     phase: DeploymentPhase
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: builtins.dict[str, Any] = field(default_factory=dict)
     success: bool = True
 
 
@@ -172,10 +171,12 @@ class RollbackConfiguration:
     """Rollback configuration."""
 
     enabled: bool = True
-    automatic_triggers: List[str] = field(default_factory=list)
+    automatic_triggers: builtins.list[str] = field(default_factory=list)
     max_rollback_time: int = 1800  # 30 minutes
     preserve_traffic_split: bool = False
-    rollback_validation: List[DeploymentValidation] = field(default_factory=list)
+    rollback_validation: builtins.list[DeploymentValidation] = field(
+        default_factory=list
+    )
 
 
 class DeploymentOrchestrator:
@@ -186,7 +187,7 @@ class DeploymentOrchestrator:
         self.service_name = service_name
 
         # Active deployments
-        self.active_deployments: Dict[str, "Deployment"] = {}
+        self.active_deployments: builtins.dict[str, Deployment] = {}
         self.deployment_history: deque = deque(maxlen=1000)
 
         # Infrastructure managers
@@ -204,7 +205,9 @@ class DeploymentOrchestrator:
             max_workers=10, thread_name_prefix="deployment"
         )
 
-    async def create_deployment(self, deployment_config: Dict[str, Any]) -> str:
+    async def create_deployment(
+        self, deployment_config: builtins.dict[str, Any]
+    ) -> str:
         """Create a new deployment."""
         deployment_id = str(uuid.uuid4())
 
@@ -692,7 +695,7 @@ class DeploymentOrchestrator:
 
         except Exception as e:
             deployment.status = DeploymentStatus.FAILED
-            deployment.error_message = f"Rollback failed: {str(e)}"
+            deployment.error_message = f"Rollback failed: {e!s}"
             return False
 
     async def _monitor_deployment_health(
@@ -752,7 +755,7 @@ class DeploymentOrchestrator:
 
     async def _analyze_ab_test_results(
         self, deployment: "Deployment"
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Analyze A/B test results to determine winner."""
         # Collect final metrics
         metrics = await self.infrastructure_manager.collect_ab_test_metrics(
@@ -784,7 +787,7 @@ class DeploymentOrchestrator:
             "metrics": metrics,
         }
 
-    def _calculate_version_score(self, metrics: Dict[str, Any]) -> float:
+    def _calculate_version_score(self, metrics: builtins.dict[str, Any]) -> float:
         """Calculate performance score for a version."""
         # Weighted scoring based on key metrics
         error_rate = metrics.get("error_rate", 0)
@@ -805,7 +808,7 @@ class DeploymentOrchestrator:
         deployment_id: str,
         event_type: str,
         phase: DeploymentPhase,
-        details: Dict[str, Any] = None,
+        details: builtins.dict[str, Any] = None,
     ):
         """Log deployment event."""
         event = DeploymentEvent(
@@ -819,7 +822,9 @@ class DeploymentOrchestrator:
         self.deployment_events.append(event)
         logging.info(f"Deployment {deployment_id}: {event_type} in {phase.value}")
 
-    def get_deployment_status(self, deployment_id: str) -> Optional[Dict[str, Any]]:
+    def get_deployment_status(
+        self, deployment_id: str
+    ) -> builtins.dict[str, Any] | None:
         """Get deployment status."""
         if deployment_id not in self.active_deployments:
             return None
@@ -843,7 +848,7 @@ class DeploymentOrchestrator:
             "error_message": deployment.error_message,
         }
 
-    def get_all_deployments_status(self) -> Dict[str, Any]:
+    def get_all_deployments_status(self) -> builtins.dict[str, Any]:
         """Get status of all deployments."""
         active_deployments = {
             dep_id: self.get_deployment_status(dep_id)
@@ -868,14 +873,14 @@ class Deployment:
     target_version: ServiceVersion
     target_environment: DeploymentTarget
     traffic_split: TrafficSplit
-    validations: List[DeploymentValidation]
+    validations: builtins.list[DeploymentValidation]
     rollback_config: RollbackConfiguration
     status: DeploymentStatus = DeploymentStatus.PENDING
     current_phase: DeploymentPhase = DeploymentPhase.PLANNING
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
-    configuration: Dict[str, Any] = field(default_factory=dict)
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
+    configuration: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class InfrastructureManager:
@@ -883,15 +888,17 @@ class InfrastructureManager:
 
     def __init__(self):
         """Initialize infrastructure manager."""
-        self.environments: Dict[str, Any] = {}
-        self.service_instances: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        self.environments: builtins.dict[str, Any] = {}
+        self.service_instances: builtins.dict[
+            str, builtins.list[builtins.dict[str, Any]]
+        ] = defaultdict(list)
 
     async def prepare_environment(
         self,
         target: DeploymentTarget,
         version: ServiceVersion,
         env_type: EnvironmentType,
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Prepare deployment environment."""
         environment_id = (
             f"{target.environment.value}_{env_type.value}_{int(time.time())}"
@@ -915,7 +922,7 @@ class InfrastructureManager:
         return environment
 
     async def deploy_service(
-        self, environment: Dict[str, Any], version: ServiceVersion
+        self, environment: builtins.dict[str, Any], version: ServiceVersion
     ):
         """Deploy service to environment."""
         # Simulate service deployment
@@ -938,7 +945,7 @@ class InfrastructureManager:
 
     async def deploy_instances(
         self, target: DeploymentTarget, version: ServiceVersion, count: int
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Deploy specific number of instances."""
         instances = []
 
@@ -962,7 +969,9 @@ class InfrastructureManager:
 
         return instances
 
-    async def wait_for_instances_ready(self, instances: List[Dict[str, Any]]):
+    async def wait_for_instances_ready(
+        self, instances: builtins.list[builtins.dict[str, Any]]
+    ):
         """Wait for instances to be ready."""
         # Simulate readiness check
         await asyncio.sleep(2)
@@ -970,7 +979,7 @@ class InfrastructureManager:
         for instance in instances:
             instance["status"] = "ready"
 
-    async def remove_instances(self, instances: List[Dict[str, Any]]):
+    async def remove_instances(self, instances: builtins.list[builtins.dict[str, Any]]):
         """Remove instances."""
         # Simulate instance removal
         await asyncio.sleep(1)
@@ -980,7 +989,7 @@ class InfrastructureManager:
 
     async def get_service_instances(
         self, target: DeploymentTarget, version: ServiceVersion
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Get current service instances."""
         # Simulate getting instances
         return [
@@ -994,7 +1003,7 @@ class InfrastructureManager:
         ]
 
     async def deploy_parallel_versions(
-        self, target: DeploymentTarget, versions: List[ServiceVersion]
+        self, target: DeploymentTarget, versions: builtins.list[ServiceVersion]
     ):
         """Deploy multiple versions in parallel."""
         tasks = []
@@ -1016,7 +1025,7 @@ class InfrastructureManager:
 
     async def check_service_health(
         self, target: DeploymentTarget, version: ServiceVersion
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Check service health."""
         # Simulate health check
         await asyncio.sleep(0.5)
@@ -1029,7 +1038,7 @@ class InfrastructureManager:
 
     async def get_performance_metrics(
         self, target: DeploymentTarget, version: ServiceVersion
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Get performance metrics."""
         # Simulate metrics collection
         await asyncio.sleep(0.5)
@@ -1043,8 +1052,8 @@ class InfrastructureManager:
         }
 
     async def collect_ab_test_metrics(
-        self, target: DeploymentTarget, versions: List[str]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, target: DeploymentTarget, versions: builtins.list[str]
+    ) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Collect A/B test metrics for multiple versions."""
         metrics = {}
 
@@ -1075,7 +1084,7 @@ class TrafficManager:
 
     def __init__(self):
         """Initialize traffic manager."""
-        self.traffic_configurations: Dict[str, TrafficSplit] = {}
+        self.traffic_configurations: builtins.dict[str, TrafficSplit] = {}
 
     async def switch_traffic(
         self, target: DeploymentTarget, from_version: str, to_version: str
@@ -1115,8 +1124,8 @@ class ValidationRunResult:
     name: str
     result: ValidationResult
     duration_seconds: float
-    details: Dict[str, Any] = field(default_factory=dict)
-    error_message: Optional[str] = None
+    details: builtins.dict[str, Any] = field(default_factory=dict)
+    error_message: str | None = None
     required: bool = True
 
 
@@ -1125,13 +1134,15 @@ class ValidationManager:
 
     def __init__(self):
         """Initialize validation manager."""
-        self.validation_results: Dict[str, List[ValidationRunResult]] = defaultdict(
-            list
-        )
+        self.validation_results: builtins.dict[
+            str, builtins.list[ValidationRunResult]
+        ] = defaultdict(list)
 
     async def run_validations(
-        self, validations: List[DeploymentValidation], environment: Dict[str, Any]
-    ) -> List[ValidationRunResult]:
+        self,
+        validations: builtins.list[DeploymentValidation],
+        environment: builtins.dict[str, Any],
+    ) -> builtins.list[ValidationRunResult]:
         """Run deployment validations."""
         results = []
 
@@ -1144,7 +1155,7 @@ class ValidationManager:
         return results
 
     async def _run_single_validation(
-        self, validation: DeploymentValidation, environment: Dict[str, Any]
+        self, validation: DeploymentValidation, environment: builtins.dict[str, Any]
     ) -> ValidationRunResult:
         """Run a single validation."""
         start_time = time.time()
@@ -1188,7 +1199,7 @@ class ValidationManager:
             )
 
     async def _run_health_check_validation(
-        self, validation: DeploymentValidation, environment: Dict[str, Any]
+        self, validation: DeploymentValidation, environment: builtins.dict[str, Any]
     ) -> ValidationResult:
         """Run health check validation."""
         # Simulate health check
@@ -1198,7 +1209,7 @@ class ValidationManager:
         return ValidationResult.PASS if random.random() > 0.1 else ValidationResult.FAIL
 
     async def _run_performance_validation(
-        self, validation: DeploymentValidation, environment: Dict[str, Any]
+        self, validation: DeploymentValidation, environment: builtins.dict[str, Any]
     ) -> ValidationResult:
         """Run performance validation."""
         # Simulate performance test
@@ -1209,7 +1220,7 @@ class ValidationManager:
         )
 
     async def _run_smoke_test_validation(
-        self, validation: DeploymentValidation, environment: Dict[str, Any]
+        self, validation: DeploymentValidation, environment: builtins.dict[str, Any]
     ) -> ValidationResult:
         """Run smoke test validation."""
         # Simulate smoke test
@@ -1220,7 +1231,7 @@ class ValidationManager:
         )
 
     async def _run_integration_test_validation(
-        self, validation: DeploymentValidation, environment: Dict[str, Any]
+        self, validation: DeploymentValidation, environment: builtins.dict[str, Any]
     ) -> ValidationResult:
         """Run integration test validation."""
         # Simulate integration test
@@ -1236,16 +1247,16 @@ class FeatureFlagManager:
 
     def __init__(self):
         """Initialize feature flag manager."""
-        self.feature_flags: Dict[str, FeatureFlag] = {}
+        self.feature_flags: builtins.dict[str, FeatureFlag] = {}
         self.flag_evaluations: deque = deque(maxlen=10000)
 
-    def create_flag(self, flag_config: Dict[str, Any]) -> str:
+    def create_flag(self, flag_config: builtins.dict[str, Any]) -> str:
         """Create a new feature flag."""
         flag = FeatureFlag(**flag_config)
         self.feature_flags[flag.flag_id] = flag
         return flag.flag_id
 
-    def update_flag(self, flag_id: str, updates: Dict[str, Any]) -> bool:
+    def update_flag(self, flag_id: str, updates: builtins.dict[str, Any]) -> bool:
         """Update feature flag configuration."""
         if flag_id not in self.feature_flags:
             return False
@@ -1259,7 +1270,7 @@ class FeatureFlagManager:
         flag.updated_at = datetime.now(timezone.utc)
         return True
 
-    def evaluate_flag(self, flag_id: str, context: Dict[str, Any]) -> Any:
+    def evaluate_flag(self, flag_id: str, context: builtins.dict[str, Any]) -> Any:
         """Evaluate feature flag for given context."""
         if flag_id not in self.feature_flags:
             return None
@@ -1299,7 +1310,7 @@ class FeatureFlagManager:
         return result
 
     def _evaluate_boolean_flag(
-        self, flag: FeatureFlag, context: Dict[str, Any]
+        self, flag: FeatureFlag, context: builtins.dict[str, Any]
     ) -> bool:
         """Evaluate boolean feature flag."""
         # Check targeting rules
@@ -1310,14 +1321,14 @@ class FeatureFlagManager:
         return bool(flag.value) if flag.value is not None else True
 
     def _evaluate_percentage_flag(
-        self, flag: FeatureFlag, context: Dict[str, Any]
+        self, flag: FeatureFlag, context: builtins.dict[str, Any]
     ) -> bool:
         """Evaluate percentage-based feature flag."""
         user_id = context.get("user_id", "anonymous")
 
         # Generate consistent hash for user
         user_hash = int(
-            hashlib.md5(f"{flag.flag_id}:{user_id}".encode()).hexdigest(), 16
+            hashlib.sha256(f"{flag.flag_id}:{user_id}".encode()).hexdigest(), 16
         )
         user_percentage = (user_hash % 100) / 100.0
 
@@ -1326,7 +1337,7 @@ class FeatureFlagManager:
         return user_percentage < threshold
 
     def _evaluate_user_list_flag(
-        self, flag: FeatureFlag, context: Dict[str, Any]
+        self, flag: FeatureFlag, context: builtins.dict[str, Any]
     ) -> bool:
         """Evaluate user list feature flag."""
         user_id = context.get("user_id")
@@ -1336,7 +1347,9 @@ class FeatureFlagManager:
         user_list = flag.value if isinstance(flag.value, list) else []
         return user_id in user_list
 
-    def _evaluate_cohort_flag(self, flag: FeatureFlag, context: Dict[str, Any]) -> bool:
+    def _evaluate_cohort_flag(
+        self, flag: FeatureFlag, context: builtins.dict[str, Any]
+    ) -> bool:
         """Evaluate cohort-based feature flag."""
         # Simplified cohort evaluation
         cohort = context.get("cohort", "default")
@@ -1345,14 +1358,14 @@ class FeatureFlagManager:
         return cohort in target_cohorts
 
     def _evaluate_configuration_flag(
-        self, flag: FeatureFlag, context: Dict[str, Any]
+        self, flag: FeatureFlag, context: builtins.dict[str, Any]
     ) -> Any:
         """Evaluate configuration feature flag."""
         # Return configuration value directly
         return flag.value
 
     def _evaluate_targeting_rule(
-        self, rule: Dict[str, Any], context: Dict[str, Any]
+        self, rule: builtins.dict[str, Any], context: builtins.dict[str, Any]
     ) -> bool:
         """Evaluate targeting rule."""
         rule_type = rule.get("type")
@@ -1366,9 +1379,9 @@ class FeatureFlagManager:
 
             if operator == "equals":
                 return actual_value == expected_value
-            elif operator == "contains":
+            if operator == "contains":
                 return expected_value in str(actual_value) if actual_value else False
-            elif operator == "in":
+            if operator == "in":
                 return (
                     actual_value in expected_value
                     if isinstance(expected_value, list)
@@ -1379,14 +1392,14 @@ class FeatureFlagManager:
             percentage = rule.get("percentage", 0)
             user_id = context.get("user_id", "anonymous")
 
-            user_hash = int(hashlib.md5(f"rule:{user_id}".encode()).hexdigest(), 16)
+            user_hash = int(hashlib.sha256(f"rule:{user_id}".encode()).hexdigest(), 16)
             user_percentage = (user_hash % 100) / 100.0
 
             return user_percentage < percentage
 
         return False
 
-    def get_flag_status(self, flag_id: str) -> Optional[Dict[str, Any]]:
+    def get_flag_status(self, flag_id: str) -> builtins.dict[str, Any] | None:
         """Get feature flag status."""
         if flag_id not in self.feature_flags:
             return None
@@ -1450,7 +1463,7 @@ class RollbackManager:
             return success
 
         except Exception as e:
-            logging.error(
+            logging.exception(
                 f"Rollback failed for deployment {deployment.deployment_id}: {e}"
             )
 

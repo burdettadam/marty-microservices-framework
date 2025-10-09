@@ -5,7 +5,6 @@ This module contains basic tests to verify the plugin system functionality.
 """
 
 import asyncio
-from typing import Any, Dict
 
 import pytest
 from marty_chassis.config import ChassisConfig
@@ -16,8 +15,6 @@ from marty_chassis.plugins import (
     IPlugin,
     PluginManager,
     PluginMetadata,
-    event_handler,
-    middleware,
     plugin,
 )
 

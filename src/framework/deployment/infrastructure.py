@@ -7,28 +7,18 @@ management, and infrastructure automation for microservices architectures.
 """
 
 import asyncio
+import builtins
 import json
 import logging
-import shutil
-import subprocess
-import tempfile
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, dict, list, tuple
 
-import aiofiles
 import yaml
 
-from .core import (
-    DeploymentConfig,
-    DeploymentStatus,
-    DeploymentTarget,
-    EnvironmentType,
-    InfrastructureProvider,
-)
+from .core import DeploymentConfig, EnvironmentType
 
 logger = logging.getLogger(__name__)
 
@@ -75,10 +65,10 @@ class IaCConfig:
     project_name: str
     environment: EnvironmentType
     region: str = "us-east-1"
-    variables: Dict[str, Any] = field(default_factory=dict)
-    backend_config: Dict[str, Any] = field(default_factory=dict)
-    outputs: List[str] = field(default_factory=list)
-    dependencies: List[str] = field(default_factory=list)
+    variables: builtins.dict[str, Any] = field(default_factory=dict)
+    backend_config: builtins.dict[str, Any] = field(default_factory=dict)
+    outputs: builtins.list[str] = field(default_factory=list)
+    dependencies: builtins.list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -88,9 +78,9 @@ class ResourceConfig:
     name: str
     type: ResourceType
     provider: CloudProvider
-    properties: Dict[str, Any] = field(default_factory=dict)
-    dependencies: List[str] = field(default_factory=list)
-    tags: Dict[str, str] = field(default_factory=dict)
+    properties: builtins.dict[str, Any] = field(default_factory=dict)
+    dependencies: builtins.list[str] = field(default_factory=list)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -99,9 +89,9 @@ class InfrastructureStack:
 
     name: str
     config: IaCConfig
-    resources: List[ResourceConfig] = field(default_factory=list)
-    modules: List[str] = field(default_factory=list)
-    data_sources: List[Dict[str, Any]] = field(default_factory=list)
+    resources: builtins.list[ResourceConfig] = field(default_factory=list)
+    modules: builtins.list[str] = field(default_factory=list)
+    data_sources: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -110,10 +100,10 @@ class InfrastructureState:
 
     stack_name: str
     status: str
-    resources: Dict[str, Any] = field(default_factory=dict)
-    outputs: Dict[str, Any] = field(default_factory=dict)
-    last_updated: Optional[datetime] = None
-    version: Optional[str] = None
+    resources: builtins.dict[str, Any] = field(default_factory=dict)
+    outputs: builtins.dict[str, Any] = field(default_factory=dict)
+    last_updated: datetime | None = None
+    version: str | None = None
 
 
 class TerraformGenerator:
@@ -121,7 +111,7 @@ class TerraformGenerator:
 
     def generate_provider_config(
         self, cloud_provider: CloudProvider, region: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Generate Terraform provider configuration."""
         providers = {}
 
@@ -141,7 +131,9 @@ class TerraformGenerator:
 
         return {"terraform": {"required_providers": {}}, "provider": providers}
 
-    def generate_backend_config(self, backend_config: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_backend_config(
+        self, backend_config: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Generate Terraform backend configuration."""
         if not backend_config:
             return {}
@@ -210,7 +202,7 @@ class TerraformGenerator:
 
     def _generate_aws_microservice_resources(
         self, config: DeploymentConfig
-    ) -> List[ResourceConfig]:
+    ) -> builtins.list[ResourceConfig]:
         """Generate AWS resources for microservice."""
         service_name = config.service_name
         environment = config.target.environment.value
@@ -405,7 +397,7 @@ class TerraformGenerator:
 
     def _generate_azure_microservice_resources(
         self, config: DeploymentConfig
-    ) -> List[ResourceConfig]:
+    ) -> builtins.list[ResourceConfig]:
         """Generate Azure resources for microservice."""
         service_name = config.service_name
         environment = config.target.environment.value
@@ -472,7 +464,7 @@ class TerraformGenerator:
 
     def _generate_gcp_microservice_resources(
         self, config: DeploymentConfig
-    ) -> List[ResourceConfig]:
+    ) -> builtins.list[ResourceConfig]:
         """Generate GCP resources for microservice."""
         service_name = config.service_name
         environment = config.target.environment.value
@@ -527,7 +519,7 @@ class TerraformGenerator:
 
     def _generate_k8s_microservice_resources(
         self, config: DeploymentConfig
-    ) -> List[ResourceConfig]:
+    ) -> builtins.list[ResourceConfig]:
         """Generate Kubernetes resources for microservice."""
         service_name = config.service_name
         environment = config.target.environment.value
@@ -643,10 +635,9 @@ class PulumiGenerator:
         """Generate Pulumi infrastructure code."""
         if language == "python":
             return self._generate_python_pulumi(deployment_config, cloud_provider)
-        elif language == "typescript":
+        if language == "typescript":
             return self._generate_typescript_pulumi(deployment_config, cloud_provider)
-        else:
-            raise ValueError(f"Unsupported Pulumi language: {language}")
+        raise ValueError(f"Unsupported Pulumi language: {language}")
 
     def _generate_python_pulumi(
         self, config: DeploymentConfig, cloud_provider: CloudProvider
@@ -714,7 +705,7 @@ pulumi.export("service_arn", service.arn)
 pulumi.export("cluster_arn", cluster.arn)
 """
 
-        elif cloud_provider == CloudProvider.GCP:
+        if cloud_provider == CloudProvider.GCP:
             return f"""import pulumi
 import pulumi_gcp as gcp
 
@@ -779,10 +770,9 @@ class InfrastructureManager:
 
             if stack.config.provider == IaCProvider.TERRAFORM:
                 return await self._create_terraform_stack(stack, stack_dir)
-            elif stack.config.provider == IaCProvider.PULUMI:
+            if stack.config.provider == IaCProvider.PULUMI:
                 return await self._create_pulumi_stack(stack, stack_dir)
-            else:
-                raise ValueError(f"Unsupported IaC provider: {stack.config.provider}")
+            raise ValueError(f"Unsupported IaC provider: {stack.config.provider}")
 
         except Exception as e:
             logger.error(f"Failed to create infrastructure stack: {e}")
@@ -877,7 +867,9 @@ class InfrastructureManager:
 
         return f"{prefix}_{resource_type}"
 
-    def _write_terraform_hcl(self, config: Dict[str, Any], file_handle) -> None:
+    def _write_terraform_hcl(
+        self, config: builtins.dict[str, Any], file_handle
+    ) -> None:
         """Write Terraform HCL configuration."""
         # Simplified HCL writer - in production, use proper HCL library
         for key, value in config.items():
@@ -905,11 +897,10 @@ class InfrastructureManager:
                         else:
                             file_handle.write(f"{prefix}  {json.dumps(item)},\n")
                     file_handle.write(f"{prefix}]\n")
+                elif isinstance(v, str) and v.startswith("${"):
+                    file_handle.write(f"{prefix}{k} = {v}\n")
                 else:
-                    if isinstance(v, str) and v.startswith("${"):
-                        file_handle.write(f"{prefix}{k} = {v}\n")
-                    else:
-                        file_handle.write(f"{prefix}{k} = {json.dumps(v)}\n")
+                    file_handle.write(f"{prefix}{k} = {json.dumps(v)}\n")
         elif isinstance(value, list):
             for item in value:
                 self._write_hcl_value(item, file_handle, indent)
@@ -957,7 +948,7 @@ class InfrastructureManager:
 
     async def deploy_stack(
         self, stack_name: str, auto_approve: bool = False
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> builtins.tuple[bool, str | None]:
         """Deploy infrastructure stack."""
         try:
             stack_dir = self.working_dir / stack_name
@@ -968,17 +959,16 @@ class InfrastructureManager:
             # Check if it's a Terraform or Pulumi stack
             if (stack_dir / "main.tf").exists():
                 return await self._deploy_terraform_stack(stack_dir, auto_approve)
-            elif (stack_dir / "Pulumi.yaml").exists():
+            if (stack_dir / "Pulumi.yaml").exists():
                 return await self._deploy_pulumi_stack(stack_dir)
-            else:
-                return False, "Unknown stack type"
+            return False, "Unknown stack type"
 
         except Exception as e:
-            return False, f"Deployment failed: {str(e)}"
+            return False, f"Deployment failed: {e!s}"
 
     async def _deploy_terraform_stack(
         self, stack_dir: Path, auto_approve: bool
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> builtins.tuple[bool, str | None]:
         """Deploy Terraform stack."""
         try:
             # Initialize
@@ -1025,13 +1015,14 @@ class InfrastructureManager:
 
             if apply_process.returncode == 0:
                 return True, "Terraform deployment successful"
-            else:
-                return False, f"Terraform apply failed: {stderr.decode()}"
+            return False, f"Terraform apply failed: {stderr.decode()}"
 
         except Exception as e:
-            return False, f"Terraform deployment error: {str(e)}"
+            return False, f"Terraform deployment error: {e!s}"
 
-    async def _deploy_pulumi_stack(self, stack_dir: Path) -> Tuple[bool, Optional[str]]:
+    async def _deploy_pulumi_stack(
+        self, stack_dir: Path
+    ) -> builtins.tuple[bool, str | None]:
         """Deploy Pulumi stack."""
         try:
             # Install dependencies
@@ -1059,20 +1050,19 @@ class InfrastructureManager:
 
             if up_process.returncode == 0:
                 return True, "Pulumi deployment successful"
-            else:
-                return False, f"Pulumi deployment failed: {stderr.decode()}"
+            return False, f"Pulumi deployment failed: {stderr.decode()}"
 
         except Exception as e:
-            return False, f"Pulumi deployment error: {str(e)}"
+            return False, f"Pulumi deployment error: {e!s}"
 
-    async def get_stack_state(self, stack_name: str) -> Optional[InfrastructureState]:
+    async def get_stack_state(self, stack_name: str) -> InfrastructureState | None:
         """Get infrastructure stack state."""
         try:
             stack_dir = self.working_dir / stack_name
 
             if (stack_dir / "terraform.tfstate").exists():
                 return await self._get_terraform_state(stack_dir)
-            elif (stack_dir / "Pulumi.yaml").exists():
+            if (stack_dir / "Pulumi.yaml").exists():
                 return await self._get_pulumi_state(stack_dir)
 
             return None
@@ -1081,9 +1071,7 @@ class InfrastructureManager:
             logger.error(f"Failed to get stack state: {e}")
             return None
 
-    async def _get_terraform_state(
-        self, stack_dir: Path
-    ) -> Optional[InfrastructureState]:
+    async def _get_terraform_state(self, stack_dir: Path) -> InfrastructureState | None:
         """Get Terraform state."""
         try:
             show_process = await asyncio.create_subprocess_exec(
@@ -1118,7 +1106,7 @@ class InfrastructureManager:
             logger.error(f"Failed to get Terraform state: {e}")
             return None
 
-    async def _get_pulumi_state(self, stack_dir: Path) -> Optional[InfrastructureState]:
+    async def _get_pulumi_state(self, stack_dir: Path) -> InfrastructureState | None:
         """Get Pulumi state."""
         try:
             stack_process = await asyncio.create_subprocess_exec(
@@ -1147,24 +1135,23 @@ class InfrastructureManager:
 
     async def destroy_stack(
         self, stack_name: str, auto_approve: bool = False
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> builtins.tuple[bool, str | None]:
         """Destroy infrastructure stack."""
         try:
             stack_dir = self.working_dir / stack_name
 
             if (stack_dir / "main.tf").exists():
                 return await self._destroy_terraform_stack(stack_dir, auto_approve)
-            elif (stack_dir / "Pulumi.yaml").exists():
+            if (stack_dir / "Pulumi.yaml").exists():
                 return await self._destroy_pulumi_stack(stack_dir)
-            else:
-                return False, "Unknown stack type"
+            return False, "Unknown stack type"
 
         except Exception as e:
-            return False, f"Destroy failed: {str(e)}"
+            return False, f"Destroy failed: {e!s}"
 
     async def _destroy_terraform_stack(
         self, stack_dir: Path, auto_approve: bool
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> builtins.tuple[bool, str | None]:
         """Destroy Terraform stack."""
         try:
             destroy_cmd = ["terraform", "destroy"]
@@ -1181,15 +1168,14 @@ class InfrastructureManager:
 
             if destroy_process.returncode == 0:
                 return True, "Terraform destroy successful"
-            else:
-                return False, f"Terraform destroy failed: {stderr.decode()}"
+            return False, f"Terraform destroy failed: {stderr.decode()}"
 
         except Exception as e:
-            return False, f"Terraform destroy error: {str(e)}"
+            return False, f"Terraform destroy error: {e!s}"
 
     async def _destroy_pulumi_stack(
         self, stack_dir: Path
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> builtins.tuple[bool, str | None]:
         """Destroy Pulumi stack."""
         try:
             destroy_process = await asyncio.create_subprocess_exec(
@@ -1204,11 +1190,10 @@ class InfrastructureManager:
 
             if destroy_process.returncode == 0:
                 return True, "Pulumi destroy successful"
-            else:
-                return False, f"Pulumi destroy failed: {stderr.decode()}"
+            return False, f"Pulumi destroy failed: {stderr.decode()}"
 
         except Exception as e:
-            return False, f"Pulumi destroy error: {str(e)}"
+            return False, f"Pulumi destroy error: {e!s}"
 
 
 # Utility functions
@@ -1228,7 +1213,7 @@ async def deploy_infrastructure(
     manager: InfrastructureManager,
     stack: InfrastructureStack,
     auto_approve: bool = False,
-) -> Tuple[bool, Optional[str]]:
+) -> builtins.tuple[bool, str | None]:
     """Deploy infrastructure stack."""
     try:
         # Create stack
@@ -1241,8 +1226,7 @@ async def deploy_infrastructure(
 
         if success:
             return True, f"Infrastructure deployed successfully: {message}"
-        else:
-            return False, f"Infrastructure deployment failed: {message}"
+        return False, f"Infrastructure deployment failed: {message}"
 
     except Exception as e:
-        return False, f"Infrastructure deployment error: {str(e)}"
+        return False, f"Infrastructure deployment error: {e!s}"

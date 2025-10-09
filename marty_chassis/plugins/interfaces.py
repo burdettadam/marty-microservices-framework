@@ -5,11 +5,10 @@ This module defines the core interfaces that all plugins must implement,
 along with supporting data structures for plugin metadata and context.
 """
 
-import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any
 
 from ..logger import get_logger
 
@@ -33,10 +32,10 @@ class PluginMetadata:
     version: str
     description: str = ""
     author: str = ""
-    dependencies: List[str] = field(default_factory=list)
-    provides: List[str] = field(default_factory=list)
-    config_schema: Optional[Dict[str, Any]] = None
-    entry_points: Dict[str, str] = field(default_factory=dict)
+    dependencies: list[str] = field(default_factory=list)
+    provides: list[str] = field(default_factory=list)
+    config_schema: dict[str, Any] | None = None
+    entry_points: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         """Validate metadata after initialization."""
@@ -50,14 +49,14 @@ class PluginMetadata:
 class PluginContext:
     """Context provided to plugins during initialization."""
 
-    config: Dict[str, Any]
+    config: dict[str, Any]
     logger: Any
     metrics_collector: Any
     event_bus: Any
     service_registry: Any
     extension_points: Any
     core_services: Any
-    plugin_config: Dict[str, Any] = field(default_factory=dict)
+    plugin_config: dict[str, Any] = field(default_factory=dict)
 
     def get_config(self, key: str, default: Any = None) -> Any:
         """Get a configuration value with optional default."""
@@ -73,9 +72,9 @@ class IPlugin(ABC):
     """
 
     def __init__(self):
-        self.metadata: Optional[PluginMetadata] = None
+        self.metadata: PluginMetadata | None = None
         self.state: PluginState = PluginState.UNLOADED
-        self.context: Optional[PluginContext] = None
+        self.context: PluginContext | None = None
         self.logger = get_logger(self.__class__.__name__)
 
     @property
@@ -114,7 +113,7 @@ class IPlugin(ABC):
         register event handlers, start background tasks, etc.
         """
         if self.state != PluginState.INITIALIZED:
-            raise RuntimeError(f"Plugin must be initialized before starting")
+            raise RuntimeError("Plugin must be initialized before starting")
 
         self.state = PluginState.STARTED
         self.logger.info(f"Plugin {self.plugin_metadata.name} started")
@@ -139,7 +138,7 @@ class IPlugin(ABC):
         self.state = PluginState.UNLOADED
         self.logger.debug(f"Plugin {self.plugin_metadata.name} unloaded")
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """
         Perform a health check of the plugin.
 
@@ -163,16 +162,16 @@ class IServicePlugin(IPlugin):
     """
 
     @abstractmethod
-    async def on_service_register(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_register(self, service_info: dict[str, Any]) -> None:
         """Called when a service is being registered."""
         pass
 
     @abstractmethod
-    async def on_service_unregister(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_unregister(self, service_info: dict[str, Any]) -> None:
         """Called when a service is being unregistered."""
         pass
 
-    async def on_service_discovery(self, query: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def on_service_discovery(self, query: dict[str, Any]) -> list[dict[str, Any]]:
         """
         Called during service discovery.
 
@@ -227,7 +226,7 @@ class IEventHandlerPlugin(IPlugin):
     """
 
     @abstractmethod
-    def get_event_subscriptions(self) -> Dict[str, str]:
+    def get_event_subscriptions(self) -> dict[str, str]:
         """
         Return event subscriptions for this plugin.
 
@@ -237,7 +236,7 @@ class IEventHandlerPlugin(IPlugin):
         pass
 
     @abstractmethod
-    async def handle_event(self, event_type: str, event_data: Dict[str, Any]) -> None:
+    async def handle_event(self, event_type: str, event_data: dict[str, Any]) -> None:
         """
         Handle an event.
 
@@ -247,7 +246,7 @@ class IEventHandlerPlugin(IPlugin):
         """
         pass
 
-    async def publish_event(self, event_type: str, event_data: Dict[str, Any]) -> None:
+    async def publish_event(self, event_type: str, event_data: dict[str, Any]) -> None:
         """
         Publish an event to the system.
 
@@ -268,7 +267,7 @@ class IHealthPlugin(IPlugin):
     """
 
     @abstractmethod
-    async def check_health(self) -> Dict[str, Any]:
+    async def check_health(self) -> dict[str, Any]:
         """
         Perform a detailed health check.
 
@@ -297,7 +296,7 @@ class IMetricsPlugin(IPlugin):
     """
 
     @abstractmethod
-    async def collect_metrics(self) -> Dict[str, Any]:
+    async def collect_metrics(self) -> dict[str, Any]:
         """
         Collect plugin-specific metrics.
 
@@ -307,7 +306,7 @@ class IMetricsPlugin(IPlugin):
         pass
 
     @abstractmethod
-    def get_metric_definitions(self) -> Dict[str, Dict[str, Any]]:
+    def get_metric_definitions(self) -> dict[str, dict[str, Any]]:
         """
         Return metric definitions for this plugin.
 

@@ -28,6 +28,7 @@ from .event_bus import (
 )
 
 __all__ = [
+    "EVENT_REGISTRY",
     "BaseEvent",
     "DomainEvent",
     "EventBus",
@@ -39,7 +40,6 @@ __all__ = [
     "OutboxEvent",
     "SystemEvent",
     "TransactionalOutboxEventBus",
-    "EVENT_REGISTRY",
     "event_transaction",
     "publish_domain_event",
     "publish_system_event",

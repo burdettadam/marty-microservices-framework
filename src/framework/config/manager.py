@@ -13,6 +13,7 @@ Features:
 - Caching and performance optimization
 """
 
+import builtins
 import json
 import logging
 import os
@@ -21,7 +22,19 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Set,
+    Type,
+    TypeVar,
+    dict,
+    list,
+    type,
+)
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError
@@ -57,29 +70,26 @@ class ConfigMetadata:
     """Configuration metadata and tracking."""
 
     source: ConfigSource
-    last_loaded: Optional[str] = None
-    checksum: Optional[str] = None
-    version: Optional[str] = None
-    tags: List[str] = field(default_factory=list)
+    last_loaded: str | None = None
+    checksum: str | None = None
+    version: str | None = None
+    tags: builtins.list[str] = field(default_factory=list)
 
 
 class ConfigProvider(ABC):
     """Abstract configuration provider interface."""
 
     @abstractmethod
-    async def load_config(self, key: str) -> Dict[str, Any]:
+    async def load_config(self, key: str) -> builtins.dict[str, Any]:
         """Load configuration for the given key."""
-        pass
 
     @abstractmethod
-    async def save_config(self, key: str, config: Dict[str, Any]) -> bool:
+    async def save_config(self, key: str, config: builtins.dict[str, Any]) -> bool:
         """Save configuration for the given key."""
-        pass
 
     @abstractmethod
     async def watch_config(self, key: str, callback) -> None:
         """Watch configuration changes for the given key."""
-        pass
 
 
 class FileConfigProvider(ConfigProvider):
@@ -89,21 +99,21 @@ class FileConfigProvider(ConfigProvider):
         self.config_dir = Path(config_dir)
         self.config_dir.mkdir(parents=True, exist_ok=True)
 
-    async def load_config(self, key: str) -> Dict[str, Any]:
+    async def load_config(self, key: str) -> builtins.dict[str, Any]:
         """Load configuration from file."""
         yaml_file = self.config_dir / f"{key}.yaml"
         json_file = self.config_dir / f"{key}.json"
 
         if yaml_file.exists():
-            with open(yaml_file, "r") as f:
+            with open(yaml_file) as f:
                 return yaml.safe_load(f) or {}
         elif json_file.exists():
-            with open(json_file, "r") as f:
+            with open(json_file) as f:
                 return json.load(f)
         else:
             return {}
 
-    async def save_config(self, key: str, config: Dict[str, Any]) -> bool:
+    async def save_config(self, key: str, config: builtins.dict[str, Any]) -> bool:
         """Save configuration to file."""
         try:
             yaml_file = self.config_dir / f"{key}.yaml"
@@ -117,7 +127,6 @@ class FileConfigProvider(ConfigProvider):
     async def watch_config(self, key: str, callback) -> None:
         """Watch for file changes (simplified implementation)."""
         # In a real implementation, use file system watching
-        pass
 
 
 class EnvVarConfigProvider(ConfigProvider):
@@ -126,7 +135,7 @@ class EnvVarConfigProvider(ConfigProvider):
     def __init__(self, prefix: str = ""):
         self.prefix = prefix.upper() + "_" if prefix else ""
 
-    async def load_config(self, key: str) -> Dict[str, Any]:
+    async def load_config(self, key: str) -> builtins.dict[str, Any]:
         """Load configuration from environment variables."""
         config = {}
         env_key = f"{self.prefix}{key.upper()}"
@@ -150,13 +159,12 @@ class EnvVarConfigProvider(ConfigProvider):
 
         return config
 
-    async def save_config(self, key: str, config: Dict[str, Any]) -> bool:
+    async def save_config(self, key: str, config: builtins.dict[str, Any]) -> bool:
         """Environment variables are read-only."""
         return False
 
     async def watch_config(self, key: str, callback) -> None:
         """Environment variables don't support watching."""
-        pass
 
 
 class BaseServiceConfig(BaseSettings):
@@ -188,7 +196,7 @@ class BaseServiceConfig(BaseSettings):
     )
 
     # Observability
-    otlp_endpoint: Optional[str] = Field(
+    otlp_endpoint: str | None = Field(
         default=None, description="OpenTelemetry OTLP endpoint"
     )
     metrics_enabled: bool = Field(default=True, description="Enable metrics collection")
@@ -198,7 +206,7 @@ class BaseServiceConfig(BaseSettings):
 
     # Security
     secret_key: str = Field(..., description="Application secret key")
-    cors_origins: List[str] = Field(
+    cors_origins: builtins.list[str] = Field(
         default_factory=list, description="CORS allowed origins"
     )
 
@@ -207,7 +215,9 @@ class BaseServiceConfig(BaseSettings):
     max_requests: int = Field(default=1000, description="Maximum requests per worker")
 
     # Feature flags
-    features: Dict[str, bool] = Field(default_factory=dict, description="Feature flags")
+    features: builtins.dict[str, bool] = Field(
+        default_factory=dict, description="Feature flags"
+    )
 
 
 class ConfigManager(Generic[T]):
@@ -215,8 +225,8 @@ class ConfigManager(Generic[T]):
 
     def __init__(
         self,
-        config_class: Type[T],
-        providers: List[ConfigProvider],
+        config_class: builtins.type[T],
+        providers: builtins.list[ConfigProvider],
         cache_ttl: int = 300,  # 5 minutes
         auto_reload: bool = True,
     ):
@@ -224,9 +234,9 @@ class ConfigManager(Generic[T]):
         self.providers = providers
         self.cache_ttl = cache_ttl
         self.auto_reload = auto_reload
-        self._cache: Dict[str, Any] = {}
-        self._metadata: Dict[str, ConfigMetadata] = {}
-        self._watchers: Dict[str, List] = {}
+        self._cache: builtins.dict[str, Any] = {}
+        self._metadata: builtins.dict[str, ConfigMetadata] = {}
+        self._watchers: builtins.dict[str, builtins.list] = {}
 
     async def get_config(self, key: str) -> T:
         """Get validated configuration for the given key."""
@@ -294,9 +304,9 @@ class SecretManager:
 
     def __init__(self, provider: ConfigProvider):
         self.provider = provider
-        self._secret_cache: Dict[str, Any] = {}
+        self._secret_cache: builtins.dict[str, Any] = {}
 
-    async def get_secret(self, key: str) -> Optional[str]:
+    async def get_secret(self, key: str) -> str | None:
         """Get secret value securely."""
         if key in self._secret_cache:
             return self._secret_cache[key]
@@ -336,15 +346,15 @@ class SecretManager:
 
 
 # Global configuration instances
-_config_managers: Dict[str, ConfigManager] = {}
-_secret_manager: Optional[SecretManager] = None
+_config_managers: builtins.dict[str, ConfigManager] = {}
+_secret_manager: SecretManager | None = None
 
 
 def create_config_manager(
     service_name: str,
-    config_class: Type[T] = BaseServiceConfig,
-    config_dir: Optional[str] = None,
-    env_prefix: Optional[str] = None,
+    config_class: builtins.type[T] = BaseServiceConfig,
+    config_dir: str | None = None,
+    env_prefix: str | None = None,
 ) -> ConfigManager[T]:
     """Create a configuration manager for a service."""
 
@@ -378,14 +388,14 @@ def create_config_manager(
     return manager
 
 
-def get_config_manager(service_name: str) -> Optional[ConfigManager]:
+def get_config_manager(service_name: str) -> ConfigManager | None:
     """Get existing configuration manager."""
     return _config_managers.get(service_name)
 
 
 async def get_service_config(
     service_name: str,
-    config_class: Type[T] = BaseServiceConfig,
+    config_class: builtins.type[T] = BaseServiceConfig,
 ) -> T:
     """Get service configuration with automatic manager creation."""
     manager = get_config_manager(service_name)
@@ -403,13 +413,15 @@ def create_secret_manager(provider: ConfigProvider) -> SecretManager:
     return _secret_manager
 
 
-def get_secret_manager() -> Optional[SecretManager]:
+def get_secret_manager() -> SecretManager | None:
     """Get global secret manager."""
     return _secret_manager
 
 
 @asynccontextmanager
-async def config_context(service_name: str, config_class: Type[T] = BaseServiceConfig):
+async def config_context(
+    service_name: str, config_class: builtins.type[T] = BaseServiceConfig
+):
     """Context manager for configuration lifecycle."""
     manager = create_config_manager(service_name, config_class)
     config = await manager.get_config(service_name)
@@ -434,14 +446,13 @@ def detect_environment() -> Environment:
         return Environment.DEVELOPMENT
 
 
-def load_config_schema(schema_path: str) -> Dict[str, Any]:
+def load_config_schema(schema_path: str) -> builtins.dict[str, Any]:
     """Load configuration schema for validation."""
     try:
-        with open(schema_path, "r") as f:
+        with open(schema_path) as f:
             if schema_path.endswith(".yaml") or schema_path.endswith(".yml"):
                 return yaml.safe_load(f)
-            else:
-                return json.load(f)
+            return json.load(f)
     except Exception as e:
         logger.error(f"Failed to load config schema from {schema_path}: {e}")
         return {}

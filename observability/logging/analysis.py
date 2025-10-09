@@ -10,14 +10,14 @@ Demonstrates advanced log analysis patterns including:
 """
 
 import asyncio
+import builtins
 import json
 import re
 import statistics
-import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, dict, list
 
 # External dependencies (optional)
 try:
@@ -39,8 +39,8 @@ class LogEvent:
     service_name: str
     message: str
     category: str
-    context: Dict[str, Any] = field(default_factory=dict)
-    fields: Dict[str, Any] = field(default_factory=dict)
+    context: builtins.dict[str, Any] = field(default_factory=dict)
+    fields: builtins.dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_json(cls, log_line: str) -> Optional["LogEvent"]:
@@ -72,7 +72,7 @@ class AlertRule:
     threshold: int
     window_minutes: int
     cooldown_minutes: int = 5
-    last_triggered: Optional[datetime] = None
+    last_triggered: datetime | None = None
 
 
 class LogAnalyzer:
@@ -106,18 +106,18 @@ class LogAnalyzer:
         self.service_metrics: defaultdict = defaultdict(lambda: defaultdict(list))
 
         # Alert rules
-        self.alert_rules: List[AlertRule] = self._create_default_alert_rules()
+        self.alert_rules: builtins.list[AlertRule] = self._create_default_alert_rules()
 
         # Metrics (if monitoring available)
         if MONITORING_AVAILABLE and enable_metrics:
             self._setup_metrics()
 
         # Pattern cache
-        self._compiled_patterns: Dict[str, re.Pattern] = {}
+        self._compiled_patterns: builtins.dict[str, re.Pattern] = {}
 
         print("Log analyzer initialized")
 
-    def _create_default_alert_rules(self) -> List[AlertRule]:
+    def _create_default_alert_rules(self) -> builtins.list[AlertRule]:
         """Create default alert rules"""
         return [
             AlertRule(
@@ -196,7 +196,7 @@ class LogAnalyzer:
             self._compiled_patterns[pattern] = re.compile(pattern)
         return self._compiled_patterns[pattern]
 
-    async def process_log_event(self, log_line: str) -> Optional[LogEvent]:
+    async def process_log_event(self, log_line: str) -> LogEvent | None:
         """Process a single log event"""
         event = LogEvent.from_json(log_line)
         if not event:
@@ -371,7 +371,7 @@ class LogAnalyzer:
                 await self._process_revenue_event(event, business_data)
 
     async def _process_revenue_event(
-        self, event: LogEvent, business_data: Dict[str, Any]
+        self, event: LogEvent, business_data: builtins.dict[str, Any]
     ):
         """Process revenue-generating events"""
         revenue_data = {
@@ -402,7 +402,9 @@ class LogAnalyzer:
         if MONITORING_AVAILABLE and hasattr(self, "metrics"):
             self.metrics["active_services"].set(len(current_services))
 
-    def get_service_performance_summary(self, service_name: str) -> Dict[str, Any]:
+    def get_service_performance_summary(
+        self, service_name: str
+    ) -> builtins.dict[str, Any]:
         """Get performance summary for a service"""
         response_times = self.service_metrics[service_name]["response_times"]
 
@@ -423,11 +425,11 @@ class LogAnalyzer:
 
     def get_recent_events(
         self,
-        service_name: Optional[str] = None,
-        level: Optional[str] = None,
-        category: Optional[str] = None,
+        service_name: str | None = None,
+        level: str | None = None,
+        category: str | None = None,
         limit: int = 100,
-    ) -> List[LogEvent]:
+    ) -> builtins.list[LogEvent]:
         """Get recent events with optional filtering"""
         events = list(self.event_buffer)
 
@@ -469,7 +471,7 @@ class LogStreamProcessor:
         self.running = True
 
         try:
-            with open(file_path, "r") as file:
+            with open(file_path) as file:
                 # Seek to end of file
                 file.seek(0, 2)
 

@@ -11,7 +11,7 @@ This module provides:
 
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Optional, Union, dict, list, set
 
 import jwt
 from fastapi import HTTPException, Request, status
@@ -35,11 +35,11 @@ class User(BaseModel):
     id: str
     username: str
     email: str
-    roles: List[str] = []
-    permissions: List[str] = []
+    roles: list[str] = []
+    permissions: list[str] = []
     is_active: bool = True
     created_at: datetime
-    last_login: Optional[datetime] = None
+    last_login: datetime | None = None
 
 
 class TokenData(BaseModel):
@@ -47,8 +47,8 @@ class TokenData(BaseModel):
 
     sub: str  # subject (user id)
     username: str
-    roles: List[str] = []
-    permissions: List[str] = []
+    roles: list[str] = []
+    permissions: list[str] = []
     exp: int  # expiration timestamp
     iat: int  # issued at timestamp
     jti: str  # JWT ID
@@ -64,7 +64,7 @@ class JWTAuth:
         self.expiration_minutes = config.jwt_expiration_minutes
 
     def create_access_token(
-        self, user: User, expires_delta: Optional[timedelta] = None
+        self, user: User, expires_delta: timedelta | None = None
     ) -> str:
         """Create a JWT access token for a user."""
         if expires_delta:
@@ -135,7 +135,7 @@ class APIKeyAuth:
     def __init__(self, config: SecurityConfig):
         self.config = config
         self.header_name = config.api_key_header
-        self.valid_keys: Set[str] = set()
+        self.valid_keys: set[str] = set()
 
     def add_api_key(self, api_key: str) -> None:
         """Add a valid API key."""
@@ -157,19 +157,19 @@ class RBACMiddleware:
     """Role-Based Access Control middleware."""
 
     def __init__(self):
-        self.role_permissions: Dict[str, Set[str]] = {}
-        self.resource_permissions: Dict[str, Set[str]] = {}
+        self.role_permissions: dict[str, set[str]] = {}
+        self.resource_permissions: dict[str, set[str]] = {}
 
-    def add_role(self, role: str, permissions: List[str]) -> None:
+    def add_role(self, role: str, permissions: list[str]) -> None:
         """Add a role with its permissions."""
         self.role_permissions[role] = set(permissions)
         logger.info("Role added", role=role, permissions=permissions)
 
-    def add_resource_permission(self, resource: str, permissions: List[str]) -> None:
+    def add_resource_permission(self, resource: str, permissions: list[str]) -> None:
         """Add permissions required for a resource."""
         self.resource_permissions[resource] = set(permissions)
 
-    def has_permission(self, user_roles: List[str], required_permission: str) -> bool:
+    def has_permission(self, user_roles: list[str], required_permission: str) -> bool:
         """Check if user roles have the required permission."""
         user_permissions = set()
         for role in user_roles:
@@ -178,7 +178,7 @@ class RBACMiddleware:
 
         return required_permission in user_permissions
 
-    def has_resource_access(self, user_roles: List[str], resource: str) -> bool:
+    def has_resource_access(self, user_roles: list[str], resource: str) -> bool:
         """Check if user has access to a resource."""
         if resource not in self.resource_permissions:
             return True  # No permissions required
@@ -199,8 +199,8 @@ class SecurityMiddleware:
     def __init__(
         self,
         jwt_auth: JWTAuth,
-        api_key_auth: Optional[APIKeyAuth] = None,
-        rbac: Optional[RBACMiddleware] = None,
+        api_key_auth: APIKeyAuth | None = None,
+        rbac: RBACMiddleware | None = None,
         rate_limiter: Optional["RateLimiter"] = None,
     ):
         self.jwt_auth = jwt_auth
@@ -209,7 +209,7 @@ class SecurityMiddleware:
         self.rate_limiter = rate_limiter
         self.bearer = HTTPBearer(auto_error=False)
 
-    async def authenticate_request(self, request: Request) -> Optional[TokenData]:
+    async def authenticate_request(self, request: Request) -> TokenData | None:
         """Authenticate a request using JWT or API key."""
         # Try JWT authentication first
         credentials: HTTPAuthorizationCredentials = await self.bearer(request)
@@ -237,7 +237,7 @@ class SecurityMiddleware:
 
         return None
 
-    def require_authentication(self, token_data: Optional[TokenData]) -> TokenData:
+    def require_authentication(self, token_data: TokenData | None) -> TokenData:
         """Require authentication, raise exception if not authenticated."""
         if not token_data:
             raise HTTPException(
@@ -285,7 +285,7 @@ class RateLimiter:
     def __init__(self, requests_per_minute: int = 100, window_seconds: int = 60):
         self.requests_per_minute = requests_per_minute
         self.window_seconds = window_seconds
-        self.requests: Dict[str, List[float]] = {}
+        self.requests: dict[str, list[float]] = {}
 
     def is_allowed(self, identifier: str) -> bool:
         """Check if request is allowed for the given identifier."""

@@ -2,22 +2,20 @@
 Authentication providers for the enterprise security framework.
 """
 
-import asyncio
+import builtins
 import hashlib
 import logging
-import secrets
-import ssl
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, dict, list
 
 import jwt
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 
-from .config import APIKeyConfig, JWTConfig, MTLSConfig, SecurityConfig
-from .errors import AuthenticationError, CertificateValidationError, InvalidTokenError
+from .config import SecurityConfig
+from .errors import CertificateValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -27,14 +25,14 @@ class AuthenticatedUser:
     """Represents an authenticated user."""
 
     user_id: str
-    username: Optional[str] = None
-    email: Optional[str] = None
-    roles: List[str] = field(default_factory=list)
-    permissions: List[str] = field(default_factory=list)
-    session_id: Optional[str] = None
-    auth_method: Optional[str] = None
-    expires_at: Optional[datetime] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    username: str | None = None
+    email: str | None = None
+    roles: builtins.list[str] = field(default_factory=list)
+    permissions: builtins.list[str] = field(default_factory=list)
+    session_id: str | None = None
+    auth_method: str | None = None
+    expires_at: datetime | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         # Fields are now properly initialized with default_factory
@@ -60,10 +58,10 @@ class AuthenticationResult:
     """Result of an authentication attempt."""
 
     success: bool
-    user: Optional[AuthenticatedUser] = None
-    error: Optional[str] = None
-    error_code: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    user: AuthenticatedUser | None = None
+    error: str | None = None
+    error_code: str | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         # Field is now properly initialized with default_factory
@@ -78,14 +76,14 @@ class BaseAuthenticator(ABC):
         self.service_name = config.service_name
 
     @abstractmethod
-    async def authenticate(self, credentials: Dict[str, Any]) -> AuthenticationResult:
+    async def authenticate(
+        self, credentials: builtins.dict[str, Any]
+    ) -> AuthenticationResult:
         """Authenticate a user with provided credentials."""
-        pass
 
     @abstractmethod
     async def validate_token(self, token: str) -> AuthenticationResult:
         """Validate an authentication token."""
-        pass
 
 
 class JWTAuthenticator(BaseAuthenticator):
@@ -97,7 +95,9 @@ class JWTAuthenticator(BaseAuthenticator):
             raise ValueError("JWT configuration is required")
         self.jwt_config = config.jwt_config
 
-    async def authenticate(self, credentials: Dict[str, Any]) -> AuthenticationResult:
+    async def authenticate(
+        self, credentials: builtins.dict[str, Any]
+    ) -> AuthenticationResult:
         """Authenticate with username/password and return JWT."""
         # This would typically validate against a user store
         # For now, we'll implement a basic validation
@@ -163,7 +163,7 @@ class JWTAuthenticator(BaseAuthenticator):
         except jwt.InvalidTokenError as e:
             return AuthenticationResult(
                 success=False,
-                error=f"Invalid token: {str(e)}",
+                error=f"Invalid token: {e!s}",
                 error_code="INVALID_TOKEN",
             )
 
@@ -198,7 +198,9 @@ class APIKeyAuthenticator(BaseAuthenticator):
         self.api_key_config = config.api_key_config
         self._api_keys = set(self.api_key_config.valid_keys)
 
-    async def authenticate(self, credentials: Dict[str, Any]) -> AuthenticationResult:
+    async def authenticate(
+        self, credentials: builtins.dict[str, Any]
+    ) -> AuthenticationResult:
         """Authenticate with API key."""
         api_key = credentials.get("api_key")
 
@@ -234,8 +236,8 @@ class APIKeyAuthenticator(BaseAuthenticator):
         )
 
     def extract_api_key(
-        self, headers: Dict[str, str], query_params: Dict[str, str]
-    ) -> Optional[str]:
+        self, headers: builtins.dict[str, str], query_params: builtins.dict[str, str]
+    ) -> str | None:
         """Extract API key from headers or query parameters."""
         if self.api_key_config.allow_header:
             api_key = headers.get(self.api_key_config.header_name.lower())
@@ -275,7 +277,9 @@ class MTLSAuthenticator(BaseAuthenticator):
             logger.error(f"Failed to load CA certificate: {e}")
             raise CertificateValidationError(f"Failed to load CA certificate: {e}")
 
-    async def authenticate(self, credentials: Dict[str, Any]) -> AuthenticationResult:
+    async def authenticate(
+        self, credentials: builtins.dict[str, Any]
+    ) -> AuthenticationResult:
         """Authenticate with client certificate."""
         cert_der = credentials.get("client_cert")
 

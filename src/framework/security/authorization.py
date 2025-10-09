@@ -2,11 +2,12 @@
 Authorization and Role-Based Access Control (RBAC) for the enterprise security framework.
 """
 
+import builtins
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import wraps
-from typing import Callable, Dict, Optional, Set
+from typing import Callable, Dict, Optional, Set, dict, set
 
 from .auth import AuthenticatedUser
 from .errors import AuthorizationError, InsufficientPermissionsError
@@ -30,7 +31,7 @@ class Permission:
     name: str
     resource: str
     level: PermissionLevel
-    description: Optional[str] = None
+    description: str | None = None
 
     def __str__(self) -> str:
         return f"{self.resource}:{self.level.value}"
@@ -45,9 +46,9 @@ class Role:
     """Represents a role with associated permissions."""
 
     name: str
-    permissions: Set[Permission] = field(default_factory=set)
-    description: Optional[str] = None
-    inherits_from: Set[str] = field(default_factory=set)
+    permissions: builtins.set[Permission] = field(default_factory=set)
+    description: str | None = None
+    inherits_from: builtins.set[str] = field(default_factory=set)
 
     def add_permission(self, permission: Permission) -> None:
         """Add a permission to this role."""
@@ -57,7 +58,9 @@ class Role:
         """Check if this role has a specific permission."""
         return any(perm.matches(permission_string) for perm in self.permissions)
 
-    def get_all_permissions(self, role_registry: Dict[str, "Role"]) -> Set[Permission]:
+    def get_all_permissions(
+        self, role_registry: builtins.dict[str, "Role"]
+    ) -> builtins.set[Permission]:
         """Get all permissions including inherited ones."""
         all_permissions = self.permissions.copy()
 
@@ -73,8 +76,8 @@ class RoleBasedAccessControl:
     """Role-Based Access Control system."""
 
     def __init__(self):
-        self.roles: Dict[str, Role] = {}
-        self.permissions: Dict[str, Permission] = {}
+        self.roles: builtins.dict[str, Role] = {}
+        self.permissions: builtins.dict[str, Permission] = {}
         self._setup_default_roles()
 
     def _setup_default_roles(self) -> None:
@@ -148,7 +151,7 @@ class RoleBasedAccessControl:
         """Check if a user has a specific role."""
         return required_role in user.roles
 
-    def get_user_permissions(self, user: AuthenticatedUser) -> Set[str]:
+    def get_user_permissions(self, user: AuthenticatedUser) -> builtins.set[str]:
         """Get all permissions for a user."""
         all_permissions = set(user.permissions)
 
@@ -180,7 +183,7 @@ class RoleBasedAccessControl:
 
 
 # Global RBAC instance
-_rbac_instance: Optional[RoleBasedAccessControl] = None
+_rbac_instance: RoleBasedAccessControl | None = None
 
 
 def get_rbac() -> RoleBasedAccessControl:
@@ -246,8 +249,7 @@ def require_permission(permission: str, raise_exception: bool = True):
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 
@@ -307,8 +309,7 @@ def require_role(role: str, raise_exception: bool = True):
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 

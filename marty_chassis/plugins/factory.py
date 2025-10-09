@@ -5,9 +5,7 @@ This module provides an enhanced service factory that integrates
 the plugin system with the core framework functionality.
 """
 
-import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI
 
@@ -63,7 +61,7 @@ class PluginEnabledServiceFactory:
     async def create_fastapi_service_with_plugins(
         self,
         name: str,
-        plugin_directories: Optional[List[str]] = None,
+        plugin_directories: list[str] | None = None,
         enable_plugins: bool = True,
         **kwargs,
     ) -> FastAPI:
@@ -113,12 +111,15 @@ class PluginEnabledServiceFactory:
         # Add middleware from plugins
         middleware_plugins = self.plugin_manager.get_middleware_chain()
         for middleware_plugin in middleware_plugins:
-            # Create middleware wrapper
-            async def plugin_middleware(request, call_next):
-                return await middleware_plugin.process_request(request, call_next)
+            # Create middleware wrapper with captured plugin
+            def create_middleware(plugin):
+                async def plugin_middleware(request, call_next):
+                    return await plugin.process_request(request, call_next)
+
+                return plugin_middleware
 
             # Add to FastAPI
-            app.middleware("http")(plugin_middleware)
+            app.middleware("http")(create_middleware(middleware_plugin))
             self.logger.debug(
                 f"Added middleware: {middleware_plugin.plugin_metadata.name}"
             )
@@ -154,7 +155,7 @@ class PluginEnabledServiceFactory:
             "service.post_register", service_info
         )
 
-    def _get_default_plugin_directories(self) -> List[str]:
+    def _get_default_plugin_directories(self) -> list[str]:
         """Get default plugin directories."""
         default_dirs = [
             "plugins",
@@ -247,8 +248,8 @@ class PluginEnabledServiceFactory:
 # Convenience function for creating plugin-enabled services
 async def create_plugin_enabled_fastapi_service(
     name: str,
-    config: Optional[ChassisConfig] = None,
-    plugin_directories: Optional[List[str]] = None,
+    config: ChassisConfig | None = None,
+    plugin_directories: list[str] | None = None,
     **kwargs,
 ) -> FastAPI:
     """

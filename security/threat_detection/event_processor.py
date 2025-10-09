@@ -10,14 +10,13 @@ Provides real-time processing and analysis of security events including:
 """
 
 import asyncio
-import hashlib
-import json
+import builtins
 import re
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, dict, list
 
 # External dependencies
 try:
@@ -35,11 +34,11 @@ class SecurityEventFilter:
     """Security event filter configuration"""
 
     name: str
-    service_patterns: List[str] = None
-    event_types: List[str] = None
-    severity_levels: List[str] = None
-    source_ip_patterns: List[str] = None
-    user_patterns: List[str] = None
+    service_patterns: builtins.list[str] = None
+    event_types: builtins.list[str] = None
+    severity_levels: builtins.list[str] = None
+    source_ip_patterns: builtins.list[str] = None
+    user_patterns: builtins.list[str] = None
     enabled: bool = True
 
 
@@ -50,8 +49,8 @@ class SecurityEventRule:
     rule_id: str
     name: str
     description: str
-    conditions: Dict[str, Any]
-    actions: List[str]
+    conditions: builtins.dict[str, Any]
+    actions: builtins.list[str]
     severity: str
     category: str
     enabled: bool = True
@@ -62,14 +61,14 @@ class SecurityEventRule:
 class ProcessedSecurityEvent:
     """Processed and enriched security event"""
 
-    original_event: Dict[str, Any]
+    original_event: builtins.dict[str, Any]
     processed_at: datetime
-    enrichments: Dict[str, Any]
+    enrichments: builtins.dict[str, Any]
     threat_score: float
-    risk_factors: List[str]
-    correlated_events: List[str]
-    triggered_rules: List[str]
-    recommended_actions: List[str]
+    risk_factors: builtins.list[str]
+    correlated_events: builtins.list[str]
+    triggered_rules: builtins.list[str]
+    recommended_actions: builtins.list[str]
 
 
 class SecurityEventProcessor:
@@ -90,12 +89,12 @@ class SecurityEventProcessor:
         self.processed_events: deque = deque(maxlen=100000)
 
         # Event filters and rules
-        self.filters: Dict[str, SecurityEventFilter] = {}
-        self.rules: Dict[str, SecurityEventRule] = {}
+        self.filters: builtins.dict[str, SecurityEventFilter] = {}
+        self.rules: builtins.dict[str, SecurityEventRule] = {}
 
         # Event processors
-        self.processors: List[Callable] = []
-        self.enrichers: List[Callable] = []
+        self.processors: builtins.list[Callable] = []
+        self.enrichers: builtins.list[Callable] = []
 
         # Processing metrics
         self.events_received = 0
@@ -249,7 +248,7 @@ class SecurityEventProcessor:
         """Add event enricher"""
         self.enrichers.append(enricher)
 
-    async def ingest_event(self, event_data: Dict[str, Any]) -> bool:
+    async def ingest_event(self, event_data: builtins.dict[str, Any]) -> bool:
         """Ingest security event for processing"""
 
         try:
@@ -329,8 +328,8 @@ class SecurityEventProcessor:
                 self.processing_errors += 1
 
     async def _process_single_event(
-        self, event_data: Dict[str, Any]
-    ) -> Optional[ProcessedSecurityEvent]:
+        self, event_data: builtins.dict[str, Any]
+    ) -> ProcessedSecurityEvent | None:
         """Process a single security event"""
 
         # Apply filters
@@ -368,7 +367,7 @@ class SecurityEventProcessor:
 
         return processed_event
 
-    def _apply_filters(self, event_data: Dict[str, Any]) -> bool:
+    def _apply_filters(self, event_data: builtins.dict[str, Any]) -> bool:
         """Apply event filters to determine if event should be processed"""
 
         for filter_name, filter_config in self.filters.items():
@@ -426,8 +425,7 @@ class SecurityEventProcessor:
             # Convert wildcard pattern to regex
             regex_pattern = pattern.replace("*", ".*")
             return bool(re.match(regex_pattern, text, re.IGNORECASE))
-        else:
-            return pattern.lower() in text.lower()
+        return pattern.lower() in text.lower()
 
     async def _enrich_event(self, processed_event: ProcessedSecurityEvent):
         """Enrich event with additional context"""
@@ -466,7 +464,7 @@ class SecurityEventProcessor:
             except Exception as e:
                 print(f"Error in custom enricher: {e}")
 
-    async def _get_geo_location(self, ip_address: str) -> Dict[str, Any]:
+    async def _get_geo_location(self, ip_address: str) -> builtins.dict[str, Any]:
         """Get geographic location for IP address (mock)"""
         # This would integrate with real geolocation service
         return {
@@ -478,7 +476,7 @@ class SecurityEventProcessor:
             else 0.5,
         }
 
-    async def _get_user_context(self, user_id: str) -> Dict[str, Any]:
+    async def _get_user_context(self, user_id: str) -> builtins.dict[str, Any]:
         """Get user context information (mock)"""
         # This would integrate with user management system
         return {
@@ -489,7 +487,7 @@ class SecurityEventProcessor:
             "privilege_level": "high" if "admin" in user_id.lower() else "normal",
         }
 
-    async def _get_service_context(self, service_name: str) -> Dict[str, Any]:
+    async def _get_service_context(self, service_name: str) -> builtins.dict[str, Any]:
         """Get service context information"""
         return {
             "service_tier": "critical"
@@ -502,7 +500,9 @@ class SecurityEventProcessor:
             or "api" in service_name.lower(),
         }
 
-    def _analyze_request(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_request(
+        self, event_data: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Analyze request content for threats"""
         analysis = {
             "suspicious_patterns": [],
@@ -553,7 +553,9 @@ class SecurityEventProcessor:
 
         return analysis
 
-    def _analyze_temporal_patterns(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _analyze_temporal_patterns(
+        self, event_data: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Analyze temporal patterns in events"""
         analysis = {
             "time_of_day": "business_hours",  # Mock analysis
@@ -682,7 +684,7 @@ class SecurityEventProcessor:
         # Normalize score to 0-1 range
         return min(score, 1.0)
 
-    def get_processing_statistics(self) -> Dict[str, Any]:
+    def get_processing_statistics(self) -> builtins.dict[str, Any]:
         """Get event processing statistics"""
         return {
             "events_received": self.events_received,
@@ -695,13 +697,15 @@ class SecurityEventProcessor:
             "active_rules": len([r for r in self.rules.values() if r.enabled]),
         }
 
-    def get_recent_events(self, limit: int = 100) -> List[ProcessedSecurityEvent]:
+    def get_recent_events(
+        self, limit: int = 100
+    ) -> builtins.list[ProcessedSecurityEvent]:
         """Get recent processed events"""
         return list(self.processed_events)[-limit:]
 
     def get_high_threat_events(
         self, threshold: float = 0.7
-    ) -> List[ProcessedSecurityEvent]:
+    ) -> builtins.list[ProcessedSecurityEvent]:
         """Get events with high threat scores"""
         return [
             event for event in self.processed_events if event.threat_score >= threshold
@@ -761,7 +765,7 @@ async def main():
 
     # Show statistics
     stats = processor.get_processing_statistics()
-    print(f"\n=== PROCESSING STATISTICS ===")
+    print("\n=== PROCESSING STATISTICS ===")
     print(f"Events received: {stats['events_received']}")
     print(f"Events processed: {stats['events_processed']}")
     print(f"Events filtered: {stats['events_filtered']}")

@@ -8,7 +8,7 @@ without requiring external dependencies to be installed.
 
 import os
 import sys
-from pathlib import Path  # noqa: F401
+from typing import Final
 
 
 def check_file_exists(filepath: str, description: str) -> bool:
@@ -16,9 +16,8 @@ def check_file_exists(filepath: str, description: str) -> bool:
     if os.path.exists(filepath):
         print(f"✅ {description}: {filepath}")
         return True
-    else:
-        print(f"❌ {description}: {filepath} - NOT FOUND")
-        return False
+    print(f"❌ {description}: {filepath} - NOT FOUND")
+    return False
 
 
 def check_directory_structure() -> bool:
@@ -181,7 +180,7 @@ def main() -> int:
             results[check_name] = result
             if not result:
                 all_passed = False
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             print(f"❌ Error during {check_name}: {e}")
             results[check_name] = False
             all_passed = False
@@ -207,10 +206,9 @@ def main() -> int:
             "   python -c 'from security import AuthenticationMiddleware; print(\"✅ Import successful\")'"
         )
         return 0
-    else:
-        print("\n⚠️ Security Framework Verification: ❌ SOME CHECKS FAILED")
-        print("Please review the failed checks above.")
-        return 1
+    print("\n⚠️ Security Framework Verification: ❌ SOME CHECKS FAILED")
+    print("Please review the failed checks above.")
+    return 1
 
 
 if __name__ == "__main__":

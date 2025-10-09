@@ -17,7 +17,7 @@ import sys
 import time
 import traceback
 import uuid
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Set, Union, dict
 
 import structlog
 from pythonjsonlogger import jsonlogger
@@ -26,13 +26,13 @@ from ..config import LogLevel
 from ..exceptions import ConfigurationError
 
 # Context variables for correlation tracking
-correlation_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+correlation_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "correlation_id", default=None
 )
-request_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+request_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "request_id", default=None
 )
-user_id_var: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+user_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "user_id", default=None
 )
 
@@ -107,7 +107,7 @@ class LogConfig:
         level: LogLevel = LogLevel.INFO,
         format_type: str = "json",
         enable_correlation: bool = True,
-        log_file: Optional[str] = None,
+        log_file: str | None = None,
     ):
         self.service_name = service_name
         self.service_version = service_version
@@ -214,7 +214,7 @@ def get_logger(name: str) -> structlog.BoundLogger:
     return structlog.get_logger(name)
 
 
-def set_correlation_id(correlation_id: Optional[str] = None) -> str:
+def set_correlation_id(correlation_id: str | None = None) -> str:
     """
     Set correlation ID for the current context.
 
@@ -231,7 +231,7 @@ def set_correlation_id(correlation_id: Optional[str] = None) -> str:
     return correlation_id
 
 
-def get_correlation_id() -> Optional[str]:
+def get_correlation_id() -> str | None:
     """Get the current correlation ID."""
     return correlation_id_var.get()
 
@@ -241,7 +241,7 @@ def set_request_id(request_id: str) -> None:
     request_id_var.set(request_id)
 
 
-def get_request_id() -> Optional[str]:
+def get_request_id() -> str | None:
     """Get the current request ID."""
     return request_id_var.get()
 
@@ -251,7 +251,7 @@ def set_user_id(user_id: str) -> None:
     user_id_var.set(user_id)
 
 
-def get_user_id() -> Optional[str]:
+def get_user_id() -> str | None:
     """Get the current user ID."""
     return user_id_var.get()
 
@@ -270,9 +270,9 @@ class RequestLogger:
         self,
         logger: structlog.BoundLogger,
         operation: str,
-        correlation_id: Optional[str] = None,
-        request_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        correlation_id: str | None = None,
+        request_id: str | None = None,
+        user_id: str | None = None,
         **kwargs,
     ):
         self.logger = logger
@@ -281,7 +281,7 @@ class RequestLogger:
         self.request_id = request_id
         self.user_id = user_id
         self.extra_context = kwargs
-        self.start_time: Optional[float] = None
+        self.start_time: float | None = None
 
     def __enter__(self):
         self.start_time = time.time()
@@ -345,7 +345,7 @@ def log_performance(func):
 
 
 # Global logger instance
-_global_logger: Optional[structlog.BoundLogger] = None
+_global_logger: structlog.BoundLogger | None = None
 
 
 def init_global_logger(config: LogConfig) -> None:

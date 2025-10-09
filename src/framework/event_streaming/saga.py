@@ -6,17 +6,29 @@ across multiple microservices with compensation and failure handling.
 """
 
 import asyncio
-import json
+import builtins
 import logging
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Type,
+    TypeVar,
+    dict,
+    list,
+    type,
+)
 
-from .core import DomainEvent, Event, EventBus, EventHandler, EventMetadata
-from .cqrs import Command, CommandBus, CommandResult, CommandStatus
+from .core import DomainEvent, EventBus, EventMetadata
+from .cqrs import Command, CommandBus, CommandStatus
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +73,8 @@ class SagaContext:
 
     saga_id: str
     correlation_id: str
-    data: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    data: builtins.dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get context data."""
@@ -72,11 +84,11 @@ class SagaContext:
         """Set context data."""
         self.data[key] = value
 
-    def update(self, data: Dict[str, Any]) -> None:
+    def update(self, data: builtins.dict[str, Any]) -> None:
         """Update context data."""
         self.data.update(data)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "saga_id": self.saga_id,
@@ -92,9 +104,9 @@ class CompensationAction:
 
     action_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     action_type: str = ""
-    command: Optional[Command] = None
-    custom_handler: Optional[Callable] = None
-    parameters: Dict[str, Any] = field(default_factory=dict)
+    command: Command | None = None
+    custom_handler: Callable | None = None
+    parameters: builtins.dict[str, Any] = field(default_factory=dict)
     retry_count: int = 0
     max_retries: int = 3
     retry_delay: timedelta = field(default_factory=lambda: timedelta(seconds=5))
@@ -107,12 +119,11 @@ class CompensationAction:
             if self.command and command_bus:
                 result = await command_bus.send(self.command)
                 return result.status == CommandStatus.COMPLETED
-            elif self.custom_handler:
+            if self.custom_handler:
                 await self.custom_handler(context, self.parameters)
                 return True
-            else:
-                logger.warning(f"No compensation action defined for {self.action_id}")
-                return True
+            logger.warning(f"No compensation action defined for {self.action_id}")
+            return True
 
         except Exception as e:
             logger.error(f"Compensation action {self.action_id} failed: {e}")
@@ -126,15 +137,15 @@ class SagaStep:
     step_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     step_name: str = ""
     step_order: int = 0
-    command: Optional[Command] = None
-    custom_handler: Optional[Callable] = None
-    compensation_action: Optional[CompensationAction] = None
+    command: Command | None = None
+    custom_handler: Callable | None = None
+    compensation_action: CompensationAction | None = None
     status: StepStatus = StepStatus.PENDING
 
     # Execution tracking
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
     result_data: Any = None
 
     # Retry configuration
@@ -143,7 +154,7 @@ class SagaStep:
     retry_delay: timedelta = field(default_factory=lambda: timedelta(seconds=5))
 
     # Conditional execution
-    condition: Optional[Callable[[SagaContext], bool]] = None
+    condition: Callable[[SagaContext], bool] | None = None
 
     def should_execute(self, context: SagaContext) -> bool:
         """Check if step should be executed."""
@@ -177,22 +188,20 @@ class SagaStep:
                     self.result_data = result.result_data
                     self.completed_at = datetime.utcnow()
                     return True
-                else:
-                    self.status = StepStatus.FAILED
-                    self.error_message = result.error_message
-                    return False
+                self.status = StepStatus.FAILED
+                self.error_message = result.error_message
+                return False
 
-            elif self.custom_handler:
+            if self.custom_handler:
                 result = await self.custom_handler(context)
                 self.status = StepStatus.COMPLETED
                 self.result_data = result
                 self.completed_at = datetime.utcnow()
                 return True
-            else:
-                logger.warning(f"No action defined for step {self.step_id}")
-                self.status = StepStatus.SKIPPED
-                self.completed_at = datetime.utcnow()
-                return True
+            logger.warning(f"No action defined for step {self.step_id}")
+            self.status = StepStatus.SKIPPED
+            self.completed_at = datetime.utcnow()
+            return True
 
         except Exception as e:
             logger.error(f"Step {self.step_id} failed: {e}")
@@ -231,19 +240,19 @@ class Saga(ABC):
         self.correlation_id = correlation_id or str(uuid.uuid4())
         self.status = SagaStatus.CREATED
         self.context = SagaContext(self.saga_id, self.correlation_id)
-        self.steps: List[SagaStep] = []
+        self.steps: builtins.list[SagaStep] = []
         self.current_step_index = 0
 
         # Metadata
         self.saga_type = self.__class__.__name__
         self.created_at = datetime.utcnow()
-        self.started_at: Optional[datetime] = None
-        self.completed_at: Optional[datetime] = None
-        self.error_message: Optional[str] = None
+        self.started_at: datetime | None = None
+        self.completed_at: datetime | None = None
+        self.error_message: str | None = None
 
         # Configuration
         self.compensation_strategy = CompensationStrategy.SEQUENTIAL
-        self.timeout: Optional[timedelta] = None
+        self.timeout: timedelta | None = None
 
         # Initialize steps
         self._initialize_steps()
@@ -350,10 +359,9 @@ class Saga(ABC):
 
         if self.compensation_strategy == CompensationStrategy.SEQUENTIAL:
             return await self._compensate_sequential(command_bus)
-        elif self.compensation_strategy == CompensationStrategy.PARALLEL:
+        if self.compensation_strategy == CompensationStrategy.PARALLEL:
             return await self._compensate_parallel(command_bus)
-        else:
-            return await self._compensate_custom(command_bus)
+        return await self._compensate_custom(command_bus)
 
     async def _compensate_sequential(self, command_bus: CommandBus) -> bool:
         """Compensate steps in reverse order."""
@@ -395,7 +403,7 @@ class Saga(ABC):
         """Custom compensation logic (override in subclasses)."""
         return await self._compensate_sequential(command_bus)
 
-    def get_saga_state(self) -> Dict[str, Any]:
+    def get_saga_state(self) -> builtins.dict[str, Any]:
         """Get current saga state."""
         return {
             "saga_id": self.saga_id,
@@ -436,11 +444,13 @@ class SagaOrchestrator:
     def __init__(self, command_bus: CommandBus, event_bus: EventBus):
         self.command_bus = command_bus
         self.event_bus = event_bus
-        self._active_sagas: Dict[str, Saga] = {}
-        self._saga_types: Dict[str, Type[Saga]] = {}
+        self._active_sagas: builtins.dict[str, Saga] = {}
+        self._saga_types: builtins.dict[str, builtins.type[Saga]] = {}
         self._lock = asyncio.Lock()
 
-    def register_saga_type(self, saga_type: str, saga_class: Type[Saga]) -> None:
+    def register_saga_type(
+        self, saga_type: str, saga_class: builtins.type[Saga]
+    ) -> None:
         """Register saga type."""
         self._saga_types[saga_type] = saga_class
 
@@ -482,7 +492,7 @@ class SagaOrchestrator:
 
             return False
 
-    async def get_saga_status(self, saga_id: str) -> Optional[Dict[str, Any]]:
+    async def get_saga_status(self, saga_id: str) -> builtins.dict[str, Any] | None:
         """Get saga status."""
         async with self._lock:
             saga = self._active_sagas.get(saga_id)
@@ -511,7 +521,10 @@ class SagaOrchestrator:
         return False
 
     async def _publish_saga_event(
-        self, event_type: str, saga: Saga, additional_data: Dict[str, Any] = None
+        self,
+        event_type: str,
+        saga: Saga,
+        additional_data: builtins.dict[str, Any] = None,
     ) -> None:
         """Publish saga lifecycle event."""
         event_data = saga.get_saga_state()
@@ -534,14 +547,14 @@ class SagaManager:
 
     def __init__(self, orchestrator: SagaOrchestrator):
         self.orchestrator = orchestrator
-        self._saga_repository: Optional["SagaRepository"] = None
+        self._saga_repository: SagaRepository | None = None
 
     def set_saga_repository(self, repository: "SagaRepository") -> None:
         """Set saga repository for persistence."""
         self._saga_repository = repository
 
     async def create_and_start_saga(
-        self, saga_type: str, initial_data: Dict[str, Any] = None
+        self, saga_type: str, initial_data: builtins.dict[str, Any] = None
     ) -> str:
         """Create and start a new saga."""
         if saga_type not in self.orchestrator._saga_types:
@@ -562,7 +575,7 @@ class SagaManager:
 
         return saga.saga_id
 
-    async def get_saga_history(self, saga_id: str) -> Optional[Dict[str, Any]]:
+    async def get_saga_history(self, saga_id: str) -> builtins.dict[str, Any] | None:
         """Get saga execution history."""
         if self._saga_repository:
             return await self._saga_repository.get_saga_history(saga_id)
@@ -578,12 +591,12 @@ class SagaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get(self, saga_id: str) -> Optional[Saga]:
+    async def get(self, saga_id: str) -> Saga | None:
         """Get saga by ID."""
         raise NotImplementedError
 
     @abstractmethod
-    async def get_saga_history(self, saga_id: str) -> Optional[Dict[str, Any]]:
+    async def get_saga_history(self, saga_id: str) -> builtins.dict[str, Any] | None:
         """Get saga execution history."""
         raise NotImplementedError
 
@@ -599,19 +612,13 @@ class SagaRepository(ABC):
 class SagaError(Exception):
     """Saga execution error."""
 
-    pass
-
 
 class SagaTimeoutError(SagaError):
     """Saga timeout error."""
 
-    pass
-
 
 class SagaCompensationError(SagaError):
     """Saga compensation error."""
-
-    pass
 
 
 # Convenience functions
@@ -621,7 +628,7 @@ def create_compensation_action(
     action_type: str,
     command: Command = None,
     custom_handler: Callable = None,
-    parameters: Dict[str, Any] = None,
+    parameters: builtins.dict[str, Any] = None,
 ) -> CompensationAction:
     """Create compensation action."""
     return CompensationAction(

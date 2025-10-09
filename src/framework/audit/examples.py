@@ -7,9 +7,9 @@ for implementing audit logging in microservices.
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, dict
 
 # FastAPI example
 try:
@@ -29,12 +29,13 @@ try:
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
 
+import builtins
+
 # Framework imports
 from framework.audit import (
     AuditConfig,
     AuditContext,
     AuditEventType,
-    AuditLogger,
     AuditMiddlewareConfig,
     AuditOutcome,
     AuditSeverity,
@@ -246,7 +247,8 @@ if FASTAPI_AVAILABLE:
 
         @app.post("/api/users")
         async def create_user(
-            user_data: Dict[str, Any], current_user: dict = Depends(get_current_user)
+            user_data: builtins.dict[str, Any],
+            current_user: dict = Depends(get_current_user),
         ):
             # Simulate user creation
             user_id = "new_user_123"
@@ -268,7 +270,7 @@ if FASTAPI_AVAILABLE:
         @app.put("/api/users/{user_id}")
         async def update_user(
             user_id: str,
-            user_data: Dict[str, Any],
+            user_data: builtins.dict[str, Any],
             current_user: dict = Depends(get_current_user),
         ):
             # Simulate user update
@@ -377,7 +379,7 @@ if SQLALCHEMY_AVAILABLE:
 
                 # Get statistics
                 stats = await audit_logger.get_audit_statistics()
-                print(f"\nAudit Statistics:")
+                print("\nAudit Statistics:")
                 print(f"Total events: {stats['total_events']}")
                 print(f"Event types: {stats['event_counts']}")
                 print(f"Security events: {stats['security_events']}")

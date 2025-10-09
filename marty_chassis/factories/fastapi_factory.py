@@ -5,7 +5,7 @@ This module provides factory functions to create FastAPI applications with
 all cross-cutting concerns automatically configured.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,13 +27,13 @@ logger = get_logger(__name__)
 
 def create_fastapi_service(
     name: str,
-    config: Optional[ChassisConfig] = None,
+    config: ChassisConfig | None = None,
     enable_auth: bool = True,
     enable_metrics: bool = True,
     enable_health_checks: bool = True,
     enable_cors: bool = True,
-    trusted_hosts: Optional[List[str]] = None,
-    custom_middleware: Optional[List[Any]] = None,
+    trusted_hosts: list[str] | None = None,
+    custom_middleware: list[Any] | None = None,
 ) -> FastAPI:
     """
     Create a FastAPI application with all chassis features enabled.
@@ -191,7 +191,7 @@ def create_fastapi_service(
 def add_security_to_app(
     app: FastAPI,
     jwt_auth: JWTAuth,
-    rbac: Optional[RBACMiddleware] = None,
+    rbac: RBACMiddleware | None = None,
 ) -> SecurityMiddleware:
     """
     Add security middleware to an existing FastAPI app.

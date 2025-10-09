@@ -5,21 +5,17 @@ This module provides advanced analytics capabilities for observability data incl
 performance insights, trend analysis, capacity planning, and intelligent recommendations.
 """
 
-import asyncio
-import json
+import builtins
 import math
 import statistics
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, dict, list, tuple
 from uuid import uuid4
 
-import numpy as np
 from scipy import stats
-from sklearn.cluster import DBSCAN
-from sklearn.preprocessing import StandardScaler
 
 
 class AnalyticsTimeframe(Enum):
@@ -60,12 +56,12 @@ class PerformanceInsight:
     severity: InsightSeverity
     metric_name: str
     current_value: float
-    expected_value: Optional[float]
+    expected_value: float | None
     trend: TrendDirection
     confidence: float
-    recommendations: List[str]
+    recommendations: builtins.list[str]
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -76,7 +72,7 @@ class CapacityPrediction:
     current_usage: float
     predicted_usage: float
     time_to_threshold: timedelta
-    confidence_interval: Tuple[float, float]
+    confidence_interval: builtins.tuple[float, float]
     recommended_action: str
     prediction_horizon: timedelta
     model_accuracy: float
@@ -93,7 +89,7 @@ class AnomalyEvent:
     anomaly_score: float
     severity: InsightSeverity
     pattern: str
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class PerformanceAnalyzer:
@@ -104,22 +100,22 @@ class PerformanceAnalyzer:
         self.service_name = service_name
 
         # Time series data storage
-        self.metric_history: Dict[str, deque] = defaultdict(
+        self.metric_history: builtins.dict[str, deque] = defaultdict(
             lambda: deque(maxlen=10080)
         )  # 1 week at 1min resolution
-        self.performance_baselines: Dict[str, Dict[str, float]] = {}
+        self.performance_baselines: builtins.dict[str, builtins.dict[str, float]] = {}
 
         # Analysis caches
-        self.trend_cache: Dict[str, Tuple[TrendDirection, float]] = {}
-        self.seasonal_patterns: Dict[str, Dict[str, float]] = {}
-        self.correlation_matrix: Dict[str, Dict[str, float]] = {}
+        self.trend_cache: builtins.dict[str, builtins.tuple[TrendDirection, float]] = {}
+        self.seasonal_patterns: builtins.dict[str, builtins.dict[str, float]] = {}
+        self.correlation_matrix: builtins.dict[str, builtins.dict[str, float]] = {}
 
         # Insight generation
         self.insights: deque = deque(maxlen=1000)
         self.insight_templates = self._load_insight_templates()
 
     def add_metric_data_point(
-        self, metric_name: str, value: float, timestamp: Optional[datetime] = None
+        self, metric_name: str, value: float, timestamp: datetime | None = None
     ):
         """Add a metric data point for analysis."""
         if timestamp is None:
@@ -137,7 +133,7 @@ class PerformanceAnalyzer:
 
     def analyze_performance_trends(
         self, timeframe: AnalyticsTimeframe = AnalyticsTimeframe.LAST_DAY
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Analyze performance trends across metrics."""
         results = {}
 
@@ -174,7 +170,7 @@ class PerformanceAnalyzer:
 
         return results
 
-    def generate_performance_insights(self) -> List[PerformanceInsight]:
+    def generate_performance_insights(self) -> builtins.list[PerformanceInsight]:
         """Generate performance insights based on current data."""
         insights = []
 
@@ -229,7 +225,7 @@ class PerformanceAnalyzer:
 
     def _filter_by_timeframe(
         self, data: deque, timeframe: AnalyticsTimeframe
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Filter data by timeframe."""
         now = datetime.now(timezone.utc)
 
@@ -249,8 +245,8 @@ class PerformanceAnalyzer:
         return [dp for dp in data if dp["timestamp"] >= cutoff]
 
     def _calculate_trend(
-        self, values: List[float], timestamps: List[datetime]
-    ) -> Tuple[TrendDirection, float]:
+        self, values: builtins.list[float], timestamps: builtins.list[datetime]
+    ) -> builtins.tuple[TrendDirection, float]:
         """Calculate trend direction and confidence."""
         if len(values) < 2:
             return TrendDirection.STABLE, 0.0
@@ -286,7 +282,9 @@ class PerformanceAnalyzer:
 
         return trend, min(1.0, confidence)
 
-    def _calculate_statistics(self, values: List[float]) -> Dict[str, float]:
+    def _calculate_statistics(
+        self, values: builtins.list[float]
+    ) -> builtins.dict[str, float]:
         """Calculate statistical measures."""
         if not values:
             return {}
@@ -306,8 +304,8 @@ class PerformanceAnalyzer:
         }
 
     def _detect_patterns(
-        self, values: List[float], timestamps: List[datetime]
-    ) -> Dict[str, Any]:
+        self, values: builtins.list[float], timestamps: builtins.list[datetime]
+    ) -> builtins.dict[str, Any]:
         """Detect patterns in metric data."""
         if len(values) < 10:
             return {}
@@ -356,8 +354,8 @@ class PerformanceAnalyzer:
         return patterns
 
     def _generate_trend_insights(
-        self, metric_name: str, values: List[float]
-    ) -> List[PerformanceInsight]:
+        self, metric_name: str, values: builtins.list[float]
+    ) -> builtins.list[PerformanceInsight]:
         """Generate trend-based insights."""
         insights = []
 
@@ -409,8 +407,8 @@ class PerformanceAnalyzer:
         return insights
 
     def _generate_threshold_insights(
-        self, metric_name: str, values: List[float]
-    ) -> List[PerformanceInsight]:
+        self, metric_name: str, values: builtins.list[float]
+    ) -> builtins.list[PerformanceInsight]:
         """Generate threshold-based insights."""
         insights = []
 
@@ -448,8 +446,8 @@ class PerformanceAnalyzer:
         return insights
 
     def _generate_efficiency_insights(
-        self, metric_name: str, values: List[float]
-    ) -> List[PerformanceInsight]:
+        self, metric_name: str, values: builtins.list[float]
+    ) -> builtins.list[PerformanceInsight]:
         """Generate efficiency-based insights."""
         insights = []
 
@@ -477,8 +475,8 @@ class PerformanceAnalyzer:
         return insights
 
     def _generate_anomaly_insights(
-        self, metric_name: str, values: List[float]
-    ) -> List[PerformanceInsight]:
+        self, metric_name: str, values: builtins.list[float]
+    ) -> builtins.list[PerformanceInsight]:
         """Generate anomaly-based insights."""
         insights = []
 
@@ -517,7 +515,7 @@ class PerformanceAnalyzer:
 
         return insights
 
-    def _generate_correlation_insights(self) -> List[PerformanceInsight]:
+    def _generate_correlation_insights(self) -> builtins.list[PerformanceInsight]:
         """Generate correlation-based insights."""
         insights = []
 
@@ -552,7 +550,9 @@ class PerformanceAnalyzer:
 
         return insights
 
-    def _calculate_metric_correlations(self) -> Dict[Tuple[str, str], float]:
+    def _calculate_metric_correlations(
+        self,
+    ) -> builtins.dict[builtins.tuple[str, str], float]:
         """Calculate correlations between metrics."""
         correlations = {}
         metric_names = list(self.metric_history.keys())
@@ -565,7 +565,7 @@ class PerformanceAnalyzer:
 
         return correlations
 
-    def _calculate_correlation(self, metric1: str, metric2: str) -> Optional[float]:
+    def _calculate_correlation(self, metric1: str, metric2: str) -> float | None:
         """Calculate correlation between two metrics."""
         history1 = self.metric_history[metric1]
         history2 = self.metric_history[metric2]
@@ -613,7 +613,7 @@ class PerformanceAnalyzer:
         if metric_name in self.trend_cache:
             del self.trend_cache[metric_name]
 
-    def _calculate_stability_score(self, values: List[float]) -> float:
+    def _calculate_stability_score(self, values: builtins.list[float]) -> float:
         """Calculate stability score (lower variance = higher score)."""
         if len(values) < 2:
             return 1.0
@@ -626,7 +626,7 @@ class PerformanceAnalyzer:
         return max(0.0, 1.0 - cv)
 
     def _calculate_performance_score(
-        self, metric_name: str, values: List[float]
+        self, metric_name: str, values: builtins.list[float]
     ) -> float:
         """Calculate performance score based on metric type."""
         if not values:
@@ -646,14 +646,14 @@ class PerformanceAnalyzer:
             return max(0.0, 1.0 - (current_value / baseline_p95))
 
         # For throughput metrics (higher is better)
-        elif "throughput" in metric_name.lower() or "requests" in metric_name.lower():
+        if "throughput" in metric_name.lower() or "requests" in metric_name.lower():
             baseline_mean = baseline.get("mean", current_value)
             if baseline_mean == 0:
                 return 1.0
             return min(1.0, current_value / baseline_mean)
 
         # For error metrics (lower is better)
-        elif "error" in metric_name.lower():
+        if "error" in metric_name.lower():
             return max(0.0, 1.0 - current_value)
 
         # Default: stable around baseline is good
@@ -666,7 +666,7 @@ class PerformanceAnalyzer:
         deviation = abs(current_value - baseline_mean) / baseline_std
         return max(0.0, 1.0 - deviation / 3.0)  # 3-sigma rule
 
-    def _calculate_availability_score(self, values: List[float]) -> float:
+    def _calculate_availability_score(self, values: builtins.list[float]) -> float:
         """Calculate availability score (data completeness)."""
         if not values:
             return 0.0
@@ -675,32 +675,30 @@ class PerformanceAnalyzer:
         non_zero_count = sum(1 for v in values if v > 0)
         return non_zero_count / len(values)
 
-    def _get_metric_thresholds(self, metric_name: str) -> Dict[str, float]:
+    def _get_metric_thresholds(self, metric_name: str) -> builtins.dict[str, float]:
         """Get threshold values for a metric."""
         # Default thresholds - could be configurable
         if "cpu" in metric_name.lower():
             return {"warning": 0.7, "critical": 0.9}
-        elif "memory" in metric_name.lower():
+        if "memory" in metric_name.lower():
             return {"warning": 0.8, "critical": 0.95}
-        elif "error_rate" in metric_name.lower():
+        if "error_rate" in metric_name.lower():
             return {"warning": 0.05, "critical": 0.1}
-        elif "response_time" in metric_name.lower():
+        if "response_time" in metric_name.lower():
             return {"warning": 1000, "critical": 2000}  # milliseconds
-        else:
-            return {}
+        return {}
 
     def _get_threshold_severity(self, threshold_name: str) -> InsightSeverity:
         """Get severity for threshold type."""
         if threshold_name == "critical":
             return InsightSeverity.CRITICAL
-        elif threshold_name == "warning":
+        if threshold_name == "warning":
             return InsightSeverity.WARNING
-        else:
-            return InsightSeverity.INFO
+        return InsightSeverity.INFO
 
     def _get_trend_recommendations(
         self, metric_name: str, change_percent: float
-    ) -> List[str]:
+    ) -> builtins.list[str]:
         """Get recommendations for trend changes."""
         recommendations = []
 
@@ -743,7 +741,7 @@ class PerformanceAnalyzer:
 
     def _get_threshold_recommendations(
         self, metric_name: str, threshold_type: str
-    ) -> List[str]:
+    ) -> builtins.list[str]:
         """Get recommendations for threshold violations."""
         recommendations = []
 
@@ -774,7 +772,7 @@ class PerformanceAnalyzer:
 
         return recommendations
 
-    def _load_insight_templates(self) -> Dict[str, Any]:
+    def _load_insight_templates(self) -> builtins.dict[str, Any]:
         """Load insight templates for pattern matching."""
         return {
             "performance_degradation": {
@@ -798,7 +796,7 @@ class PerformanceAnalyzer:
         }
 
     @staticmethod
-    def _percentile(data: List[float], percentile: float) -> float:
+    def _percentile(data: builtins.list[float], percentile: float) -> float:
         """Calculate percentile value."""
         if not data:
             return 0.0
@@ -813,8 +811,8 @@ class CapacityPlanner:
     def __init__(self, service_name: str):
         """Initialize capacity planner."""
         self.service_name = service_name
-        self.growth_models: Dict[str, Any] = {}
-        self.capacity_thresholds: Dict[str, float] = {
+        self.growth_models: builtins.dict[str, Any] = {}
+        self.capacity_thresholds: builtins.dict[str, float] = {
             "cpu_usage": 0.8,
             "memory_usage": 0.9,
             "disk_usage": 0.85,
@@ -824,7 +822,7 @@ class CapacityPlanner:
     def predict_capacity_needs(
         self,
         metric_name: str,
-        historical_data: List[Dict[str, Any]],
+        historical_data: builtins.list[builtins.dict[str, Any]],
         prediction_horizon: timedelta = timedelta(days=30),
     ) -> CapacityPrediction:
         """Predict future capacity needs."""
@@ -872,7 +870,10 @@ class CapacityPlanner:
         )
 
     def _fit_growth_model(
-        self, metric_name: str, values: List[float], timestamps: List[datetime]
+        self,
+        metric_name: str,
+        values: builtins.list[float],
+        timestamps: builtins.list[datetime],
     ) -> float:
         """Fit a growth model to historical data."""
         try:
@@ -915,14 +916,14 @@ class CapacityPlanner:
         if model["type"] == "linear":
             days_ahead = (target_timestamp - model["start_time"]).days
             return model["slope"] * days_ahead + model["intercept"]
-        elif model["type"] == "mean":
+        if model["type"] == "mean":
             return model["value"]
 
         return 0.0
 
     def _calculate_confidence_interval(
         self, metric_name: str, predicted_value: float
-    ) -> Tuple[float, float]:
+    ) -> builtins.tuple[float, float]:
         """Calculate confidence interval for prediction."""
         model = self.growth_models.get(metric_name)
 
@@ -936,7 +937,7 @@ class CapacityPlanner:
                 predicted_value * (1 - accuracy) * 0.5
             )  # Simplified margin calculation
             return (max(0, predicted_value - margin), predicted_value + margin)
-        elif model["type"] == "mean":
+        if model["type"] == "mean":
             std_dev = model.get("std_dev", 0.0)
             margin = std_dev * 1.96  # 95% confidence interval
             return (max(0, predicted_value - margin), predicted_value + margin)
@@ -948,7 +949,7 @@ class CapacityPlanner:
         metric_name: str,
         current_value: float,
         threshold: float,
-        timestamps: List[datetime],
+        timestamps: builtins.list[datetime],
     ) -> timedelta:
         """Calculate time until threshold is reached."""
         model = self.growth_models.get(metric_name)
@@ -986,12 +987,11 @@ class CapacityPlanner:
 
         if usage_percentage > 100:
             return f"Immediate action required: {metric_name} will exceed capacity"
-        elif usage_percentage > 80:
+        if usage_percentage > 80:
             return f"Plan capacity expansion: {metric_name} approaching limits"
-        elif usage_percentage > 60:
+        if usage_percentage > 60:
             return f"Monitor closely: {metric_name} showing growth trend"
-        else:
-            return f"Capacity adequate: {metric_name} within normal ranges"
+        return f"Capacity adequate: {metric_name} within normal ranges"
 
     def _create_default_prediction(
         self, metric_name: str, prediction_horizon: timedelta

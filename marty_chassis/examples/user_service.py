@@ -8,7 +8,6 @@ using the Marty Chassis with authentication, metrics, and resilience.
 import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Dict, List, Optional
 
 from fastapi import Depends, HTTPException
 from marty_chassis import (
@@ -45,7 +44,7 @@ class User(BaseModel):
     id: int
     username: str
     email: str
-    roles: List[str]
+    roles: list[str]
     created_at: datetime
 
 
@@ -66,7 +65,7 @@ class LoginResponse(BaseModel):
 
 
 # Mock database
-users_db: Dict[int, User] = {
+users_db: dict[int, User] = {
     1: User(
         id=1,
         username="admin",
@@ -170,7 +169,7 @@ async def refresh_token(current_user: dict = Depends(auth.get_current_user)):
 
 
 # User management endpoints
-@app.get("/users", response_model=List[User])
+@app.get("/users", response_model=list[User])
 @auth.require_auth
 @rbac.require_roles(["admin"])
 async def get_users(current_user: dict = Depends(auth.get_current_user)):

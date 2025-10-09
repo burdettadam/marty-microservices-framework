@@ -6,14 +6,14 @@ service discovery operations, health checks, and load balancing.
 """
 
 import asyncio
-import json
+import builtins
 import logging
 import time
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, DefaultDict, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, dict, list
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +46,9 @@ class MetricPoint:
 
     timestamp: float
     value: float
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {"timestamp": self.timestamp, "value": self.value, "labels": self.labels}
 
@@ -61,10 +61,10 @@ class MetricSeries:
     metric_type: MetricType
     unit: MetricUnit
     description: str = ""
-    points: List[MetricPoint] = field(default_factory=list)
+    points: builtins.list[MetricPoint] = field(default_factory=list)
     max_points: int = 1000
 
-    def add_point(self, value: float, labels: Optional[Dict[str, str]] = None):
+    def add_point(self, value: float, labels: builtins.dict[str, str] | None = None):
         """Add metric point."""
         point = MetricPoint(timestamp=time.time(), value=value, labels=labels or {})
 
@@ -74,11 +74,11 @@ class MetricSeries:
         if len(self.points) > self.max_points:
             self.points = self.points[-self.max_points :]
 
-    def get_latest_value(self) -> Optional[float]:
+    def get_latest_value(self) -> float | None:
         """Get latest metric value."""
         return self.points[-1].value if self.points else None
 
-    def get_average(self, window_seconds: Optional[float] = None) -> Optional[float]:
+    def get_average(self, window_seconds: float | None = None) -> float | None:
         """Get average value over time window."""
         if not self.points:
             return None
@@ -92,8 +92,8 @@ class MetricSeries:
         return sum(values) / len(values) if values else None
 
     def get_percentile(
-        self, percentile: float, window_seconds: Optional[float] = None
-    ) -> Optional[float]:
+        self, percentile: float, window_seconds: float | None = None
+    ) -> float | None:
         """Get percentile value over time window."""
         if not self.points:
             return None
@@ -111,7 +111,7 @@ class MetricSeries:
         index = int((percentile / 100.0) * len(values))
         return values[min(index, len(values) - 1)]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -129,11 +129,11 @@ class MetricsCollector:
     """Metrics collector for service discovery components."""
 
     def __init__(self):
-        self._metrics: Dict[str, MetricSeries] = {}
-        self._labels: Dict[str, str] = {}
+        self._metrics: builtins.dict[str, MetricSeries] = {}
+        self._labels: builtins.dict[str, str] = {}
         self._collection_enabled = True
 
-    def set_global_labels(self, labels: Dict[str, str]):
+    def set_global_labels(self, labels: builtins.dict[str, str]):
         """Set global labels applied to all metrics."""
         self._labels.update(labels)
 
@@ -183,7 +183,10 @@ class MetricsCollector:
         return self._metrics[name]
 
     def increment(
-        self, name: str, value: float = 1.0, labels: Optional[Dict[str, str]] = None
+        self,
+        name: str,
+        value: float = 1.0,
+        labels: builtins.dict[str, str] | None = None,
     ):
         """Increment counter metric."""
         if not self._collection_enabled:
@@ -196,7 +199,7 @@ class MetricsCollector:
             metric.add_point(current_value + value, combined_labels)
 
     def set_gauge(
-        self, name: str, value: float, labels: Optional[Dict[str, str]] = None
+        self, name: str, value: float, labels: builtins.dict[str, str] | None = None
     ):
         """Set gauge metric value."""
         if not self._collection_enabled:
@@ -208,7 +211,7 @@ class MetricsCollector:
             metric.add_point(value, combined_labels)
 
     def record_value(
-        self, name: str, value: float, labels: Optional[Dict[str, str]] = None
+        self, name: str, value: float, labels: builtins.dict[str, str] | None = None
     ):
         """Record value for histogram/timer metric."""
         if not self._collection_enabled:
@@ -220,17 +223,20 @@ class MetricsCollector:
             metric.add_point(value, combined_labels)
 
     def record_duration(
-        self, name: str, start_time: float, labels: Optional[Dict[str, str]] = None
+        self,
+        name: str,
+        start_time: float,
+        labels: builtins.dict[str, str] | None = None,
     ):
         """Record duration for timer metric."""
         duration_ms = (time.time() - start_time) * 1000
         self.record_value(name, duration_ms, labels)
 
-    def get_metric(self, name: str) -> Optional[MetricSeries]:
+    def get_metric(self, name: str) -> MetricSeries | None:
         """Get metric series by name."""
         return self._metrics.get(name)
 
-    def get_all_metrics(self) -> Dict[str, MetricSeries]:
+    def get_all_metrics(self) -> builtins.dict[str, MetricSeries]:
         """Get all metric series."""
         return self._metrics.copy()
 
@@ -238,7 +244,7 @@ class MetricsCollector:
         """Clear all metrics."""
         self._metrics.clear()
 
-    def export_metrics(self) -> Dict[str, Any]:
+    def export_metrics(self) -> builtins.dict[str, Any]:
         """Export all metrics to dictionary."""
         return {name: metric.to_dict() for name, metric in self._metrics.items()}
 
@@ -436,9 +442,8 @@ class MetricsExporter(ABC):
     """Abstract metrics exporter interface."""
 
     @abstractmethod
-    async def export_metrics(self, metrics: Dict[str, MetricSeries]):
+    async def export_metrics(self, metrics: builtins.dict[str, MetricSeries]):
         """Export metrics to external system."""
-        pass
 
 
 class PrometheusExporter(MetricsExporter):
@@ -462,13 +467,15 @@ class PrometheusExporter(MetricsExporter):
             pass
         logger.info("Prometheus metrics server stopped")
 
-    async def export_metrics(self, metrics: Dict[str, MetricSeries]):
+    async def export_metrics(self, metrics: builtins.dict[str, MetricSeries]):
         """Export metrics in Prometheus format."""
         prometheus_format = self._convert_to_prometheus_format(metrics)
         # Store or serve the metrics for Prometheus scraping
         return prometheus_format
 
-    def _convert_to_prometheus_format(self, metrics: Dict[str, MetricSeries]) -> str:
+    def _convert_to_prometheus_format(
+        self, metrics: builtins.dict[str, MetricSeries]
+    ) -> str:
         """Convert metrics to Prometheus format."""
         lines = []
 
@@ -502,7 +509,7 @@ class PrometheusExporter(MetricsExporter):
         }
         return mapping.get(metric_type, "gauge")
 
-    def _format_labels(self, labels: Dict[str, str]) -> str:
+    def _format_labels(self, labels: builtins.dict[str, str]) -> str:
         """Format labels for Prometheus."""
         if not labels:
             return ""
@@ -517,7 +524,7 @@ class LoggingExporter(MetricsExporter):
     def __init__(self, log_level: int = logging.INFO):
         self.log_level = log_level
 
-    async def export_metrics(self, metrics: Dict[str, MetricSeries]):
+    async def export_metrics(self, metrics: builtins.dict[str, MetricSeries]):
         """Export metrics to logs."""
         for name, metric in metrics.items():
             latest_value = metric.get_latest_value()
@@ -559,7 +566,7 @@ class InfluxDBExporter(MetricsExporter):
             pass
         logger.info("Disconnected from InfluxDB")
 
-    async def export_metrics(self, metrics: Dict[str, MetricSeries]):
+    async def export_metrics(self, metrics: builtins.dict[str, MetricSeries]):
         """Export metrics to InfluxDB."""
         points = []
 
@@ -583,10 +590,10 @@ class MetricsAggregator:
     """Aggregates metrics from multiple sources."""
 
     def __init__(self):
-        self._collectors: List[MetricsCollector] = []
-        self._exporters: List[MetricsExporter] = []
+        self._collectors: builtins.list[MetricsCollector] = []
+        self._exporters: builtins.list[MetricsExporter] = []
         self._export_interval = 60.0  # Export every minute
-        self._export_task: Optional[asyncio.Task] = None
+        self._export_task: asyncio.Task | None = None
         self._running = False
 
     def add_collector(self, collector: MetricsCollector):
@@ -648,7 +655,7 @@ class MetricsAggregator:
             except Exception as e:
                 logger.error("Failed to export metrics: %s", e)
 
-    def get_aggregated_stats(self) -> Dict[str, Any]:
+    def get_aggregated_stats(self) -> builtins.dict[str, Any]:
         """Get aggregated statistics."""
         stats = {
             "collectors": len(self._collectors),

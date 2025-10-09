@@ -6,24 +6,14 @@ service discovery, and mesh management.
 """
 
 import asyncio
+import builtins
 import logging
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Dict, List, Optional, dict, list
 
 logger = logging.getLogger(__name__)
 
@@ -66,20 +56,20 @@ class ServiceMetadata:
     name: str
     namespace: str = "default"
     version: str = "v1"
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
     # Service characteristics
     protocol: str = "http"
     port: int = 80
-    target_port: Optional[int] = None
+    target_port: int | None = None
 
     # Mesh-specific metadata
-    mesh_id: Optional[str] = None
+    mesh_id: str | None = None
     sidecar_injected: bool = True
     external_service: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -108,12 +98,12 @@ class ServiceEndpoint:
 
     # Endpoint metadata
     endpoint_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    zone: Optional[str] = None
-    region: Optional[str] = None
+    zone: str | None = None
+    region: str | None = None
     weight: int = 100
 
     # Health check information
-    last_health_check: Optional[datetime] = None
+    last_health_check: datetime | None = None
     health_check_failures: int = 0
 
     # Load balancing
@@ -121,8 +111,8 @@ class ServiceEndpoint:
     total_requests: int = 0
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     def is_healthy(self) -> bool:
         """Check if endpoint is healthy."""
@@ -170,9 +160,9 @@ class ServiceMeshConfig:
     grafana_enabled: bool = True
 
     # Provider-specific configuration
-    provider_config: Dict[str, Any] = field(default_factory=dict)
+    provider_config: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "mesh_id": self.mesh_id,
@@ -201,7 +191,7 @@ class ServiceRegistry(ABC):
 
     @abstractmethod
     async def register_service(
-        self, metadata: ServiceMetadata, endpoints: List[ServiceEndpoint]
+        self, metadata: ServiceMetadata, endpoints: builtins.list[ServiceEndpoint]
     ) -> None:
         """Register service in the mesh."""
         raise NotImplementedError
@@ -216,12 +206,14 @@ class ServiceRegistry(ABC):
     @abstractmethod
     async def get_service(
         self, service_name: str, namespace: str = "default"
-    ) -> Optional[ServiceMetadata]:
+    ) -> ServiceMetadata | None:
         """Get service metadata."""
         raise NotImplementedError
 
     @abstractmethod
-    async def list_services(self, namespace: str = None) -> List[ServiceMetadata]:
+    async def list_services(
+        self, namespace: str = None
+    ) -> builtins.list[ServiceMetadata]:
         """List all registered services."""
         raise NotImplementedError
 
@@ -229,7 +221,7 @@ class ServiceRegistry(ABC):
     async def update_service_endpoints(
         self,
         service_name: str,
-        endpoints: List[ServiceEndpoint],
+        endpoints: builtins.list[ServiceEndpoint],
         namespace: str = "default",
     ) -> None:
         """Update service endpoints."""
@@ -240,14 +232,16 @@ class ServiceDiscovery(ABC):
     """Abstract service discovery interface."""
 
     @abstractmethod
-    async def discover_services(self, namespace: str = None) -> List[ServiceMetadata]:
+    async def discover_services(
+        self, namespace: str = None
+    ) -> builtins.list[ServiceMetadata]:
         """Discover available services."""
         raise NotImplementedError
 
     @abstractmethod
     async def get_service_endpoints(
         self, service_name: str, namespace: str = "default"
-    ) -> List[ServiceEndpoint]:
+    ) -> builtins.list[ServiceEndpoint]:
         """Get endpoints for a service."""
         raise NotImplementedError
 
@@ -268,16 +262,16 @@ class InMemoryServiceRegistry(ServiceRegistry):
     """In-memory service registry implementation."""
 
     def __init__(self):
-        self._services: Dict[
-            str, Dict[str, ServiceMetadata]
+        self._services: builtins.dict[
+            str, builtins.dict[str, ServiceMetadata]
         ] = {}  # namespace -> service_name -> metadata
-        self._endpoints: Dict[
-            str, Dict[str, List[ServiceEndpoint]]
+        self._endpoints: builtins.dict[
+            str, builtins.dict[str, builtins.list[ServiceEndpoint]]
         ] = {}  # namespace -> service_name -> endpoints
         self._lock = asyncio.Lock()
 
     async def register_service(
-        self, metadata: ServiceMetadata, endpoints: List[ServiceEndpoint]
+        self, metadata: ServiceMetadata, endpoints: builtins.list[ServiceEndpoint]
     ) -> None:
         """Register service."""
         async with self._lock:
@@ -307,12 +301,14 @@ class InMemoryServiceRegistry(ServiceRegistry):
 
     async def get_service(
         self, service_name: str, namespace: str = "default"
-    ) -> Optional[ServiceMetadata]:
+    ) -> ServiceMetadata | None:
         """Get service metadata."""
         async with self._lock:
             return self._services.get(namespace, {}).get(service_name)
 
-    async def list_services(self, namespace: str = None) -> List[ServiceMetadata]:
+    async def list_services(
+        self, namespace: str = None
+    ) -> builtins.list[ServiceMetadata]:
         """List services."""
         async with self._lock:
             if namespace:
@@ -327,7 +323,7 @@ class InMemoryServiceRegistry(ServiceRegistry):
     async def update_service_endpoints(
         self,
         service_name: str,
-        endpoints: List[ServiceEndpoint],
+        endpoints: builtins.list[ServiceEndpoint],
         namespace: str = "default",
     ) -> None:
         """Update service endpoints."""
@@ -343,15 +339,17 @@ class InMemoryServiceDiscovery(ServiceDiscovery):
 
     def __init__(self, registry: ServiceRegistry):
         self.registry = registry
-        self._watchers: List[Callable] = []
+        self._watchers: builtins.list[Callable] = []
 
-    async def discover_services(self, namespace: str = None) -> List[ServiceMetadata]:
+    async def discover_services(
+        self, namespace: str = None
+    ) -> builtins.list[ServiceMetadata]:
         """Discover services."""
         return await self.registry.list_services(namespace)
 
     async def get_service_endpoints(
         self, service_name: str, namespace: str = "default"
-    ) -> List[ServiceEndpoint]:
+    ) -> builtins.list[ServiceEndpoint]:
         """Get service endpoints."""
         if isinstance(self.registry, InMemoryServiceRegistry):
             async with self.registry._lock:
@@ -376,8 +374,8 @@ class ServiceMeshManager(ABC):
 
     def __init__(self, config: ServiceMeshConfig):
         self.config = config
-        self.registry: Optional[ServiceRegistry] = None
-        self.discovery: Optional[ServiceDiscovery] = None
+        self.registry: ServiceRegistry | None = None
+        self.discovery: ServiceDiscovery | None = None
 
     @abstractmethod
     async def initialize(self) -> None:
@@ -390,12 +388,12 @@ class ServiceMeshManager(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def apply_configuration(self, config: Dict[str, Any]) -> None:
+    async def apply_configuration(self, config: builtins.dict[str, Any]) -> None:
         """Apply mesh configuration."""
         raise NotImplementedError
 
     @abstractmethod
-    async def get_mesh_status(self) -> Dict[str, Any]:
+    async def get_mesh_status(self) -> builtins.dict[str, Any]:
         """Get mesh status."""
         raise NotImplementedError
 
@@ -419,11 +417,11 @@ class BasicServiceMeshManager(ServiceMeshManager):
         self._initialized = False
         logger.info(f"Service mesh {self.config.mesh_id} shutdown")
 
-    async def apply_configuration(self, config: Dict[str, Any]) -> None:
+    async def apply_configuration(self, config: builtins.dict[str, Any]) -> None:
         """Apply configuration."""
         logger.info(f"Applied configuration to mesh {self.config.mesh_id}")
 
-    async def get_mesh_status(self) -> Dict[str, Any]:
+    async def get_mesh_status(self) -> builtins.dict[str, Any]:
         """Get mesh status."""
         services = await self.registry.list_services()
 
@@ -442,19 +440,13 @@ class BasicServiceMeshManager(ServiceMeshManager):
 class ServiceMeshError(Exception):
     """Service mesh related error."""
 
-    pass
-
 
 class ServiceRegistrationError(ServiceMeshError):
     """Service registration error."""
 
-    pass
-
 
 class ServiceDiscoveryError(ServiceMeshError):
     """Service discovery error."""
-
-    pass
 
 
 # Utility functions
@@ -498,7 +490,7 @@ def create_mesh_config(
 async def register_service_with_endpoints(
     registry: ServiceRegistry,
     service_name: str,
-    endpoints: List[str],
+    endpoints: builtins.list[str],
     namespace: str = "default",
     port: int = 80,
     protocol: str = "http",

@@ -4,7 +4,7 @@ CLI module for the Marty Dashboard.
 
 import asyncio
 import sys
-from typing import Optional
+from typing import List, Optional
 
 import click
 import uvicorn
@@ -14,7 +14,6 @@ import uvicorn
 @click.version_option(version="1.0.0", prog_name="marty-dashboard")
 def main():
     """Marty Dashboard - Management interface for Marty Microservices Framework."""
-    pass
 
 
 @main.command()
@@ -59,8 +58,8 @@ def register(
     service_name: str,
     address: str,
     port: int,
-    health_url: Optional[str],
-    tags: Optional[str],
+    health_url: str | None,
+    tags: str | None,
 ):
     """Register a service with the dashboard."""
 

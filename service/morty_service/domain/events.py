@@ -15,7 +15,7 @@ from .value_objects import ValueObject
 class DomainEvent(ValueObject):
     """Base class for all domain events."""
 
-    def __init__(self, occurred_at: Optional[datetime] = None):
+    def __init__(self, occurred_at: datetime | None = None):
         self._occurred_at = occurred_at or datetime.utcnow()
         self._event_id = str(UUID())
 
@@ -40,8 +40,8 @@ class TaskCreated(DomainEvent):
         task_id: UUID,
         title: str,
         priority: str,
-        assignee_id: Optional[UUID] = None,
-        occurred_at: Optional[datetime] = None,
+        assignee_id: UUID | None = None,
+        occurred_at: datetime | None = None,
     ):
         super().__init__(occurred_at)
         self._task_id = task_id
@@ -62,7 +62,7 @@ class TaskCreated(DomainEvent):
         return self._priority
 
     @property
-    def assignee_id(self) -> Optional[UUID]:
+    def assignee_id(self) -> UUID | None:
         return self._assignee_id
 
 
@@ -73,8 +73,8 @@ class TaskAssigned(DomainEvent):
         self,
         task_id: UUID,
         assignee_id: UUID,
-        previous_assignee_id: Optional[UUID] = None,
-        occurred_at: Optional[datetime] = None,
+        previous_assignee_id: UUID | None = None,
+        occurred_at: datetime | None = None,
     ):
         super().__init__(occurred_at)
         self._task_id = task_id
@@ -90,7 +90,7 @@ class TaskAssigned(DomainEvent):
         return self._assignee_id
 
     @property
-    def previous_assignee_id(self) -> Optional[UUID]:
+    def previous_assignee_id(self) -> UUID | None:
         return self._previous_assignee_id
 
 
@@ -102,7 +102,7 @@ class TaskCompleted(DomainEvent):
         task_id: UUID,
         assignee_id: UUID,
         completed_at: datetime,
-        occurred_at: Optional[datetime] = None,
+        occurred_at: datetime | None = None,
     ):
         super().__init__(occurred_at)
         self._task_id = task_id
@@ -131,7 +131,7 @@ class TaskStatusChanged(DomainEvent):
         old_status: str,
         new_status: str,
         changed_by: UUID,
-        occurred_at: Optional[datetime] = None,
+        occurred_at: datetime | None = None,
     ):
         super().__init__(occurred_at)
         self._task_id = task_id
@@ -160,7 +160,7 @@ class UserActivated(DomainEvent):
     """Event raised when a user is activated."""
 
     def __init__(
-        self, user_id: UUID, activated_by: UUID, occurred_at: Optional[datetime] = None
+        self, user_id: UUID, activated_by: UUID, occurred_at: datetime | None = None
     ):
         super().__init__(occurred_at)
         self._user_id = user_id
@@ -182,7 +182,7 @@ class UserDeactivated(DomainEvent):
         self,
         user_id: UUID,
         deactivated_by: UUID,
-        occurred_at: Optional[datetime] = None,
+        occurred_at: datetime | None = None,
     ):
         super().__init__(occurred_at)
         self._user_id = user_id

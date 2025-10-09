@@ -2,7 +2,8 @@
 Security error classes for the enterprise security framework.
 """
 
-from typing import Any, Dict, Optional
+import builtins
+from typing import Any, Dict, Optional, dict
 
 
 class SecurityError(Exception):
@@ -11,8 +12,8 @@ class SecurityError(Exception):
     def __init__(
         self,
         message: str,
-        error_code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        error_code: str | None = None,
+        details: builtins.dict[str, Any] | None = None,
     ):
         super().__init__(message)
         self.message = message
@@ -27,7 +28,7 @@ class AuthenticationError(SecurityError):
         self,
         message: str = "Authentication failed",
         error_code: str = "AUTH_FAILED",
-        details: Optional[Dict[str, Any]] = None,
+        details: builtins.dict[str, Any] | None = None,
     ):
         super().__init__(message, error_code, details)
 
@@ -39,7 +40,7 @@ class AuthorizationError(SecurityError):
         self,
         message: str = "Access denied",
         error_code: str = "ACCESS_DENIED",
-        details: Optional[Dict[str, Any]] = None,
+        details: builtins.dict[str, Any] | None = None,
     ):
         super().__init__(message, error_code, details)
 
@@ -50,9 +51,9 @@ class RateLimitExceededError(SecurityError):
     def __init__(
         self,
         message: str = "Rate limit exceeded",
-        retry_after: Optional[int] = None,
+        retry_after: int | None = None,
         error_code: str = "RATE_LIMIT_EXCEEDED",
-        details: Optional[Dict[str, Any]] = None,
+        details: builtins.dict[str, Any] | None = None,
     ):
         super().__init__(message, error_code, details)
         self.retry_after = retry_after
@@ -65,7 +66,7 @@ class InvalidTokenError(AuthenticationError):
         self,
         message: str = "Invalid token",
         error_code: str = "INVALID_TOKEN",
-        details: Optional[Dict[str, Any]] = None,
+        details: builtins.dict[str, Any] | None = None,
     ):
         super().__init__(message, error_code, details)
 
@@ -77,7 +78,7 @@ class CertificateValidationError(AuthenticationError):
         self,
         message: str = "Certificate validation failed",
         error_code: str = "CERT_VALIDATION_FAILED",
-        details: Optional[Dict[str, Any]] = None,
+        details: builtins.dict[str, Any] | None = None,
     ):
         super().__init__(message, error_code, details)
 
@@ -88,9 +89,9 @@ class InsufficientPermissionsError(AuthorizationError):
     def __init__(
         self,
         required_permission: str,
-        message: Optional[str] = None,
+        message: str | None = None,
         error_code: str = "INSUFFICIENT_PERMISSIONS",
-        details: Optional[Dict[str, Any]] = None,
+        details: builtins.dict[str, Any] | None = None,
     ):
         message = message or f"Required permission: {required_permission}"
         details = details or {"required_permission": required_permission}

@@ -31,26 +31,26 @@ from .manager import (  # Core classes; Enums; Providers; Utility functions; Dat
 )
 
 __all__ = [
+    "BaseServiceConfig",
     # Core classes
     "ConfigManager",
-    "SecretManager",
-    "BaseServiceConfig",
-    # Enums
-    "Environment",
-    "ConfigSource",
-    # Providers
-    "ConfigProvider",
-    "FileConfigProvider",
-    "EnvVarConfigProvider",
-    # Utility functions
-    "create_config_manager",
-    "get_config_manager",
-    "get_service_config",
-    "create_secret_manager",
-    "get_secret_manager",
-    "config_context",
-    "detect_environment",
-    "load_config_schema",
     # Data classes
     "ConfigMetadata",
+    # Providers
+    "ConfigProvider",
+    "ConfigSource",
+    "EnvVarConfigProvider",
+    # Enums
+    "Environment",
+    "FileConfigProvider",
+    "SecretManager",
+    "config_context",
+    # Utility functions
+    "create_config_manager",
+    "create_secret_manager",
+    "detect_environment",
+    "get_config_manager",
+    "get_secret_manager",
+    "get_service_config",
+    "load_config_schema",
 ]

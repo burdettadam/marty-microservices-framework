@@ -13,9 +13,8 @@ import json
 import time
 from pathlib import Path
 
-import pytest
 import pytest_asyncio
-from tests.e2e.conftest import BottleneckAnalysis, PerformanceAnalyzer
+from tests.e2e.conftest import PerformanceAnalyzer
 
 
 class TestBottleneckAnalysis:
@@ -271,7 +270,7 @@ class TestBottleneckAnalysis:
         """Generate comprehensive bottleneck analysis report."""
 
         # Identify trend patterns
-        load_levels = sorted([int(k.split("_")[-1]) for k in results.keys()])
+        load_levels = sorted([int(k.split("_")[-1]) for k in results])
         cpu_trend = [
             results[f"load_level_{level}"]["performance_summary"]["avg_cpu_usage"]
             for level in load_levels
@@ -290,8 +289,10 @@ class TestBottleneckAnalysis:
                 "total_audit_events": len(analyzer.audit_events),
             },
             "performance_trends": {
-                "cpu_usage_by_load": dict(zip(load_levels, cpu_trend)),
-                "memory_usage_by_load": dict(zip(load_levels, memory_trend)),
+                "cpu_usage_by_load": dict(zip(load_levels, cpu_trend, strict=False)),
+                "memory_usage_by_load": dict(
+                    zip(load_levels, memory_trend, strict=False)
+                ),
                 "bottlenecks_by_load": {
                     level: len(results[f"load_level_{level}"]["bottlenecks"])
                     for level in load_levels
@@ -405,14 +406,14 @@ class TestBottleneckAnalysis:
 
         critical_bottlenecks = report["bottleneck_analysis"]["critical_bottlenecks"]
         if critical_bottlenecks:
-            print(f"\\n⚠️  CRITICAL BOTTLENECKS DETECTED:")
+            print("\\n⚠️  CRITICAL BOTTLENECKS DETECTED:")
             for bottleneck in critical_bottlenecks[:3]:  # Show top 3
                 print(
                     f"   • {bottleneck['service']}: {bottleneck['type']} "
                     f"({bottleneck['value']:.2f} > {bottleneck['threshold']:.2f})"
                 )
 
-        print(f"\\n💡 RECOMMENDATIONS:")
+        print("\\n💡 RECOMMENDATIONS:")
         for rec in report["recommendations"][:2]:  # Show top 2 categories
             print(f"   🎯 {rec['category']} ({rec['priority']} priority)")
             for action in rec["actions"][:2]:  # Show top 2 actions

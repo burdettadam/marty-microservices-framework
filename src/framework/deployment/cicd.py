@@ -7,30 +7,18 @@ deployment automation for microservices architectures.
 """
 
 import asyncio
-import base64
-import json
+import builtins
 import logging
-import subprocess
-import tempfile
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, tuple
 
-import aiohttp
-import jwt
 import yaml
 
-from .core import (
-    DeploymentConfig,
-    DeploymentStatus,
-    DeploymentStrategy,
-    DeploymentTarget,
-    EnvironmentType,
-)
-from .helm_charts import HelmChart, HelmManager
+from .core import DeploymentConfig
+from .helm_charts import HelmChart
 
 logger = logging.getLogger(__name__)
 
@@ -85,14 +73,16 @@ class PipelineConfig:
     provider: PipelineProvider
     repository_url: str
     branch: str = "main"
-    triggers: List[str] = field(default_factory=lambda: ["push", "pull_request"])
-    stages: List[PipelineStage] = field(default_factory=list)
-    environment_variables: Dict[str, str] = field(default_factory=dict)
-    secrets: Dict[str, str] = field(default_factory=dict)
+    triggers: builtins.list[str] = field(
+        default_factory=lambda: ["push", "pull_request"]
+    )
+    stages: builtins.list[PipelineStage] = field(default_factory=list)
+    environment_variables: builtins.dict[str, str] = field(default_factory=dict)
+    secrets: builtins.dict[str, str] = field(default_factory=dict)
     parallel_stages: bool = True
     timeout_minutes: int = 30
     retry_count: int = 3
-    notifications: Dict[str, Any] = field(default_factory=dict)
+    notifications: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -103,7 +93,7 @@ class GitOpsConfig:
     repository_url: str
     path: str = "manifests"
     branch: str = "main"
-    sync_policy: Dict[str, Any] = field(default_factory=dict)
+    sync_policy: builtins.dict[str, Any] = field(default_factory=dict)
     auto_sync: bool = True
     self_heal: bool = True
     prune: bool = True
@@ -118,13 +108,13 @@ class PipelineExecution:
     pipeline_name: str
     status: PipelineStatus
     started_at: datetime
-    finished_at: Optional[datetime] = None
-    duration: Optional[timedelta] = None
-    stages: Dict[str, PipelineStatus] = field(default_factory=dict)
-    logs: Dict[str, str] = field(default_factory=dict)
-    artifacts: Dict[str, str] = field(default_factory=dict)
-    commit_sha: Optional[str] = None
-    triggered_by: Optional[str] = None
+    finished_at: datetime | None = None
+    duration: timedelta | None = None
+    stages: builtins.dict[str, PipelineStatus] = field(default_factory=dict)
+    logs: builtins.dict[str, str] = field(default_factory=dict)
+    artifacts: builtins.dict[str, str] = field(default_factory=dict)
+    commit_sha: str | None = None
+    triggered_by: str | None = None
 
 
 @dataclass
@@ -133,9 +123,9 @@ class DeploymentPipeline:
 
     name: str
     config: PipelineConfig
-    gitops_config: Optional[GitOpsConfig] = None
-    deployment_config: Optional[DeploymentConfig] = None
-    helm_charts: List[HelmChart] = field(default_factory=list)
+    gitops_config: GitOpsConfig | None = None
+    deployment_config: DeploymentConfig | None = None
+    helm_charts: builtins.list[HelmChart] = field(default_factory=list)
 
 
 class PipelineGenerator:
@@ -310,6 +300,7 @@ class PipelineGenerator:
         self, config: PipelineConfig, deployment_config: DeploymentConfig
     ) -> str:
         """Generate Jenkins pipeline (Jenkinsfile)."""
+        newline_char = "\n"
         stages_code = []
 
         # Build stage
@@ -393,7 +384,7 @@ pipeline {{
         SERVICE_NAME = '{deployment_config.service_name}'
     }}
 
-    stages {{{"\n".join(stages_code)}
+    stages {{{newline_char.join(stages_code)}
     }}
 
     post {{
@@ -421,7 +412,7 @@ pipeline {{
 
     def generate_tekton_pipeline(
         self, config: PipelineConfig, deployment_config: DeploymentConfig
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Generate Tekton pipeline."""
         tasks = []
 
@@ -476,7 +467,7 @@ pipeline {{
                             "value": f"{deployment_config.service_name}-{env_name}",
                         },
                         {"name": "NAMESPACE", "value": env_name},
-                        {"name": "VALUES", "value": f"image.tag=$(params.TAG)"},
+                        {"name": "VALUES", "value": "image.tag=$(params.TAG)"},
                     ],
                     "workspaces": [{"name": "source", "workspace": "shared-workspace"}],
                 }
@@ -507,18 +498,17 @@ class GitOpsManager:
 
     async def create_application(
         self, app_name: str, deployment_config: DeploymentConfig
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Create GitOps application."""
         if self.config.provider == GitOpsProvider.ARGOCD:
             return self._create_argocd_application(app_name, deployment_config)
-        elif self.config.provider == GitOpsProvider.FLUX:
+        if self.config.provider == GitOpsProvider.FLUX:
             return self._create_flux_application(app_name, deployment_config)
-        else:
-            raise ValueError(f"Unsupported GitOps provider: {self.config.provider}")
+        raise ValueError(f"Unsupported GitOps provider: {self.config.provider}")
 
     def _create_argocd_application(
         self, app_name: str, deployment_config: DeploymentConfig
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Create ArgoCD application."""
         app = {
             "apiVersion": "argoproj.io/v1alpha1",
@@ -551,7 +541,7 @@ class GitOpsManager:
 
     def _create_flux_application(
         self, app_name: str, deployment_config: DeploymentConfig
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Create Flux application."""
         app = {
             "apiVersion": "kustomize.toolkit.fluxcd.io/v1beta2",
@@ -584,7 +574,7 @@ class GitOpsManager:
         try:
             if self.config.provider == GitOpsProvider.ARGOCD:
                 return await self._sync_argocd_application(app_name)
-            elif self.config.provider == GitOpsProvider.FLUX:
+            if self.config.provider == GitOpsProvider.FLUX:
                 return await self._sync_flux_application(app_name)
             return False
         except Exception as e:
@@ -611,9 +601,8 @@ class GitOpsManager:
         if process.returncode == 0:
             logger.info(f"ArgoCD application {app_name} synced successfully")
             return True
-        else:
-            logger.error(f"ArgoCD sync failed: {stderr.decode()}")
-            return False
+        logger.error(f"ArgoCD sync failed: {stderr.decode()}")
+        return False
 
     async def _sync_flux_application(self, app_name: str) -> bool:
         """Sync Flux application."""
@@ -635,9 +624,8 @@ class GitOpsManager:
         if process.returncode == 0:
             logger.info(f"Flux application {app_name} synced successfully")
             return True
-        else:
-            logger.error(f"Flux sync failed: {stderr.decode()}")
-            return False
+        logger.error(f"Flux sync failed: {stderr.decode()}")
+        return False
 
 
 class CICDManager:
@@ -645,7 +633,7 @@ class CICDManager:
 
     def __init__(self):
         self.pipeline_generator = PipelineGenerator()
-        self.executions: Dict[str, PipelineExecution] = {}
+        self.executions: builtins.dict[str, PipelineExecution] = {}
 
     async def create_pipeline(
         self, pipeline: DeploymentPipeline, output_dir: Path
@@ -743,7 +731,7 @@ class CICDManager:
 
     async def trigger_pipeline(
         self, pipeline_name: str, commit_sha: str, triggered_by: str
-    ) -> Optional[PipelineExecution]:
+    ) -> PipelineExecution | None:
         """Trigger pipeline execution."""
         try:
             execution = PipelineExecution(
@@ -797,15 +785,13 @@ class CICDManager:
             execution.duration = execution.finished_at - execution.started_at
             logger.error(f"Pipeline {execution.id} failed: {e}")
 
-    async def get_pipeline_status(
-        self, execution_id: str
-    ) -> Optional[PipelineExecution]:
+    async def get_pipeline_status(self, execution_id: str) -> PipelineExecution | None:
         """Get pipeline execution status."""
         return self.executions.get(execution_id)
 
     async def list_pipeline_executions(
-        self, pipeline_name: Optional[str] = None
-    ) -> List[PipelineExecution]:
+        self, pipeline_name: str | None = None
+    ) -> builtins.list[PipelineExecution]:
         """List pipeline executions."""
         executions = list(self.executions.values())
 
@@ -874,7 +860,7 @@ async def deploy_with_cicd(
     pipeline: DeploymentPipeline,
     commit_sha: str,
     triggered_by: str = "automated",
-) -> Tuple[bool, Optional[str]]:
+) -> builtins.tuple[bool, str | None]:
     """Deploy service using CI/CD pipeline."""
     try:
         execution = await manager.trigger_pipeline(
@@ -896,9 +882,9 @@ async def deploy_with_cicd(
 
             if current_execution.status == PipelineStatus.SUCCESS:
                 return True, f"Pipeline {execution.id} completed successfully"
-            elif current_execution.status == PipelineStatus.FAILURE:
+            if current_execution.status == PipelineStatus.FAILURE:
                 return False, f"Pipeline {execution.id} failed"
-            elif current_execution.status == PipelineStatus.CANCELLED:
+            if current_execution.status == PipelineStatus.CANCELLED:
                 return False, f"Pipeline {execution.id} was cancelled"
 
             await asyncio.sleep(5)
@@ -906,4 +892,4 @@ async def deploy_with_cicd(
         return False, f"Pipeline {execution.id} timed out"
 
     except Exception as e:
-        return False, f"CI/CD deployment error: {str(e)}"
+        return False, f"CI/CD deployment error: {e!s}"

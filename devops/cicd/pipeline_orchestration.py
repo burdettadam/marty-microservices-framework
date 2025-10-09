@@ -6,19 +6,14 @@ Integrates with test execution, security scanning, quality gates, and deployment
 """
 
 import asyncio
-import json
+import builtins
 import os
 import queue
-import subprocess
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
-from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
-
-import yaml
+from typing import Any, Dict, Final, List, Optional, Set, dict, list
 
 # Local imports
 from . import (
@@ -33,8 +28,10 @@ from . import (
     QualityGateEngine,
     SecurityScanConfiguration,
     SecurityScanner,
+    SecurityScanType,
     TestConfiguration,
     TestRunner,
+    TestType,
 )
 
 try:
@@ -62,7 +59,7 @@ class PipelineMetrics:
 
     # Timing metrics
     total_duration: float = 0.0
-    stage_durations: Dict[str, float] = field(default_factory=dict)
+    stage_durations: builtins.dict[str, float] = field(default_factory=dict)
     queue_time: float = 0.0
 
     # Success metrics
@@ -110,16 +107,16 @@ class PipelineOrchestrator:
             self.deployment_orchestrator = None
 
         # Pipeline state
-        self.pipelines: Dict[str, PipelineDefinition] = {}
-        self.executions: Dict[str, PipelineExecution] = {}
-        self.artifacts: Dict[str, List[PipelineArtifact]] = {}
+        self.pipelines: builtins.dict[str, PipelineDefinition] = {}
+        self.executions: builtins.dict[str, PipelineExecution] = {}
+        self.artifacts: builtins.dict[str, builtins.list[PipelineArtifact]] = {}
 
         # Execution queue
         self.execution_queue = queue.Queue()
-        self.execution_threads: Dict[str, threading.Thread] = {}
+        self.execution_threads: builtins.dict[str, threading.Thread] = {}
 
         # Metrics
-        self.metrics: Dict[str, PipelineMetrics] = {}
+        self.metrics: builtins.dict[str, PipelineMetrics] = {}
 
         print("🚀 Pipeline Orchestrator initialized")
 
@@ -158,7 +155,9 @@ class PipelineOrchestrator:
 
         print(f"✅ Pipeline validation passed: {pipeline.name}")
 
-    def _check_circular_dependencies(self, stages: List[PipelineStageDefinition]):
+    def _check_circular_dependencies(
+        self, stages: builtins.list[PipelineStageDefinition]
+    ):
         """Check for circular dependencies in stage definitions"""
 
         def has_circular_dependency(stage_name: str, visited: set, path: set) -> bool:
@@ -195,7 +194,7 @@ class PipelineOrchestrator:
         trigger_source: str = "",
         commit_sha: str = "",
         branch: str = "main",
-        environment_overrides: Optional[Dict[str, str]] = None,
+        environment_overrides: builtins.dict[str, str] | None = None,
     ) -> str:
         """Execute a pipeline"""
 
@@ -248,7 +247,7 @@ class PipelineOrchestrator:
         self,
         execution: PipelineExecution,
         pipeline: PipelineDefinition,
-        environment_overrides: Optional[Dict[str, str]] = None,
+        environment_overrides: builtins.dict[str, str] | None = None,
     ):
         """Execute pipeline stages with dependency resolution"""
 
@@ -290,9 +289,8 @@ class PipelineOrchestrator:
                         "Pipeline deadlock: no stages ready to execute"
                     )
                     break
-                else:
-                    # All stages completed
-                    break
+                # All stages completed
+                break
 
             # Execute ready stages in parallel
             stage_tasks = []
@@ -375,8 +373,8 @@ class PipelineOrchestrator:
         )
 
     def _build_dependency_graph(
-        self, stages: List[PipelineStageDefinition]
-    ) -> Dict[str, List[str]]:
+        self, stages: builtins.list[PipelineStageDefinition]
+    ) -> builtins.dict[str, builtins.list[str]]:
         """Build stage dependency graph"""
 
         graph = {}
@@ -390,8 +388,8 @@ class PipelineOrchestrator:
         execution: PipelineExecution,
         stage: PipelineStageDefinition,
         pipeline: PipelineDefinition,
-        environment_overrides: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, Any]:
+        environment_overrides: builtins.dict[str, str] | None = None,
+    ) -> builtins.dict[str, Any]:
         """Execute a single pipeline stage"""
 
         stage_start = datetime.now()
@@ -455,11 +453,11 @@ class PipelineOrchestrator:
         for condition in stage.conditions:
             if condition == "always":
                 continue
-            elif condition == "on_success" and execution.failed_stages:
+            if (condition == "on_success" and execution.failed_stages) or (
+                condition == "on_failure" and not execution.failed_stages
+            ):
                 return False
-            elif condition == "on_failure" and not execution.failed_stages:
-                return False
-            elif condition.startswith("branch:"):
+            if condition.startswith("branch:"):
                 required_branch = condition.split(":", 1)[1]
                 if execution.branch != required_branch:
                     return False
@@ -473,7 +471,7 @@ class PipelineOrchestrator:
 
     async def _execute_test_stage(
         self, execution: PipelineExecution, stage: PipelineStageDefinition
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute test stage"""
 
         if not stage.test_config:
@@ -495,15 +493,14 @@ class PipelineOrchestrator:
 
         if test_result["status"] in ["passed", "completed"]:
             return {"status": "success", "message": "Tests passed"}
-        else:
-            return {
-                "status": "failed",
-                "message": test_result.get("error_message", "Tests failed"),
-            }
+        return {
+            "status": "failed",
+            "message": test_result.get("error_message", "Tests failed"),
+        }
 
     async def _execute_security_stage(
         self, execution: PipelineExecution, stage: PipelineStageDefinition
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute security scan stage"""
 
         if not stage.security_scan_config:
@@ -521,15 +518,14 @@ class PipelineOrchestrator:
 
         if scan_result["status"] in ["completed"]:
             return {"status": "success", "message": "Security scan completed"}
-        else:
-            return {
-                "status": "failed",
-                "message": scan_result.get("error_message", "Security scan failed"),
-            }
+        return {
+            "status": "failed",
+            "message": scan_result.get("error_message", "Security scan failed"),
+        }
 
     async def _execute_quality_gate_stage(
         self, execution: PipelineExecution, stage: PipelineStageDefinition
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute quality gate stage"""
 
         if not stage.quality_gate:
@@ -558,19 +554,18 @@ class PipelineOrchestrator:
 
         if quality_result["status"] == "passed":
             return {"status": "success", "message": "Quality gate passed"}
-        elif quality_result["status"] == "warning":
+        if quality_result["status"] == "warning":
             return {"status": "success", "message": "Quality gate passed with warnings"}
-        elif quality_result["status"] == "manual_approval_required":
+        if quality_result["status"] == "manual_approval_required":
             return {"status": "manual_approval", "message": "Manual approval required"}
-        else:
-            return {"status": "failed", "message": "Quality gate failed"}
+        return {"status": "failed", "message": "Quality gate failed"}
 
     async def _execute_build_stage(
         self,
         execution: PipelineExecution,
         stage: PipelineStageDefinition,
-        environment: Dict[str, str],
-    ) -> Dict[str, Any]:
+        environment: builtins.dict[str, str],
+    ) -> builtins.dict[str, Any]:
         """Execute build stage"""
 
         if not stage.commands:
@@ -606,8 +601,8 @@ class PipelineOrchestrator:
         self,
         execution: PipelineExecution,
         stage: PipelineStageDefinition,
-        environment: Dict[str, str],
-    ) -> Dict[str, Any]:
+        environment: builtins.dict[str, str],
+    ) -> builtins.dict[str, Any]:
         """Execute package stage"""
 
         if not stage.commands:
@@ -648,7 +643,7 @@ class PipelineOrchestrator:
         execution: PipelineExecution,
         stage: PipelineStageDefinition,
         pipeline: PipelineDefinition,
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute deployment stage"""
 
         if not DEPLOYMENT_AVAILABLE or not self.deployment_orchestrator:
@@ -691,11 +686,10 @@ class PipelineOrchestrator:
                     "status": "success",
                     "message": "Deployment completed successfully",
                 }
-            else:
-                return {
-                    "status": "failed",
-                    "message": deployment_result.get("message", "Deployment failed"),
-                }
+            return {
+                "status": "failed",
+                "message": deployment_result.get("message", "Deployment failed"),
+            }
 
         except Exception as e:
             return {"status": "failed", "message": f"Deployment error: {e}"}
@@ -704,8 +698,8 @@ class PipelineOrchestrator:
         self,
         execution: PipelineExecution,
         stage: PipelineStageDefinition,
-        environment: Dict[str, str],
-    ) -> Dict[str, Any]:
+        environment: builtins.dict[str, str],
+    ) -> builtins.dict[str, Any]:
         """Execute custom stage with commands"""
 
         if not stage.commands:
@@ -730,9 +724,9 @@ class PipelineOrchestrator:
         self,
         command: str,
         working_directory: str,
-        environment: Dict[str, str],
+        environment: builtins.dict[str, str],
         timeout: int,
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute shell command"""
 
         try:
@@ -767,7 +761,7 @@ class PipelineOrchestrator:
         except Exception as e:
             return {"returncode": -1, "stdout": "", "stderr": str(e)}
 
-    def get_execution_status(self, execution_id: str) -> Optional[Dict[str, Any]]:
+    def get_execution_status(self, execution_id: str) -> builtins.dict[str, Any] | None:
         """Get pipeline execution status"""
 
         if execution_id not in self.executions:
@@ -783,10 +777,10 @@ class PipelineOrchestrator:
 
     def list_executions(
         self,
-        pipeline_name: Optional[str] = None,
-        status: Optional[PipelineStatus] = None,
+        pipeline_name: str | None = None,
+        status: PipelineStatus | None = None,
         limit: int = 50,
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """List pipeline executions with filtering"""
 
         executions = list(self.executions.values())
@@ -829,7 +823,7 @@ class PipelineOrchestrator:
 
     def get_pipeline_metrics(
         self, pipeline_name: str, days: int = 30
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Get aggregated pipeline metrics"""
 
         # Filter executions for the pipeline within time range
@@ -977,7 +971,7 @@ class PipelineConfigurationBuilder:
         )
 
     def add_build_stage(
-        self, name: str, commands: List[str], **kwargs
+        self, name: str, commands: builtins.list[str], **kwargs
     ) -> "PipelineConfigurationBuilder":
         """Add build stage"""
 
@@ -986,7 +980,7 @@ class PipelineConfigurationBuilder:
         )
 
     def add_deploy_stage(
-        self, name: str, depends_on: List[str], **kwargs
+        self, name: str, depends_on: builtins.list[str], **kwargs
     ) -> "PipelineConfigurationBuilder":
         """Add deployment stage"""
 
@@ -1130,7 +1124,7 @@ async def demo_pipeline_orchestration():
         branch="main",
     )
 
-    print(f"\n📊 Pipeline Execution Results")
+    print("\n📊 Pipeline Execution Results")
 
     # Get execution status
     execution_status = orchestrator.get_execution_status(execution_id)
@@ -1144,7 +1138,7 @@ async def demo_pipeline_orchestration():
 
     # Get pipeline metrics
     metrics = orchestrator.get_pipeline_metrics("microservice_ci_cd")
-    print(f"\n📈 Pipeline Metrics")
+    print("\n📈 Pipeline Metrics")
     print(f"Success rate: {metrics['success_rate']:.1%}")
     print(f"Average duration: {metrics['avg_duration']:.1f}s")
     print(f"Average coverage: {metrics['avg_coverage']:.1%}")

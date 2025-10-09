@@ -5,9 +5,10 @@ These adapters implement the output ports for event publishing and notifications
 providing concrete implementations using Kafka and email services.
 """
 
+import builtins
 import json
 import logging
-from typing import List
+from typing import List, Set, list
 from uuid import UUID
 
 from ...application.ports.output_ports import EventPublisherPort, NotificationPort
@@ -46,7 +47,7 @@ class KafkaEventPublisher(EventPublisherPort):
             logger.error(f"Failed to publish event {event.event_id}: {e}")
             raise
 
-    async def publish_batch(self, events: List[DomainEvent]) -> None:
+    async def publish_batch(self, events: builtins.list[DomainEvent]) -> None:
         """Publish multiple domain events as a batch."""
         for event in events:
             await self.publish(event)

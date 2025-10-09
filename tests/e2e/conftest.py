@@ -6,14 +6,13 @@ analysis, bottleneck detection, timeout monitoring, and auditability testing.
 """
 
 import asyncio
-import json
-import logging
+import builtins
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, dict, list
 
 import psutil
 import pytest
@@ -31,9 +30,9 @@ from marty_chassis.plugins.manager import PluginManager
 class PerformanceMetrics:
     """Container for performance metrics during testing."""
 
-    cpu_usage: List[float] = field(default_factory=list)
-    memory_usage: List[float] = field(default_factory=list)
-    response_times: List[float] = field(default_factory=list)
+    cpu_usage: builtins.list[float] = field(default_factory=list)
+    memory_usage: builtins.list[float] = field(default_factory=list)
+    response_times: builtins.list[float] = field(default_factory=list)
     error_count: int = 0
     success_count: int = 0
     timeout_count: int = 0
@@ -73,7 +72,7 @@ class BottleneckAnalysis:
     severity: str  # 'low', 'medium', 'high', 'critical'
     current_value: float
     threshold_value: float
-    recommendations: List[str] = field(default_factory=list)
+    recommendations: builtins.list[str] = field(default_factory=list)
     timestamp: datetime = field(default_factory=datetime.now)
 
 
@@ -86,18 +85,20 @@ class AuditEvent:
     event_type: str  # 'performance', 'error', 'security', 'business'
     severity: str  # 'info', 'warning', 'error', 'critical'
     message: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    user_id: Optional[str] = None
-    request_id: Optional[str] = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
+    user_id: str | None = None
+    request_id: str | None = None
 
 
 class PerformanceAnalyzer:
     """Analyzes performance metrics and identifies bottlenecks."""
 
     def __init__(self):
-        self.metrics_history: Dict[str, List[PerformanceMetrics]] = defaultdict(list)
-        self.bottlenecks: List[BottleneckAnalysis] = []
-        self.audit_events: List[AuditEvent] = []
+        self.metrics_history: builtins.dict[
+            str, builtins.list[PerformanceMetrics]
+        ] = defaultdict(list)
+        self.bottlenecks: builtins.list[BottleneckAnalysis] = []
+        self.audit_events: builtins.list[AuditEvent] = []
 
         # Thresholds for bottleneck detection
         self.thresholds = {
@@ -122,7 +123,7 @@ class PerformanceAnalyzer:
 
     def analyze_bottlenecks(
         self, service_name: str, metrics: PerformanceMetrics
-    ) -> List[BottleneckAnalysis]:
+    ) -> builtins.list[BottleneckAnalysis]:
         """Analyze metrics for bottlenecks."""
         bottlenecks = []
 
@@ -206,7 +207,7 @@ class PerformanceAnalyzer:
         event_type: str,
         severity: str,
         message: str,
-        metadata: Optional[Dict] = None,
+        metadata: builtins.dict | None = None,
     ) -> AuditEvent:
         """Create an audit event for tracking."""
         event = AuditEvent(
@@ -221,7 +222,7 @@ class PerformanceAnalyzer:
         self.audit_events.append(event)
         return event
 
-    def generate_report(self) -> Dict[str, Any]:
+    def generate_report(self) -> builtins.dict[str, Any]:
         """Generate comprehensive performance report."""
         return {
             "timestamp": datetime.now().isoformat(),
@@ -352,7 +353,7 @@ class TimeoutMonitor:
 
     def __init__(self, timeout_threshold: float = 5.0):
         self.timeout_threshold = timeout_threshold
-        self.timeout_events: List[Dict[str, Any]] = []
+        self.timeout_events: builtins.list[builtins.dict[str, Any]] = []
 
     async def monitor_operation(
         self, operation_name: str, operation_func, *args, **kwargs
@@ -395,7 +396,7 @@ class TimeoutMonitor:
             )
             raise
 
-    def get_timeout_report(self) -> Dict[str, Any]:
+    def get_timeout_report(self) -> builtins.dict[str, Any]:
         """Get timeout monitoring report."""
         return {
             "total_operations": len(self.timeout_events),

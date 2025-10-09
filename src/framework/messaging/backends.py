@@ -5,7 +5,7 @@ Provides backend implementations for various message queue systems including
 RabbitMQ, Redis, AWS SQS, and in-memory queues.
 """
 
-import asyncio
+import builtins
 import json
 import logging
 import time
@@ -13,10 +13,9 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Set, dict, list
 
 from .core import ExchangeConfig, Message, MessageExchange, MessageQueue, QueueConfig
-from .serialization import JSONSerializer, MessageSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +40,8 @@ class BackendConfig:
     # Connection settings
     host: str = "localhost"
     port: int = 5672
-    username: Optional[str] = None
-    password: Optional[str] = None
+    username: str | None = None
+    password: str | None = None
     virtual_host: str = "/"
 
     # Connection pool
@@ -52,15 +51,15 @@ class BackendConfig:
 
     # Reliability
     enable_ssl: bool = False
-    ssl_cert_path: Optional[str] = None
-    ssl_key_path: Optional[str] = None
+    ssl_cert_path: str | None = None
+    ssl_key_path: str | None = None
 
     # Performance
     max_frame_size: int = 131072
     channel_max: int = 2047
 
     # Additional backend-specific settings
-    options: Dict[str, Any] = None
+    options: builtins.dict[str, Any] = None
 
     def __post_init__(self):
         if self.options is None:
@@ -78,49 +77,38 @@ class MessageBackend(ABC):
     @abstractmethod
     async def connect(self):
         """Connect to message queue backend."""
-        pass
 
     @abstractmethod
     async def disconnect(self):
         """Disconnect from message queue backend."""
-        pass
 
     @abstractmethod
     async def create_queue(self, config: QueueConfig) -> MessageQueue:
         """Create a message queue."""
-        pass
 
     @abstractmethod
     async def create_exchange(self, config: ExchangeConfig) -> MessageExchange:
         """Create a message exchange."""
-        pass
 
     @abstractmethod
     async def publish(self, message: Message) -> bool:
         """Publish a message."""
-        pass
 
     @abstractmethod
-    async def consume(
-        self, queue: str, timeout: Optional[float] = None
-    ) -> Optional[Message]:
+    async def consume(self, queue: str, timeout: float | None = None) -> Message | None:
         """Consume a message from queue."""
-        pass
 
     @abstractmethod
     async def ack(self, message: Message) -> bool:
         """Acknowledge message processing."""
-        pass
 
     @abstractmethod
     async def nack(self, message: Message, requeue: bool = True) -> bool:
         """Negative acknowledge message."""
-        pass
 
     @abstractmethod
     async def send_to_dlq(self, message: Message) -> bool:
         """Send message to dead letter queue."""
-        pass
 
     @property
     def is_connected(self) -> bool:
@@ -133,11 +121,11 @@ class InMemoryBackend(MessageBackend):
 
     def __init__(self, config: BackendConfig):
         super().__init__(config)
-        self._queues: Dict[str, List[Message]] = {}
-        self._exchanges: Dict[str, Dict[str, Any]] = {}
-        self._dlq: List[Message] = []
-        self._queue_configs: Dict[str, QueueConfig] = {}
-        self._exchange_configs: Dict[str, ExchangeConfig] = {}
+        self._queues: builtins.dict[str, builtins.list[Message]] = {}
+        self._exchanges: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self._dlq: builtins.list[Message] = []
+        self._queue_configs: builtins.dict[str, QueueConfig] = {}
+        self._exchange_configs: builtins.dict[str, ExchangeConfig] = {}
 
     async def connect(self):
         """Connect to in-memory backend."""
@@ -238,9 +226,7 @@ class InMemoryBackend(MessageBackend):
         # Add more sophisticated pattern matching as needed
         return False
 
-    async def consume(
-        self, queue: str, timeout: Optional[float] = None
-    ) -> Optional[Message]:
+    async def consume(self, queue: str, timeout: float | None = None) -> Message | None:
         """Consume message from queue."""
         if queue not in self._queues:
             return None
@@ -302,7 +288,7 @@ class InMemoryQueue(MessageQueue):
         message.headers.routing_key = self.config.name
         return await self.backend.publish(message)
 
-    async def consume(self, timeout: Optional[float] = None) -> Optional[Message]:
+    async def consume(self, timeout: float | None = None) -> Message | None:
         """Consume message from queue."""
         return await self.backend.consume(self.config.name, timeout)
 
@@ -346,8 +332,8 @@ class RabbitMQBackend(MessageBackend):
         super().__init__(config)
         self._connection = None
         self._channel = None
-        self._queues: Dict[str, Any] = {}
-        self._exchanges: Dict[str, Any] = {}
+        self._queues: builtins.dict[str, Any] = {}
+        self._exchanges: builtins.dict[str, Any] = {}
 
     async def connect(self):
         """Connect to RabbitMQ."""
@@ -394,7 +380,6 @@ class RabbitMQBackend(MessageBackend):
 
     async def create_queue(self, config: QueueConfig) -> MessageQueue:
         """Create RabbitMQ queue."""
-        import aio_pika
 
         queue = await self._channel.declare_queue(
             config.name,
@@ -465,9 +450,7 @@ class RabbitMQBackend(MessageBackend):
             logger.error(f"Failed to publish message to RabbitMQ: {e}")
             return False
 
-    async def consume(
-        self, queue: str, timeout: Optional[float] = None
-    ) -> Optional[Message]:
+    async def consume(self, queue: str, timeout: float | None = None) -> Message | None:
         """Consume message from RabbitMQ queue."""
         if queue not in self._queues:
             return None
@@ -562,7 +545,7 @@ class RabbitMQQueue(MessageQueue):
         message.headers.routing_key = self.config.name
         return await self.backend.publish(message)
 
-    async def consume(self, timeout: Optional[float] = None) -> Optional[Message]:
+    async def consume(self, timeout: float | None = None) -> Message | None:
         """Consume message from queue."""
         return await self.backend.consume(self.config.name, timeout)
 
@@ -695,9 +678,7 @@ class RedisBackend(MessageBackend):
             logger.error(f"Failed to publish message to Redis: {e}")
             return False
 
-    async def consume(
-        self, queue: str, timeout: Optional[float] = None
-    ) -> Optional[Message]:
+    async def consume(self, queue: str, timeout: float | None = None) -> Message | None:
         """Consume message from Redis queue."""
         try:
             if self._use_streams:
@@ -733,7 +714,7 @@ class RedisBackend(MessageBackend):
 
         return None
 
-    def _deserialize_message(self, message_data: Dict[str, Any]) -> Message:
+    def _deserialize_message(self, message_data: builtins.dict[str, Any]) -> Message:
         """Deserialize message from Redis."""
         message = Message(id=message_data["id"], body=message_data["body"])
 
@@ -759,8 +740,7 @@ class RedisBackend(MessageBackend):
         if requeue:
             # Republish message
             return await self.publish(message)
-        else:
-            message.mark_failed()
+        message.mark_failed()
         return True
 
     async def send_to_dlq(self, message: Message) -> bool:
@@ -792,7 +772,7 @@ class RedisQueue(MessageQueue):
         message.headers.routing_key = self.config.name
         return await self.backend.publish(message)
 
-    async def consume(self, timeout: Optional[float] = None) -> Optional[Message]:
+    async def consume(self, timeout: float | None = None) -> Message | None:
         """Consume message from queue."""
         return await self.backend.consume(self.config.name, timeout)
 
@@ -811,8 +791,7 @@ class RedisQueue(MessageQueue):
         try:
             if self.backend._use_streams:
                 return await self.backend._redis.xlen(f"queue:{self.config.name}")
-            else:
-                return await self.backend._redis.llen(f"queue:{self.config.name}")
+            return await self.backend._redis.llen(f"queue:{self.config.name}")
         except Exception as e:
             logger.error(f"Failed to get Redis queue message count: {e}")
             return 0

@@ -12,6 +12,7 @@ Provides comprehensive CI/CD capabilities including:
 """
 
 import asyncio
+import builtins
 import hashlib
 import json
 import os
@@ -24,7 +25,19 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Set,
+    Union,
+    dict,
+    list,
+    tuple,
+)
 
 import yaml
 
@@ -128,11 +141,11 @@ class TestConfiguration:
     # Execution settings
     command: str = ""
     working_directory: str = "."
-    environment_variables: Dict[str, str] = field(default_factory=dict)
+    environment_variables: builtins.dict[str, str] = field(default_factory=dict)
 
     # Test framework settings
     framework: str = "pytest"  # pytest, jest, junit, etc.
-    test_paths: List[str] = field(default_factory=list)
+    test_paths: builtins.list[str] = field(default_factory=list)
     coverage_enabled: bool = True
     coverage_threshold: float = 0.8
 
@@ -148,7 +161,7 @@ class TestConfiguration:
     junit_output: str = ""
     coverage_output: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {**asdict(self), "test_type": self.test_type.value}
 
 
@@ -164,8 +177,8 @@ class SecurityScanConfiguration:
     scanner_version: str = "latest"
 
     # Scan configuration
-    scan_paths: List[str] = field(default_factory=list)
-    exclude_paths: List[str] = field(default_factory=list)
+    scan_paths: builtins.list[str] = field(default_factory=list)
+    exclude_paths: builtins.list[str] = field(default_factory=list)
 
     # Thresholds
     fail_on_critical: bool = True
@@ -178,9 +191,9 @@ class SecurityScanConfiguration:
     report_output: str = ""
 
     # Tool-specific configuration
-    tool_config: Dict[str, Any] = field(default_factory=dict)
+    tool_config: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {**asdict(self), "scan_type": self.scan_type.value}
 
 
@@ -201,13 +214,13 @@ class QualityGate:
     test_time_threshold: int = 300  # 5 minutes
 
     # Custom quality checks
-    custom_checks: List[Dict[str, Any]] = field(default_factory=list)
+    custom_checks: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Enforcement
     blocking: bool = True
     approval_required: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -229,18 +242,18 @@ class PipelineArtifact:
     content_type: str = ""
 
     # Lifecycle
-    created_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
+    created_at: datetime | None = None
+    expires_at: datetime | None = None
 
     # Storage
     storage_backend: str = "local"  # local, s3, gcs, azure, registry
     storage_location: str = ""
 
     # Tags and labels
-    tags: Dict[str, str] = field(default_factory=dict)
-    labels: Dict[str, str] = field(default_factory=dict)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "artifact_type": self.artifact_type.value,
@@ -257,7 +270,7 @@ class PipelineStageDefinition:
     stage_type: PipelineStage
 
     # Dependencies
-    depends_on: List[str] = field(default_factory=list)
+    depends_on: builtins.list[str] = field(default_factory=list)
 
     # Execution settings
     enabled: bool = True
@@ -266,23 +279,23 @@ class PipelineStageDefinition:
     retries: int = 0
 
     # Conditional execution
-    conditions: List[str] = field(default_factory=list)
+    conditions: builtins.list[str] = field(default_factory=list)
 
     # Stage-specific configuration
-    test_config: Optional[TestConfiguration] = None
-    security_scan_config: Optional[SecurityScanConfiguration] = None
-    quality_gate: Optional[QualityGate] = None
+    test_config: TestConfiguration | None = None
+    security_scan_config: SecurityScanConfiguration | None = None
+    quality_gate: QualityGate | None = None
 
     # Custom command execution
-    commands: List[str] = field(default_factory=list)
-    environment: Dict[str, str] = field(default_factory=dict)
+    commands: builtins.list[str] = field(default_factory=list)
+    environment: builtins.dict[str, str] = field(default_factory=dict)
     working_directory: str = "."
 
     # Artifacts
-    input_artifacts: List[str] = field(default_factory=list)
-    output_artifacts: List[str] = field(default_factory=list)
+    input_artifacts: builtins.list[str] = field(default_factory=list)
+    output_artifacts: builtins.list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "stage_type": self.stage_type.value,
@@ -302,24 +315,26 @@ class PipelineDefinition:
     description: str
 
     # Pipeline configuration
-    triggers: List[str] = field(
+    triggers: builtins.list[str] = field(
         default_factory=list
     )  # push, pull_request, schedule, manual
-    branches: List[str] = field(default_factory=list)  # main, develop, feature/*
+    branches: builtins.list[str] = field(
+        default_factory=list
+    )  # main, develop, feature/*
 
     # Stages
-    stages: List[PipelineStageDefinition] = field(default_factory=list)
+    stages: builtins.list[PipelineStageDefinition] = field(default_factory=list)
 
     # Global settings
     timeout: int = 3600  # 1 hour
     concurrent_builds: int = 1
 
     # Environment
-    environment_variables: Dict[str, str] = field(default_factory=dict)
-    secrets: List[str] = field(default_factory=list)
+    environment_variables: builtins.dict[str, str] = field(default_factory=dict)
+    secrets: builtins.list[str] = field(default_factory=list)
 
     # Notifications
-    notification_channels: List[str] = field(default_factory=list)
+    notification_channels: builtins.list[str] = field(default_factory=list)
 
     # Artifact management
     artifact_retention_days: int = 30
@@ -329,7 +344,7 @@ class PipelineDefinition:
     deployment_integration: bool = True
     deployment_strategy: str = "rolling"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {**asdict(self), "stages": [stage.to_dict() for stage in self.stages]}
 
 
@@ -350,25 +365,25 @@ class PipelineExecution:
     # Execution state
     status: PipelineStatus = PipelineStatus.PENDING
     current_stage: str = ""
-    completed_stages: List[str] = field(default_factory=list)
-    failed_stages: List[str] = field(default_factory=list)
-    skipped_stages: List[str] = field(default_factory=list)
+    completed_stages: builtins.list[str] = field(default_factory=list)
+    failed_stages: builtins.list[str] = field(default_factory=list)
+    skipped_stages: builtins.list[str] = field(default_factory=list)
 
     # Results
-    artifacts: List[PipelineArtifact] = field(default_factory=list)
-    test_results: Dict[str, Any] = field(default_factory=dict)
-    security_results: Dict[str, Any] = field(default_factory=dict)
-    quality_results: Dict[str, Any] = field(default_factory=dict)
+    artifacts: builtins.list[PipelineArtifact] = field(default_factory=list)
+    test_results: builtins.dict[str, Any] = field(default_factory=dict)
+    security_results: builtins.dict[str, Any] = field(default_factory=dict)
+    quality_results: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Timing
-    completed_at: Optional[datetime] = None
-    duration: Optional[float] = None
+    completed_at: datetime | None = None
+    duration: float | None = None
 
     # Error handling
-    error_message: Optional[str] = None
-    failure_reason: Optional[str] = None
+    error_message: str | None = None
+    failure_reason: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "status": self.status.value,
@@ -392,7 +407,7 @@ class TestRunner:
     """
 
     def __init__(self):
-        self.test_results: Dict[str, Dict[str, Any]] = {}
+        self.test_results: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Test framework configurations
         self.framework_configs = {
@@ -415,7 +430,7 @@ class TestRunner:
 
     async def execute_tests(
         self, execution_id: str, test_config: TestConfiguration
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute test suite"""
 
         result = {
@@ -529,7 +544,7 @@ class TestRunner:
 
     async def _execute_sequential_tests(
         self, test_config: TestConfiguration, command: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute tests sequentially"""
 
         try:
@@ -570,7 +585,7 @@ class TestRunner:
 
     async def _execute_parallel_tests(
         self, test_config: TestConfiguration, base_command: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute tests in parallel"""
 
         try:
@@ -626,7 +641,7 @@ class TestRunner:
             return {"returncode": -1, "stdout": "", "stderr": str(e)}
 
     async def _parse_test_results(
-        self, result: Dict[str, Any], test_config: TestConfiguration
+        self, result: builtins.dict[str, Any], test_config: TestConfiguration
     ):
         """Parse test execution results"""
 
@@ -677,7 +692,7 @@ class SecurityScanner:
     """
 
     def __init__(self):
-        self.scan_results: Dict[str, Dict[str, Any]] = {}
+        self.scan_results: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Scanner tool configurations
         self.scanner_configs = {
@@ -708,7 +723,7 @@ class SecurityScanner:
 
     async def execute_security_scan(
         self, execution_id: str, scan_config: SecurityScanConfiguration
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute security scan"""
 
         result = {
@@ -751,17 +766,14 @@ class SecurityScanner:
             if scan_result["returncode"] == 0:
                 result["status"] = "completed"
                 print(f"✅ Security scan completed: {scan_config.name}")
+            # Some security scanners return non-zero when vulnerabilities are found
+            elif "vulnerabilities found" in scan_result["stderr"].lower():
+                result["status"] = "completed"
+                print(f"⚠️ Security scan completed with findings: {scan_config.name}")
             else:
-                # Some security scanners return non-zero when vulnerabilities are found
-                if "vulnerabilities found" in scan_result["stderr"].lower():
-                    result["status"] = "completed"
-                    print(
-                        f"⚠️ Security scan completed with findings: {scan_config.name}"
-                    )
-                else:
-                    result["status"] = "failed"
-                    result["error_message"] = scan_result["stderr"]
-                    print(f"❌ Security scan failed: {scan_config.name}")
+                result["status"] = "failed"
+                result["error_message"] = scan_result["stderr"]
+                print(f"❌ Security scan failed: {scan_config.name}")
 
             # Parse vulnerability results
             await self._parse_vulnerability_results(result, scan_config, scan_result)
@@ -844,7 +856,7 @@ class SecurityScanner:
 
     async def _execute_scan_command(
         self, scan_config: SecurityScanConfiguration, command: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute security scan command"""
 
         try:
@@ -864,7 +876,8 @@ class SecurityScanner:
             # Wait for completion with timeout
             try:
                 stdout, stderr = await asyncio.wait_for(
-                    process.communicate(), timeout=600  # 10 minutes for security scans
+                    process.communicate(),
+                    timeout=600,  # 10 minutes for security scans
                 )
             except asyncio.TimeoutError:
                 process.kill()
@@ -885,9 +898,9 @@ class SecurityScanner:
 
     async def _parse_vulnerability_results(
         self,
-        result: Dict[str, Any],
+        result: builtins.dict[str, Any],
         scan_config: SecurityScanConfiguration,
-        scan_result: Dict[str, Any],
+        scan_result: builtins.dict[str, Any],
     ):
         """Parse vulnerability scan results"""
 
@@ -945,7 +958,7 @@ class SecurityScanner:
         ]
 
     def _check_security_thresholds(
-        self, result: Dict[str, Any], scan_config: SecurityScanConfiguration
+        self, result: builtins.dict[str, Any], scan_config: SecurityScanConfiguration
     ) -> bool:
         """Check if vulnerabilities exceed configured thresholds"""
 
@@ -966,7 +979,7 @@ class SecurityScanner:
         return False
 
     async def _generate_security_report(
-        self, result: Dict[str, Any], scan_config: SecurityScanConfiguration
+        self, result: builtins.dict[str, Any], scan_config: SecurityScanConfiguration
     ) -> str:
         """Generate security scan report"""
 
@@ -1014,14 +1027,14 @@ class QualityGateEngine:
     """
 
     def __init__(self):
-        self.quality_results: Dict[str, Dict[str, Any]] = {}
+        self.quality_results: builtins.dict[str, builtins.dict[str, Any]] = {}
 
     async def evaluate_quality_gate(
         self,
         execution_id: str,
         quality_gate: QualityGate,
-        execution_context: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        execution_context: builtins.dict[str, Any],
+    ) -> builtins.dict[str, Any]:
         """Evaluate quality gate criteria"""
 
         result = {
@@ -1106,13 +1119,12 @@ class QualityGateEngine:
             if result["passed"]:
                 result["status"] = "passed"
                 print(f"✅ Quality gate passed: {quality_gate.name}")
+            elif quality_gate.blocking:
+                result["status"] = "failed"
+                print(f"❌ Quality gate failed (blocking): {quality_gate.name}")
             else:
-                if quality_gate.blocking:
-                    result["status"] = "failed"
-                    print(f"❌ Quality gate failed (blocking): {quality_gate.name}")
-                else:
-                    result["status"] = "warning"
-                    print(f"⚠️ Quality gate failed (non-blocking): {quality_gate.name}")
+                result["status"] = "warning"
+                print(f"⚠️ Quality gate failed (non-blocking): {quality_gate.name}")
 
             # Check if manual approval is required
             if quality_gate.approval_required and not result["passed"]:
@@ -1136,8 +1148,8 @@ class QualityGateEngine:
         return result
 
     def _check_code_coverage(
-        self, test_results: Dict[str, Any], threshold: float
-    ) -> Dict[str, Any]:
+        self, test_results: builtins.dict[str, Any], threshold: float
+    ) -> builtins.dict[str, Any]:
         """Check code coverage threshold"""
 
         # Extract coverage from test results
@@ -1167,8 +1179,8 @@ class QualityGateEngine:
         }
 
     def _check_test_success_rate(
-        self, test_results: Dict[str, Any], threshold: float
-    ) -> Dict[str, Any]:
+        self, test_results: builtins.dict[str, Any], threshold: float
+    ) -> builtins.dict[str, Any]:
         """Check test success rate threshold"""
 
         total_tests = 0
@@ -1199,8 +1211,8 @@ class QualityGateEngine:
         }
 
     def _check_security_score(
-        self, security_results: Dict[str, Any], threshold: float
-    ) -> Dict[str, Any]:
+        self, security_results: builtins.dict[str, Any], threshold: float
+    ) -> builtins.dict[str, Any]:
         """Check security score threshold"""
 
         # Calculate security score based on vulnerability counts
@@ -1235,7 +1247,7 @@ class QualityGateEngine:
 
     def _check_build_time(
         self, build_duration: float, threshold: int
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Check build time threshold"""
 
         return {
@@ -1247,8 +1259,10 @@ class QualityGateEngine:
         }
 
     async def _execute_custom_check(
-        self, custom_check: Dict[str, Any], execution_context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self,
+        custom_check: builtins.dict[str, Any],
+        execution_context: builtins.dict[str, Any],
+    ) -> builtins.dict[str, Any]:
         """Execute custom quality check"""
 
         check_name = custom_check.get("name", "custom_check")
@@ -1271,7 +1285,7 @@ class QualityGateEngine:
                 "message": f"Response time: {current_response_time}ms (threshold: {threshold}ms)",
             }
 
-        elif check_type == "complexity":
+        if check_type == "complexity":
             # Code complexity check
             complexity_score = execution_context.get("complexity_score", 5.0)
             threshold = custom_check.get("threshold", 10.0)
@@ -1284,15 +1298,14 @@ class QualityGateEngine:
                 "message": f"Complexity score: {complexity_score} (threshold: {threshold})",
             }
 
-        else:
-            # Generic check - always pass for demo
-            return {
-                "name": check_name,
-                "passed": True,
-                "actual_value": 1.0,
-                "threshold": 1.0,
-                "message": f"Custom check {check_name} passed",
-            }
+        # Generic check - always pass for demo
+        return {
+            "name": check_name,
+            "passed": True,
+            "actual_value": 1.0,
+            "threshold": 1.0,
+            "message": f"Custom check {check_name} passed",
+        }
 
 
 # Example usage and demo
@@ -1424,7 +1437,7 @@ async def main():
         print(f"  {status} {check_name}: {check_result['message']}")
 
     # Pipeline summary
-    print(f"\n🎯 Pipeline Summary")
+    print("\n🎯 Pipeline Summary")
     print(f"Execution ID: {execution_id}")
     print(
         f"Total test coverage: {(unit_test_result['coverage_percentage'] + integration_test_result['coverage_percentage']) / 2:.1%}"

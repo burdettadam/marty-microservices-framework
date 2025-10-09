@@ -7,21 +7,19 @@ and automated test reporting.
 """
 
 import asyncio
+import builtins
 import glob
 import importlib
 import inspect
 import json
 import logging
-import os
 import threading
 import time
-from abc import ABC, abstractmethod
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, set, tuple
 
 import schedule
 import yaml
@@ -32,7 +30,6 @@ from .core import (
     TestExecutor,
     TestReporter,
     TestResult,
-    TestSeverity,
     TestStatus,
     TestSuite,
     TestType,
@@ -76,15 +73,19 @@ class TestDiscoveryConfig:
     """Configuration for test discovery."""
 
     strategy: TestDiscoveryStrategy
-    base_directories: List[str] = field(default_factory=list)
-    file_patterns: List[str] = field(default_factory=lambda: ["test_*.py", "*_test.py"])
-    exclude_patterns: List[str] = field(default_factory=list)
-    test_class_patterns: List[str] = field(default_factory=lambda: ["Test*", "*Test"])
-    test_method_patterns: List[str] = field(default_factory=lambda: ["test_*"])
-    decorator_names: List[str] = field(
+    base_directories: builtins.list[str] = field(default_factory=list)
+    file_patterns: builtins.list[str] = field(
+        default_factory=lambda: ["test_*.py", "*_test.py"]
+    )
+    exclude_patterns: builtins.list[str] = field(default_factory=list)
+    test_class_patterns: builtins.list[str] = field(
+        default_factory=lambda: ["Test*", "*Test"]
+    )
+    test_method_patterns: builtins.list[str] = field(default_factory=lambda: ["test_*"])
+    decorator_names: builtins.list[str] = field(
         default_factory=lambda: ["test_case", "integration_test"]
     )
-    config_files: List[str] = field(default_factory=list)
+    config_files: builtins.list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -92,9 +93,9 @@ class TestScheduleConfig:
     """Configuration for test scheduling."""
 
     schedule_type: TestScheduleType
-    cron_expression: Optional[str] = None
-    interval_minutes: Optional[int] = None
-    trigger_events: List[str] = field(default_factory=list)
+    cron_expression: str | None = None
+    interval_minutes: int | None = None
+    trigger_events: builtins.list[str] = field(default_factory=list)
     environment: TestEnvironmentType = TestEnvironmentType.TESTING
     enabled: bool = True
     retry_on_failure: bool = True
@@ -107,14 +108,14 @@ class TestExecutionPlan:
 
     name: str
     description: str
-    test_suites: List[str] = field(default_factory=list)
-    test_cases: List[str] = field(default_factory=list)
-    execution_order: List[str] = field(default_factory=list)
+    test_suites: builtins.list[str] = field(default_factory=list)
+    test_cases: builtins.list[str] = field(default_factory=list)
+    execution_order: builtins.list[str] = field(default_factory=list)
     parallel_execution: bool = True
     max_workers: int = 4
     timeout: int = 3600  # seconds
     environment: TestEnvironmentType = TestEnvironmentType.TESTING
-    configuration: Optional[TestConfiguration] = None
+    configuration: TestConfiguration | None = None
 
 
 @dataclass
@@ -124,12 +125,12 @@ class TestRun:
     id: str
     plan_name: str
     started_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     status: TestStatus = TestStatus.PENDING
-    results: List[TestResult] = field(default_factory=list)
+    results: builtins.list[TestResult] = field(default_factory=list)
     environment: TestEnvironmentType = TestEnvironmentType.TESTING
-    triggered_by: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    triggered_by: str | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class TestDiscovery:
@@ -137,10 +138,12 @@ class TestDiscovery:
 
     def __init__(self, config: TestDiscoveryConfig):
         self.config = config
-        self.discovered_tests: Dict[str, TestCase] = {}
-        self.discovered_suites: Dict[str, TestSuite] = {}
+        self.discovered_tests: builtins.dict[str, TestCase] = {}
+        self.discovered_suites: builtins.dict[str, TestSuite] = {}
 
-    def discover_tests(self) -> Tuple[Dict[str, TestCase], Dict[str, TestSuite]]:
+    def discover_tests(
+        self,
+    ) -> builtins.tuple[builtins.dict[str, TestCase], builtins.dict[str, TestSuite]]:
         """Discover all tests based on configuration."""
         logger.info(f"Discovering tests using strategy: {self.config.strategy}")
 
@@ -211,10 +214,10 @@ class TestDiscovery:
                 continue
 
             if config_path.suffix in [".yaml", ".yml"]:
-                with open(config_path, "r") as f:
+                with open(config_path) as f:
                     config_data = yaml.safe_load(f)
             elif config_path.suffix == ".json":
-                with open(config_path, "r") as f:
+                with open(config_path) as f:
                     config_data = json.load(f)
             else:
                 continue
@@ -231,12 +234,12 @@ class TestDiscovery:
 
         return False
 
-    def _get_python_files(self, directory: str) -> List[Path]:
+    def _get_python_files(self, directory: str) -> builtins.list[Path]:
         """Get all Python files in directory."""
         base_path = Path(directory)
         return list(base_path.rglob("*.py"))
 
-    def _import_module_from_path(self, file_path: Path) -> Optional[Any]:
+    def _import_module_from_path(self, file_path: Path) -> Any | None:
         """Import module from file path."""
         try:
             spec = importlib.util.spec_from_file_location("test_module", file_path)
@@ -279,7 +282,7 @@ class TestDiscovery:
                 return True
         return False
 
-    def _create_test_case_from_function(self, func, name: str) -> Optional[TestCase]:
+    def _create_test_case_from_function(self, func, name: str) -> TestCase | None:
         """Create test case from function."""
         # This is a simplified implementation
         # In practice, you might need more sophisticated logic
@@ -330,7 +333,7 @@ class TestDiscovery:
 
     def _create_test_suite_from_class(
         self, test_class, class_name: str
-    ) -> Optional[TestSuite]:
+    ) -> TestSuite | None:
         """Create test suite from class methods."""
         try:
             test_suite = TestSuite(class_name, f"Test suite for {class_name}")
@@ -360,7 +363,7 @@ class TestDiscovery:
 
     def _create_test_case_from_method(
         self, test_class, method, method_name: str
-    ) -> Optional[TestCase]:
+    ) -> TestCase | None:
         """Create test case from class method."""
         # Similar to function test case but with class instance
         # This is a simplified implementation
@@ -373,7 +376,7 @@ class TestDiscovery:
             self._find_decorated_tests(module)
             self._find_test_classes(module)
 
-    def _load_tests_from_config(self, config_data: Dict[str, Any]):
+    def _load_tests_from_config(self, config_data: builtins.dict[str, Any]):
         """Load tests from configuration data."""
         # Load test definitions from configuration
         tests = config_data.get("tests", [])
@@ -393,12 +396,12 @@ class TestScheduler:
     """Schedules and manages test execution."""
 
     def __init__(self):
-        self.scheduled_plans: Dict[
-            str, Tuple[TestExecutionPlan, TestScheduleConfig]
+        self.scheduled_plans: builtins.dict[
+            str, builtins.tuple[TestExecutionPlan, TestScheduleConfig]
         ] = {}
-        self.scheduler_thread: Optional[threading.Thread] = None
+        self.scheduler_thread: threading.Thread | None = None
         self.running = False
-        self.test_runs: Dict[str, TestRun] = {}
+        self.test_runs: builtins.dict[str, TestRun] = {}
 
     def add_scheduled_plan(
         self, plan: TestExecutionPlan, schedule_config: TestScheduleConfig
@@ -502,9 +505,7 @@ class TestScheduler:
                 # Implement retry logic
                 pass
 
-    def trigger_plan(
-        self, plan_name: str, triggered_by: str = "manual"
-    ) -> Optional[str]:
+    def trigger_plan(self, plan_name: str, triggered_by: str = "manual") -> str | None:
         """Manually trigger a test plan."""
         if plan_name not in self.scheduled_plans:
             return None
@@ -526,11 +527,13 @@ class TestScheduler:
 
         return test_run.id
 
-    def get_test_run_status(self, run_id: str) -> Optional[TestRun]:
+    def get_test_run_status(self, run_id: str) -> TestRun | None:
         """Get test run status."""
         return self.test_runs.get(run_id)
 
-    def get_recent_runs(self, plan_name: str = None, limit: int = 10) -> List[TestRun]:
+    def get_recent_runs(
+        self, plan_name: str = None, limit: int = 10
+    ) -> builtins.list[TestRun]:
         """Get recent test runs."""
         runs = list(self.test_runs.values())
 
@@ -550,10 +553,10 @@ class ContinuousTestingEngine:
         self.discovery_config = discovery_config
         self.discovery = TestDiscovery(discovery_config)
         self.scheduler = TestScheduler()
-        self.file_watcher: Optional[
-            Any
-        ] = None  # Would use watchdog in real implementation
-        self.changed_files: Set[str] = set()
+        self.file_watcher: Any | None = (
+            None  # Would use watchdog in real implementation
+        )
+        self.changed_files: builtins.set[str] = set()
 
     def start_continuous_testing(self):
         """Start continuous testing engine."""
@@ -582,11 +585,9 @@ class ContinuousTestingEngine:
         """Start watching for file changes."""
         # In a real implementation, use watchdog library
         # For now, this is a placeholder
-        pass
 
     def _stop_file_watching(self):
         """Stop file watching."""
-        pass
 
     def on_file_changed(self, file_path: str):
         """Handle file change event."""
@@ -628,11 +629,11 @@ class TestOrchestrator:
     """Orchestrates comprehensive test automation workflow."""
 
     def __init__(self):
-        self.discovery_configs: Dict[str, TestDiscoveryConfig] = {}
-        self.execution_plans: Dict[str, TestExecutionPlan] = {}
-        self.schedulers: Dict[str, TestScheduler] = {}
-        self.continuous_engines: Dict[str, ContinuousTestingEngine] = {}
-        self.reporters: Dict[str, TestReporter] = {}
+        self.discovery_configs: builtins.dict[str, TestDiscoveryConfig] = {}
+        self.execution_plans: builtins.dict[str, TestExecutionPlan] = {}
+        self.schedulers: builtins.dict[str, TestScheduler] = {}
+        self.continuous_engines: builtins.dict[str, ContinuousTestingEngine] = {}
+        self.reporters: builtins.dict[str, TestReporter] = {}
 
     def add_discovery_config(self, name: str, config: TestDiscoveryConfig):
         """Add test discovery configuration."""
@@ -673,7 +674,7 @@ class TestOrchestrator:
         scheduler.start_scheduler()
         logger.info(f"Scheduled testing setup for environment: {environment}")
 
-    def execute_plan(self, plan_name: str) -> Optional[str]:
+    def execute_plan(self, plan_name: str) -> str | None:
         """Execute a test plan."""
         if plan_name not in self.execution_plans:
             return None
@@ -688,7 +689,9 @@ class TestOrchestrator:
         scheduler = self.schedulers[environment]
         return scheduler.trigger_plan(plan_name, "manual")
 
-    def get_test_status(self, environment: str, run_id: str = None) -> Dict[str, Any]:
+    def get_test_status(
+        self, environment: str, run_id: str = None
+    ) -> builtins.dict[str, Any]:
         """Get test status for environment."""
         status = {
             "environment": environment,
@@ -763,7 +766,9 @@ class TestOrchestrator:
 
 
 # Utility functions for quick setup
-def create_standard_discovery_config(base_dirs: List[str]) -> TestDiscoveryConfig:
+def create_standard_discovery_config(
+    base_dirs: builtins.list[str],
+) -> TestDiscoveryConfig:
     """Create standard test discovery configuration."""
     return TestDiscoveryConfig(
         strategy=TestDiscoveryStrategy.DIRECTORY_SCAN,
@@ -799,7 +804,7 @@ def create_ci_cd_execution_plan(environment: TestEnvironmentType) -> TestExecuti
 
 
 def setup_basic_test_automation(
-    base_dirs: List[str], environments: List[str]
+    base_dirs: builtins.list[str], environments: builtins.list[str]
 ) -> TestOrchestrator:
     """Setup basic test automation for given environments."""
     orchestrator = TestOrchestrator()

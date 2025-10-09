@@ -6,14 +6,27 @@ validation, transformation, enrichment, authentication, and custom processing.
 """
 
 import asyncio
+import builtins
 import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Type,
+    Union,
+    dict,
+    list,
+    type,
+)
 
-from .core import Message, MessageHeaders, MessageStatus
+from .core import Message
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +64,10 @@ class MiddlewareConfig:
     enabled: bool = True
     priority: int = 0  # Higher priority executes first
     async_execution: bool = False
-    timeout: Optional[float] = None
+    timeout: float | None = None
 
     # Stage configuration
-    stages: List[MiddlewareStage] = field(default_factory=list)
+    stages: builtins.list[MiddlewareStage] = field(default_factory=list)
     middleware_type: MiddlewareType = MiddlewareType.BIDIRECTIONAL
 
     # Error handling
@@ -63,8 +76,8 @@ class MiddlewareConfig:
     max_retries: int = 3
 
     # Conditions
-    apply_conditions: Dict[str, Any] = field(default_factory=dict)
-    skip_conditions: Dict[str, Any] = field(default_factory=dict)
+    apply_conditions: builtins.dict[str, Any] = field(default_factory=dict)
+    skip_conditions: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Monitoring
     enable_metrics: bool = True
@@ -80,10 +93,10 @@ class MiddlewareContext:
         self.message = message
         self.stage = stage
         self.direction = direction
-        self.metadata: Dict[str, Any] = {}
+        self.metadata: builtins.dict[str, Any] = {}
         self.start_time = time.time()
         self.skip_remaining = False
-        self.error: Optional[Exception] = None
+        self.error: Exception | None = None
 
     def set_metadata(self, key: str, value: Any):
         """Set context metadata."""
@@ -120,7 +133,6 @@ class MessageMiddleware(ABC):
         Returns:
             True if processing should continue, False to stop chain
         """
-        pass
 
     async def on_error(self, context: MiddlewareContext, error: Exception):
         """Handle processing error."""
@@ -156,7 +168,7 @@ class MessageMiddleware(ABC):
         return True
 
     def _check_conditions(
-        self, context: MiddlewareContext, conditions: Dict[str, Any]
+        self, context: MiddlewareContext, conditions: builtins.dict[str, Any]
     ) -> bool:
         """Check if conditions are met."""
         message = context.message
@@ -204,7 +216,7 @@ class MiddlewareChain:
     """Chain of middleware for message processing."""
 
     def __init__(self):
-        self._middleware: List[MessageMiddleware] = []
+        self._middleware: builtins.list[MessageMiddleware] = []
         self._sorted = True
 
     def add_middleware(self, middleware: MessageMiddleware):
@@ -212,7 +224,9 @@ class MiddlewareChain:
         self._middleware.append(middleware)
         self._sorted = False
 
-    def remove_middleware(self, middleware_type: Type[MessageMiddleware]) -> bool:
+    def remove_middleware(
+        self, middleware_type: builtins.type[MessageMiddleware]
+    ) -> bool:
         """Remove middleware by type."""
         for i, middleware in enumerate(self._middleware):
             if isinstance(middleware, middleware_type):
@@ -317,7 +331,7 @@ class MiddlewareChain:
 
         return True
 
-    def get_middleware_stats(self) -> Dict[str, Dict[str, Any]]:
+    def get_middleware_stats(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Get statistics for all middleware."""
         return {
             middleware.__class__.__name__: middleware.stats
@@ -333,7 +347,7 @@ class ValidationMiddleware(MessageMiddleware):
 
     def __init__(
         self,
-        validators: List[Callable[[Message], bool]],
+        validators: builtins.list[Callable[[Message], bool]],
         config: MiddlewareConfig = None,
     ):
         super().__init__(config or MiddlewareConfig())
@@ -383,7 +397,7 @@ class EnrichmentMiddleware(MessageMiddleware):
 
     def __init__(
         self,
-        enricher: Callable[[Message], Dict[str, Any]],
+        enricher: Callable[[Message], builtins.dict[str, Any]],
         config: MiddlewareConfig = None,
     ):
         super().__init__(config or MiddlewareConfig())
@@ -441,7 +455,7 @@ class RateLimitMiddleware(MessageMiddleware):
         super().__init__(config or MiddlewareConfig())
         self.max_messages_per_second = max_messages_per_second
         self.window_size = window_size
-        self._message_times: List[float] = []
+        self._message_times: builtins.list[float] = []
 
     async def process(self, context: MiddlewareContext) -> bool:
         """Apply rate limiting."""
@@ -503,7 +517,7 @@ class CompressionMiddleware(MessageMiddleware):
             logger.error("Compression error for message %s: %s", context.message.id, e)
             return False
 
-    def _compress(self, data: Union[str, bytes]) -> bytes:
+    def _compress(self, data: str | bytes) -> bytes:
         """Compress data."""
         import gzip
 
@@ -550,7 +564,7 @@ class MetricsMiddleware(MessageMiddleware):
 
     def __init__(
         self,
-        metrics_collector: Optional[Callable] = None,
+        metrics_collector: Callable | None = None,
         config: MiddlewareConfig = None,
     ):
         super().__init__(config or MiddlewareConfig())
@@ -596,7 +610,7 @@ class MetricsMiddleware(MessageMiddleware):
 
         return True
 
-    def get_metrics_summary(self) -> Dict[str, Any]:
+    def get_metrics_summary(self) -> builtins.dict[str, Any]:
         """Get metrics summary."""
         processing_times = self.metrics["processing_times"]
 
@@ -625,9 +639,9 @@ class MiddlewareFactory:
 
     @staticmethod
     def create_validation_middleware(
-        validators: List[Callable[[Message], bool]],
+        validators: builtins.list[Callable[[Message], bool]],
         priority: int = 100,
-        stages: List[MiddlewareStage] = None,
+        stages: builtins.list[MiddlewareStage] = None,
     ) -> ValidationMiddleware:
         """Create validation middleware."""
         config = MiddlewareConfig(
@@ -639,7 +653,7 @@ class MiddlewareFactory:
     def create_transformation_middleware(
         transformer: Callable[[Message], Message],
         priority: int = 50,
-        stages: List[MiddlewareStage] = None,
+        stages: builtins.list[MiddlewareStage] = None,
     ) -> TransformationMiddleware:
         """Create transformation middleware."""
         config = MiddlewareConfig(
@@ -649,9 +663,9 @@ class MiddlewareFactory:
 
     @staticmethod
     def create_enrichment_middleware(
-        enricher: Callable[[Message], Dict[str, Any]],
+        enricher: Callable[[Message], builtins.dict[str, Any]],
         priority: int = 30,
-        stages: List[MiddlewareStage] = None,
+        stages: builtins.list[MiddlewareStage] = None,
     ) -> EnrichmentMiddleware:
         """Create enrichment middleware."""
         config = MiddlewareConfig(
@@ -663,7 +677,7 @@ class MiddlewareFactory:
     def create_authentication_middleware(
         authenticator: Callable[[Message], bool],
         priority: int = 200,
-        stages: List[MiddlewareStage] = None,
+        stages: builtins.list[MiddlewareStage] = None,
     ) -> AuthenticationMiddleware:
         """Create authentication middleware."""
         config = MiddlewareConfig(
@@ -675,7 +689,7 @@ class MiddlewareFactory:
     def create_rate_limit_middleware(
         max_messages_per_second: float,
         priority: int = 150,
-        stages: List[MiddlewareStage] = None,
+        stages: builtins.list[MiddlewareStage] = None,
     ) -> RateLimitMiddleware:
         """Create rate limiting middleware."""
         config = MiddlewareConfig(
@@ -687,7 +701,7 @@ class MiddlewareFactory:
     def create_compression_middleware(
         compression_type: str = "gzip",
         priority: int = 10,
-        stages: List[MiddlewareStage] = None,
+        stages: builtins.list[MiddlewareStage] = None,
     ) -> CompressionMiddleware:
         """Create compression middleware."""
         config = MiddlewareConfig(
@@ -699,7 +713,9 @@ class MiddlewareFactory:
 
     @staticmethod
     def create_logging_middleware(
-        log_level: str = "INFO", priority: int = 0, stages: List[MiddlewareStage] = None
+        log_level: str = "INFO",
+        priority: int = 0,
+        stages: builtins.list[MiddlewareStage] = None,
     ) -> LoggingMiddleware:
         """Create logging middleware."""
         config = MiddlewareConfig(
@@ -711,9 +727,9 @@ class MiddlewareFactory:
 
     @staticmethod
     def create_metrics_middleware(
-        metrics_collector: Optional[Callable] = None,
+        metrics_collector: Callable | None = None,
         priority: int = 5,
-        stages: List[MiddlewareStage] = None,
+        stages: builtins.list[MiddlewareStage] = None,
     ) -> MetricsMiddleware:
         """Create metrics middleware."""
         config = MiddlewareConfig(

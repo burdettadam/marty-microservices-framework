@@ -6,22 +6,18 @@ Pact-style consumer-driven contracts, API contract validation, and service
 contract verification for microservices architectures.
 """
 
-import asyncio
+import builtins
 import json
 import logging
-import re
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, tuple
 from urllib.parse import urljoin
 
 import aiohttp
 import jsonschema
-import requests
-import yaml
 
 from .core import TestCase, TestMetrics, TestResult, TestSeverity, TestStatus, TestType
 
@@ -53,9 +49,9 @@ class ContractRequest:
 
     method: str
     path: str
-    headers: Dict[str, str] = field(default_factory=dict)
-    query_params: Dict[str, Any] = field(default_factory=dict)
-    body: Optional[Any] = None
+    headers: builtins.dict[str, str] = field(default_factory=dict)
+    query_params: builtins.dict[str, Any] = field(default_factory=dict)
+    body: Any | None = None
     content_type: str = "application/json"
 
 
@@ -64,9 +60,9 @@ class ContractResponse:
     """HTTP response specification for contract."""
 
     status_code: int
-    headers: Dict[str, str] = field(default_factory=dict)
-    body: Optional[Any] = None
-    schema: Optional[Dict[str, Any]] = None
+    headers: builtins.dict[str, str] = field(default_factory=dict)
+    body: Any | None = None
+    schema: builtins.dict[str, Any] | None = None
     content_type: str = "application/json"
 
 
@@ -77,7 +73,7 @@ class ContractInteraction:
     description: str
     request: ContractRequest
     response: ContractResponse
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -88,11 +84,11 @@ class Contract:
     provider: str
     version: str
     contract_type: ContractType
-    interactions: List[ContractInteraction] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    interactions: builtins.list[ContractInteraction] = field(default_factory=list)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.utcnow)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert contract to dictionary."""
         return {
             "consumer": self.consumer,
@@ -223,7 +219,7 @@ class ContractValidator:
 
     def validate_response(
         self, interaction: ContractInteraction, actual_response: dict
-    ) -> Tuple[bool, List[str]]:
+    ) -> builtins.tuple[bool, builtins.list[str]]:
         """Validate actual response against contract."""
         errors = []
 
@@ -264,7 +260,9 @@ class ContractValidator:
 
         return len(errors) == 0, errors
 
-    def validate_contract_syntax(self, contract: Contract) -> Tuple[bool, List[str]]:
+    def validate_contract_syntax(
+        self, contract: Contract
+    ) -> builtins.tuple[bool, builtins.list[str]]:
         """Validate contract syntax and structure."""
         errors = []
 
@@ -317,7 +315,7 @@ class ContractRepository:
 
     def load_contract(
         self, consumer: str, provider: str, version: str = None
-    ) -> Optional[Contract]:
+    ) -> Contract | None:
         """Load contract from storage."""
         if version:
             filename = f"{consumer}_{provider}_{version}.json"
@@ -339,7 +337,7 @@ class ContractRepository:
 
     def _load_contract_file(self, filepath: Path) -> Contract:
         """Load contract from file."""
-        with open(filepath, "r") as f:
+        with open(filepath) as f:
             data = json.load(f)
 
         contract = Contract(
@@ -382,7 +380,7 @@ class ContractRepository:
 
     def list_contracts(
         self, consumer: str = None, provider: str = None
-    ) -> List[Dict[str, str]]:
+    ) -> builtins.list[builtins.dict[str, str]]:
         """List available contracts."""
         contracts = []
 
@@ -425,7 +423,7 @@ class ContractTestCase(TestCase):
         self.contract = contract
         self.provider_url = provider_url
         self.validator = ContractValidator(verification_level)
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session: aiohttp.ClientSession | None = None
 
     async def setup(self):
         """Setup contract test."""
@@ -468,7 +466,7 @@ class ContractTestCase(TestCase):
                         )
 
                 except Exception as e:
-                    errors.append(f"Interaction {i+1} failed: {str(e)}")
+                    errors.append(f"Interaction {i+1} failed: {e!s}")
 
             execution_time = (datetime.utcnow() - start_time).total_seconds()
 
@@ -491,23 +489,22 @@ class ContractTestCase(TestCase):
                         },
                     ),
                 )
-            else:
-                return TestResult(
-                    test_id=self.id,
-                    name=self.name,
-                    test_type=self.test_type,
-                    status=TestStatus.PASSED,
+            return TestResult(
+                test_id=self.id,
+                name=self.name,
+                test_type=self.test_type,
+                status=TestStatus.PASSED,
+                execution_time=execution_time,
+                started_at=start_time,
+                completed_at=datetime.utcnow(),
+                metrics=TestMetrics(
                     execution_time=execution_time,
-                    started_at=start_time,
-                    completed_at=datetime.utcnow(),
-                    metrics=TestMetrics(
-                        execution_time=execution_time,
-                        custom_metrics={
-                            "interactions_tested": len(self.contract.interactions),
-                            "interactions_passed": len(self.contract.interactions),
-                        },
-                    ),
-                )
+                    custom_metrics={
+                        "interactions_tested": len(self.contract.interactions),
+                        "interactions_passed": len(self.contract.interactions),
+                    },
+                ),
+            )
 
         except Exception as e:
             execution_time = (datetime.utcnow() - start_time).total_seconds()
@@ -525,7 +522,7 @@ class ContractTestCase(TestCase):
 
     async def _execute_interaction(
         self, interaction: ContractInteraction
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Execute a single contract interaction."""
         url = urljoin(self.provider_url, interaction.request.path)
 
@@ -609,7 +606,7 @@ class ContractManager:
         return ContractTestCase(contract, provider_url, verification_level)
 
     def generate_contract_from_openapi(
-        self, openapi_spec: Dict[str, Any], consumer: str, provider: str
+        self, openapi_spec: builtins.dict[str, Any], consumer: str, provider: str
     ) -> Contract:
         """Generate contract from OpenAPI specification."""
         contract = Contract(
@@ -678,7 +675,7 @@ def pact_contract(
 
 async def verify_contracts_for_provider(
     provider: str, provider_url: str, repository: ContractRepository = None
-) -> List[TestResult]:
+) -> builtins.list[TestResult]:
     """Verify all contracts for a provider."""
     repo = repository or ContractRepository()
     manager = ContractManager(repo)

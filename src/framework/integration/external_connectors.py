@@ -7,30 +7,26 @@ and external API integrations.
 """
 
 import asyncio
-import ftplib
-import hashlib
+import builtins
 import json
 import logging
 import threading
 import time
-import uuid
-import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union
-from urllib.parse import urljoin, urlparse
+from typing import Any, Callable, Dict, List, Optional, Protocol, Set, dict, list
+from urllib.parse import urljoin
 
 import aiofiles
 
 # For external system operations
 import aiohttp
-import paramiko  # For SFTP
 import pyodbc  # For database connections
-import requests
 import yaml
+from defusedxml import ElementTree as ET
 
 
 class ConnectorType(Enum):
@@ -98,7 +94,7 @@ class ExternalSystemConfig:
 
     # Authentication
     auth_type: str = "none"  # none, basic, bearer, oauth2, api_key, certificate
-    credentials: Dict[str, str] = field(default_factory=dict)
+    credentials: builtins.dict[str, str] = field(default_factory=dict)
 
     # Connection settings
     timeout: int = 30
@@ -106,7 +102,7 @@ class ExternalSystemConfig:
     retry_delay: int = 5
 
     # Protocol specific settings
-    protocol_settings: Dict[str, Any] = field(default_factory=dict)
+    protocol_settings: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Data format
     input_format: DataFormat = DataFormat.JSON
@@ -114,11 +110,11 @@ class ExternalSystemConfig:
 
     # Health checking
     health_check_enabled: bool = True
-    health_check_endpoint: Optional[str] = None
+    health_check_endpoint: str | None = None
     health_check_interval: int = 60
 
     # Rate limiting
-    rate_limit: Optional[int] = None  # requests per second
+    rate_limit: int | None = None  # requests per second
 
     # Circuit breaker
     circuit_breaker_enabled: bool = True
@@ -128,7 +124,7 @@ class ExternalSystemConfig:
     # Metadata
     version: str = "1.0.0"
     description: str = ""
-    tags: Dict[str, str] = field(default_factory=dict)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -142,16 +138,16 @@ class IntegrationRequest:
 
     # Request configuration
     pattern: IntegrationPattern = IntegrationPattern.REQUEST_RESPONSE
-    timeout: Optional[int] = None
-    retry_policy: Optional[Dict[str, Any]] = None
+    timeout: int | None = None
+    retry_policy: builtins.dict[str, Any] | None = None
 
     # Transformation
-    input_transformation: Optional[str] = None
-    output_transformation: Optional[str] = None
+    input_transformation: str | None = None
+    output_transformation: str | None = None
 
     # Metadata
-    correlation_id: Optional[str] = None
-    headers: Dict[str, str] = field(default_factory=dict)
+    correlation_id: str | None = None
+    headers: builtins.dict[str, str] = field(default_factory=dict)
 
     # Timestamps
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -166,15 +162,15 @@ class IntegrationResponse:
     data: Any
 
     # Response metadata
-    status_code: Optional[int] = None
-    headers: Dict[str, str] = field(default_factory=dict)
+    status_code: int | None = None
+    headers: builtins.dict[str, str] = field(default_factory=dict)
 
     # Error information
-    error_code: Optional[str] = None
-    error_message: Optional[str] = None
+    error_code: str | None = None
+    error_message: str | None = None
 
     # Performance metrics
-    latency_ms: Optional[float] = None
+    latency_ms: float | None = None
     retry_count: int = 0
 
     # Timestamps
@@ -190,15 +186,17 @@ class DataTransformation:
     transformation_type: TransformationType
 
     # Transformation logic
-    source_schema: Optional[Dict[str, Any]] = None
-    target_schema: Optional[Dict[str, Any]] = None
-    mapping_rules: List[Dict[str, Any]] = field(default_factory=list)
+    source_schema: builtins.dict[str, Any] | None = None
+    target_schema: builtins.dict[str, Any] | None = None
+    mapping_rules: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Transformation code
-    transformation_script: Optional[str] = None
+    transformation_script: str | None = None
 
     # Validation rules
-    validation_rules: List[Dict[str, Any]] = field(default_factory=list)
+    validation_rules: builtins.list[builtins.dict[str, Any]] = field(
+        default_factory=list
+    )
 
     # Metadata
     description: str = ""
@@ -227,22 +225,18 @@ class ExternalSystemConnector(ABC):
     @abstractmethod
     async def connect(self) -> bool:
         """Establish connection to external system."""
-        pass
 
     @abstractmethod
     async def disconnect(self) -> bool:
         """Disconnect from external system."""
-        pass
 
     @abstractmethod
     async def execute_request(self, request: IntegrationRequest) -> IntegrationResponse:
         """Execute request against external system."""
-        pass
 
     @abstractmethod
     async def health_check(self) -> bool:
         """Check health of external system."""
-        pass
 
     def is_circuit_breaker_open(self) -> bool:
         """Check if circuit breaker is open."""
@@ -293,7 +287,7 @@ class RESTAPIConnector(ExternalSystemConnector):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to connect to REST API: {e}")
+            logging.exception(f"Failed to connect to REST API: {e}")
             return False
 
     async def disconnect(self) -> bool:
@@ -307,7 +301,7 @@ class RESTAPIConnector(ExternalSystemConnector):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to disconnect from REST API: {e}")
+            logging.exception(f"Failed to disconnect from REST API: {e}")
             return False
 
     async def execute_request(self, request: IntegrationRequest) -> IntegrationResponse:
@@ -362,18 +356,17 @@ class RESTAPIConnector(ExternalSystemConnector):
                         headers=dict(response.headers),
                         latency_ms=latency,
                     )
-                else:
-                    self.record_failure()
+                self.record_failure()
 
-                    return IntegrationResponse(
-                        request_id=request.request_id,
-                        success=False,
-                        data=response_data,
-                        status_code=response.status,
-                        error_code=str(response.status),
-                        error_message=f"HTTP {response.status}: {response.reason}",
-                        latency_ms=latency,
-                    )
+                return IntegrationResponse(
+                    request_id=request.request_id,
+                    success=False,
+                    data=response_data,
+                    status_code=response.status,
+                    error_code=str(response.status),
+                    error_message=f"HTTP {response.status}: {response.reason}",
+                    latency_ms=latency,
+                )
 
         except Exception as e:
             latency = (time.time() - start_time) * 1000
@@ -387,7 +380,9 @@ class RESTAPIConnector(ExternalSystemConnector):
                 latency_ms=latency,
             )
 
-    def _prepare_headers(self, request_headers: Dict[str, str]) -> Dict[str, str]:
+    def _prepare_headers(
+        self, request_headers: builtins.dict[str, str]
+    ) -> builtins.dict[str, str]:
         """Prepare HTTP headers with authentication."""
         headers = request_headers.copy()
 
@@ -433,7 +428,7 @@ class RESTAPIConnector(ExternalSystemConnector):
                 return 200 <= response.status < 300
 
         except Exception as e:
-            logging.error(f"REST API health check failed: {e}")
+            logging.exception(f"REST API health check failed: {e}")
             return False
 
 
@@ -460,7 +455,7 @@ class DatabaseConnector(ExternalSystemConnector):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to connect to database: {e}")
+            logging.exception(f"Failed to connect to database: {e}")
             return False
 
     async def disconnect(self) -> bool:
@@ -474,7 +469,7 @@ class DatabaseConnector(ExternalSystemConnector):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to disconnect from database: {e}")
+            logging.exception(f"Failed to disconnect from database: {e}")
             return False
 
     async def execute_request(self, request: IntegrationRequest) -> IntegrationResponse:
@@ -501,7 +496,7 @@ class DatabaseConnector(ExternalSystemConnector):
                 rows = cursor.fetchall()
 
                 # Convert to list of dictionaries
-                result = [dict(zip(columns, row)) for row in rows]
+                result = [dict(zip(columns, row, strict=False)) for row in rows]
 
             elif operation_type in ["insert", "update", "delete"]:
                 # DML operations
@@ -526,7 +521,7 @@ class DatabaseConnector(ExternalSystemConnector):
                 if cursor.description:
                     columns = [column[0] for column in cursor.description]
                     rows = cursor.fetchall()
-                    result = [dict(zip(columns, row)) for row in rows]
+                    result = [dict(zip(columns, row, strict=False)) for row in rows]
                 else:
                     result = {"procedure_executed": True}
 
@@ -567,7 +562,7 @@ class DatabaseConnector(ExternalSystemConnector):
             return True
 
         except Exception as e:
-            logging.error(f"Database health check failed: {e}")
+            logging.exception(f"Database health check failed: {e}")
             return False
 
 
@@ -588,12 +583,11 @@ class FileSystemConnector(ExternalSystemConnector):
                 self.connected = True
                 logging.info(f"Connected to file system: {self.base_path}")
                 return True
-            else:
-                logging.error(f"Cannot access file system path: {self.base_path}")
-                return False
+            logging.error(f"Cannot access file system path: {self.base_path}")
+            return False
 
         except Exception as e:
-            logging.error(f"File system connection error: {e}")
+            logging.exception(f"File system connection error: {e}")
             return False
 
     async def disconnect(self) -> bool:
@@ -616,7 +610,7 @@ class FileSystemConnector(ExternalSystemConnector):
 
             if operation == "read":
                 # Read file
-                async with aiofiles.open(full_path, "r") as file:
+                async with aiofiles.open(full_path) as file:
                     content = await file.read()
 
                 # Parse content based on format
@@ -707,7 +701,7 @@ class FileSystemConnector(ExternalSystemConnector):
             return os.path.exists(self.base_path) and os.access(self.base_path, os.R_OK)
 
         except Exception as e:
-            logging.error(f"File system health check failed: {e}")
+            logging.exception(f"File system health check failed: {e}")
             return False
 
 
@@ -716,8 +710,8 @@ class DataTransformationEngine:
 
     def __init__(self):
         """Initialize transformation engine."""
-        self.transformations: Dict[str, DataTransformation] = {}
-        self.custom_transformers: Dict[str, Callable] = {}
+        self.transformations: builtins.dict[str, DataTransformation] = {}
+        self.custom_transformers: builtins.dict[str, Callable] = {}
 
         # Built-in transformers
         self.built_in_transformers = {
@@ -737,7 +731,7 @@ class DataTransformationEngine:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to register transformation: {e}")
+            logging.exception(f"Failed to register transformation: {e}")
             return False
 
     def register_custom_transformer(self, name: str, transformer: Callable) -> bool:
@@ -748,7 +742,7 @@ class DataTransformationEngine:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to register custom transformer: {e}")
+            logging.exception(f"Failed to register custom transformer: {e}")
             return False
 
     def transform_data(self, data: Any, transformation_id: str) -> Any:
@@ -762,32 +756,30 @@ class DataTransformationEngine:
             if transformation.transformation_type == TransformationType.MAPPING:
                 return self._apply_mapping_transformation(data, transformation)
 
-            elif transformation.transformation_type == TransformationType.FILTERING:
+            if transformation.transformation_type == TransformationType.FILTERING:
                 return self._apply_filtering_transformation(data, transformation)
 
-            elif (
+            if (
                 transformation.transformation_type
                 == TransformationType.FORMAT_CONVERSION
             ):
                 return self._apply_format_conversion(data, transformation)
 
-            elif transformation.transformation_type == TransformationType.VALIDATION:
+            if transformation.transformation_type == TransformationType.VALIDATION:
                 return self._apply_validation(data, transformation)
 
-            elif transformation.transformation_type == TransformationType.ENRICHMENT:
+            if transformation.transformation_type == TransformationType.ENRICHMENT:
                 return self._apply_enrichment(data, transformation)
 
-            else:
-                # Execute custom transformation script
-                if transformation.transformation_script:
-                    return self._execute_transformation_script(
-                        data, transformation.transformation_script
-                    )
-                else:
-                    return data
+            # Execute custom transformation script
+            if transformation.transformation_script:
+                return self._execute_transformation_script(
+                    data, transformation.transformation_script
+                )
+            return data
 
         except Exception as e:
-            logging.error(f"Transformation error: {e}")
+            logging.exception(f"Transformation error: {e}")
             raise
 
     def _apply_mapping_transformation(
@@ -825,17 +817,18 @@ class DataTransformationEngine:
 
             return filtered_items
 
-        elif isinstance(data, dict):
+        if isinstance(data, dict):
             # Filter object fields
             if self._matches_filter_conditions(data, transformation.mapping_rules):
                 return data
-            else:
-                return None
+            return None
 
         return data
 
     def _matches_filter_conditions(
-        self, item: Dict[str, Any], conditions: List[Dict[str, Any]]
+        self,
+        item: builtins.dict[str, Any],
+        conditions: builtins.list[builtins.dict[str, Any]],
     ) -> bool:
         """Check if item matches filter conditions."""
         for condition in conditions:
@@ -845,19 +838,21 @@ class DataTransformationEngine:
 
             item_value = item.get(field)
 
-            if operator == "eq" and item_value != value:
-                return False
-            elif operator == "ne" and item_value == value:
-                return False
-            elif operator == "gt" and (item_value is None or item_value <= value):
-                return False
-            elif operator == "lt" and (item_value is None or item_value >= value):
-                return False
-            elif operator == "contains" and (
-                item_value is None or value not in str(item_value)
+            if (operator == "eq" and item_value != value) or (
+                operator == "ne" and item_value == value
             ):
                 return False
-            elif operator == "in" and (item_value is None or item_value not in value):
+            if (
+                (operator == "gt" and (item_value is None or item_value <= value))
+                or (operator == "lt" and (item_value is None or item_value >= value))
+                or (
+                    operator == "contains"
+                    and (item_value is None or value not in str(item_value))
+                )
+                or (
+                    operator == "in" and (item_value is None or item_value not in value)
+                )
+            ):
                 return False
 
         return True
@@ -881,10 +876,9 @@ class DataTransformationEngine:
 
         if converter_name in self.built_in_transformers:
             return self.built_in_transformers[converter_name](data)
-        elif converter_name in self.custom_transformers:
+        if converter_name in self.custom_transformers:
             return self.custom_transformers[converter_name](data)
-        else:
-            return data
+        return data
 
     def _apply_validation(self, data: Any, transformation: DataTransformation) -> Any:
         """Apply validation transformation."""
@@ -963,16 +957,60 @@ class DataTransformationEngine:
 
     def _execute_transformation_script(self, data: Any, script: str) -> Any:
         """Execute transformation script."""
-        # This is a simplified implementation
-        # In production, would use a secure scripting engine
+        # Security: Replace dangerous exec() with safer alternatives
+        # Only allow specific safe transformations
+
+        # Define safe transformation functions
+        safe_functions = {
+            "json": json,
+            "datetime": datetime,
+            "len": len,
+            "str": str,
+            "int": int,
+            "float": float,
+            "bool": bool,
+            "list": list,
+            "dict": dict,
+            "sorted": sorted,
+            "reversed": reversed,
+            "sum": sum,
+            "min": min,
+            "max": max,
+        }
 
         local_vars = {"data": data, "result": data}
 
         try:
-            exec(script, {"json": json, "datetime": datetime}, local_vars)
-            return local_vars.get("result", data)
+            # Security: Instead of exec(), use a restricted evaluation
+            # This is a simplified safe transformation - in production use a proper
+            # sandboxed scripting engine like RestrictedPython
+
+            # For basic transformations, create a safe evaluation context
+            if script.strip().startswith("result = "):
+                # Allow only simple result assignments
+                expression = script.strip()[9:]  # Remove 'result = '
+
+                # Basic safety check - only allow alphanumeric, dots, brackets, and basic operators
+                import re
+
+                if re.match(r'^[a-zA-Z0-9\[\]{}().,_\'":\s+-]*$', expression):
+                    try:
+                        # Very basic evaluation for simple data transformations
+                        result = eval(
+                            expression,
+                            {"__builtins__": {}},
+                            {**safe_functions, **local_vars},
+                        )
+                        return result
+                    except:
+                        pass
+
+            # Fallback: log the script and return original data
+            logging.warning(f"Unsafe transformation script blocked: {script[:100]}...")
+            return data
+
         except Exception as e:
-            logging.error(f"Transformation script error: {e}")
+            logging.exception(f"Transformation script error: {e}")
             raise
 
     # Built-in transformation functions
@@ -999,10 +1037,9 @@ class DataTransformationEngine:
 
         if isinstance(data, dict):
             return dict_to_xml(data)
-        else:
-            return f"<data>{data}</data>"
+        return f"<data>{data}</data>"
 
-    def _xml_to_json(self, xml_data: str) -> Dict[str, Any]:
+    def _xml_to_json(self, xml_data: str) -> builtins.dict[str, Any]:
         """Convert XML to JSON."""
         try:
             root = ET.fromstring(xml_data)
@@ -1038,10 +1075,10 @@ class DataTransformationEngine:
             return {root.tag: xml_to_dict(root)}
 
         except ET.ParseError as e:
-            logging.error(f"XML parsing error: {e}")
+            logging.exception(f"XML parsing error: {e}")
             return {"error": f"Invalid XML: {e}"}
 
-    def _csv_to_json(self, csv_data: str) -> List[Dict[str, Any]]:
+    def _csv_to_json(self, csv_data: str) -> builtins.list[builtins.dict[str, Any]]:
         """Convert CSV to JSON."""
         import csv
         import io
@@ -1049,7 +1086,7 @@ class DataTransformationEngine:
         reader = csv.DictReader(io.StringIO(csv_data))
         return [row for row in reader]
 
-    def _json_to_csv(self, json_data: List[Dict[str, Any]]) -> str:
+    def _json_to_csv(self, json_data: builtins.list[builtins.dict[str, Any]]) -> str:
         """Convert JSON to CSV."""
         import csv
         import io
@@ -1075,8 +1112,8 @@ class DataTransformationEngine:
         return output.getvalue()
 
     def _flatten_json(
-        self, data: Dict[str, Any], separator: str = "."
-    ) -> Dict[str, Any]:
+        self, data: builtins.dict[str, Any], separator: str = "."
+    ) -> builtins.dict[str, Any]:
         """Flatten nested JSON object."""
 
         def _flatten(obj, parent_key=""):
@@ -1098,8 +1135,8 @@ class DataTransformationEngine:
         return _flatten(data)
 
     def _unflatten_json(
-        self, data: Dict[str, Any], separator: str = "."
-    ) -> Dict[str, Any]:
+        self, data: builtins.dict[str, Any], separator: str = "."
+    ) -> builtins.dict[str, Any]:
         """Unflatten flattened JSON object."""
         result = {}
 
@@ -1144,8 +1181,8 @@ class ExternalSystemManager:
 
     def __init__(self):
         """Initialize external system manager."""
-        self.connectors: Dict[str, ExternalSystemConnector] = {}
-        self.connector_factories: Dict[ConnectorType, type] = {
+        self.connectors: builtins.dict[str, ExternalSystemConnector] = {}
+        self.connector_factories: builtins.dict[ConnectorType, type] = {
             ConnectorType.REST_API: RESTAPIConnector,
             ConnectorType.DATABASE: DatabaseConnector,
             ConnectorType.FILE_SYSTEM: FileSystemConnector,
@@ -1154,13 +1191,13 @@ class ExternalSystemManager:
         self.transformation_engine = DataTransformationEngine()
 
         # Health monitoring
-        self.health_check_tasks: Dict[str, asyncio.Task] = {}
+        self.health_check_tasks: builtins.dict[str, asyncio.Task] = {}
 
         # Request tracking
-        self.active_requests: Dict[str, IntegrationRequest] = {}
+        self.active_requests: builtins.dict[str, IntegrationRequest] = {}
 
         # Metrics
-        self.metrics: Dict[str, Any] = defaultdict(int)
+        self.metrics: builtins.dict[str, Any] = defaultdict(int)
 
         # Thread safety
         self._lock = threading.RLock()
@@ -1198,7 +1235,7 @@ class ExternalSystemManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to add external system: {e}")
+            logging.exception(f"Failed to add external system: {e}")
             return False
 
     async def remove_external_system(self, system_id: str) -> bool:
@@ -1222,7 +1259,7 @@ class ExternalSystemManager:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to remove external system: {e}")
+            logging.exception(f"Failed to remove external system: {e}")
             return False
 
     async def execute_integration_request(
@@ -1312,10 +1349,10 @@ class ExternalSystemManager:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logging.error(f"Health monitor error for {system_id}: {e}")
+                logging.exception(f"Health monitor error for {system_id}: {e}")
                 await asyncio.sleep(connector.config.health_check_interval)
 
-    def get_system_status(self, system_id: str) -> Optional[Dict[str, Any]]:
+    def get_system_status(self, system_id: str) -> builtins.dict[str, Any] | None:
         """Get status of external system."""
         connector = self.connectors.get(system_id)
         if not connector:
@@ -1329,7 +1366,7 @@ class ExternalSystemManager:
             "metrics": connector.metrics,
         }
 
-    def get_manager_status(self) -> Dict[str, Any]:
+    def get_manager_status(self) -> builtins.dict[str, Any]:
         """Get manager status and metrics."""
         with self._lock:
             connected_systems = sum(1 for c in self.connectors.values() if c.connected)
@@ -1343,7 +1380,7 @@ class ExternalSystemManager:
             }
 
 
-def create_external_integration_platform() -> Dict[str, Any]:
+def create_external_integration_platform() -> builtins.dict[str, Any]:
     """Create external integration platform."""
     manager = ExternalSystemManager()
     transformation_engine = DataTransformationEngine()

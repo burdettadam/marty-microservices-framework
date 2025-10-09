@@ -6,16 +6,15 @@ custom business metrics, SLA monitoring, and alert management.
 """
 
 import asyncio
+import builtins
 import logging
 import statistics
 import threading
-import time
-from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, dict, list
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +65,9 @@ class Alert:
     metric_value: float
     threshold: float
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
     resolved: bool = False
-    resolved_at: Optional[datetime] = None
+    resolved_at: datetime | None = None
 
 
 @dataclass
@@ -78,8 +77,8 @@ class BusinessMetric:
     name: str
     description: str
     unit: str
-    labels: List[str] = field(default_factory=list)
-    sla_target: Optional[float] = None
+    labels: builtins.list[str] = field(default_factory=list)
+    sla_target: float | None = None
     sla_operator: str = ">="  # ">=", "<=", "==", "!=", ">", "<"
 
 
@@ -92,7 +91,7 @@ class MetricBuffer:
         self.values: deque = deque(maxlen=max_points)
         self._lock = threading.Lock()
 
-    def add_value(self, value: float, timestamp: Optional[datetime] = None):
+    def add_value(self, value: float, timestamp: datetime | None = None):
         """Add a value to the buffer."""
         if timestamp is None:
             timestamp = datetime.now(timezone.utc)
@@ -110,13 +109,13 @@ class MetricBuffer:
         while self.values and self.values[0][0] < cutoff_time:
             self.values.popleft()
 
-    def get_values(self) -> List[float]:
+    def get_values(self) -> builtins.list[float]:
         """Get current values in the window."""
         with self._lock:
             self._cleanup_old_values()
             return [value for _, value in self.values]
 
-    def aggregate(self, aggregation: MetricAggregation) -> Optional[float]:
+    def aggregate(self, aggregation: MetricAggregation) -> float | None:
         """Aggregate values according to the specified method."""
         values = self.get_values()
         if not values:
@@ -124,21 +123,21 @@ class MetricBuffer:
 
         if aggregation == MetricAggregation.SUM:
             return sum(values)
-        elif aggregation == MetricAggregation.AVERAGE:
+        if aggregation == MetricAggregation.AVERAGE:
             return statistics.mean(values)
-        elif aggregation == MetricAggregation.MIN:
+        if aggregation == MetricAggregation.MIN:
             return min(values)
-        elif aggregation == MetricAggregation.MAX:
+        if aggregation == MetricAggregation.MAX:
             return max(values)
-        elif aggregation == MetricAggregation.COUNT:
+        if aggregation == MetricAggregation.COUNT:
             return float(len(values))
-        elif aggregation == MetricAggregation.PERCENTILE_95:
+        if aggregation == MetricAggregation.PERCENTILE_95:
             return (
                 statistics.quantiles(values, n=20)[18]
                 if len(values) >= 20
                 else max(values)
             )
-        elif aggregation == MetricAggregation.PERCENTILE_99:
+        if aggregation == MetricAggregation.PERCENTILE_99:
             return (
                 statistics.quantiles(values, n=100)[98]
                 if len(values) >= 100
@@ -152,10 +151,10 @@ class AlertManager:
     """Manages alert rules and active alerts."""
 
     def __init__(self):
-        self.rules: Dict[str, AlertRule] = {}
-        self.active_alerts: Dict[str, Alert] = {}
-        self.alert_history: List[Alert] = []
-        self.subscribers: List[Callable[[Alert], None]] = []
+        self.rules: builtins.dict[str, AlertRule] = {}
+        self.active_alerts: builtins.dict[str, Alert] = {}
+        self.alert_history: builtins.list[Alert] = []
+        self.subscribers: builtins.list[Callable[[Alert], None]] = []
         self._lock = threading.Lock()
         logger.info("Alert manager initialized")
 
@@ -177,7 +176,7 @@ class AlertManager:
         self.subscribers.append(callback)
         logger.info("Added alert subscriber")
 
-    def evaluate_rule(self, rule: AlertRule, metric_value: float) -> Optional[Alert]:
+    def evaluate_rule(self, rule: AlertRule, metric_value: float) -> Alert | None:
         """Evaluate an alert rule against a metric value."""
         if not rule.enabled:
             return None
@@ -221,26 +220,25 @@ class AlertManager:
 
                 logger.warning(f"Alert triggered: {alert.message}")
                 return alert
-        else:
-            # Resolve alert if active
-            if rule.name in self.active_alerts:
-                alert = self.active_alerts[rule.name]
-                alert.resolved = True
-                alert.resolved_at = datetime.now(timezone.utc)
+        # Resolve alert if active
+        elif rule.name in self.active_alerts:
+            alert = self.active_alerts[rule.name]
+            alert.resolved = True
+            alert.resolved_at = datetime.now(timezone.utc)
 
-                with self._lock:
-                    del self.active_alerts[rule.name]
+            with self._lock:
+                del self.active_alerts[rule.name]
 
-                logger.info(f"Alert resolved: {rule.name}")
+            logger.info(f"Alert resolved: {rule.name}")
 
         return None
 
-    def get_active_alerts(self) -> List[Alert]:
+    def get_active_alerts(self) -> builtins.list[Alert]:
         """Get all active alerts."""
         with self._lock:
             return list(self.active_alerts.values())
 
-    def get_alert_history(self, hours: int = 24) -> List[Alert]:
+    def get_alert_history(self, hours: int = 24) -> builtins.list[Alert]:
         """Get alert history for the specified time period."""
         cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
         return [alert for alert in self.alert_history if alert.timestamp >= cutoff_time]
@@ -250,8 +248,8 @@ class BusinessMetricsCollector:
     """Collector for business-specific metrics."""
 
     def __init__(self):
-        self.metrics: Dict[str, BusinessMetric] = {}
-        self.metric_buffers: Dict[str, MetricBuffer] = {}
+        self.metrics: builtins.dict[str, BusinessMetric] = {}
+        self.metric_buffers: builtins.dict[str, MetricBuffer] = {}
         self.alert_manager = AlertManager()
         self._lock = threading.Lock()
         logger.info("Business metrics collector initialized")
@@ -264,7 +262,10 @@ class BusinessMetricsCollector:
             logger.info(f"Registered business metric: {metric.name}")
 
     def record_value(
-        self, metric_name: str, value: float, labels: Optional[Dict[str, str]] = None
+        self,
+        metric_name: str,
+        value: float,
+        labels: builtins.dict[str, str] | None = None,
     ):
         """Record a value for a business metric."""
         if metric_name not in self.metrics:
@@ -290,8 +291,8 @@ class BusinessMetricsCollector:
         self,
         metric_name: str,
         aggregation: MetricAggregation = MetricAggregation.AVERAGE,
-        labels: Optional[Dict[str, str]] = None,
-    ) -> Optional[float]:
+        labels: builtins.dict[str, str] | None = None,
+    ) -> float | None:
         """Get aggregated value for a metric."""
         key = metric_name
         if labels:
@@ -304,8 +305,8 @@ class BusinessMetricsCollector:
         return self.metric_buffers[key].aggregate(aggregation)
 
     def evaluate_sla(
-        self, metric_name: str, labels: Optional[Dict[str, str]] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, metric_name: str, labels: builtins.dict[str, str] | None = None
+    ) -> builtins.dict[str, Any] | None:
         """Evaluate SLA for a metric."""
         if metric_name not in self.metrics:
             return None
@@ -342,7 +343,7 @@ class BusinessMetricsCollector:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-    def get_all_sla_status(self) -> Dict[str, Any]:
+    def get_all_sla_status(self) -> builtins.dict[str, Any]:
         """Get SLA status for all metrics with SLA targets."""
         sla_results = {}
 
@@ -361,7 +362,7 @@ class CustomMetricsManager:
     def __init__(self):
         self.business_metrics = BusinessMetricsCollector()
         self.alert_manager = AlertManager()
-        self._background_task: Optional[asyncio.Task] = None
+        self._background_task: asyncio.Task | None = None
         self._shutdown = False
 
         # Default business metrics
@@ -503,7 +504,10 @@ class CustomMetricsManager:
                 await asyncio.sleep(10)
 
     def record_business_metric(
-        self, metric_name: str, value: float, labels: Optional[Dict[str, str]] = None
+        self,
+        metric_name: str,
+        value: float,
+        labels: builtins.dict[str, str] | None = None,
     ):
         """Record a business metric value."""
         self.business_metrics.record_value(metric_name, value, labels)
@@ -516,7 +520,7 @@ class CustomMetricsManager:
         """Add alert notification subscriber."""
         self.alert_manager.subscribe(callback)
 
-    def get_metrics_summary(self) -> Dict[str, Any]:
+    def get_metrics_summary(self) -> builtins.dict[str, Any]:
         """Get summary of all custom metrics."""
         summary = {
             "business_metrics": {},
@@ -543,10 +547,10 @@ class CustomMetricsManager:
 
 
 # Global custom metrics manager
-_custom_metrics_manager: Optional[CustomMetricsManager] = None
+_custom_metrics_manager: CustomMetricsManager | None = None
 
 
-def get_custom_metrics_manager() -> Optional[CustomMetricsManager]:
+def get_custom_metrics_manager() -> CustomMetricsManager | None:
     """Get the global custom metrics manager."""
     return _custom_metrics_manager
 

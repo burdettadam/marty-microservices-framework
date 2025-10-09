@@ -6,25 +6,20 @@ of microservices with database, events, and external dependencies.
 """
 
 import asyncio
+import builtins
 import logging
-import uuid
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Callable, Dict, List, Optional
+from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Set, dict, list
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
-from src.framework.database import BaseModel, DatabaseManager
-from src.framework.events import (
-    BaseEvent,
-    EventBus,
-    EventHandler,
-    InMemoryEventBus,
-    TransactionalOutboxEventBus,
-)
-from src.framework.observability.monitoring import MetricsCollector, ServiceMonitor
+from src.framework.database import BaseModel
+from src.framework.events import BaseEvent, EventHandler, InMemoryEventBus
+from src.framework.observability.monitoring import MetricsCollector
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +70,8 @@ class TestDatabaseManager:
 class TestEventCollector(EventHandler):
     """Test event handler that collects events for assertion."""
 
-    def __init__(self, event_types: List[str] | None = None):
-        self.events: List[BaseEvent] = []
+    def __init__(self, event_types: builtins.list[str] | None = None):
+        self.events: builtins.list[BaseEvent] = []
         self._event_types = event_types or []
 
     async def handle(self, event: BaseEvent) -> None:
@@ -84,11 +79,11 @@ class TestEventCollector(EventHandler):
         self.events.append(event)
 
     @property
-    def event_types(self) -> List[str]:
+    def event_types(self) -> builtins.list[str]:
         """Return event types this handler processes."""
         return self._event_types
 
-    def get_events_of_type(self, event_type: str) -> List[BaseEvent]:
+    def get_events_of_type(self, event_type: str) -> builtins.list[BaseEvent]:
         """Get events of specific type."""
         return [e for e in self.events if e.event_type == event_type]
 
@@ -107,7 +102,9 @@ class TestEventCollector(EventHandler):
 class ServiceTestMixin:
     """Mixin class providing common test patterns for services."""
 
-    def setup_service_test_environment(self, service_name: str) -> Dict[str, Any]:
+    def setup_service_test_environment(
+        self, service_name: str
+    ) -> builtins.dict[str, Any]:
         """Set up standardized test environment for a service."""
         return {
             "service_name": service_name,
@@ -116,7 +113,7 @@ class ServiceTestMixin:
             "database_url": "sqlite+aiosqlite:///:memory:",
         }
 
-    def create_mock_dependencies(self, service_name: str) -> Dict[str, Mock]:
+    def create_mock_dependencies(self, service_name: str) -> builtins.dict[str, Mock]:
         """Create mock dependencies for a service."""
         dependencies = {}
 
@@ -239,7 +236,7 @@ def mock_external_service():
 
 
 # Test utilities
-def create_test_config(**overrides) -> Dict[str, Any]:
+def create_test_config(**overrides) -> builtins.dict[str, Any]:
     """Create test configuration with overrides."""
     config = {
         "service_name": "test_service",
@@ -272,14 +269,14 @@ class MockRepository:
     """Mock repository for testing."""
 
     def __init__(self):
-        self._data: Dict[Any, Any] = {}
+        self._data: builtins.dict[Any, Any] = {}
         self._next_id = 1
 
-    async def get_by_id(self, id: Any) -> Optional[Any]:
+    async def get_by_id(self, id: Any) -> Any | None:
         """Get entity by ID."""
         return self._data.get(id)
 
-    async def get_all(self, limit: int = 100, offset: int = 0) -> List[Any]:
+    async def get_all(self, limit: int = 100, offset: int = 0) -> builtins.list[Any]:
         """Get all entities."""
         items = list(self._data.values())
         return items[offset : offset + limit]
@@ -319,15 +316,13 @@ class MockRepository:
 class IntegrationTestBase(AsyncTestCase, ServiceTestMixin):
     """Base class for integration tests."""
 
-    async def setup_integration_test(self, service_config: Dict[str, Any]):
+    async def setup_integration_test(self, service_config: builtins.dict[str, Any]):
         """Setup integration test environment."""
         # Override in subclasses
-        pass
 
     async def teardown_integration_test(self):
         """Teardown integration test environment."""
         # Override in subclasses
-        pass
 
 
 # Performance test utilities
@@ -347,7 +342,7 @@ class PerformanceTestMixin:
         operation: Callable,
         concurrent_requests: int = 10,
         total_requests: int = 100,
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Run a simple load test."""
         import time
 

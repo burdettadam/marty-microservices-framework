@@ -6,22 +6,23 @@ retries, bulkheads, timeouts, and fallbacks for comprehensive fault tolerance.
 """
 
 import asyncio
+import builtins
 import logging
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, dict, list
 
-from .bulkhead import BulkheadConfig, BulkheadError, BulkheadPool, get_bulkhead_manager
-from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError
+from .bulkhead import BulkheadConfig, BulkheadPool, get_bulkhead_manager
+from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from .fallback import (
     FallbackConfig,
     FallbackError,
     FallbackStrategy,
     get_fallback_manager,
 )
-from .retry import RetryConfig, RetryError, retry_async
-from .timeout import ResilienceTimeoutError, TimeoutConfig, get_timeout_manager
+from .retry import RetryConfig, retry_async
+from .timeout import TimeoutConfig, get_timeout_manager
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -43,26 +44,26 @@ class ResilienceConfig:
     """Comprehensive configuration for resilience patterns."""
 
     # Circuit breaker configuration
-    circuit_breaker_config: Optional[CircuitBreakerConfig] = None
-    circuit_breaker_name: Optional[str] = None
+    circuit_breaker_config: CircuitBreakerConfig | None = None
+    circuit_breaker_name: str | None = None
 
     # Retry configuration
-    retry_config: Optional[RetryConfig] = None
+    retry_config: RetryConfig | None = None
 
     # Bulkhead configuration
-    bulkhead_config: Optional[BulkheadConfig] = None
-    bulkhead_name: Optional[str] = None
+    bulkhead_config: BulkheadConfig | None = None
+    bulkhead_name: str | None = None
 
     # Timeout configuration
-    timeout_config: Optional[TimeoutConfig] = None
-    timeout_seconds: Optional[float] = None
+    timeout_config: TimeoutConfig | None = None
+    timeout_seconds: float | None = None
 
     # Fallback configuration
-    fallback_config: Optional[FallbackConfig] = None
-    fallback_strategy: Optional[Union[str, FallbackStrategy]] = None
+    fallback_config: FallbackConfig | None = None
+    fallback_strategy: str | FallbackStrategy | None = None
 
     # Pattern execution order
-    execution_order: List[ResiliencePattern] = None
+    execution_order: builtins.list[ResiliencePattern] = None
 
     # Enable pattern logging
     log_patterns: bool = True
@@ -84,7 +85,7 @@ class ResilienceConfig:
 class ResilienceManager:
     """Manages integrated resilience patterns."""
 
-    def __init__(self, config: Optional[ResilienceConfig] = None):
+    def __init__(self, config: ResilienceConfig | None = None):
         self.config = config or ResilienceConfig()
 
         # Component managers
@@ -93,13 +94,13 @@ class ResilienceManager:
         self.fallback_manager = get_fallback_manager()
 
         # Circuit breakers
-        self._circuit_breakers: Dict[str, CircuitBreaker] = {}
+        self._circuit_breakers: builtins.dict[str, CircuitBreaker] = {}
 
         # Metrics
         self._total_operations = 0
         self._successful_operations = 0
         self._failed_operations = 0
-        self._pattern_usage: Dict[ResiliencePattern, int] = {
+        self._pattern_usage: builtins.dict[ResiliencePattern, int] = {
             pattern: 0 for pattern in ResiliencePattern
         }
 
@@ -137,7 +138,7 @@ class ResilienceManager:
             self._successful_operations += 1
             return result
 
-        except Exception as e:
+        except Exception:
             self._failed_operations += 1
 
             # Try fallback if configured
@@ -244,11 +245,10 @@ class ResilienceManager:
         """Apply the actual function execution."""
         if asyncio.iscoroutinefunction(func):
             return await func(*args, **kwargs)
-        else:
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, func, *args, **kwargs)
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, func, *args, **kwargs)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get comprehensive resilience statistics."""
         success_rate = self._successful_operations / max(1, self._total_operations)
 
@@ -279,7 +279,7 @@ def get_resilience_manager() -> ResilienceManager:
 
 
 def initialize_resilience(
-    config: Optional[ResilienceConfig] = None,
+    config: ResilienceConfig | None = None,
 ) -> ResilienceManager:
     """Initialize resilience patterns with configuration."""
     global _resilience_manager
@@ -289,7 +289,7 @@ def initialize_resilience(
 
 
 def resilience_pattern(
-    config: Optional[ResilienceConfig] = None, operation_name: Optional[str] = None
+    config: ResilienceConfig | None = None, operation_name: str | None = None
 ):
     """
     Decorator to add comprehensive resilience patterns to functions.
@@ -315,15 +315,12 @@ def resilience_pattern(
                 )
 
             return async_wrapper
-        else:
 
-            @wraps(func)
-            async def sync_wrapper(*args, **kwargs) -> T:
-                return await manager.execute_with_patterns(
-                    func, op_name, *args, **kwargs
-                )
+        @wraps(func)
+        async def sync_wrapper(*args, **kwargs) -> T:
+            return await manager.execute_with_patterns(func, op_name, *args, **kwargs)
 
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 

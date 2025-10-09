@@ -12,7 +12,7 @@ This module provides extensive testing for the service discovery system includin
 
 import asyncio
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional, Set, dict, list
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx

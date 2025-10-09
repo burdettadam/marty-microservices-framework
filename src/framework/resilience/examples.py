@@ -6,17 +6,16 @@ circuit breakers, retry mechanisms, bulkheads, timeouts, and fallbacks.
 """
 
 import asyncio
+import builtins
 import random
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, dict
 
 from framework.resilience import (  # Circuit Breaker; Retry; Timeout; Fallback; Integrated Patterns
-    CacheFallback,
     CircuitBreaker,
     CircuitBreakerConfig,
     FunctionFallback,
     ResilienceConfig,
-    ResilienceManager,
     RetryConfig,
     RetryStrategy,
     StaticFallback,
@@ -24,7 +23,6 @@ from framework.resilience import (  # Circuit Breaker; Retry; Timeout; Fallback;
     resilience_pattern,
     retry_async,
     timeout_async,
-    with_fallback,
     with_timeout,
 )
 
@@ -33,16 +31,12 @@ from framework.resilience import (  # Circuit Breaker; Retry; Timeout; Fallback;
 class ExternalAPIError(Exception):
     """Simulated external API error."""
 
-    pass
-
 
 class DatabaseError(Exception):
     """Simulated database error."""
 
-    pass
 
-
-async def unreliable_external_api(success_rate: float = 0.7) -> Dict[str, Any]:
+async def unreliable_external_api(success_rate: float = 0.7) -> builtins.dict[str, Any]:
     """Simulate an unreliable external API."""
     await asyncio.sleep(random.uniform(0.1, 0.5))  # Simulate network delay
 
@@ -56,7 +50,9 @@ async def unreliable_external_api(success_rate: float = 0.7) -> Dict[str, Any]:
     }
 
 
-async def slow_database_query(delay_range: tuple = (0.1, 2.0)) -> Dict[str, Any]:
+async def slow_database_query(
+    delay_range: tuple = (0.1, 2.0)
+) -> builtins.dict[str, Any]:
     """Simulate a slow database query."""
     delay = random.uniform(*delay_range)
     await asyncio.sleep(delay)
@@ -129,7 +125,9 @@ async def example_retry_mechanism():
     print("Exponential Backoff Retry:")
     try:
         result = await retry_async(
-            unreliable_external_api, exponential_config, 0.4  # 40% success rate
+            unreliable_external_api,
+            exponential_config,
+            0.4,  # 40% success rate
         )
         print(f"SUCCESS: {result}")
     except Exception as e:
@@ -260,7 +258,7 @@ async def example_integrated_patterns():
 
     # Show comprehensive stats
     stats = manager.get_stats()
-    print(f"\nResilience Stats:")
+    print("\nResilience Stats:")
     print(f"  Total operations: {stats['total_operations']}")
     print(f"  Success rate: {stats['success_rate']:.2%}")
     print(f"  Pattern usage: {stats['pattern_usage']}")
@@ -283,12 +281,12 @@ async def example_service_integration():
             )
 
         @resilience_pattern(operation_name="get_user_profile")
-        async def get_user_profile(self, user_id: int) -> Dict[str, Any]:
+        async def get_user_profile(self, user_id: int) -> builtins.dict[str, Any]:
             """Fast user profile lookup."""
             return await unreliable_external_api(0.8)
 
         @timeout_async(timeout_seconds=5.0, operation="generate_report")
-        async def generate_user_report(self, user_id: int) -> Dict[str, Any]:
+        async def generate_user_report(self, user_id: int) -> builtins.dict[str, Any]:
             """Slow report generation."""
             await asyncio.sleep(random.uniform(1.0, 3.0))
             return {"report": f"Report for user {user_id}", "pages": 50}
@@ -311,7 +309,7 @@ async def example_service_integration():
         "generate_user_report(1)",
     ]
 
-    for operation, result in zip(operation_names, results):
+    for operation, result in zip(operation_names, results, strict=False):
         if isinstance(result, Exception):
             print(f"{operation}: FAILED - {type(result).__name__}")
         else:

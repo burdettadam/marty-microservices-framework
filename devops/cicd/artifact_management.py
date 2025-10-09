@@ -16,17 +16,12 @@ import json
 import mimetypes
 import os
 import shutil
-import tarfile
 import tempfile
-import urllib.parse
-import zipfile
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, BinaryIO, Dict, List, Optional, Tuple, Union
-
-import yaml
+from typing import Any, Dict, List, Optional, dict, list
 
 # External dependencies
 try:
@@ -58,8 +53,10 @@ try:
 except ImportError:
     DOCKER_AVAILABLE = False
 
+import builtins
+
 # Local imports
-from . import ArtifactType, PipelineArtifact
+from . import ArtifactType
 
 
 class StorageBackend(Enum):
@@ -105,9 +102,9 @@ class StorageConfiguration:
     multipart_threshold: int = 100 * 1024 * 1024  # 100MB
 
     # Backend-specific configuration
-    config: Dict[str, Any] = field(default_factory=dict)
+    config: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {**asdict(self), "backend": self.backend.value}
 
 
@@ -131,26 +128,26 @@ class ArtifactMetadata:
 
     # Lifecycle
     created_at: datetime
-    last_accessed_at: Optional[datetime] = None
-    expires_at: Optional[datetime] = None
+    last_accessed_at: datetime | None = None
+    expires_at: datetime | None = None
 
     # Classification
-    tags: Dict[str, str] = field(default_factory=dict)
-    labels: Dict[str, str] = field(default_factory=dict)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
     environment: str = "development"
 
     # Promotion tracking
-    promoted_from: Optional[str] = None
-    promoted_to: List[str] = field(default_factory=list)
+    promoted_from: str | None = None
+    promoted_to: builtins.list[str] = field(default_factory=list)
 
     # Security
     access_level: str = "internal"  # public, internal, restricted, confidential
-    encryption_key_id: Optional[str] = None
+    encryption_key_id: str | None = None
 
     # Custom metadata
-    custom_metadata: Dict[str, Any] = field(default_factory=dict)
+    custom_metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "artifact_type": self.artifact_type.value,
@@ -178,19 +175,19 @@ class PromotionRequest:
 
     # Approval workflow
     approval_required: bool = True
-    approved_by: Optional[str] = None
-    approved_at: Optional[datetime] = None
+    approved_by: str | None = None
+    approved_at: datetime | None = None
 
     # Execution
     status: PromotionStatus = PromotionStatus.PENDING
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
 
     # Results
-    target_artifact_id: Optional[str] = None
-    error_message: Optional[str] = None
+    target_artifact_id: str | None = None
+    error_message: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "status": self.status.value,
@@ -211,21 +208,21 @@ class RetentionPolicy:
     description: str = ""
 
     # Retention rules
-    max_age_days: Optional[int] = None
-    max_versions: Optional[int] = None
-    max_size_mb: Optional[int] = None
+    max_age_days: int | None = None
+    max_versions: int | None = None
+    max_size_mb: int | None = None
 
     # Filters
-    artifact_types: List[ArtifactType] = field(default_factory=list)
-    environments: List[str] = field(default_factory=list)
-    tag_filters: Dict[str, str] = field(default_factory=dict)
+    artifact_types: builtins.list[ArtifactType] = field(default_factory=list)
+    environments: builtins.list[str] = field(default_factory=list)
+    tag_filters: builtins.dict[str, str] = field(default_factory=dict)
 
     # Actions
     delete_expired: bool = True
     archive_before_delete: bool = True
     notify_before_delete: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "artifact_types": [t.value for t in self.artifact_types],
@@ -240,7 +237,7 @@ class ArtifactStorageBackend:
 
     async def store_artifact(
         self, artifact_metadata: ArtifactMetadata, file_path: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Store artifact in backend"""
         raise NotImplementedError
 
@@ -252,11 +249,15 @@ class ArtifactStorageBackend:
         """Delete artifact from backend"""
         raise NotImplementedError
 
-    async def list_artifacts(self, prefix: str = "", limit: int = 100) -> List[str]:
+    async def list_artifacts(
+        self, prefix: str = "", limit: int = 100
+    ) -> builtins.list[str]:
         """List artifacts in backend"""
         raise NotImplementedError
 
-    async def get_artifact_info(self, artifact_id: str) -> Optional[Dict[str, Any]]:
+    async def get_artifact_info(
+        self, artifact_id: str
+    ) -> builtins.dict[str, Any] | None:
         """Get artifact information from backend"""
         raise NotImplementedError
 
@@ -271,7 +272,7 @@ class LocalStorageBackend(ArtifactStorageBackend):
 
     async def store_artifact(
         self, artifact_metadata: ArtifactMetadata, file_path: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Store artifact locally"""
 
         try:
@@ -374,7 +375,9 @@ class LocalStorageBackend(ArtifactStorageBackend):
             print(f"Failed to delete artifact: {e}")
             return False
 
-    async def list_artifacts(self, prefix: str = "", limit: int = 100) -> List[str]:
+    async def list_artifacts(
+        self, prefix: str = "", limit: int = 100
+    ) -> builtins.list[str]:
         """List artifacts in local storage"""
 
         artifacts = []
@@ -401,7 +404,9 @@ class LocalStorageBackend(ArtifactStorageBackend):
 
         return artifacts
 
-    async def get_artifact_info(self, artifact_id: str) -> Optional[Dict[str, Any]]:
+    async def get_artifact_info(
+        self, artifact_id: str
+    ) -> builtins.dict[str, Any] | None:
         """Get artifact information"""
 
         try:
@@ -415,7 +420,7 @@ class LocalStorageBackend(ArtifactStorageBackend):
             if not metadata_path.exists():
                 return None
 
-            with open(metadata_path, "r") as f:
+            with open(metadata_path) as f:
                 metadata = json.load(f)
 
             return metadata
@@ -471,7 +476,7 @@ class S3StorageBackend(ArtifactStorageBackend):
 
     async def store_artifact(
         self, artifact_metadata: ArtifactMetadata, file_path: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Store artifact in S3"""
 
         try:
@@ -578,7 +583,9 @@ class S3StorageBackend(ArtifactStorageBackend):
             print(f"Failed to delete artifact from S3: {e}")
             return False
 
-    async def list_artifacts(self, prefix: str = "", limit: int = 100) -> List[str]:
+    async def list_artifacts(
+        self, prefix: str = "", limit: int = 100
+    ) -> builtins.list[str]:
         """List artifacts in S3"""
 
         try:
@@ -607,7 +614,9 @@ class S3StorageBackend(ArtifactStorageBackend):
             print(f"Failed to list artifacts in S3: {e}")
             return []
 
-    async def get_artifact_info(self, artifact_id: str) -> Optional[Dict[str, Any]]:
+    async def get_artifact_info(
+        self, artifact_id: str
+    ) -> builtins.dict[str, Any] | None:
         """Get artifact information from S3"""
 
         try:
@@ -653,7 +662,7 @@ class ArtifactManager:
 
     def __init__(self, default_storage_config: StorageConfiguration):
         self.default_storage_config = default_storage_config
-        self.storage_backends: Dict[str, ArtifactStorageBackend] = {}
+        self.storage_backends: builtins.dict[str, ArtifactStorageBackend] = {}
 
         # Initialize default backend
         self.storage_backends["default"] = self._create_storage_backend(
@@ -661,9 +670,9 @@ class ArtifactManager:
         )
 
         # Artifact registry
-        self.artifacts: Dict[str, ArtifactMetadata] = {}
-        self.promotion_requests: Dict[str, PromotionRequest] = {}
-        self.retention_policies: List[RetentionPolicy] = []
+        self.artifacts: builtins.dict[str, ArtifactMetadata] = {}
+        self.promotion_requests: builtins.dict[str, PromotionRequest] = {}
+        self.retention_policies: builtins.list[RetentionPolicy] = []
 
         print(
             f"🗃️ Artifact Manager initialized with {default_storage_config.backend.value} backend"
@@ -676,10 +685,9 @@ class ArtifactManager:
 
         if config.backend == StorageBackend.LOCAL:
             return LocalStorageBackend(config)
-        elif config.backend == StorageBackend.S3:
+        if config.backend == StorageBackend.S3:
             return S3StorageBackend(config)
-        else:
-            raise ValueError(f"Unsupported storage backend: {config.backend}")
+        raise ValueError(f"Unsupported storage backend: {config.backend}")
 
     def add_storage_backend(self, name: str, config: StorageConfiguration):
         """Add additional storage backend"""
@@ -694,10 +702,10 @@ class ArtifactManager:
         artifact_type: ArtifactType,
         file_path: str,
         environment: str = "development",
-        tags: Optional[Dict[str, str]] = None,
-        labels: Optional[Dict[str, str]] = None,
+        tags: builtins.dict[str, str] | None = None,
+        labels: builtins.dict[str, str] | None = None,
         backend_name: str = "default",
-        custom_metadata: Optional[Dict[str, Any]] = None,
+        custom_metadata: builtins.dict[str, Any] | None = None,
     ) -> str:
         """Store artifact in specified backend"""
 
@@ -964,7 +972,7 @@ class ArtifactManager:
         self.retention_policies.append(policy)
         print(f"📋 Added retention policy: {policy.name}")
 
-    async def apply_retention_policies(self) -> Dict[str, Any]:
+    async def apply_retention_policies(self) -> builtins.dict[str, Any]:
         """Apply retention policies to artifacts"""
 
         results = {
@@ -991,7 +999,9 @@ class ArtifactManager:
         )
         return results
 
-    async def _apply_retention_policy(self, policy: RetentionPolicy) -> Dict[str, int]:
+    async def _apply_retention_policy(
+        self, policy: RetentionPolicy
+    ) -> builtins.dict[str, int]:
         """Apply single retention policy"""
 
         result = {"processed": 0, "deleted": 0, "archived": 0}
@@ -1082,17 +1092,17 @@ class ArtifactManager:
 
         return sha256_hash.hexdigest()
 
-    def get_artifact_metadata(self, artifact_id: str) -> Optional[ArtifactMetadata]:
+    def get_artifact_metadata(self, artifact_id: str) -> ArtifactMetadata | None:
         """Get artifact metadata"""
         return self.artifacts.get(artifact_id)
 
     def list_artifacts(
         self,
-        environment: Optional[str] = None,
-        artifact_type: Optional[ArtifactType] = None,
-        tags: Optional[Dict[str, str]] = None,
+        environment: str | None = None,
+        artifact_type: ArtifactType | None = None,
+        tags: builtins.dict[str, str] | None = None,
         limit: int = 100,
-    ) -> List[ArtifactMetadata]:
+    ) -> builtins.list[ArtifactMetadata]:
         """List artifacts with filtering"""
 
         filtered_artifacts = []
@@ -1121,16 +1131,16 @@ class ArtifactManager:
 
         return filtered_artifacts
 
-    def get_promotion_status(self, request_id: str) -> Optional[PromotionRequest]:
+    def get_promotion_status(self, request_id: str) -> PromotionRequest | None:
         """Get promotion request status"""
         return self.promotion_requests.get(request_id)
 
     def list_promotion_requests(
         self,
-        artifact_id: Optional[str] = None,
-        status: Optional[PromotionStatus] = None,
+        artifact_id: str | None = None,
+        status: PromotionStatus | None = None,
         limit: int = 50,
-    ) -> List[PromotionRequest]:
+    ) -> builtins.list[PromotionRequest]:
         """List promotion requests with filtering"""
 
         requests = list(self.promotion_requests.values())
@@ -1147,7 +1157,7 @@ class ArtifactManager:
 
         return requests[:limit]
 
-    def get_artifact_metrics(self) -> Dict[str, Any]:
+    def get_artifact_metrics(self) -> builtins.dict[str, Any]:
         """Get artifact management metrics"""
 
         total_artifacts = len(self.artifacts)
@@ -1221,7 +1231,7 @@ async def demo_artifact_management():
         for i, test_file in enumerate(test_files):
             artifact_id = await artifact_manager.store_artifact(
                 pipeline_execution_id=f"exec_{i}",
-                name=f"test_app",
+                name="test_app",
                 version=f"1.{i}.0",
                 artifact_type=ArtifactType.BINARY
                 if i == 0
@@ -1270,7 +1280,7 @@ async def demo_artifact_management():
 
         if success:
             print(f"Successfully retrieved artifact to: {retrieval_path}")
-            with open(retrieval_path, "r") as f:
+            with open(retrieval_path) as f:
                 content = f.read()[:100]
                 print(f"Content preview: {content}...")
 

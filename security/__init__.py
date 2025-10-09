@@ -113,28 +113,28 @@ def check_dependencies():
 __all__ = [
     # Core classes (available when dependencies are installed)
     "AuthenticationMiddleware",
-    "RateLimitMiddleware",
-    "SecurityHeadersMiddleware",
-    "SecurityConfig",
-    "RateLimitConfig",
-    "SecurityHeadersConfig",
     "JWTAuthenticator",
+    "RateLimitConfig",
+    "RateLimitMiddleware",
     "SecurityAuditor",
+    "SecurityConfig",
+    "SecurityHeadersConfig",
+    "SecurityHeadersMiddleware",
     "SlidingWindowRateLimiter",
-    # Helper functions
-    "require_roles",
-    "get_current_user_dependency",
-    "rate_limit",
+    # Module info
+    "__version__",
+    "check_dependencies",
     "create_security_headers_config",
     # Utility functions
     "get_availability_status",
-    "check_dependencies",
-    # Module info
-    "__version__",
+    "get_current_user_dependency",
     "middleware",
     "policies",
-    "tools",
+    "rate_limit",
+    # Helper functions
+    "require_roles",
     "scanners",
+    "tools",
 ]
 
 # Only add components to __all__ if they're actually importable
@@ -202,27 +202,27 @@ __all__ = [
     # Authentication
     "AuthenticationMiddleware",
     "JWTAuthenticator",
-    "SecurityConfig",
-    "require_roles",
-    "get_current_user_dependency",
-    "create_authentication_middleware",
-    "setup_security_logging",
+    "RateLimitConfig",
     # Rate Limiting
     "RateLimitMiddleware",
-    "RateLimitConfig",
     "RateLimitRule",
-    "SlidingWindowRateLimiter",
-    "create_rate_limit_config",
-    "create_rate_limit_middleware",
-    "rate_limit",
-    "get_rate_limit_info",
+    "SecurityConfig",
+    "SecurityHeadersConfig",
     # Security Headers
     "SecurityHeadersMiddleware",
-    "SecurityHeadersConfig",
+    "SlidingWindowRateLimiter",
+    "create_authentication_middleware",
+    "create_rate_limit_config",
+    "create_rate_limit_middleware",
     "create_security_headers_config",
     "create_security_headers_middleware",
     "generate_csp_nonce",
     "get_csp_nonce",
+    "get_current_user_dependency",
+    "get_rate_limit_info",
+    "rate_limit",
+    "require_roles",
+    "setup_security_logging",
 ]
 
 __version__ = "1.0.0"

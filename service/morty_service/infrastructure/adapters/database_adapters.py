@@ -5,8 +5,8 @@ These adapters implement the repository ports defined in the application layer,
 providing concrete persistence implementations using SQLAlchemy.
 """
 
-import json
-from typing import List, Optional
+import builtins
+from typing import List, Optional, Set, list
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -62,7 +62,7 @@ class SQLAlchemyTaskRepository(TaskRepositoryPort):
             )
             self._session.add(task_model)
 
-    async def find_by_id(self, task_id: UUID) -> Optional[Task]:
+    async def find_by_id(self, task_id: UUID) -> Task | None:
         """Find a task by its ID."""
         stmt = (
             sa.select(TaskModel)
@@ -77,7 +77,7 @@ class SQLAlchemyTaskRepository(TaskRepositoryPort):
 
         return self._model_to_entity(task_model)
 
-    async def find_by_assignee(self, user_id: UUID) -> List[Task]:
+    async def find_by_assignee(self, user_id: UUID) -> builtins.list[Task]:
         """Find all tasks assigned to a specific user."""
         stmt = (
             sa.select(TaskModel)
@@ -90,7 +90,7 @@ class SQLAlchemyTaskRepository(TaskRepositoryPort):
 
         return [self._model_to_entity(model) for model in task_models]
 
-    async def find_by_status(self, status: str) -> List[Task]:
+    async def find_by_status(self, status: str) -> builtins.list[Task]:
         """Find all tasks with a specific status."""
         stmt = (
             sa.select(TaskModel)
@@ -104,8 +104,8 @@ class SQLAlchemyTaskRepository(TaskRepositoryPort):
         return [self._model_to_entity(model) for model in task_models]
 
     async def find_all(
-        self, limit: Optional[int] = None, offset: int = 0
-    ) -> List[Task]:
+        self, limit: int | None = None, offset: int = 0
+    ) -> builtins.list[Task]:
         """Find all tasks with optional pagination."""
         stmt = (
             sa.select(TaskModel)
@@ -212,7 +212,7 @@ class SQLAlchemyUserRepository(UserRepositoryPort):
             )
             self._session.add(user_model)
 
-    async def find_by_id(self, user_id: UUID) -> Optional[User]:
+    async def find_by_id(self, user_id: UUID) -> User | None:
         """Find a user by their ID."""
         stmt = sa.select(UserModel).where(UserModel.id == user_id)
         result = await self._session.execute(stmt)
@@ -223,7 +223,7 @@ class SQLAlchemyUserRepository(UserRepositoryPort):
 
         return self._model_to_entity(user_model)
 
-    async def find_by_email(self, email: str) -> Optional[User]:
+    async def find_by_email(self, email: str) -> User | None:
         """Find a user by their email address."""
         stmt = sa.select(UserModel).where(UserModel.email == email.lower())
         result = await self._session.execute(stmt)
@@ -234,11 +234,11 @@ class SQLAlchemyUserRepository(UserRepositoryPort):
 
         return self._model_to_entity(user_model)
 
-    async def find_active_users(self) -> List[User]:
+    async def find_active_users(self) -> builtins.list[User]:
         """Find all active users."""
         stmt = (
             sa.select(UserModel)
-            .where(UserModel.active == True)
+            .where(UserModel.active)
             .order_by(UserModel.created_at.desc())
         )
         result = await self._session.execute(stmt)
@@ -247,8 +247,8 @@ class SQLAlchemyUserRepository(UserRepositoryPort):
         return [self._model_to_entity(model) for model in user_models]
 
     async def find_all(
-        self, limit: Optional[int] = None, offset: int = 0
-    ) -> List[User]:
+        self, limit: int | None = None, offset: int = 0
+    ) -> builtins.list[User]:
         """Find all users with optional pagination."""
         stmt = sa.select(UserModel).order_by(UserModel.created_at.desc()).offset(offset)
 

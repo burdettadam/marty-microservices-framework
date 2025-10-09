@@ -6,13 +6,14 @@ and temporarily cutting off traffic to failing services.
 """
 
 import asyncio
+import builtins
 import threading
 import time
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Generic, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, Optional, TypeVar, dict
 
 T = TypeVar("T")
 
@@ -74,7 +75,7 @@ class CircuitBreaker(Generic[T]):
     service health to prevent cascading failures.
     """
 
-    def __init__(self, name: str, config: Optional[CircuitBreakerConfig] = None):
+    def __init__(self, name: str, config: CircuitBreakerConfig | None = None):
         self.name = name
         self.config = config or CircuitBreakerConfig()
 
@@ -140,13 +141,13 @@ class CircuitBreaker(Generic[T]):
 
         if self._state == CircuitBreakerState.CLOSED:
             return True
-        elif self._state == CircuitBreakerState.OPEN:
+        if self._state == CircuitBreakerState.OPEN:
             # Check if timeout period has passed
             if current_time - self._last_failure_time >= self.config.timeout_seconds:
                 self._transition_to_half_open()
                 return True
             return False
-        elif self._state == CircuitBreakerState.HALF_OPEN:
+        if self._state == CircuitBreakerState.HALF_OPEN:
             return True
 
         return False
@@ -207,8 +208,7 @@ class CircuitBreaker(Generic[T]):
                 self.failure_rate >= self.config.failure_rate_threshold
                 and len(self._request_window) >= self.config.minimum_requests
             )
-        else:
-            return self._failure_count >= self.config.failure_threshold
+        return self._failure_count >= self.config.failure_threshold
 
     def _transition_to_open(self):
         """Transition circuit to OPEN state."""
@@ -293,7 +293,7 @@ class CircuitBreaker(Generic[T]):
         with self._lock:
             self._transition_to_closed()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get circuit breaker statistics."""
         with self._lock:
             return {
@@ -320,8 +320,8 @@ class CircuitBreaker(Generic[T]):
 
 def circuit_breaker(
     name: str,
-    config: Optional[CircuitBreakerConfig] = None,
-    circuit: Optional[CircuitBreaker] = None,
+    config: CircuitBreakerConfig | None = None,
+    circuit: CircuitBreaker | None = None,
 ):
     """
     Decorator to wrap functions with circuit breaker protection.
@@ -346,24 +346,23 @@ def circuit_breaker(
                 return await circuit.call(func, *args, **kwargs)
 
             return async_wrapper
-        else:
 
-            @wraps(func)
-            def sync_wrapper(*args, **kwargs) -> T:
-                return asyncio.run(circuit.call(func, *args, **kwargs))
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs) -> T:
+            return asyncio.run(circuit.call(func, *args, **kwargs))
 
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 
 
 # Global registry for circuit breakers
-_circuit_breakers: Dict[str, CircuitBreaker] = {}
+_circuit_breakers: builtins.dict[str, CircuitBreaker] = {}
 _registry_lock = threading.Lock()
 
 
 def get_circuit_breaker(
-    name: str, config: Optional[CircuitBreakerConfig] = None
+    name: str, config: CircuitBreakerConfig | None = None
 ) -> CircuitBreaker:
     """Get or create a circuit breaker by name."""
     with _registry_lock:
@@ -372,7 +371,7 @@ def get_circuit_breaker(
         return _circuit_breakers[name]
 
 
-def get_all_circuit_breakers() -> Dict[str, CircuitBreaker]:
+def get_all_circuit_breakers() -> builtins.dict[str, CircuitBreaker]:
     """Get all registered circuit breakers."""
     with _registry_lock:
         return _circuit_breakers.copy()
@@ -385,7 +384,7 @@ def reset_all_circuit_breakers():
             cb.reset()
 
 
-def get_circuit_breaker_stats() -> Dict[str, Dict[str, Any]]:
+def get_circuit_breaker_stats() -> builtins.dict[str, builtins.dict[str, Any]]:
     """Get statistics for all circuit breakers."""
     with _registry_lock:
         return {name: cb.get_stats() for name, cb in _circuit_breakers.items()}

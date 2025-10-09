@@ -8,8 +8,7 @@ FastAPI and gRPC services with best practices and common patterns.
 import asyncio
 import logging
 import time
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional, dict
 
 # FastAPI imports
 try:
@@ -30,13 +29,15 @@ try:
 except ImportError:
     GRPC_AVAILABLE = False
 
+import builtins
+
 # OpenTelemetry imports
-from opentelemetry import baggage, trace
+from opentelemetry import trace
 from opentelemetry.trace import Status, StatusCode
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 # Import our tracing module
-from . import DistributedTracing, TracingConfig, setup_distributed_tracing
+from . import DistributedTracing, setup_distributed_tracing
 
 logger = logging.getLogger(__name__)
 
@@ -179,7 +180,7 @@ class TracedFastAPIService:
                 else None,
             }
 
-    async def _get_user_from_db(self, user_id: str) -> Optional[UserModel]:
+    async def _get_user_from_db(self, user_id: str) -> UserModel | None:
         """Simulate database user lookup with tracing"""
         async with self.tracing.trace_async_operation(
             "db.user.select", {"db.operation": "SELECT", "user.id": user_id}
@@ -212,7 +213,9 @@ class TracedFastAPIService:
             self.tracing.add_span_event("order.created", {"order_id": order_id})
             return order_id
 
-    async def _process_payment(self, order_id: str, amount: float) -> Dict[str, Any]:
+    async def _process_payment(
+        self, order_id: str, amount: float
+    ) -> builtins.dict[str, Any]:
         """Simulate external payment service call"""
         async with self.tracing.trace_async_operation(
             "external.payment_service.process",
@@ -319,7 +322,7 @@ class TracedGRPCService:
             if not hasattr(request, "amount") or request.amount <= 0:
                 raise ValueError("Invalid payment amount")
 
-    async def _process_payment_internal(self, request) -> Dict[str, Any]:
+    async def _process_payment_internal(self, request) -> builtins.dict[str, Any]:
         """Internal payment processing"""
         async with self.tracing.trace_async_operation(
             "payment.processing",
@@ -346,7 +349,9 @@ class TracingIntegrationHelper:
     """
 
     @staticmethod
-    def propagate_trace_context(source_headers: Dict[str, str]) -> Dict[str, str]:
+    def propagate_trace_context(
+        source_headers: builtins.dict[str, str]
+    ) -> builtins.dict[str, str]:
         """Extract trace context from headers and prepare for propagation"""
         propagator = TraceContextTextMapPropagator()
 
@@ -361,8 +366,8 @@ class TracingIntegrationHelper:
 
     @staticmethod
     def create_http_client_headers(
-        additional_headers: Optional[Dict[str, str]] = None
-    ) -> Dict[str, str]:
+        additional_headers: builtins.dict[str, str] | None = None,
+    ) -> builtins.dict[str, str]:
         """Create HTTP headers with trace context for outgoing requests"""
         headers = {}
 

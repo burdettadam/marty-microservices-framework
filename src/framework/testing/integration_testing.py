@@ -7,17 +7,14 @@ queue integration tests, and end-to-end testing scenarios.
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import time
-import uuid
-from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
-from unittest.mock import AsyncMock, Mock
+from typing import Any, Callable, Dict, List, Optional, Tuple, dict, list, tuple
 
 import aiohttp
 import docker
@@ -60,8 +57,8 @@ class ServiceEndpoint:
     url: str
     health_check_path: str = "/health"
     timeout: float = 30.0
-    headers: Dict[str, str] = field(default_factory=dict)
-    auth: Optional[Dict[str, Any]] = None
+    headers: builtins.dict[str, str] = field(default_factory=dict)
+    auth: builtins.dict[str, Any] | None = None
 
 
 @dataclass
@@ -74,7 +71,7 @@ class DatabaseConfig:
     database: str
     username: str
     password: str
-    connection_params: Dict[str, Any] = field(default_factory=dict)
+    connection_params: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -85,9 +82,9 @@ class MessageQueueConfig:
     host: str
     port: int
     queue_name: str
-    username: Optional[str] = None
-    password: Optional[str] = None
-    connection_params: Dict[str, Any] = field(default_factory=dict)
+    username: str | None = None
+    password: str | None = None
+    connection_params: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -96,10 +93,10 @@ class TestScenario:
 
     name: str
     description: str
-    steps: List[Callable] = field(default_factory=list)
-    setup_steps: List[Callable] = field(default_factory=list)
-    teardown_steps: List[Callable] = field(default_factory=list)
-    dependencies: List[str] = field(default_factory=list)
+    steps: builtins.list[Callable] = field(default_factory=list)
+    setup_steps: builtins.list[Callable] = field(default_factory=list)
+    teardown_steps: builtins.list[Callable] = field(default_factory=list)
+    dependencies: builtins.list[str] = field(default_factory=list)
     timeout: float = 300.0
     retry_attempts: int = 3
 
@@ -109,11 +106,11 @@ class IntegrationTestEnvironment:
 
     def __init__(self, environment_type: TestEnvironment = TestEnvironment.LOCAL):
         self.environment_type = environment_type
-        self.services: Dict[str, ServiceEndpoint] = {}
-        self.databases: Dict[str, DatabaseConfig] = {}
-        self.message_queues: Dict[str, MessageQueueConfig] = {}
-        self.containers: Dict[str, Any] = {}
-        self.docker_client: Optional[docker.DockerClient] = None
+        self.services: builtins.dict[str, ServiceEndpoint] = {}
+        self.databases: builtins.dict[str, DatabaseConfig] = {}
+        self.message_queues: builtins.dict[str, MessageQueueConfig] = {}
+        self.containers: builtins.dict[str, Any] = {}
+        self.docker_client: docker.DockerClient | None = None
 
         if environment_type == TestEnvironment.DOCKER:
             self.docker_client = docker.from_env()
@@ -156,12 +153,10 @@ class IntegrationTestEnvironment:
         """Setup Docker-based test environment."""
         # This is a simplified implementation
         # In practice, you might use docker-compose or orchestration tools
-        pass
 
     async def _setup_local_environment(self):
         """Setup local test environment."""
         # Verify local services are available
-        pass
 
     async def _teardown_docker_environment(self):
         """Teardown Docker containers."""
@@ -259,25 +254,48 @@ class DatabaseIntegrationHelper:
             self.connection = None
             logger.info("Disconnected from database")
 
-    def execute_query(self, query: str, params: Tuple = None):
+    def execute_query(self, query: str, params: builtins.tuple = None):
         """Execute database query."""
         if self.config.type == "postgresql":
             cursor = self.connection.cursor()
             cursor.execute(query, params)
             self.connection.commit()
             return cursor.fetchall()
-        elif self.config.type == "mongodb":
+        if self.config.type == "mongodb":
             # For MongoDB, query should be a collection name and operation
             collection_name, operation = query.split(":", 1)
             collection = self.connection[self.config.database][collection_name]
-            return eval(
-                f"collection.{operation}"
-            )  # Note: eval is dangerous in production
-        elif self.config.type == "redis":
+
+            # Security: Replace dangerous eval() with safe method dispatch
+            # Only allow specific safe operations
+            safe_operations = {
+                "find()": lambda: list(collection.find()),
+                "find_one()": lambda: collection.find_one(),
+                "count_documents({})": lambda: collection.count_documents({}),
+                "estimated_document_count()": lambda: collection.estimated_document_count(),
+            }
+
+            if operation in safe_operations:
+                return safe_operations[operation]()
+            else:
+                raise ValueError(f"Unsafe MongoDB operation: {operation}")
+
+        if self.config.type == "redis":
             # For Redis, query should be a command
-            return eval(f"self.connection.{query}")
-        else:
-            raise ValueError(f"Query execution not supported for {self.config.type}")
+            # Security: Replace dangerous eval() with safe method dispatch
+            # Only allow specific safe operations
+            safe_commands = {
+                "ping()": lambda: self.connection.ping(),
+                "info()": lambda: self.connection.info(),
+                "dbsize()": lambda: self.connection.dbsize(),
+                'get("test")': lambda: self.connection.get("test"),
+            }
+
+            if query in safe_commands:
+                return safe_commands[query]()
+            else:
+                raise ValueError(f"Unsafe Redis command: {query}")
+        raise ValueError(f"Query execution not supported for {self.config.type}")
 
     def insert_test_data(self, table_or_collection: str, data: Any):
         """Insert test data."""
@@ -391,7 +409,7 @@ class MessageQueueIntegrationHelper:
             )
             logger.info(f"Published message to {routing_key}")
 
-    def consume_messages(self, timeout: float = 10.0) -> List[Any]:
+    def consume_messages(self, timeout: float = 10.0) -> builtins.list[Any]:
         """Consume messages from queue."""
         messages = []
 
@@ -444,7 +462,7 @@ class ServiceToServiceTestCase(TestCase):
         self.source_service = source_service
         self.target_service = target_service
         self.test_scenario = test_scenario
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session: aiohttp.ClientSession | None = None
 
     async def setup(self):
         """Setup test case."""
@@ -580,7 +598,7 @@ class DatabaseIntegrationTestCase(TestCase):
         )
         self.database_config = database_config
         self.test_scenario = test_scenario
-        self.db_helper: Optional[DatabaseIntegrationHelper] = None
+        self.db_helper: DatabaseIntegrationHelper | None = None
 
     async def setup(self):
         """Setup test case."""
@@ -700,7 +718,7 @@ class MessageQueueIntegrationTestCase(TestCase):
         )
         self.mq_config = mq_config
         self.test_scenario = test_scenario
-        self.mq_helper: Optional[MessageQueueIntegrationHelper] = None
+        self.mq_helper: MessageQueueIntegrationHelper | None = None
 
     async def setup(self):
         """Setup test case."""
@@ -812,7 +830,7 @@ class IntegrationTestManager:
 
     def __init__(self, environment: IntegrationTestEnvironment):
         self.environment = environment
-        self.test_data_cleanup_callbacks: List[Callable] = []
+        self.test_data_cleanup_callbacks: builtins.list[Callable] = []
 
     async def setup_environment(self):
         """Setup test environment."""
@@ -880,7 +898,9 @@ class IntegrationTestManager:
 
 
 # Utility functions for common integration test scenarios
-def create_api_integration_scenario(api_calls: List[Dict[str, Any]]) -> TestScenario:
+def create_api_integration_scenario(
+    api_calls: builtins.list[builtins.dict[str, Any]],
+) -> TestScenario:
     """Create API integration test scenario."""
 
     async def make_api_calls(test_case: ServiceToServiceTestCase):
@@ -917,7 +937,7 @@ def create_api_integration_scenario(api_calls: List[Dict[str, Any]]) -> TestScen
 
 
 def create_database_crud_scenario(
-    table_name: str, test_data: List[Dict[str, Any]]
+    table_name: str, test_data: builtins.list[builtins.dict[str, Any]]
 ) -> TestScenario:
     """Create database CRUD test scenario."""
 
@@ -946,7 +966,7 @@ def create_database_crud_scenario(
 
 
 def create_message_flow_scenario(
-    messages: List[Any], expected_count: int = None
+    messages: builtins.list[Any], expected_count: int = None
 ) -> TestScenario:
     """Create message queue flow test scenario."""
 

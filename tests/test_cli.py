@@ -3,10 +3,10 @@ Test suite for Marty CLI functionality.
 """
 
 import os
-import shutil
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from typing import Set
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner

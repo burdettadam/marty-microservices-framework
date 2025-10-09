@@ -7,19 +7,28 @@ disruption testing for microservices resilience validation.
 """
 
 import asyncio
-import json
+import builtins
 import logging
-import random
 import subprocess
 import threading
 import time
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    dict,
+    list,
+    set,
+    tuple,
+)
 
 import psutil
 
@@ -69,10 +78,10 @@ class ChaosTarget:
     """Target for chaos experiment."""
 
     service_name: str
-    instance_id: Optional[str] = None
-    host: Optional[str] = None
-    port: Optional[int] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    instance_id: str | None = None
+    host: str | None = None
+    port: int | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -83,7 +92,7 @@ class ChaosParameters:
     intensity: float = 1.0  # 0.0 to 1.0
     delay_before: int = 0  # seconds
     delay_after: int = 0  # seconds
-    custom_params: Dict[str, Any] = field(default_factory=dict)
+    custom_params: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -92,8 +101,8 @@ class SteadyStateHypothesis:
 
     title: str
     description: str
-    probes: List[Callable] = field(default_factory=list)
-    tolerance: Dict[str, Any] = field(default_factory=dict)
+    probes: builtins.list[Callable] = field(default_factory=list)
+    tolerance: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -103,12 +112,12 @@ class ChaosExperiment:
     title: str
     description: str
     chaos_type: ChaosType
-    targets: List[ChaosTarget]
+    targets: builtins.list[ChaosTarget]
     parameters: ChaosParameters
     steady_state_hypothesis: SteadyStateHypothesis
     scope: ChaosScope = ChaosScope.SINGLE_INSTANCE
-    rollback_strategy: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    rollback_strategy: str | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class ChaosAction(ABC):
@@ -117,19 +126,17 @@ class ChaosAction(ABC):
     def __init__(self, chaos_type: ChaosType):
         self.chaos_type = chaos_type
         self.active = False
-        self.cleanup_callbacks: List[Callable] = []
+        self.cleanup_callbacks: builtins.list[Callable] = []
 
     @abstractmethod
     async def inject(
-        self, targets: List[ChaosTarget], parameters: ChaosParameters
+        self, targets: builtins.list[ChaosTarget], parameters: ChaosParameters
     ) -> bool:
         """Inject chaos into targets."""
-        pass
 
     @abstractmethod
     async def recover(self) -> bool:
         """Recover from chaos injection."""
-        pass
 
     async def cleanup(self):
         """Clean up chaos action."""
@@ -151,10 +158,10 @@ class NetworkDelayAction(ChaosAction):
 
     def __init__(self):
         super().__init__(ChaosType.NETWORK_DELAY)
-        self.original_rules: List[str] = []
+        self.original_rules: builtins.list[str] = []
 
     async def inject(
-        self, targets: List[ChaosTarget], parameters: ChaosParameters
+        self, targets: builtins.list[ChaosTarget], parameters: ChaosParameters
     ) -> bool:
         """Inject network delay using tc (traffic control)."""
         try:
@@ -164,7 +171,7 @@ class NetworkDelayAction(ChaosAction):
             for target in targets:
                 if target.host and target.port:
                     # Add delay rule using tc
-                    rule = f"tc qdisc add dev eth0 root handle 1: prio"
+                    rule = "tc qdisc add dev eth0 root handle 1: prio"
                     await self._execute_command(rule)
 
                     rule = f"tc qdisc add dev eth0 parent 1:1 handle 10: netem delay {delay_ms}ms {variance_ms}ms"
@@ -218,10 +225,10 @@ class ServiceKillAction(ChaosAction):
 
     def __init__(self):
         super().__init__(ChaosType.SERVICE_KILL)
-        self.killed_processes: List[int] = []
+        self.killed_processes: builtins.list[int] = []
 
     async def inject(
-        self, targets: List[ChaosTarget], parameters: ChaosParameters
+        self, targets: builtins.list[ChaosTarget], parameters: ChaosParameters
     ) -> bool:
         """Kill target service processes."""
         try:
@@ -262,7 +269,7 @@ class ServiceKillAction(ChaosAction):
         )
         return True
 
-    def _find_processes(self, service_name: str) -> List[psutil.Process]:
+    def _find_processes(self, service_name: str) -> builtins.list[psutil.Process]:
         """Find processes by service name."""
         processes = []
 
@@ -284,12 +291,12 @@ class ResourceExhaustionAction(ChaosAction):
 
     def __init__(self):
         super().__init__(ChaosType.RESOURCE_EXHAUSTION)
-        self.stress_processes: List[subprocess.Popen] = []
-        self.stress_threads: List[threading.Thread] = []
+        self.stress_processes: builtins.list[subprocess.Popen] = []
+        self.stress_threads: builtins.list[threading.Thread] = []
         self.stop_stress = False
 
     async def inject(
-        self, targets: List[ChaosTarget], parameters: ChaosParameters
+        self, targets: builtins.list[ChaosTarget], parameters: ChaosParameters
     ) -> bool:
         """Inject resource exhaustion."""
         try:
@@ -415,7 +422,7 @@ class ResourceExhaustionAction(ChaosAction):
                             f.write("x" * 1024)  # 1KB write
 
                         # Read operation
-                        with open(temp_file, "r") as f:
+                        with open(temp_file) as f:
                             f.read()
 
                     time.sleep(1)  # Wait 1 second between bursts
@@ -456,12 +463,14 @@ class ChaosActionFactory:
 class SteadyStateProbe:
     """Probe for checking system steady state."""
 
-    def __init__(self, name: str, probe_func: Callable, tolerance: Dict[str, Any]):
+    def __init__(
+        self, name: str, probe_func: Callable, tolerance: builtins.dict[str, Any]
+    ):
         self.name = name
         self.probe_func = probe_func
         self.tolerance = tolerance
 
-    async def check(self) -> Tuple[bool, Any]:
+    async def check(self) -> builtins.tuple[bool, Any]:
         """Check probe and return success status and value."""
         try:
             if asyncio.iscoroutinefunction(self.probe_func):
@@ -509,8 +518,8 @@ class ChaosTestCase(TestCase):
             tags=["chaos", experiment.chaos_type.value],
         )
         self.experiment = experiment
-        self.action: Optional[ChaosAction] = None
-        self.steady_state_probes: List[SteadyStateProbe] = []
+        self.action: ChaosAction | None = None
+        self.steady_state_probes: builtins.list[SteadyStateProbe] = []
 
         # Setup steady state probes
         for probe_func in experiment.steady_state_hypothesis.probes:
@@ -645,7 +654,7 @@ class ChaosTestCase(TestCase):
 
         except Exception as e:
             execution_time = (datetime.utcnow() - start_time).total_seconds()
-            experiment_log.append(f"✗ Experiment failed: {str(e)}")
+            experiment_log.append(f"✗ Experiment failed: {e!s}")
 
             return TestResult(
                 test_id=self.id,
@@ -740,7 +749,7 @@ class ChaosExperimentBuilder:
         return self
 
     def steady_state_probe(
-        self, probe_func: Callable, tolerance: Dict[str, Any] = None
+        self, probe_func: Callable, tolerance: builtins.dict[str, Any] = None
     ) -> "ChaosExperimentBuilder":
         """Add steady state probe."""
         self.experiment.steady_state_hypothesis.probes.append(probe_func)
@@ -765,8 +774,8 @@ class ChaosManager:
     """Manages chaos engineering experiments."""
 
     def __init__(self):
-        self.experiments: Dict[str, ChaosExperiment] = {}
-        self.active_experiments: Set[str] = set()
+        self.experiments: builtins.dict[str, ChaosExperiment] = {}
+        self.active_experiments: builtins.set[str] = set()
 
     def create_experiment(self, title: str) -> ChaosExperimentBuilder:
         """Create a new chaos experiment builder."""
@@ -785,7 +794,7 @@ class ChaosManager:
         experiment = self.experiments[experiment_title]
         return ChaosTestCase(experiment)
 
-    def list_experiments(self) -> List[Dict[str, Any]]:
+    def list_experiments(self) -> builtins.list[builtins.dict[str, Any]]:
         """List all registered experiments."""
         return [
             {

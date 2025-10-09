@@ -6,13 +6,13 @@ and intelligent code transformation capabilities for enterprise microservices.
 """
 
 import ast
-import inspect
+import builtins
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
+from typing import Any, Dict, List, Set, dict, list
 
 from jinja2 import Environment, FileSystemLoader, Template
 
@@ -64,11 +64,11 @@ class CodeGenerationSpec:
     pattern: CodePattern
     architectural_style: ArchitecturalStyle
     complexity: CodeComplexity
-    domain_objects: List[str] = field(default_factory=list)
-    interfaces: List[str] = field(default_factory=list)
-    dependencies: List[str] = field(default_factory=list)
-    configuration: Dict[str, Any] = field(default_factory=dict)
-    custom_attributes: Dict[str, Any] = field(default_factory=dict)
+    domain_objects: builtins.list[str] = field(default_factory=list)
+    interfaces: builtins.list[str] = field(default_factory=list)
+    dependencies: builtins.list[str] = field(default_factory=list)
+    configuration: builtins.dict[str, Any] = field(default_factory=dict)
+    custom_attributes: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -76,11 +76,11 @@ class DomainModel:
     """Domain model definition."""
 
     name: str
-    attributes: Dict[str, str]
-    methods: List[str] = field(default_factory=list)
-    relationships: Dict[str, str] = field(default_factory=dict)
-    constraints: List[str] = field(default_factory=list)
-    events: List[str] = field(default_factory=list)
+    attributes: builtins.dict[str, str]
+    methods: builtins.list[str] = field(default_factory=list)
+    relationships: builtins.dict[str, str] = field(default_factory=dict)
+    constraints: builtins.list[str] = field(default_factory=list)
+    events: builtins.list[str] = field(default_factory=list)
 
 
 class CodePatternGenerator(ABC):
@@ -88,28 +88,25 @@ class CodePatternGenerator(ABC):
 
     @abstractmethod
     def generate(
-        self, spec: CodeGenerationSpec, context: Dict[str, Any]
-    ) -> Dict[str, str]:
+        self, spec: CodeGenerationSpec, context: builtins.dict[str, Any]
+    ) -> builtins.dict[str, str]:
         """Generate code files for the pattern."""
-        pass
 
     @abstractmethod
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> builtins.list[str]:
         """Get required dependencies for this pattern."""
-        pass
 
     @abstractmethod
     def validate_spec(self, spec: CodeGenerationSpec) -> bool:
         """Validate the generation specification."""
-        pass
 
 
 class RepositoryPatternGenerator(CodePatternGenerator):
     """Generates Repository pattern code."""
 
     def generate(
-        self, spec: CodeGenerationSpec, context: Dict[str, Any]
-    ) -> Dict[str, str]:
+        self, spec: CodeGenerationSpec, context: builtins.dict[str, Any]
+    ) -> builtins.dict[str, str]:
         """Generate Repository pattern files."""
         files = {}
 
@@ -138,7 +135,7 @@ class RepositoryPatternGenerator(CodePatternGenerator):
 
         return files
 
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> builtins.list[str]:
         """Get required dependencies."""
         return ["abc", "typing", "sqlalchemy", "src.framework.database"]
 
@@ -147,7 +144,10 @@ class RepositoryPatternGenerator(CodePatternGenerator):
         return len(spec.domain_objects) > 0
 
     def _generate_repository_interface(
-        self, domain_object: str, spec: CodeGenerationSpec, context: Dict[str, Any]
+        self,
+        domain_object: str,
+        spec: CodeGenerationSpec,
+        context: builtins.dict[str, Any],
     ) -> str:
         """Generate repository interface."""
         template = Template(
@@ -214,7 +214,10 @@ class {{ domain_object }}Repository(ABC):
         )
 
     def _generate_repository_implementation(
-        self, domain_object: str, spec: CodeGenerationSpec, context: Dict[str, Any]
+        self,
+        domain_object: str,
+        spec: CodeGenerationSpec,
+        context: builtins.dict[str, Any],
     ) -> str:
         """Generate repository implementation."""
         template = Template(
@@ -355,7 +358,10 @@ class {{ domain_object }}RepositoryImpl({{ domain_object }}Repository):
         )
 
     def _generate_repository_tests(
-        self, domain_object: str, spec: CodeGenerationSpec, context: Dict[str, Any]
+        self,
+        domain_object: str,
+        spec: CodeGenerationSpec,
+        context: builtins.dict[str, Any],
     ) -> str:
         """Generate repository unit tests."""
         template = Template(
@@ -495,8 +501,8 @@ class FactoryPatternGenerator(CodePatternGenerator):
     """Generates Factory pattern code."""
 
     def generate(
-        self, spec: CodeGenerationSpec, context: Dict[str, Any]
-    ) -> Dict[str, str]:
+        self, spec: CodeGenerationSpec, context: builtins.dict[str, Any]
+    ) -> builtins.dict[str, str]:
         """Generate Factory pattern files."""
         files = {}
 
@@ -513,7 +519,7 @@ class FactoryPatternGenerator(CodePatternGenerator):
 
         return files
 
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> builtins.list[str]:
         """Get required dependencies."""
         return ["abc", "typing"]
 
@@ -522,7 +528,7 @@ class FactoryPatternGenerator(CodePatternGenerator):
         return "factory_types" in spec.configuration
 
     def _generate_abstract_factory(
-        self, spec: CodeGenerationSpec, context: Dict[str, Any]
+        self, spec: CodeGenerationSpec, context: builtins.dict[str, Any]
     ) -> str:
         """Generate abstract factory interface."""
         template = Template(
@@ -567,7 +573,10 @@ class AbstractFactory(ABC, Generic[T]):
         )
 
     def _generate_concrete_factory(
-        self, factory_type: str, spec: CodeGenerationSpec, context: Dict[str, Any]
+        self,
+        factory_type: str,
+        spec: CodeGenerationSpec,
+        context: builtins.dict[str, Any],
     ) -> str:
         """Generate concrete factory implementation."""
         template = Template(
@@ -578,7 +587,7 @@ Concrete factory for creating {{ factory_type }} variants of domain objects.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any, dict
 
 {% for domain_object in domain_objects %}
 from app.models.{{ domain_object.lower() }} import {{ domain_object }}
@@ -636,8 +645,8 @@ class BuilderPatternGenerator(CodePatternGenerator):
     """Generates Builder pattern code."""
 
     def generate(
-        self, spec: CodeGenerationSpec, context: Dict[str, Any]
-    ) -> Dict[str, str]:
+        self, spec: CodeGenerationSpec, context: builtins.dict[str, Any]
+    ) -> builtins.dict[str, str]:
         """Generate Builder pattern files."""
         files = {}
 
@@ -647,7 +656,7 @@ class BuilderPatternGenerator(CodePatternGenerator):
 
         return files
 
-    def get_dependencies(self) -> List[str]:
+    def get_dependencies(self) -> builtins.list[str]:
         """Get required dependencies."""
         return ["typing"]
 
@@ -656,7 +665,10 @@ class BuilderPatternGenerator(CodePatternGenerator):
         return len(spec.domain_objects) > 0
 
     def _generate_builder(
-        self, domain_object: str, spec: CodeGenerationSpec, context: Dict[str, Any]
+        self,
+        domain_object: str,
+        spec: CodeGenerationSpec,
+        context: builtins.dict[str, Any],
     ) -> str:
         """Generate builder class."""
         template = Template(
@@ -804,11 +816,15 @@ class AdvancedCodeGenerator:
             loader=FileSystemLoader(str(framework_root / "templates")),
             trim_blocks=True,
             lstrip_blocks=True,
+            autoescape=True,
         )
 
     def generate_pattern(
-        self, spec: CodeGenerationSpec, output_dir: Path, context: Dict[str, Any] = None
-    ) -> List[Path]:
+        self,
+        spec: CodeGenerationSpec,
+        output_dir: Path,
+        context: builtins.dict[str, Any] = None,
+    ) -> builtins.list[Path]:
         """Generate code for a specific pattern."""
         if spec.pattern not in self.pattern_generators:
             raise ValueError(f"Unsupported pattern: {spec.pattern}")
@@ -835,7 +851,7 @@ class AdvancedCodeGenerator:
 
     def analyze_domain_model(self, model_file: Path) -> DomainModel:
         """Analyze a domain model file and extract metadata."""
-        with open(model_file, "r", encoding="utf-8") as f:
+        with open(model_file, encoding="utf-8") as f:
             source = f.read()
 
         tree = ast.parse(source)
@@ -885,7 +901,7 @@ class AdvancedCodeGenerator:
 
     def generate_architectural_scaffold(
         self, style: ArchitecturalStyle, service_name: str, output_dir: Path
-    ) -> List[Path]:
+    ) -> builtins.list[Path]:
         """Generate architectural scaffold based on style."""
         created_files = []
 
@@ -910,7 +926,7 @@ class AdvancedCodeGenerator:
 
     def _generate_layered_architecture(
         self, service_name: str, output_dir: Path
-    ) -> List[Path]:
+    ) -> builtins.list[Path]:
         """Generate layered architecture structure."""
         directories = [
             "app/presentation",
@@ -935,7 +951,7 @@ class AdvancedCodeGenerator:
 
     def _generate_hexagonal_architecture(
         self, service_name: str, output_dir: Path
-    ) -> List[Path]:
+    ) -> builtins.list[Path]:
         """Generate hexagonal architecture structure."""
         directories = [
             "app/domain/model",
@@ -964,7 +980,7 @@ class AdvancedCodeGenerator:
 
     def _generate_clean_architecture(
         self, service_name: str, output_dir: Path
-    ) -> List[Path]:
+    ) -> builtins.list[Path]:
         """Generate clean architecture structure."""
         directories = [
             "app/entities",
@@ -992,7 +1008,7 @@ class AdvancedCodeGenerator:
 
     def _generate_cqrs_es_architecture(
         self, service_name: str, output_dir: Path
-    ) -> List[Path]:
+    ) -> builtins.list[Path]:
         """Generate CQRS/Event Sourcing architecture structure."""
         directories = [
             "app/commands",
@@ -1021,10 +1037,10 @@ class AdvancedCodeGenerator:
         return created_files
 
     def customize_template(
-        self, template_path: Path, customizations: Dict[str, Any]
+        self, template_path: Path, customizations: builtins.dict[str, Any]
     ) -> str:
         """Apply customizations to a template."""
-        with open(template_path, "r", encoding="utf-8") as f:
+        with open(template_path, encoding="utf-8") as f:
             template_content = f.read()
 
         # Apply string replacements
@@ -1046,7 +1062,7 @@ class AdvancedCodeGenerator:
 
 
 def create_pattern_specification(
-    pattern: CodePattern, domain_objects: List[str], **kwargs
+    pattern: CodePattern, domain_objects: builtins.list[str], **kwargs
 ) -> CodeGenerationSpec:
     """Convenience function to create a pattern specification."""
     return CodeGenerationSpec(

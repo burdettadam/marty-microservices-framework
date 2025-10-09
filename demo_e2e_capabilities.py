@@ -8,7 +8,6 @@ without requiring all external dependencies to be perfectly configured.
 
 import asyncio
 import json
-import time
 from datetime import datetime
 from pathlib import Path
 

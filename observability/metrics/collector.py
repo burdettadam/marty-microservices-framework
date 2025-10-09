@@ -5,11 +5,12 @@ Provides standardized metrics collection with Prometheus integration,
 including gRPC metrics, business metrics, and custom metrics.
 """
 
+import builtins
 import functools
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Set, dict, list
 
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -17,7 +18,6 @@ from prometheus_client import (
     Counter,
     Gauge,
     Histogram,
-    Summary,
     generate_latest,
 )
 
@@ -33,7 +33,7 @@ class MetricsConfig:
     namespace: str = "marty"
     enable_grpc_metrics: bool = True
     enable_business_metrics: bool = True
-    custom_labels: Optional[Dict[str, str]] = None
+    custom_labels: builtins.dict[str, str] | None = None
 
 
 class MetricsCollector:
@@ -57,7 +57,7 @@ class MetricsCollector:
         self._init_business_metrics()
         self._init_system_metrics()
 
-    def _build_default_labels(self) -> Dict[str, str]:
+    def _build_default_labels(self) -> builtins.dict[str, str]:
         """Build default labels for all metrics"""
         labels = {
             "service_name": self.config.service_name,
@@ -293,7 +293,7 @@ class MetricsCollector:
         self.db_connections_max.labels(**labels).set(max_connections)
 
     def create_custom_counter(
-        self, name: str, description: str, labels: List[str]
+        self, name: str, description: str, labels: builtins.list[str]
     ) -> Counter:
         """Create a custom counter metric"""
         return Counter(
@@ -307,8 +307,8 @@ class MetricsCollector:
         self,
         name: str,
         description: str,
-        labels: List[str],
-        buckets: Optional[List[float]] = None,
+        labels: builtins.list[str],
+        buckets: builtins.list[float] | None = None,
     ) -> Histogram:
         """Create a custom histogram metric"""
         histogram_kwargs = {
@@ -323,7 +323,7 @@ class MetricsCollector:
         return Histogram(**histogram_kwargs)
 
     def create_custom_gauge(
-        self, name: str, description: str, labels: List[str]
+        self, name: str, description: str, labels: builtins.list[str]
     ) -> Gauge:
         """Create a custom gauge metric"""
         return Gauge(
@@ -377,7 +377,7 @@ def grpc_metrics_decorator(metrics_collector: MetricsCollector):
 
                 return result
 
-            except Exception as e:
+            except Exception:
                 duration = time.time() - start_time
 
                 metrics_collector.record_grpc_request(
@@ -418,7 +418,7 @@ def business_metrics_decorator(
 
                 return result
 
-            except Exception as e:
+            except Exception:
                 duration = time.time() - start_time
 
                 metrics_collector.record_business_transaction(
