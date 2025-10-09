@@ -15,6 +15,16 @@ setup: ## Setup the framework and validate installation
 	@echo "🚀 Setting up Marty Microservices Framework..."
 	@bash scripts/setup_framework.sh
 
+install: ## Install framework with UV in development mode
+	@echo "📦 Installing framework with UV..."
+	@uv sync --extra dev
+	@echo "✅ Framework installed successfully!"
+
+install-chassis: ## Install marty-chassis package with UV
+	@echo "📦 Installing marty-chassis package..."
+	@cd marty_chassis && uv sync --extra dev
+	@echo "✅ marty-chassis installed successfully!"
+
 test: ## Run comprehensive framework tests
 	@echo "🧪 Running framework tests..."
 	@python3 scripts/test_framework.py

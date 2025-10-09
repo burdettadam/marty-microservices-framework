@@ -54,11 +54,10 @@ print_status "Python $python_version is compatible"
 
 # Install framework dependencies for template processing and type checking
 echo "📦 Installing framework dependencies..."
-if command -v uv &> /dev/null; then
-    pip install jinja2 mypy
-else
-    pip3 install jinja2 mypy
-fi
+cd "$FRAMEWORK_ROOT"
+
+# Use UV to install the framework in development mode
+uv sync --extra dev
 
 print_status "Framework dependencies installed"
 
