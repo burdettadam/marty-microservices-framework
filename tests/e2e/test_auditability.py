@@ -18,7 +18,6 @@ from typing import Dict, List, Optional
 
 import pytest
 import pytest_asyncio
-
 from tests.e2e.conftest import AuditEvent, PerformanceAnalyzer
 
 

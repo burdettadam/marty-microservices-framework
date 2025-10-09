@@ -10,7 +10,6 @@ from typing import Any, List, Optional, Type
 
 from fastapi import FastAPI
 from grpc import aio
-
 from marty_chassis.config import ChassisConfig
 from marty_chassis.factories.fastapi_factory import create_fastapi_service
 from marty_chassis.factories.grpc_factory import GRPCServiceBuilder

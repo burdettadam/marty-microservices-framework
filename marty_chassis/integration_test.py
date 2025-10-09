@@ -188,7 +188,6 @@ def test_cli_functionality():
 
     try:
         from click.testing import CliRunner
-
         from marty_chassis.cli.main import cli
 
         runner = CliRunner()

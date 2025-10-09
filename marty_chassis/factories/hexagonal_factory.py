@@ -8,11 +8,10 @@ providing dependency injection and proper separation of concerns.
 from typing import Any, Dict, Optional
 
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-
 from marty_chassis.config import ChassisConfig
 from marty_chassis.logger import get_logger
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 logger = get_logger(__name__)
 

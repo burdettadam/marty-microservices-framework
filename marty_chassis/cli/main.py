@@ -11,13 +11,12 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import click
-from rich.console import Console
-from rich.prompt import Confirm, Prompt
-from rich.table import Table
-
 from marty_chassis.config import ChassisConfig, Environment
 from marty_chassis.service_mesh import ManifestGenerator
 from marty_chassis.templates import ServiceTemplate, TemplateGenerator
+from rich.console import Console
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
 
 console = Console()
 

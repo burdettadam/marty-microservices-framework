@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
 import pytest
-
 from security.compliance import ComplianceManager
 from security.compliance.risk_management import RiskCategory, RiskManager
 from security.iam import AdvancedAuthenticationManager, AuthorizationEngine

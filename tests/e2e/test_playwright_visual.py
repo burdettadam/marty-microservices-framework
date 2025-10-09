@@ -15,7 +15,6 @@ from typing import Dict, List
 
 import pytest
 from playwright.async_api import Browser, Page, async_playwright
-
 from tests.e2e.conftest import PerformanceAnalyzer
 
 
