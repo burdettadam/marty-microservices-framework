@@ -56,8 +56,13 @@ class ServiceTemplateValidator:
             "success_rate": 0.0,
         }
 
-        # Find all template directories
-        template_dirs = [d for d in self.service_templates_dir.iterdir() if d.is_dir()]
+        # Find all template directories (exclude concrete implementations)
+        template_dirs = [
+            d
+            for d in self.service_templates_dir.iterdir()
+            if d.is_dir()
+            and d.name not in ["morty_service"]  # Exclude concrete implementations
+        ]
         results["total"] = len(template_dirs)
 
         print("🚀 Starting Marty Service Template Validation")

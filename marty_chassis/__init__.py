@@ -45,6 +45,7 @@ from .exceptions import ChassisError, ConfigurationError, ServiceError, Validati
 # Core factory functions
 from .factories.fastapi_factory import create_fastapi_service
 from .factories.grpc_factory import create_grpc_service
+from .factories.hexagonal_factory import create_hexagonal_service
 from .factories.hybrid_factory import create_hybrid_service
 
 # Health and metrics
@@ -79,6 +80,7 @@ __all__ = [
     # Core factory functions
     "create_fastapi_service",
     "create_grpc_service",
+    "create_hexagonal_service",
     "create_hybrid_service",
     # Configuration
     "ChassisConfig",
