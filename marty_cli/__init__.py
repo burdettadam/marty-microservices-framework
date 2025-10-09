@@ -20,6 +20,7 @@ Version: 1.0.0
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import os
@@ -30,7 +31,7 @@ import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import click
 import jinja2
@@ -65,9 +66,9 @@ class TemplateConfig:
     description: str
     path: str
     category: str = "service"
-    dependencies: List[str] = field(default_factory=list)
-    post_hooks: List[str] = field(default_factory=list)
-    variables: Dict[str, Any] = field(default_factory=dict)
+    dependencies: builtins.list[str] = field(default_factory=list)
+    post_hooks: builtins.list[str] = field(default_factory=list)
+    variables: builtins.dict[str, Any] = field(default_factory=dict)
     python_version: str = "3.11"
     framework_version: str = "1.0.0"
 
@@ -92,13 +93,13 @@ class ProjectConfig:
     ci_cd_enabled: bool = True
     environment: str = "development"
     skip_prompts: bool = False
-    variables: Dict[str, Any] = field(default_factory=dict)
+    variables: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class MartyTemplateManager:
     """Manage Marty framework templates."""
 
-    def __init__(self, framework_path: Optional[Path] = None):
+    def __init__(self, framework_path: Path | None = None):
         self.framework_path = framework_path or self._find_framework_path()
         self.templates_path = self.framework_path / "templates"
         self.cache_path = Path.home() / ".marty" / "cache"
@@ -131,7 +132,7 @@ class MartyTemplateManager:
         # Default fallback
         return Path(__file__).parent.parent
 
-    def _load_config(self) -> Dict[str, Any]:
+    def _load_config(self) -> builtins.dict[str, Any]:
         """Load CLI configuration."""
         default_config = {
             "author": "",
@@ -161,7 +162,7 @@ class MartyTemplateManager:
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
 
-    def get_available_templates(self) -> Dict[str, TemplateConfig]:
+    def get_available_templates(self) -> builtins.dict[str, TemplateConfig]:
         """Get available templates."""
         templates = {}
 
@@ -175,7 +176,7 @@ class MartyTemplateManager:
 
         return templates
 
-    def _load_template_config(self, template_path: Path) -> Optional[TemplateConfig]:
+    def _load_template_config(self, template_path: Path) -> TemplateConfig | None:
         """Load template configuration."""
         config_file = template_path / "template.yaml"
         if not config_file.exists():
@@ -188,7 +189,7 @@ class MartyTemplateManager:
             )
 
         try:
-            with open(config_file, "r") as f:
+            with open(config_file) as f:
                 data = yaml.safe_load(f)
                 return TemplateConfig(
                     name=data.get("name", template_path.name),
@@ -281,12 +282,13 @@ class MartyTemplateManager:
             return False
 
     def _process_template(
-        self, template_path: Path, output_path: Path, context: Dict[str, Any]
+        self, template_path: Path, output_path: Path, context: builtins.dict[str, Any]
     ):
         """Process template files with Jinja2."""
         jinja_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(str(template_path)),
             undefined=jinja2.StrictUndefined,
+            autoescape=True,
         )
 
         # Define template filters
@@ -343,7 +345,7 @@ class MartyTemplateManager:
                         )
                     ):
                         # Text files - process with Jinja2
-                        with open(file_path, "r", encoding="utf-8") as f:
+                        with open(file_path, encoding="utf-8") as f:
                             content = f.read()
 
                         template = jinja_env.from_string(content)
@@ -360,7 +362,9 @@ class MartyTemplateManager:
                     # Fallback to direct copy
                     shutil.copy2(file_path, output_file)
 
-    def _process_path_template(self, path: str, context: Dict[str, Any]) -> str:
+    def _process_path_template(
+        self, path: str, context: builtins.dict[str, Any]
+    ) -> str:
         """Process path templates."""
         try:
             template = jinja2.Template(path)
@@ -369,7 +373,10 @@ class MartyTemplateManager:
             return path
 
     def _run_post_hooks(
-        self, hooks: List[str], project_path: Path, context: Dict[str, Any]
+        self,
+        hooks: builtins.list[str],
+        project_path: Path,
+        context: builtins.dict[str, Any],
     ):
         """Run post-generation hooks."""
         for hook in hooks:
@@ -380,12 +387,17 @@ class MartyTemplateManager:
 
                 console.print(f"[blue]Running post-hook: {command}[/blue]")
 
+                # Parse command safely without shell=True
+                import shlex
+
+                command_args = shlex.split(command)
+
                 result = subprocess.run(
-                    command,
-                    shell=True,
+                    command_args,
                     cwd=project_path,
                     capture_output=True,
                     text=True,
+                    check=False,
                 )
 
                 if result.returncode != 0:
@@ -495,7 +507,7 @@ class MartyProjectManager:
     def __init__(self):
         self.current_project = self._find_current_project()
 
-    def _find_current_project(self) -> Optional[Path]:
+    def _find_current_project(self) -> Path | None:
         """Find current Marty project."""
         current = Path.cwd()
         for parent in [current] + list(current.parents):
@@ -503,7 +515,7 @@ class MartyProjectManager:
                 return parent
         return None
 
-    def get_project_info(self) -> Optional[Dict[str, Any]]:
+    def get_project_info(self) -> builtins.dict[str, Any] | None:
         """Get current project information."""
         if not self.current_project:
             return None
@@ -804,9 +816,9 @@ def new(
 
     if success:
         console.print(f"\n[green]✓ Project '{name}' created successfully![/green]")
-        console.print(f"\nNext steps:")
+        console.print("\nNext steps:")
         console.print(f"  cd {project_config.path}")
-        console.print(f"  marty run")
+        console.print("  marty run")
     else:
         console.print(f"\n[red]✗ Failed to create project '{name}'[/red]")
         sys.exit(1)
@@ -923,12 +935,18 @@ def run():
 
         # Check for different run configurations
         if (project_manager.current_project / "main.py").exists():
-            subprocess.run(["python", "main.py"], cwd=project_manager.current_project)
+            subprocess.run(
+                ["python", "main.py"], cwd=project_manager.current_project, check=False
+            )
         elif (project_manager.current_project / "app.py").exists():
-            subprocess.run(["python", "app.py"], cwd=project_manager.current_project)
+            subprocess.run(
+                ["python", "app.py"], cwd=project_manager.current_project, check=False
+            )
         elif (project_manager.current_project / "uvicorn").exists():
             subprocess.run(
-                ["uvicorn", "main:app", "--reload"], cwd=project_manager.current_project
+                ["uvicorn", "main:app", "--reload"],
+                cwd=project_manager.current_project,
+                check=False,
             )
         else:
             console.print(
@@ -954,7 +972,7 @@ def info():
 
     project_info = project_manager.get_project_info()
 
-    console.print(f"\n[bold]Project Information:[/bold]")
+    console.print("\n[bold]Project Information:[/bold]")
     console.print(f"Path: {project_manager.current_project}")
 
     if project_info:

@@ -6,15 +6,16 @@ failover, and intelligent service resolution strategies.
 """
 
 import asyncio
+import builtins
 import logging
 import random
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Protocol, Set, dict, list, set
 
-from .core import HealthStatus, ServiceInstance, ServiceRegistry, ServiceWatcher
+from .core import ServiceInstance, ServiceRegistry, ServiceWatcher
 from .load_balancing import (
     LoadBalancer,
     LoadBalancingConfig,
@@ -70,11 +71,11 @@ class DiscoveryConfig:
     # Failover configuration
     enable_failover: bool = True
     failover_timeout: float = 10.0
-    backup_registries: List[str] = field(default_factory=list)
+    backup_registries: builtins.list[str] = field(default_factory=list)
 
     # Load balancing
     load_balancing_enabled: bool = True
-    load_balancing_config: Optional[LoadBalancingConfig] = None
+    load_balancing_config: LoadBalancingConfig | None = None
 
     # Metrics and monitoring
     enable_metrics: bool = True
@@ -97,20 +98,20 @@ class ServiceQuery:
     """Query parameters for service discovery."""
 
     service_name: str
-    version: Optional[str] = None
-    environment: Optional[str] = None
-    zone: Optional[str] = None
-    region: Optional[str] = None
-    tags: Dict[str, str] = field(default_factory=dict)
-    labels: Dict[str, str] = field(default_factory=dict)
-    protocols: List[str] = field(default_factory=list)
+    version: str | None = None
+    environment: str | None = None
+    zone: str | None = None
+    region: str | None = None
+    tags: builtins.dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    protocols: builtins.list[str] = field(default_factory=list)
 
     # Query options
     include_unhealthy: bool = False
-    max_instances: Optional[int] = None
-    prefer_zone: Optional[str] = None
-    prefer_region: Optional[str] = None
-    exclude_instances: Set[str] = field(default_factory=set)
+    max_instances: int | None = None
+    prefer_zone: str | None = None
+    prefer_region: str | None = None
+    exclude_instances: builtins.set[str] = field(default_factory=set)
 
     def matches_instance(self, instance: ServiceInstance) -> bool:
         """Check if instance matches query criteria."""
@@ -169,7 +170,7 @@ class ServiceQuery:
 class DiscoveryResult:
     """Result of service discovery operation."""
 
-    instances: List[ServiceInstance]
+    instances: builtins.list[ServiceInstance]
     query: ServiceQuery
     source: str  # Registry source
     cached: bool = False
@@ -177,11 +178,11 @@ class DiscoveryResult:
     resolution_time: float = 0.0
 
     # Selection information
-    selected_instance: Optional[ServiceInstance] = None
+    selected_instance: ServiceInstance | None = None
     load_balancer_used: bool = False
 
     # Metadata
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class CacheEntry:
@@ -189,9 +190,9 @@ class CacheEntry:
 
     def __init__(
         self,
-        instances: List[ServiceInstance],
+        instances: builtins.list[ServiceInstance],
         ttl: float,
-        refresh_callback: Optional[Callable] = None,
+        refresh_callback: Callable | None = None,
     ):
         self.instances = instances
         self.created_at = time.time()
@@ -210,7 +211,7 @@ class CacheEntry:
         age = time.time() - self.created_at
         return age > (self.ttl * refresh_ahead_factor)
 
-    def access(self) -> List[ServiceInstance]:
+    def access(self) -> builtins.list[ServiceInstance]:
         """Access cache entry and update statistics."""
         self.last_accessed = time.time()
         self.access_count += 1
@@ -240,7 +241,7 @@ class ServiceCache:
 
     def __init__(self, config: DiscoveryConfig):
         self.config = config
-        self._cache: Dict[str, CacheEntry] = {}
+        self._cache: builtins.dict[str, CacheEntry] = {}
         self._lock = asyncio.Lock()
 
         # Statistics
@@ -272,8 +273,8 @@ class ServiceCache:
         return "|".join(key_parts)
 
     async def get(
-        self, query: ServiceQuery, refresh_callback: Optional[Callable] = None
-    ) -> Optional[List[ServiceInstance]]:
+        self, query: ServiceQuery, refresh_callback: Callable | None = None
+    ) -> builtins.list[ServiceInstance] | None:
         """Get instances from cache."""
 
         if self.config.cache_strategy == CacheStrategy.NONE:
@@ -311,8 +312,8 @@ class ServiceCache:
     async def put(
         self,
         query: ServiceQuery,
-        instances: List[ServiceInstance],
-        refresh_callback: Optional[Callable] = None,
+        instances: builtins.list[ServiceInstance],
+        refresh_callback: Callable | None = None,
     ):
         """Put instances in cache."""
 
@@ -370,7 +371,7 @@ class ServiceCache:
         async with self._lock:
             self._cache.clear()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get cache statistics."""
         total_requests = self._stats["hits"] + self._stats["misses"]
         hit_rate = self._stats["hits"] / total_requests if total_requests > 0 else 0.0
@@ -389,7 +390,7 @@ class ServiceDiscoveryClient(ABC):
     def __init__(self, config: DiscoveryConfig):
         self.config = config
         self.cache = ServiceCache(config)
-        self._load_balancer: Optional[LoadBalancer] = None
+        self._load_balancer: LoadBalancer | None = None
 
         # Initialize load balancer if enabled
         if config.load_balancing_enabled:
@@ -409,11 +410,10 @@ class ServiceDiscoveryClient(ABC):
     @abstractmethod
     async def discover_instances(self, query: ServiceQuery) -> DiscoveryResult:
         """Discover service instances."""
-        pass
 
     async def resolve_service(
-        self, query: ServiceQuery, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, query: ServiceQuery, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Resolve service to a single instance using load balancing."""
 
         # Discover instances
@@ -436,7 +436,7 @@ class ServiceDiscoveryClient(ABC):
         return self._simple_instance_selection(result.instances, query)
 
     def _simple_instance_selection(
-        self, instances: List[ServiceInstance], query: ServiceQuery
+        self, instances: builtins.list[ServiceInstance], query: ServiceQuery
     ) -> ServiceInstance:
         """Simple instance selection without load balancer."""
 
@@ -472,7 +472,7 @@ class ServiceDiscoveryClient(ABC):
         else:
             self._stats["failures"] += 1
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get discovery client statistics."""
         cache_stats = self.cache.get_stats()
 
@@ -494,7 +494,7 @@ class ClientSideDiscovery(ServiceDiscoveryClient):
     def __init__(self, registry: ServiceRegistry, config: DiscoveryConfig):
         super().__init__(config)
         self.registry = registry
-        self._watchers: Dict[str, ServiceWatcher] = {}
+        self._watchers: builtins.dict[str, ServiceWatcher] = {}
 
     async def discover_instances(self, query: ServiceQuery) -> DiscoveryResult:
         """Discover instances using client-side discovery."""
@@ -545,7 +545,9 @@ class ClientSideDiscovery(ServiceDiscoveryClient):
             logger.error("Service discovery failed for %s: %s", query.service_name, e)
             raise
 
-    async def _fetch_from_registry(self, query: ServiceQuery) -> List[ServiceInstance]:
+    async def _fetch_from_registry(
+        self, query: ServiceQuery
+    ) -> builtins.list[ServiceInstance]:
         """Fetch instances from service registry."""
         all_instances = await self.registry.get_instances(query.service_name)
 
@@ -557,7 +559,9 @@ class ClientSideDiscovery(ServiceDiscoveryClient):
         return filtered_instances
 
     async def watch_service(
-        self, service_name: str, callback: Callable[[List[ServiceInstance]], None]
+        self,
+        service_name: str,
+        callback: Callable[[builtins.list[ServiceInstance]], None],
     ):
         """Watch service for changes."""
 
@@ -630,7 +634,7 @@ class ServerSideDiscovery(ServiceDiscoveryClient):
 
     async def _query_discovery_service(
         self, query: ServiceQuery
-    ) -> List[ServiceInstance]:
+    ) -> builtins.list[ServiceInstance]:
         """Query external discovery service."""
         # TODO: Implement HTTP client to query discovery service
         # This would make HTTP requests to discovery service API
@@ -679,7 +683,7 @@ class HybridDiscovery(ServiceDiscoveryClient):
 class ServiceMeshDiscovery(ServiceDiscoveryClient):
     """Service mesh integration for discovery."""
 
-    def __init__(self, mesh_config: Dict[str, Any], config: DiscoveryConfig):
+    def __init__(self, mesh_config: builtins.dict[str, Any], config: DiscoveryConfig):
         super().__init__(config)
         self.mesh_config = mesh_config
         # TODO: Add service mesh integration (Istio, Linkerd, etc.)
@@ -708,13 +712,13 @@ def create_discovery_client(
             raise ValueError("Registry required for client-side discovery")
         return ClientSideDiscovery(registry, config)
 
-    elif pattern == DiscoveryPattern.SERVER_SIDE:
+    if pattern == DiscoveryPattern.SERVER_SIDE:
         discovery_url = kwargs.get("discovery_service_url")
         if not discovery_url:
             raise ValueError("Discovery service URL required for server-side discovery")
         return ServerSideDiscovery(discovery_url, config)
 
-    elif pattern == DiscoveryPattern.HYBRID:
+    if pattern == DiscoveryPattern.HYBRID:
         client_side = kwargs.get("client_side")
         server_side = kwargs.get("server_side")
         if not client_side or not server_side:
@@ -723,9 +727,8 @@ def create_discovery_client(
             )
         return HybridDiscovery(client_side, server_side, config)
 
-    elif pattern == DiscoveryPattern.SERVICE_MESH:
+    if pattern == DiscoveryPattern.SERVICE_MESH:
         mesh_config = kwargs.get("mesh_config", {})
         return ServiceMeshDiscovery(mesh_config, config)
 
-    else:
-        raise ValueError(f"Unsupported discovery pattern: {pattern}")
+    raise ValueError(f"Unsupported discovery pattern: {pattern}")

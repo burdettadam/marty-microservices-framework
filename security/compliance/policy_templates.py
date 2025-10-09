@@ -10,10 +10,11 @@ Provides pre-configured compliance templates and policies for major regulatory f
 - NIST Cybersecurity Framework
 """
 
+import builtins
 import json
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, dict, list
 
 
 @dataclass
@@ -29,23 +30,23 @@ class CompliancePolicy:
     # Policy content
     description: str
     scope: str
-    requirements: List[str]
-    implementation_guidance: List[str]
+    requirements: builtins.list[str]
+    implementation_guidance: builtins.list[str]
 
     # Controls and procedures
-    controls: List[Dict[str, Any]]
-    procedures: List[Dict[str, Any]]
+    controls: builtins.list[builtins.dict[str, Any]]
+    procedures: builtins.list[builtins.dict[str, Any]]
 
     # Compliance details
-    regulatory_references: List[str]
+    regulatory_references: builtins.list[str]
     risk_level: str
     compliance_frequency: str  # daily, weekly, monthly, quarterly, annually
 
     # Responsibility
-    responsible_roles: List[str]
+    responsible_roles: builtins.list[str]
     approval_required: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {**asdict(self), "effective_date": self.effective_date.isoformat()}
 
 
@@ -482,7 +483,7 @@ class CompliancePolicyLibrary:
     """Centralized compliance policy library"""
 
     def __init__(self):
-        self.policies: Dict[str, CompliancePolicy] = {}
+        self.policies: builtins.dict[str, CompliancePolicy] = {}
         self._initialize_policies()
 
     def _initialize_policies(self):
@@ -521,21 +522,23 @@ class CompliancePolicyLibrary:
 
         print(f"Initialized {len(all_policies)} compliance policies")
 
-    def get_policy(self, policy_id: str) -> Optional[CompliancePolicy]:
+    def get_policy(self, policy_id: str) -> CompliancePolicy | None:
         """Get policy by ID"""
         return self.policies.get(policy_id)
 
-    def get_policies_by_framework(self, framework: str) -> List[CompliancePolicy]:
+    def get_policies_by_framework(
+        self, framework: str
+    ) -> builtins.list[CompliancePolicy]:
         """Get all policies for a specific framework"""
         return [
             policy for policy in self.policies.values() if policy.framework == framework
         ]
 
-    def get_all_policies(self) -> List[CompliancePolicy]:
+    def get_all_policies(self) -> builtins.list[CompliancePolicy]:
         """Get all policies"""
         return list(self.policies.values())
 
-    def export_policies(self, framework: Optional[str] = None) -> str:
+    def export_policies(self, framework: str | None = None) -> str:
         """Export policies to JSON"""
         if framework:
             policies = self.get_policies_by_framework(framework)
@@ -551,7 +554,7 @@ class CompliancePolicyLibrary:
 
         return json.dumps(export_data, indent=2)
 
-    def get_compliance_summary(self) -> Dict[str, Any]:
+    def get_compliance_summary(self) -> builtins.dict[str, Any]:
         """Get summary of all compliance policies"""
 
         frameworks = {}

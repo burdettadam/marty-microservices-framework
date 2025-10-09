@@ -11,7 +11,7 @@ Configuration management for service discovery with support for:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, dict, list, set
 
 
 class RegistryType(Enum):

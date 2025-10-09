@@ -3,14 +3,14 @@ Service discovery service for monitoring registered services.
 """
 
 import asyncio
+import builtins
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Dict, List, Optional, dict, list
 
 import httpx
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
 from ..database import AsyncSessionLocal, Service
@@ -25,11 +25,11 @@ class ServiceInfo:
     name: str
     address: str
     port: int
-    health_check_url: Optional[str] = None
+    health_check_url: str | None = None
     status: str = "unknown"
-    tags: List[str] = None
-    metadata: Dict = None
-    last_seen: Optional[datetime] = None
+    tags: builtins.list[str] = None
+    metadata: builtins.dict = None
+    last_seen: datetime | None = None
 
     def __post_init__(self):
         if self.tags is None:
@@ -43,10 +43,10 @@ class ServiceDiscoveryService:
 
     def __init__(self):
         self.settings = get_settings()
-        self.services: Dict[str, ServiceInfo] = {}
+        self.services: builtins.dict[str, ServiceInfo] = {}
         self.running = False
-        self.task: Optional[asyncio.Task] = None
-        self.http_client: Optional[httpx.AsyncClient] = None
+        self.task: asyncio.Task | None = None
+        self.http_client: httpx.AsyncClient | None = None
 
     async def start(self):
         """Start the service discovery service."""
@@ -147,11 +147,11 @@ class ServiceDiscoveryService:
 
         return False
 
-    async def get_services(self) -> List[ServiceInfo]:
+    async def get_services(self) -> builtins.list[ServiceInfo]:
         """Get all registered services."""
         return list(self.services.values())
 
-    async def get_service(self, service_name: str) -> Optional[ServiceInfo]:
+    async def get_service(self, service_name: str) -> ServiceInfo | None:
         """Get a specific service by name."""
         return self.services.get(service_name)
 

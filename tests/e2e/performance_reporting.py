@@ -9,15 +9,14 @@ This module generates visual reports with charts and metrics for:
 5. Combined insights and recommendations
 """
 
+import builtins
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional, Set, dict
 
-import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import seaborn as sns
 
 # Set style for better looking charts
@@ -45,11 +44,11 @@ class PerformanceReportGenerator:
 
     async def generate_comprehensive_report(
         self,
-        bottleneck_report: Dict,
-        timeout_report: Dict,
-        audit_report: Dict,
-        visual_report: Dict,
-    ) -> Dict:
+        bottleneck_report: builtins.dict,
+        timeout_report: builtins.dict,
+        audit_report: builtins.dict,
+        visual_report: builtins.dict,
+    ) -> builtins.dict:
         """Generate comprehensive performance report with all test results."""
 
         print("📊 Generating comprehensive performance report...")
@@ -129,7 +128,7 @@ class PerformanceReportGenerator:
         with open(html_file, "w") as f:
             f.write(html_report)
 
-        print(f"✅ Comprehensive report generated:")
+        print("✅ Comprehensive report generated:")
         print(f"   📄 JSON: {report_file}")
         print(f"   🌐 HTML: {html_file}")
         print(f"   📊 Charts: {len(chart_files)} charts in {self.charts_dir}")
@@ -137,8 +136,8 @@ class PerformanceReportGenerator:
         return comprehensive_report
 
     async def _generate_bottleneck_charts(
-        self, bottleneck_report: Dict
-    ) -> Dict[str, str]:
+        self, bottleneck_report: builtins.dict
+    ) -> builtins.dict[str, str]:
         """Generate charts for bottleneck analysis."""
         charts = {}
 
@@ -228,7 +227,7 @@ class PerformanceReportGenerator:
                 ax.grid(True, alpha=0.3, axis="y")
 
                 # Add value labels on bars
-                for bar, count in zip(bars, counts):
+                for bar, count in zip(bars, counts, strict=False):
                     if count > 0:
                         ax.text(
                             bar.get_x() + bar.get_width() / 2,
@@ -249,7 +248,9 @@ class PerformanceReportGenerator:
 
         return charts
 
-    async def _generate_timeout_charts(self, timeout_report: Dict) -> Dict[str, str]:
+    async def _generate_timeout_charts(
+        self, timeout_report: builtins.dict
+    ) -> builtins.dict[str, str]:
         """Generate charts for timeout analysis."""
         charts = {}
 
@@ -295,7 +296,7 @@ class PerformanceReportGenerator:
             ax2.tick_params(axis="x", rotation=45)
 
             # Add value labels on bars
-            for bar, count in zip(bars, absolute_timeouts):
+            for bar, count in zip(bars, absolute_timeouts, strict=False):
                 if count > 0:
                     ax2.text(
                         bar.get_x() + bar.get_width() / 2,
@@ -338,7 +339,7 @@ class PerformanceReportGenerator:
             ax.tick_params(axis="x", rotation=45)
 
             # Add percentage labels
-            for bar, rate in zip(bars, trip_rates):
+            for bar, rate in zip(bars, trip_rates, strict=False):
                 ax.text(
                     bar.get_x() + bar.get_width() / 2,
                     bar.get_height() + 0.02,
@@ -358,7 +359,9 @@ class PerformanceReportGenerator:
 
         return charts
 
-    async def _generate_audit_charts(self, audit_report: Dict) -> Dict[str, str]:
+    async def _generate_audit_charts(
+        self, audit_report: builtins.dict
+    ) -> builtins.dict[str, str]:
         """Generate charts for audit analysis."""
         charts = {}
 
@@ -420,7 +423,7 @@ class PerformanceReportGenerator:
                 ax2.legend()
 
                 # Add percentage labels
-                for bar, score in zip(bars, scores):
+                for bar, score in zip(bars, scores, strict=False):
                     ax2.text(
                         bar.get_x() + bar.get_width() / 2,
                         bar.get_height() + 1,
@@ -464,7 +467,7 @@ class PerformanceReportGenerator:
             ax.set_xlim(0, 1.2)
 
             # Add status labels
-            for i, (bar, status) in enumerate(zip(bars, check_status)):
+            for i, (bar, status) in enumerate(zip(bars, check_status, strict=False)):
                 ax.text(
                     0.5,
                     i,
@@ -483,7 +486,9 @@ class PerformanceReportGenerator:
 
         return charts
 
-    async def _generate_visual_charts(self, visual_report: Dict) -> Dict[str, str]:
+    async def _generate_visual_charts(
+        self, visual_report: builtins.dict
+    ) -> builtins.dict[str, str]:
         """Generate charts for visual testing results."""
         charts = {}
 
@@ -519,7 +524,7 @@ class PerformanceReportGenerator:
         ax.set_xlim(0, 1.2)
 
         # Add status labels
-        for i, (bar, value) in enumerate(zip(bars, values)):
+        for i, (bar, value) in enumerate(zip(bars, values, strict=False)):
             status = "PASS" if value == 1 else "FAIL"
             ax.text(
                 0.5,
@@ -776,7 +781,7 @@ class PerformanceReportGenerator:
             ax.grid(True, alpha=0.3, axis="x")
 
             # Add value labels
-            for i, (bar, count) in enumerate(zip(bars, matrix_data)):
+            for i, (bar, count) in enumerate(zip(bars, matrix_data, strict=False)):
                 ax.text(
                     bar.get_width() + 0.1,
                     bar.get_y() + bar.get_height() / 2,
@@ -1126,21 +1131,20 @@ class PerformanceReportGenerator:
                 "Consider expanding test coverage to edge cases",
                 "Document current best practices for team reference",
             ]
-        elif overall_score >= 60:
+        if overall_score >= 60:
             return [
                 "Address identified performance bottlenecks",
                 "Implement recommended optimizations",
                 "Increase monitoring frequency for at-risk services",
             ]
-        else:
-            return [
-                "Immediately address all critical issues",
-                "Implement emergency performance optimizations",
-                "Establish daily monitoring and review cycles",
-                "Consider scaling resources for high-load services",
-            ]
+        return [
+            "Immediately address all critical issues",
+            "Implement emergency performance optimizations",
+            "Establish daily monitoring and review cycles",
+            "Consider scaling resources for high-load services",
+        ]
 
-    async def _generate_html_report(self, comprehensive_report: Dict) -> str:
+    async def _generate_html_report(self, comprehensive_report: builtins.dict) -> str:
         """Generate HTML version of the comprehensive report."""
 
         html_template = """
@@ -1468,11 +1472,11 @@ class PerformanceReportGenerator:
 # Integration test function
 async def generate_comprehensive_performance_report(
     test_report_dir: Path,
-    bottleneck_report: Optional[Dict] = None,
-    timeout_report: Optional[Dict] = None,
-    audit_report: Optional[Dict] = None,
-    visual_report: Optional[Dict] = None,
-) -> Dict:
+    bottleneck_report: builtins.dict | None = None,
+    timeout_report: builtins.dict | None = None,
+    audit_report: builtins.dict | None = None,
+    visual_report: builtins.dict | None = None,
+) -> builtins.dict:
     """
     Generate comprehensive performance report combining all test results.
 

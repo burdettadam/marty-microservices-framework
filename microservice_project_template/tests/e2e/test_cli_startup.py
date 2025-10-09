@@ -30,8 +30,7 @@ def test_cli_serve_runs_and_stops(tmp_path) -> None:
         ],
         cwd=PROJECT_ROOT,
         env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=False,
         text=True,
     )

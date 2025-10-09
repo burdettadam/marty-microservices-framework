@@ -3,12 +3,13 @@ Rate limiting for the enterprise security framework.
 """
 
 import asyncio
+import builtins
 import logging
 import re
 import time
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Dict, Optional, Set, Union, dict
 
 from .config import RateLimitConfig
 from .errors import RateLimitExceededError
@@ -22,19 +23,17 @@ class RateLimitBackend(ABC):
     @abstractmethod
     async def increment(self, key: str, window: int, limit: int) -> tuple[int, int]:
         """Increment counter and return (current_count, ttl)."""
-        pass
 
     @abstractmethod
     async def reset(self, key: str) -> None:
         """Reset counter for a key."""
-        pass
 
 
 class MemoryRateLimitBackend(RateLimitBackend):
     """In-memory rate limit backend using sliding window."""
 
     def __init__(self):
-        self._windows: Dict[str, Dict[int, int]] = {}
+        self._windows: builtins.dict[str, builtins.dict[int, int]] = {}
         self._lock = asyncio.Lock()
 
     async def increment(self, key: str, window: int, limit: int) -> tuple[int, int]:
@@ -203,9 +202,9 @@ class RateLimiter:
     async def check_rate_limit(
         self,
         identifier: str,
-        endpoint: Optional[str] = None,
-        user_id: Optional[str] = None,
-    ) -> tuple[bool, Dict[str, Union[int, str]]]:
+        endpoint: str | None = None,
+        user_id: str | None = None,
+    ) -> tuple[bool, builtins.dict[str, int | str]]:
         """
         Check rate limit for an identifier.
 
@@ -249,7 +248,7 @@ class RateLimiter:
             return True, {}
 
     def _get_applicable_rule(
-        self, endpoint: Optional[str], user_id: Optional[str]
+        self, endpoint: str | None, user_id: str | None
     ) -> RateLimitRule:
         """Get the most specific applicable rule."""
         # User-specific rules take precedence
@@ -273,10 +272,10 @@ class RateLimiter:
 
 
 # Global rate limiter instance
-_rate_limiter_instance: Optional[RateLimiter] = None
+_rate_limiter_instance: RateLimiter | None = None
 
 
-def get_rate_limiter() -> Optional[RateLimiter]:
+def get_rate_limiter() -> RateLimiter | None:
     """Get the global rate limiter instance."""
     return _rate_limiter_instance
 
@@ -288,8 +287,8 @@ def initialize_rate_limiter(config: RateLimitConfig) -> None:
 
 
 def rate_limit(
-    identifier_func: Optional[Callable] = None,
-    endpoint: Optional[str] = None,
+    identifier_func: Callable | None = None,
+    endpoint: str | None = None,
     per_user: bool = True,
 ):
     """Decorator to apply rate limiting to a function."""
@@ -368,7 +367,6 @@ def rate_limit(
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator

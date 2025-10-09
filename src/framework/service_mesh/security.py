@@ -5,27 +5,14 @@ Comprehensive security management for service mesh including authentication,
 authorization, TLS configuration, and certificate management.
 """
 
-import asyncio
 import base64
-import json
+import builtins
 import logging
 import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, tuple
 
 import jwt
 from cryptography import x509
@@ -72,18 +59,18 @@ class TLSConfig:
     """TLS configuration for services."""
 
     mode: TLSMode = TLSMode.ISTIO_MUTUAL
-    client_certificate: Optional[str] = None
-    private_key: Optional[str] = None
-    ca_certificates: Optional[str] = None
-    server_certificate: Optional[str] = None
+    client_certificate: str | None = None
+    private_key: str | None = None
+    ca_certificates: str | None = None
+    server_certificate: str | None = None
 
     # Advanced TLS settings
     min_protocol_version: str = "TLSV1_2"
     max_protocol_version: str = "TLSV1_3"
-    cipher_suites: List[str] = field(default_factory=list)
-    subject_alt_names: List[str] = field(default_factory=list)
+    cipher_suites: builtins.list[str] = field(default_factory=list)
+    subject_alt_names: builtins.list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "mode": self.mode.value,
@@ -103,17 +90,17 @@ class JWTRule:
     """JWT validation rule."""
 
     issuer: str
-    audiences: List[str] = field(default_factory=list)
-    jwks_uri: Optional[str] = None
-    jwks: Optional[str] = None
-    jwt_headers: List[str] = field(default_factory=lambda: ["authorization"])
-    jwt_params: List[str] = field(default_factory=list)
+    audiences: builtins.list[str] = field(default_factory=list)
+    jwks_uri: str | None = None
+    jwks: str | None = None
+    jwt_headers: builtins.list[str] = field(default_factory=lambda: ["authorization"])
+    jwt_params: builtins.list[str] = field(default_factory=list)
 
     # JWT validation settings
     forward_original_token: bool = False
-    output_payload_to_header: Optional[str] = None
+    output_payload_to_header: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "issuer": self.issuer,
@@ -133,19 +120,19 @@ class AuthenticationPolicy:
 
     name: str
     namespace: str = "default"
-    targets: List[Dict[str, Any]] = field(default_factory=list)
+    targets: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Peer authentication
     peer_authentication_mode: AuthenticationMode = AuthenticationMode.STRICT
 
     # Request authentication
-    jwt_rules: List[JWTRule] = field(default_factory=list)
+    jwt_rules: builtins.list[JWTRule] = field(default_factory=list)
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
-    def add_target(self, name: str, port: Optional[int] = None) -> None:
+    def add_target(self, name: str, port: int | None = None) -> None:
         """Add authentication target."""
         target = {"name": name}
         if port:
@@ -156,7 +143,7 @@ class AuthenticationPolicy:
         """Add JWT validation rule."""
         self.jwt_rules.append(jwt_rule)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -175,21 +162,23 @@ class PeerAuthentication:
 
     name: str
     namespace: str = "default"
-    selector: Dict[str, str] = field(default_factory=dict)
+    selector: builtins.dict[str, str] = field(default_factory=dict)
     mtls_mode: AuthenticationMode = AuthenticationMode.STRICT
 
     # Port-specific mTLS
-    port_level_mtls: Dict[int, AuthenticationMode] = field(default_factory=dict)
+    port_level_mtls: builtins.dict[int, AuthenticationMode] = field(
+        default_factory=dict
+    )
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
     def set_port_mtls(self, port: int, mode: AuthenticationMode) -> None:
         """Set mTLS mode for specific port."""
         self.port_level_mtls[port] = mode
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -210,18 +199,18 @@ class RequestAuthentication:
 
     name: str
     namespace: str = "default"
-    selector: Dict[str, str] = field(default_factory=dict)
-    jwt_rules: List[JWTRule] = field(default_factory=list)
+    selector: builtins.dict[str, str] = field(default_factory=dict)
+    jwt_rules: builtins.list[JWTRule] = field(default_factory=list)
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
     def add_jwt_rule(self, jwt_rule: JWTRule) -> None:
         """Add JWT rule."""
         self.jwt_rules.append(jwt_rule)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -237,9 +226,11 @@ class RequestAuthentication:
 class RBACRule:
     """Role-based access control rule."""
 
-    from_sources: List[Dict[str, Any]] = field(default_factory=list)
-    to_operations: List[Dict[str, Any]] = field(default_factory=list)
-    when_conditions: List[Dict[str, Any]] = field(default_factory=list)
+    from_sources: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
+    to_operations: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
+    when_conditions: builtins.list[builtins.dict[str, Any]] = field(
+        default_factory=list
+    )
 
     def add_source_principal(self, principal: str) -> None:
         """Add source principal."""
@@ -249,7 +240,9 @@ class RBACRule:
         """Add source namespace."""
         self.from_sources.append({"namespaces": [namespace]})
 
-    def add_operation(self, methods: List[str] = None, paths: List[str] = None) -> None:
+    def add_operation(
+        self, methods: builtins.list[str] = None, paths: builtins.list[str] = None
+    ) -> None:
         """Add operation constraint."""
         operation = {}
         if methods:
@@ -258,11 +251,11 @@ class RBACRule:
             operation["paths"] = paths
         self.to_operations.append(operation)
 
-    def add_condition(self, key: str, values: List[str]) -> None:
+    def add_condition(self, key: str, values: builtins.list[str]) -> None:
         """Add when condition."""
         self.when_conditions.append({"key": key, "values": values})
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "from": self.from_sources,
@@ -277,19 +270,19 @@ class AuthorizationPolicy:
 
     name: str
     namespace: str = "default"
-    selector: Dict[str, str] = field(default_factory=dict)
+    selector: builtins.dict[str, str] = field(default_factory=dict)
     action: PolicyAction = PolicyAction.ALLOW
-    rules: List[RBACRule] = field(default_factory=list)
+    rules: builtins.list[RBACRule] = field(default_factory=list)
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
     def add_rule(self, rule: RBACRule) -> None:
         """Add authorization rule."""
         self.rules.append(rule)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -308,8 +301,8 @@ class RBACPolicy:
 
     name: str
     namespace: str = "default"
-    inclusion_list: List[str] = field(default_factory=list)
-    exclusion_list: List[str] = field(default_factory=list)
+    inclusion_list: builtins.list[str] = field(default_factory=list)
+    exclusion_list: builtins.list[str] = field(default_factory=list)
 
     def add_inclusion(self, service: str) -> None:
         """Add service to inclusion list."""
@@ -319,7 +312,7 @@ class RBACPolicy:
         """Add service to exclusion list."""
         self.exclusion_list.append(service)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -338,12 +331,12 @@ class SecurityContext:
     trust_domain: str = "cluster.local"
 
     # Certificates
-    workload_certificate: Optional[str] = None
-    workload_private_key: Optional[str] = None
-    root_ca_certificate: Optional[str] = None
+    workload_certificate: str | None = None
+    workload_private_key: str | None = None
+    root_ca_certificate: str | None = None
 
     # Identity
-    identity: Optional[str] = None
+    identity: str | None = None
 
     def get_spiffe_identity(self) -> str:
         """Get SPIFFE identity."""
@@ -352,7 +345,7 @@ class SecurityContext:
 
         return f"spiffe://{self.trust_domain}/ns/{self.namespace}/sa/{self.service_account}"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "service_account": self.service_account,
@@ -370,11 +363,13 @@ class CertificateManager:
 
     def __init__(self, trust_domain: str = "cluster.local"):
         self.trust_domain = trust_domain
-        self._ca_certificate: Optional[x509.Certificate] = None
-        self._ca_private_key: Optional[rsa.RSAPrivateKey] = None
-        self._certificates: Dict[str, Dict[str, Any]] = {}
+        self._ca_certificate: x509.Certificate | None = None
+        self._ca_private_key: rsa.RSAPrivateKey | None = None
+        self._certificates: builtins.dict[str, builtins.dict[str, Any]] = {}
 
-    def generate_ca_certificate(self, common_name: str = "Istio CA") -> Tuple[str, str]:
+    def generate_ca_certificate(
+        self, common_name: str = "Istio CA"
+    ) -> builtins.tuple[str, str]:
         """Generate CA certificate and private key."""
         # Generate private key
         private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -431,7 +426,7 @@ class CertificateManager:
 
     def generate_workload_certificate(
         self, service_account: str, namespace: str
-    ) -> Tuple[str, str]:
+    ) -> builtins.tuple[str, str]:
         """Generate workload certificate for service."""
         if not self._ca_certificate or not self._ca_private_key:
             raise ValueError("CA certificate not initialized")
@@ -507,7 +502,7 @@ class CertificateManager:
 
     def get_certificate(
         self, service_account: str, namespace: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> builtins.dict[str, Any] | None:
         """Get certificate for service."""
         cert_id = f"{namespace}/{service_account}"
         return self._certificates.get(cert_id)
@@ -518,7 +513,7 @@ class CertificateManager:
         if cert_id in self._certificates:
             del self._certificates[cert_id]
 
-    def list_certificates(self) -> List[Dict[str, Any]]:
+    def list_certificates(self) -> builtins.list[builtins.dict[str, Any]]:
         """List all certificates."""
         return list(self._certificates.values())
 
@@ -531,11 +526,11 @@ class JWTPolicy:
     ):
         self.algorithm = algorithm
         self.private_key = private_key
-        self._public_keys: Dict[str, str] = {}
+        self._public_keys: builtins.dict[str, str] = {}
 
     def generate_token(
         self,
-        payload: Dict[str, Any],
+        payload: builtins.dict[str, Any],
         issuer: str,
         audience: str,
         expires_in: timedelta = timedelta(hours=1),
@@ -556,7 +551,7 @@ class JWTPolicy:
 
     def validate_token(
         self, token: str, public_key: str, issuer: str = None, audience: str = None
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Validate JWT token."""
         try:
             payload = jwt.decode(
@@ -574,7 +569,7 @@ class JWTPolicy:
         """Add public key for validation."""
         self._public_keys[key_id] = public_key
 
-    def get_jwks(self) -> Dict[str, Any]:
+    def get_jwks(self) -> builtins.dict[str, Any]:
         """Get JSON Web Key Set."""
         keys = []
         for key_id, public_key in self._public_keys.items():
@@ -597,11 +592,11 @@ class SecurityPolicyManager:
     """Comprehensive security policy management."""
 
     def __init__(self):
-        self._authentication_policies: Dict[str, AuthenticationPolicy] = {}
-        self._authorization_policies: Dict[str, AuthorizationPolicy] = {}
-        self._peer_authentications: Dict[str, PeerAuthentication] = {}
-        self._request_authentications: Dict[str, RequestAuthentication] = {}
-        self._rbac_policies: Dict[str, RBACPolicy] = {}
+        self._authentication_policies: builtins.dict[str, AuthenticationPolicy] = {}
+        self._authorization_policies: builtins.dict[str, AuthorizationPolicy] = {}
+        self._peer_authentications: builtins.dict[str, PeerAuthentication] = {}
+        self._request_authentications: builtins.dict[str, RequestAuthentication] = {}
+        self._rbac_policies: builtins.dict[str, RBACPolicy] = {}
         self.certificate_manager = CertificateManager()
         self.jwt_policy = JWTPolicy()
 
@@ -637,7 +632,9 @@ class SecurityPolicyManager:
         self._rbac_policies[key] = policy
         logger.info(f"Created RBAC policy: {key}")
 
-    async def get_security_configuration(self, namespace: str = None) -> Dict[str, Any]:
+    async def get_security_configuration(
+        self, namespace: str = None
+    ) -> builtins.dict[str, Any]:
         """Get security configuration."""
         config = {
             "authentication_policies": {},
@@ -691,7 +688,7 @@ class SecurityPolicyManager:
 
 
 def create_jwt_rule(
-    issuer: str, jwks_uri: str = None, audiences: List[str] = None
+    issuer: str, jwks_uri: str = None, audiences: builtins.list[str] = None
 ) -> JWTRule:
     """Create JWT rule."""
     return JWTRule(issuer=issuer, jwks_uri=jwks_uri, audiences=audiences or [])

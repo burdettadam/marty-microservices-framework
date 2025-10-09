@@ -7,9 +7,7 @@ for implementing advanced monitoring in microservices.
 
 import asyncio
 import logging
-import time
-from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Any, Dict, dict
 
 # FastAPI example
 try:
@@ -36,6 +34,8 @@ try:
 except ImportError:
     REDIS_AVAILABLE = False
 
+import builtins
+
 # Framework imports
 from framework.monitoring import (
     AlertLevel,
@@ -45,7 +45,6 @@ from framework.monitoring import (
     ExternalServiceHealthCheck,
     MetricAggregation,
     MonitoringMiddlewareConfig,
-    RedisHealthCheck,
     initialize_custom_metrics,
     initialize_monitoring,
     record_error_rate,
@@ -103,7 +102,8 @@ async def basic_monitoring_example():
     # Get metrics (if Prometheus is available)
     metrics_text = monitoring_manager.get_metrics_text()
     if metrics_text:
-        print(f"Metrics collected: {len(metrics_text.split('\\n'))} lines")
+        newline_char = "\n"
+        print(f"Metrics collected: {len(metrics_text.split(newline_char))} lines")
 
     print("Basic monitoring example completed")
 
@@ -261,7 +261,7 @@ if FASTAPI_AVAILABLE:
             return {"id": user_id, "name": f"User {user_id}"}
 
         @app.post("/api/users")
-        async def create_user(user_data: Dict[str, Any]):
+        async def create_user(user_data: builtins.dict[str, Any]):
             # Simulate user registration
             await record_user_registration("api", "direct")
 
@@ -275,7 +275,7 @@ if FASTAPI_AVAILABLE:
             return {"id": "new_user", "status": "created"}
 
         @app.post("/api/orders")
-        async def create_order(order_data: Dict[str, Any]):
+        async def create_order(order_data: builtins.dict[str, Any]):
             # Simulate order processing
             processing_time = 20.0 + (len(order_data.get("items", [])) * 5)
 
@@ -339,20 +339,19 @@ async def advanced_health_checks_example():
                     message="Periodic failure simulation",
                     details={"call_count": self.call_count},
                 )
-            elif self.call_count % 3 == 0:
+            if self.call_count % 3 == 0:
                 return HealthCheckResult(
                     name=self.name,
                     status=HealthStatus.DEGRADED,
                     message="Performance degradation detected",
                     details={"call_count": self.call_count},
                 )
-            else:
-                return HealthCheckResult(
-                    name=self.name,
-                    status=HealthStatus.HEALTHY,
-                    message="Service operating normally",
-                    details={"call_count": self.call_count},
-                )
+            return HealthCheckResult(
+                name=self.name,
+                status=HealthStatus.HEALTHY,
+                message="Service operating normally",
+                details={"call_count": self.call_count},
+            )
 
     # Add various health checks
     monitoring_manager.add_health_check(CustomServiceHealthCheck("custom_service"))

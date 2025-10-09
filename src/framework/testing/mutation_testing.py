@@ -8,28 +8,25 @@ and comprehensive reporting for microservices code quality validation.
 
 import ast
 import asyncio
+import builtins
 import copy
 import json
 import logging
 import os
 import shutil
-import subprocess
-import sys
 import tempfile
-import threading
 import time
 import uuid
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, dict, list, tuple
 
 # For code analysis and mutation
 import coverage
-import pytest
 
 
 class MutationType(Enum):
@@ -87,14 +84,14 @@ class MutationOperator:
     name: str
     mutation_type: MutationType
     description: str
-    apply_function: Callable[[ast.AST], List[ast.AST]]
+    apply_function: Callable[[ast.AST], builtins.list[ast.AST]]
 
     # Configuration
     enabled: bool = True
     weight: float = 1.0
 
     # Metadata
-    tags: List[str] = field(default_factory=list)
+    tags: builtins.list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -114,16 +111,16 @@ class Mutant:
 
     # Execution results
     status: MutationStatus = MutationStatus.SKIPPED
-    killing_test: Optional[str] = None
-    execution_time: Optional[float] = None
-    error_message: Optional[str] = None
+    killing_test: str | None = None
+    execution_time: float | None = None
+    error_message: str | None = None
 
     # Coverage information
-    covered_by_tests: List[str] = field(default_factory=list)
+    covered_by_tests: builtins.list[str] = field(default_factory=list)
 
     # Timestamps
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    executed_at: Optional[datetime] = None
+    executed_at: datetime | None = None
 
 
 @dataclass
@@ -131,7 +128,7 @@ class MutationTestResult:
     """Results of mutation testing."""
 
     session_id: str
-    target_files: List[str]
+    target_files: builtins.list[str]
 
     # Overall statistics
     total_mutants: int = 0
@@ -144,20 +141,20 @@ class MutationTestResult:
     mutation_score: float = 0.0
 
     # Detailed results
-    mutants: List[Mutant] = field(default_factory=list)
+    mutants: builtins.list[Mutant] = field(default_factory=list)
 
     # Coverage information
-    original_coverage: Dict[str, Any] = field(default_factory=dict)
+    original_coverage: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Performance metrics
     execution_time: float = 0.0
 
     # Quality metrics
-    test_effectiveness: Dict[str, Any] = field(default_factory=dict)
+    test_effectiveness: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Timestamps
     started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
 
 @dataclass
@@ -170,18 +167,18 @@ class QualityGate:
 
     # Thresholds
     threshold_value: float
-    warning_threshold: Optional[float] = None
+    warning_threshold: float | None = None
 
     # Configuration
     enabled: bool = True
     blocking: bool = True  # Whether failure blocks deployment
 
     # Evaluation function
-    evaluation_function: Optional[Callable] = None
+    evaluation_function: Callable | None = None
 
     # Metadata
     description: str = ""
-    tags: List[str] = field(default_factory=list)
+    tags: builtins.list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -197,7 +194,7 @@ class QualityGateResult:
 
     # Details
     message: str = ""
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Timestamps
     evaluated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -209,12 +206,10 @@ class CodeMutator(ABC):
     @abstractmethod
     def can_mutate(self, node: ast.AST) -> bool:
         """Check if node can be mutated."""
-        pass
 
     @abstractmethod
-    def mutate(self, node: ast.AST) -> List[ast.AST]:
+    def mutate(self, node: ast.AST) -> builtins.list[ast.AST]:
         """Generate mutations for the node."""
-        pass
 
 
 class ArithmeticOperatorMutator(CodeMutator):
@@ -236,7 +231,7 @@ class ArithmeticOperatorMutator(CodeMutator):
             isinstance(node, ast.BinOp) and type(node.op) in self.OPERATOR_REPLACEMENTS
         )
 
-    def mutate(self, node: ast.AST) -> List[ast.AST]:
+    def mutate(self, node: ast.AST) -> builtins.list[ast.AST]:
         """Generate arithmetic operator mutations."""
         mutations = []
 
@@ -276,7 +271,7 @@ class RelationalOperatorMutator(CodeMutator):
             and type(node.ops[0]) in self.OPERATOR_REPLACEMENTS
         )
 
-    def mutate(self, node: ast.AST) -> List[ast.AST]:
+    def mutate(self, node: ast.AST) -> builtins.list[ast.AST]:
         """Generate relational operator mutations."""
         mutations = []
 
@@ -299,7 +294,7 @@ class LogicalOperatorMutator(CodeMutator):
         """Check if node is a boolean operation."""
         return isinstance(node, ast.BoolOp)
 
-    def mutate(self, node: ast.AST) -> List[ast.AST]:
+    def mutate(self, node: ast.AST) -> builtins.list[ast.AST]:
         """Generate logical operator mutations."""
         mutations = []
 
@@ -326,7 +321,7 @@ class ConstantReplacementMutator(CodeMutator):
         """Check if node is a constant."""
         return isinstance(node, (ast.Constant, ast.Num, ast.Str, ast.NameConstant))
 
-    def mutate(self, node: ast.AST) -> List[ast.AST]:
+    def mutate(self, node: ast.AST) -> builtins.list[ast.AST]:
         """Generate constant mutations."""
         mutations = []
 
@@ -373,7 +368,7 @@ class StatementDeletionMutator(CodeMutator):
         """Check if node is a deletable statement."""
         return isinstance(node, (ast.Expr, ast.Assign, ast.AnnAssign, ast.AugAssign))
 
-    def mutate(self, node: ast.AST) -> List[ast.AST]:
+    def mutate(self, node: ast.AST) -> builtins.list[ast.AST]:
         """Generate statement deletion mutations."""
         # Return pass statement to replace the deleted statement
         return [ast.Pass()]
@@ -384,7 +379,7 @@ class MutationEngine:
 
     def __init__(self):
         """Initialize mutation engine."""
-        self.mutators: List[CodeMutator] = [
+        self.mutators: builtins.list[CodeMutator] = [
             ArithmeticOperatorMutator(),
             RelationalOperatorMutator(),
             LogicalOperatorMutator(),
@@ -403,10 +398,10 @@ class MutationEngine:
         """Add custom mutator."""
         self.mutators.append(mutator)
 
-    def generate_mutants(self, source_file: str) -> List[Mutant]:
+    def generate_mutants(self, source_file: str) -> builtins.list[Mutant]:
         """Generate mutants for source file."""
         try:
-            with open(source_file, "r") as f:
+            with open(source_file) as f:
                 source_code = f.read()
 
             tree = ast.parse(source_code)
@@ -441,7 +436,7 @@ class MutationEngine:
             return mutants
 
         except Exception as e:
-            logging.error(f"Failed to generate mutants for {source_file}: {e}")
+            logging.exception(f"Failed to generate mutants for {source_file}: {e}")
             return []
 
     def _create_mutant(
@@ -450,7 +445,7 @@ class MutationEngine:
         original_node: ast.AST,
         mutated_node: ast.AST,
         mutator: CodeMutator,
-    ) -> Optional[Mutant]:
+    ) -> Mutant | None:
         """Create mutant from AST nodes."""
         try:
             # Get line and column information
@@ -499,11 +494,11 @@ class MutationEngine:
         """Apply mutant to create mutated source file."""
         try:
             # Read original file
-            with open(mutant.original_file, "r") as f:
+            with open(mutant.original_file) as f:
                 lines = f.readlines()
 
             # Parse and mutate the AST
-            with open(mutant.original_file, "r") as f:
+            with open(mutant.original_file) as f:
                 source_code = f.read()
 
             tree = ast.parse(source_code)
@@ -526,7 +521,7 @@ class MutationEngine:
             return mutated_file_path
 
         except Exception as e:
-            logging.error(f"Failed to apply mutant {mutant.mutant_id}: {e}")
+            logging.exception(f"Failed to apply mutant {mutant.mutant_id}: {e}")
             raise
 
     def _apply_mutation_to_tree(self, tree: ast.AST, mutant: Mutant) -> ast.AST:
@@ -576,7 +571,7 @@ class TestRunner:
 
     async def run_tests(
         self, test_directory: str, mutated_file: str = None
-    ) -> Tuple[bool, str, float]:
+    ) -> builtins.tuple[bool, str, float]:
         """Run tests and return success, output, and execution time."""
         start_time = time.time()
 
@@ -624,8 +619,8 @@ class MutationTester:
 
     def __init__(
         self,
-        source_directories: List[str],
-        test_directories: List[str],
+        source_directories: builtins.list[str],
+        test_directories: builtins.list[str],
         test_command: str = "python -m pytest",
     ):
         """Initialize mutation tester."""
@@ -640,7 +635,7 @@ class MutationTester:
         self.max_workers = 4
 
         # Results storage
-        self.results: Dict[str, MutationTestResult] = {}
+        self.results: builtins.dict[str, MutationTestResult] = {}
 
         # Coverage tracking
         self.coverage_data = {}
@@ -708,12 +703,12 @@ class MutationTester:
             return result
 
         except Exception as e:
-            logging.error(f"Mutation testing failed: {e}")
+            logging.exception(f"Mutation testing failed: {e}")
             result.execution_time = time.time() - start_time
             result.completed_at = datetime.now(timezone.utc)
             return result
 
-    def _collect_source_files(self) -> List[str]:
+    def _collect_source_files(self) -> builtins.list[str]:
         """Collect Python source files from directories."""
         source_files = []
 
@@ -750,7 +745,7 @@ class MutationTester:
             logging.warning(f"Failed to collect coverage info: {e}")
 
     async def _run_parallel_mutation_testing(
-        self, mutants: List[Mutant], result: MutationTestResult
+        self, mutants: builtins.list[Mutant], result: MutationTestResult
     ):
         """Run mutation testing in parallel."""
         semaphore = asyncio.Semaphore(self.max_workers)
@@ -763,7 +758,7 @@ class MutationTester:
         await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _run_sequential_mutation_testing(
-        self, mutants: List[Mutant], result: MutationTestResult
+        self, mutants: builtins.list[Mutant], result: MutationTestResult
     ):
         """Run mutation testing sequentially."""
         for mutant in mutants:
@@ -834,7 +829,7 @@ class MutationTester:
 
             logging.warning(f"Error testing mutant {mutant.mutant_id}: {e}")
 
-    def _extract_failing_test(self, test_output: str) -> Optional[str]:
+    def _extract_failing_test(self, test_output: str) -> str | None:
         """Extract the name of the failing test from output."""
         lines = test_output.split("\n")
         for line in lines:
@@ -868,7 +863,7 @@ class QualityGateEngine:
 
     def __init__(self):
         """Initialize quality gate engine."""
-        self.gates: Dict[str, QualityGate] = {}
+        self.gates: builtins.dict[str, QualityGate] = {}
 
         # Default gates
         self._register_default_gates()
@@ -916,7 +911,9 @@ class QualityGateEngine:
         self.gates[gate.gate_id] = gate
         logging.info(f"Registered quality gate: {gate.name}")
 
-    def evaluate_gates(self, metrics: Dict[str, Any]) -> List[QualityGateResult]:
+    def evaluate_gates(
+        self, metrics: builtins.dict[str, Any]
+    ) -> builtins.list[QualityGateResult]:
         """Evaluate all enabled quality gates."""
         results = []
 
@@ -928,7 +925,7 @@ class QualityGateEngine:
         return results
 
     def _evaluate_single_gate(
-        self, gate: QualityGate, metrics: Dict[str, Any]
+        self, gate: QualityGate, metrics: builtins.dict[str, Any]
     ) -> QualityGateResult:
         """Evaluate single quality gate."""
         # Get actual value based on gate type
@@ -955,19 +952,18 @@ class QualityGateEngine:
         )
 
     def _extract_metric_value(
-        self, gate_type: QualityGateType, metrics: Dict[str, Any]
+        self, gate_type: QualityGateType, metrics: builtins.dict[str, Any]
     ) -> float:
         """Extract metric value based on gate type."""
         if gate_type == QualityGateType.MUTATION_SCORE:
             return metrics.get("mutation_score", 0.0)
-        elif gate_type == QualityGateType.CODE_COVERAGE:
+        if gate_type == QualityGateType.CODE_COVERAGE:
             return metrics.get("code_coverage", 0.0)
-        elif gate_type == QualityGateType.TEST_PASS_RATE:
+        if gate_type == QualityGateType.TEST_PASS_RATE:
             return metrics.get("test_pass_rate", 0.0)
-        else:
-            return 0.0
+        return 0.0
 
-    def is_deployment_blocked(self, results: List[QualityGateResult]) -> bool:
+    def is_deployment_blocked(self, results: builtins.list[QualityGateResult]) -> bool:
         """Check if deployment should be blocked based on gate results."""
         for result in results:
             gate = self.gates[result.gate_id]
@@ -1004,7 +1000,7 @@ class QualityReporter:
         return str(report_file)
 
     def generate_quality_gates_report(
-        self, gate_results: List[QualityGateResult]
+        self, gate_results: builtins.list[QualityGateResult]
     ) -> str:
         """Generate quality gates report."""
         report_file = (
@@ -1135,7 +1131,7 @@ class QualityReporter:
             json.dump(report_data, f, indent=2)
 
     def _generate_quality_gates_html_report(
-        self, gate_results: List[QualityGateResult]
+        self, gate_results: builtins.list[QualityGateResult]
     ) -> str:
         """Generate HTML quality gates report."""
         html = f"""
@@ -1180,10 +1176,10 @@ class QualityReporter:
 
 
 def create_mutation_testing_platform(
-    source_directories: List[str],
-    test_directories: List[str],
+    source_directories: builtins.list[str],
+    test_directories: builtins.list[str],
     test_command: str = "python -m pytest",
-) -> Dict[str, Any]:
+) -> builtins.dict[str, Any]:
     """Create mutation testing platform."""
     mutation_tester = MutationTester(source_directories, test_directories, test_command)
     quality_gate_engine = QualityGateEngine()

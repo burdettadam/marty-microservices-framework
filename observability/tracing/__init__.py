@@ -9,11 +9,12 @@ Provides comprehensive distributed tracing capabilities with:
 """
 
 import asyncio
+import builtins
 import logging
 import os
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Optional, Set, Union, dict, list
 
 from opentelemetry import baggage, metrics, trace
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
@@ -62,7 +63,7 @@ class TracingConfig:
     service_version: str = "1.0.0"
     environment: str = "production"
     jaeger_endpoint: str = "http://jaeger:14268/api/traces"
-    otlp_endpoint: Optional[str] = None
+    otlp_endpoint: str | None = None
     enable_console_exporter: bool = False
     enable_prometheus_metrics: bool = True
     sample_rate: float = 1.0
@@ -70,7 +71,7 @@ class TracingConfig:
     max_events: int = 128
     max_attributes: int = 64
     export_timeout: int = 30
-    custom_resource_attributes: Optional[Dict[str, str]] = None
+    custom_resource_attributes: builtins.dict[str, str] | None = None
     enable_auto_instrumentation: bool = True
     enable_custom_spans: bool = True
     trace_all_requests: bool = True
@@ -315,7 +316,7 @@ class DistributedTracing:
     async def trace_async_operation(
         self,
         operation_name: str,
-        attributes: Optional[Dict[str, Any]] = None,
+        attributes: builtins.dict[str, Any] | None = None,
         trace_level: str = "INFO",
     ):
         """Context manager for tracing async operations"""
@@ -342,8 +343,8 @@ class DistributedTracing:
 
     def trace_function(
         self,
-        operation_name: Optional[str] = None,
-        attributes: Optional[Dict[str, Any]] = None,
+        operation_name: str | None = None,
+        attributes: builtins.dict[str, Any] | None = None,
     ):
         """Decorator for tracing functions"""
 
@@ -357,34 +358,31 @@ class DistributedTracing:
                         return await func(*args, **kwargs)
 
                 return async_wrapper
-            else:
 
-                def sync_wrapper(*args, **kwargs):
-                    with self.tracer.start_as_current_span(span_name) as span:
-                        try:
-                            if attributes:
-                                for key, value in attributes.items():
-                                    span.set_attribute(key, str(value))
+            def sync_wrapper(*args, **kwargs):
+                with self.tracer.start_as_current_span(span_name) as span:
+                    try:
+                        if attributes:
+                            for key, value in attributes.items():
+                                span.set_attribute(key, str(value))
 
-                            result = func(*args, **kwargs)
-                            span.set_status(trace.Status(trace.StatusCode.OK))
-                            return result
+                        result = func(*args, **kwargs)
+                        span.set_status(trace.Status(trace.StatusCode.OK))
+                        return result
 
-                        except Exception as e:
-                            span.set_status(
-                                trace.Status(trace.StatusCode.ERROR, str(e))
-                            )
-                            span.record_exception(e)
-                            raise
+                    except Exception as e:
+                        span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                        span.record_exception(e)
+                        raise
 
-                return sync_wrapper
+            return sync_wrapper
 
         return decorator
 
     def create_custom_span(
         self,
         name: str,
-        attributes: Optional[Dict[str, Any]] = None,
+        attributes: builtins.dict[str, Any] | None = None,
         kind: trace.SpanKind = trace.SpanKind.INTERNAL,
     ) -> trace.Span:
         """Create a custom span"""
@@ -396,7 +394,9 @@ class DistributedTracing:
 
         return span
 
-    def add_span_event(self, name: str, attributes: Optional[Dict[str, Any]] = None):
+    def add_span_event(
+        self, name: str, attributes: builtins.dict[str, Any] | None = None
+    ):
         """Add an event to the current span"""
         current_span = trace.get_current_span()
         if current_span and current_span.is_recording():
@@ -408,22 +408,22 @@ class DistributedTracing:
         if current_span and current_span.is_recording():
             current_span.set_attribute(key, str(value))
 
-    def inject_context(self, carrier: Dict[str, str]):
+    def inject_context(self, carrier: builtins.dict[str, str]):
         """Inject trace context into a carrier (e.g., HTTP headers)"""
         inject(carrier)
 
-    def extract_context(self, carrier: Dict[str, str]):
+    def extract_context(self, carrier: builtins.dict[str, str]):
         """Extract trace context from a carrier"""
         return extract(carrier)
 
-    def get_trace_id(self) -> Optional[str]:
+    def get_trace_id(self) -> str | None:
         """Get the current trace ID"""
         current_span = trace.get_current_span()
         if current_span and current_span.get_span_context().is_valid:
             return format(current_span.get_span_context().trace_id, "032x")
         return None
 
-    def get_span_id(self) -> Optional[str]:
+    def get_span_id(self) -> str | None:
         """Get the current span ID"""
         current_span = trace.get_current_span()
         if current_span and current_span.get_span_context().is_valid:
@@ -485,7 +485,7 @@ def setup_distributed_tracing(
 
 
 # Convenience decorators for common use cases
-def trace_grpc_method(method_name: Optional[str] = None):
+def trace_grpc_method(method_name: str | None = None):
     """Decorator for tracing gRPC methods"""
 
     def decorator(func):

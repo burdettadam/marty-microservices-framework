@@ -7,17 +7,17 @@ centralized logging, and alerting for all microservices.
 
 from __future__ import annotations
 
+import builtins
 import logging
 import socket
 import threading
 import time
-import uuid
-from collections import defaultdict, deque
+from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list
 
 import psutil
 
@@ -60,7 +60,7 @@ class HealthCheck:
     timeout: float = 5.0
     interval: float = 30.0
     enabled: bool = True
-    last_run: Optional[datetime] = None
+    last_run: datetime | None = None
     last_status: HealthStatus = HealthStatus.UNKNOWN
     failure_count: int = 0
     max_failures: int = 3
@@ -73,7 +73,7 @@ class Metric:
     name: str
     value: float
     type: MetricType
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     help_text: str = ""
 
@@ -88,21 +88,24 @@ class Alert:
     message: str
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     resolved: bool = False
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
 
 
 class MetricsCollector:
     """Collects and manages metrics."""
 
     def __init__(self):
-        self._metrics: Dict[str, Metric] = {}
-        self._counters: Dict[str, float] = defaultdict(float)
-        self._gauges: Dict[str, float] = {}
-        self._histograms: Dict[str, List[float]] = defaultdict(list)
+        self._metrics: builtins.dict[str, Metric] = {}
+        self._counters: builtins.dict[str, float] = defaultdict(float)
+        self._gauges: builtins.dict[str, float] = {}
+        self._histograms: builtins.dict[str, builtins.list[float]] = defaultdict(list)
         self._lock = threading.Lock()
 
     def counter(
-        self, name: str, value: float = 1.0, labels: Dict[str, str] | None = None
+        self,
+        name: str,
+        value: float = 1.0,
+        labels: builtins.dict[str, str] | None = None,
     ) -> None:
         """Increment a counter metric.
 
@@ -124,7 +127,7 @@ class MetricsCollector:
             )
 
     def gauge(
-        self, name: str, value: float, labels: Dict[str, str] | None = None
+        self, name: str, value: float, labels: builtins.dict[str, str] | None = None
     ) -> None:
         """Set a gauge metric.
 
@@ -146,7 +149,7 @@ class MetricsCollector:
             )
 
     def histogram(
-        self, name: str, value: float, labels: Dict[str, str] | None = None
+        self, name: str, value: float, labels: builtins.dict[str, str] | None = None
     ) -> None:
         """Add a value to a histogram metric.
 
@@ -173,7 +176,7 @@ class MetricsCollector:
                 labels={**labels, "count": str(len(values))},
             )
 
-    def get_metrics(self) -> List[Metric]:
+    def get_metrics(self) -> builtins.list[Metric]:
         """Get all current metrics.
 
         Returns:
@@ -183,8 +186,8 @@ class MetricsCollector:
             return list(self._metrics.values())
 
     def get_metric(
-        self, name: str, labels: Dict[str, str] | None = None
-    ) -> Optional[Metric]:
+        self, name: str, labels: builtins.dict[str, str] | None = None
+    ) -> Metric | None:
         """Get a specific metric.
 
         Args:
@@ -209,7 +212,7 @@ class MetricsCollector:
             self._histograms.clear()
 
     @staticmethod
-    def _serialize_labels(labels: Dict[str, str]) -> str:
+    def _serialize_labels(labels: builtins.dict[str, str]) -> str:
         """Serialize labels to a string key."""
         if not labels:
             return ""
@@ -220,9 +223,9 @@ class HealthChecker:
     """Manages health checks."""
 
     def __init__(self):
-        self._checks: Dict[str, HealthCheck] = {}
+        self._checks: builtins.dict[str, HealthCheck] = {}
         self._running = False
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
 
     def register_check(self, health_check: HealthCheck) -> None:
@@ -284,7 +287,7 @@ class HealthChecker:
             check.last_run = datetime.now(timezone.utc)
             return HealthStatus.UNHEALTHY
 
-    def run_all_checks(self) -> Dict[str, HealthStatus]:
+    def run_all_checks(self) -> builtins.dict[str, HealthStatus]:
         """Run all registered health checks.
 
         Returns:
@@ -308,12 +311,11 @@ class HealthChecker:
 
         if any(status == HealthStatus.UNHEALTHY for status in results.values()):
             return HealthStatus.UNHEALTHY
-        elif any(status == HealthStatus.DEGRADED for status in results.values()):
+        if any(status == HealthStatus.DEGRADED for status in results.values()):
             return HealthStatus.DEGRADED
-        elif all(status == HealthStatus.HEALTHY for status in results.values()):
+        if all(status == HealthStatus.HEALTHY for status in results.values()):
             return HealthStatus.HEALTHY
-        else:
-            return HealthStatus.UNKNOWN
+        return HealthStatus.UNKNOWN
 
     def start_periodic_checks(self) -> None:
         """Start periodic health check execution."""
@@ -483,7 +485,7 @@ class ServiceMonitor:
         self.metrics = MetricsCollector()
         self.health_checker = HealthChecker()
         self.system_metrics = SystemMetrics(self.metrics)
-        self.alerts: List[Alert] = []
+        self.alerts: builtins.list[Alert] = []
 
         # Register default health checks
         self._register_default_checks()
@@ -540,7 +542,7 @@ class ServiceMonitor:
         self.health_checker.stop_periodic_checks()
         logger.info("Service monitoring stopped for %s", self.service_name)
 
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> builtins.dict[str, Any]:
         """Get comprehensive health status.
 
         Returns:
@@ -556,7 +558,7 @@ class ServiceMonitor:
             "checks": {name: status.value for name, status in check_results.items()},
         }
 
-    def get_metrics_summary(self) -> Dict[str, Any]:
+    def get_metrics_summary(self) -> builtins.dict[str, Any]:
         """Get metrics summary.
 
         Returns:
@@ -589,7 +591,7 @@ class ServiceMonitor:
 def time_operation(
     metrics_collector: MetricsCollector,
     operation_name: str,
-    labels: Dict[str, str] | None = None,
+    labels: builtins.dict[str, str] | None = None,
 ):
     """Context manager to time operations.
 

@@ -13,11 +13,11 @@ from .load_tester import (
 )
 
 __all__ = [
-    "LoadTestConfig",
-    "LoadTestRunner",
-    "LoadTestReport",
-    "TestResult",
-    "PerformanceMonitor",
     "GrpcLoadTester",
     "HttpLoadTester",
+    "LoadTestConfig",
+    "LoadTestReport",
+    "LoadTestRunner",
+    "PerformanceMonitor",
+    "TestResult",
 ]

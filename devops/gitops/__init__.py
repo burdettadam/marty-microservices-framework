@@ -11,6 +11,7 @@ Provides comprehensive GitOps capabilities including:
 """
 
 import asyncio
+import builtins
 import hashlib
 import json
 import shutil
@@ -21,7 +22,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union, dict, list, set
 
 import yaml
 
@@ -93,16 +94,16 @@ class GitRepository:
     path: str = "."
 
     # Authentication
-    username: Optional[str] = None
-    password: Optional[str] = None
-    ssh_key_path: Optional[str] = None
+    username: str | None = None
+    password: str | None = None
+    ssh_key_path: str | None = None
 
     # Local clone info
-    local_path: Optional[str] = None
-    last_commit: Optional[str] = None
-    last_sync: Optional[datetime] = None
+    local_path: str | None = None
+    last_commit: str | None = None
+    last_sync: datetime | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "last_sync": self.last_sync.isoformat() if self.last_sync else None,
@@ -120,9 +121,9 @@ class GitOpsApplication:
 
     # Application configuration
     chart_path: str = "."
-    values_files: List[str] = field(default_factory=list)
-    helm_parameters: Dict[str, str] = field(default_factory=dict)
-    kustomize_parameters: Dict[str, str] = field(default_factory=dict)
+    values_files: builtins.list[str] = field(default_factory=list)
+    helm_parameters: builtins.dict[str, str] = field(default_factory=dict)
+    kustomize_parameters: builtins.dict[str, str] = field(default_factory=dict)
 
     # Sync policy
     auto_sync_enabled: bool = False
@@ -133,14 +134,14 @@ class GitOpsApplication:
     # Health and status
     health_status: GitOpsApplicationStatus = GitOpsApplicationStatus.UNKNOWN
     sync_status: GitOpsSyncStatus = GitOpsSyncStatus.UNKNOWN
-    last_operation: Optional[str] = None
-    last_sync_time: Optional[datetime] = None
+    last_operation: str | None = None
+    last_sync_time: datetime | None = None
 
     # Monitoring
     drift_detected: bool = False
-    drift_resources: List[str] = field(default_factory=list)
+    drift_resources: builtins.list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "source_repo": self.source_repo.to_dict(),
@@ -163,20 +164,20 @@ class GitOpsOperation:
 
     # Operation details
     initiator: str = "system"
-    target_revision: Optional[str] = None
-    sync_options: List[str] = field(default_factory=list)
+    target_revision: str | None = None
+    sync_options: builtins.list[str] = field(default_factory=list)
 
     # Status tracking
     status: str = "running"  # running, succeeded, failed, cancelled
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
 
     # Results
-    resources_synced: List[str] = field(default_factory=list)
-    resources_pruned: List[str] = field(default_factory=list)
-    resources_failed: List[str] = field(default_factory=list)
+    resources_synced: builtins.list[str] = field(default_factory=list)
+    resources_pruned: builtins.list[str] = field(default_factory=list)
+    resources_failed: builtins.list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "operation_type": self.operation_type.value,
@@ -201,10 +202,10 @@ class GitRepositoryManager:
     def __init__(self, base_path: str = "/tmp/gitops-repos"):
         self.base_path = Path(base_path)
         self.base_path.mkdir(parents=True, exist_ok=True)
-        self.repositories: Dict[str, GitRepository] = {}
+        self.repositories: builtins.dict[str, GitRepository] = {}
 
         # Repository cache
-        self.repo_cache: Dict[str, Any] = {}
+        self.repo_cache: builtins.dict[str, Any] = {}
 
     async def register_repository(self, repo: GitRepository) -> bool:
         """Register a Git repository for GitOps"""
@@ -260,7 +261,7 @@ class GitRepositoryManager:
         # Cache git repo object
         self.repo_cache[repo.name] = git_repo
 
-    async def get_latest_commit(self, repo_name: str) -> Optional[str]:
+    async def get_latest_commit(self, repo_name: str) -> str | None:
         """Get latest commit hash for repository"""
 
         if repo_name not in self.repositories:
@@ -273,7 +274,7 @@ class GitRepositoryManager:
 
     async def get_file_content(
         self, repo_name: str, file_path: str, revision: str = None
-    ) -> Optional[str]:
+    ) -> str | None:
         """Get content of a file from repository"""
 
         if repo_name not in self.repositories:
@@ -291,16 +292,15 @@ class GitRepositoryManager:
                     return commit.tree[file_path].data_stream.read().decode("utf-8")
                 except Exception:
                     return None
-        else:
-            # Get current file content
-            if full_path.exists():
-                return full_path.read_text()
+        # Get current file content
+        elif full_path.exists():
+            return full_path.read_text()
 
         return None
 
     async def get_changed_files(
         self, repo_name: str, from_revision: str, to_revision: str = None
-    ) -> List[str]:
+    ) -> builtins.list[str]:
         """Get list of changed files between revisions"""
 
         if repo_name not in self.repositories:
@@ -321,7 +321,7 @@ class GitRepositoryManager:
             print(f"Error getting changed files: {e}")
             return []
 
-    def validate_repository_structure(self, repo_name: str) -> Dict[str, Any]:
+    def validate_repository_structure(self, repo_name: str) -> builtins.dict[str, Any]:
         """Validate GitOps repository structure"""
 
         if repo_name not in self.repositories:
@@ -354,7 +354,7 @@ class GitRepositoryManager:
 
                 # Validate YAML files
                 try:
-                    with open(file_path, "r") as f:
+                    with open(file_path) as f:
                         yaml.safe_load(f)
                 except yaml.YAMLError as e:
                     validation_results["errors"].append(
@@ -379,7 +379,7 @@ class ArgoCDIntegration:
     def __init__(self, argocd_server: str = "localhost:8080", token: str = None):
         self.argocd_server = argocd_server
         self.token = token
-        self.applications: Dict[str, GitOpsApplication] = {}
+        self.applications: builtins.dict[str, GitOpsApplication] = {}
 
         # API client setup
         self.api_base_url = f"http://{argocd_server}/api/v1"
@@ -411,11 +411,10 @@ class ArgoCDIntegration:
                 self.applications[app.name] = app
                 print(f"✅ Created ArgoCD application: {app.name}")
                 return True
-            else:
-                print(
-                    f"❌ Failed to create application: {response.status_code} - {response.text}"
-                )
-                return False
+            print(
+                f"❌ Failed to create application: {response.status_code} - {response.text}"
+            )
+            return False
 
         except Exception as e:
             print(f"❌ Error creating ArgoCD application: {e}")
@@ -433,7 +432,9 @@ class ArgoCDIntegration:
         print(f"✅ Mock created ArgoCD application: {app.name}")
         return True
 
-    def _convert_to_argocd_spec(self, app: GitOpsApplication) -> Dict[str, Any]:
+    def _convert_to_argocd_spec(
+        self, app: GitOpsApplication
+    ) -> builtins.dict[str, Any]:
         """Convert GitOpsApplication to ArgoCD application spec"""
 
         spec = {
@@ -563,7 +564,9 @@ class ArgoCDIntegration:
         print(f"✅ Mock synced application: {operation.application_name}")
         return operation
 
-    async def get_application_status(self, app_name: str) -> Optional[Dict[str, Any]]:
+    async def get_application_status(
+        self, app_name: str
+    ) -> builtins.dict[str, Any] | None:
         """Get ArgoCD application status"""
 
         if app_name not in self.applications:
@@ -585,15 +588,16 @@ class ArgoCDIntegration:
             if response.status_code == 200:
                 app_data = response.json()
                 return self._parse_argocd_status(app_data)
-            else:
-                print(f"❌ Failed to get application status: {response.status_code}")
-                return None
+            print(f"❌ Failed to get application status: {response.status_code}")
+            return None
 
         except Exception as e:
             print(f"❌ Error getting application status: {e}")
             return None
 
-    def _mock_get_application_status(self, app: GitOpsApplication) -> Dict[str, Any]:
+    def _mock_get_application_status(
+        self, app: GitOpsApplication
+    ) -> builtins.dict[str, Any]:
         """Mock application status for testing"""
 
         return {
@@ -620,7 +624,9 @@ class ArgoCDIntegration:
             ],
         }
 
-    def _parse_argocd_status(self, app_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_argocd_status(
+        self, app_data: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Parse ArgoCD application status response"""
 
         status = app_data.get("status", {})
@@ -682,8 +688,10 @@ class ConfigurationDriftDetector:
     """
 
     def __init__(self):
-        self.drift_rules: List[Dict[str, Any]] = []
-        self.detected_drifts: Dict[str, List[Dict[str, Any]]] = {}
+        self.drift_rules: builtins.list[builtins.dict[str, Any]] = []
+        self.detected_drifts: builtins.dict[
+            str, builtins.list[builtins.dict[str, Any]]
+        ] = {}
 
         # Initialize Kubernetes client if available
         if KUBERNETES_AVAILABLE:
@@ -699,7 +707,7 @@ class ConfigurationDriftDetector:
         else:
             self.k8s_client = None
 
-    def add_drift_rule(self, rule: Dict[str, Any]):
+    def add_drift_rule(self, rule: builtins.dict[str, Any]):
         """Add configuration drift detection rule"""
 
         self.drift_rules.append(rule)
@@ -707,7 +715,7 @@ class ConfigurationDriftDetector:
 
     async def detect_configuration_drift(
         self, app: GitOpsApplication
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Detect configuration drift for an application"""
 
         detected_drifts = []
@@ -746,7 +754,9 @@ class ConfigurationDriftDetector:
 
         return detected_drifts
 
-    async def _get_desired_state(self, app: GitOpsApplication) -> Dict[str, Any]:
+    async def _get_desired_state(
+        self, app: GitOpsApplication
+    ) -> builtins.dict[str, Any]:
         """Get desired state from Git repository"""
 
         # Mock implementation - would parse Kubernetes manifests from Git
@@ -769,7 +779,7 @@ class ConfigurationDriftDetector:
             },
         }
 
-    async def _get_live_state(self, app: GitOpsApplication) -> Dict[str, Any]:
+    async def _get_live_state(self, app: GitOpsApplication) -> builtins.dict[str, Any]:
         """Get live state from Kubernetes cluster"""
 
         if not self.k8s_client:
@@ -830,8 +840,11 @@ class ConfigurationDriftDetector:
         return live_state
 
     def _compare_states(
-        self, desired: Dict[str, Any], live: Dict[str, Any], app_name: str
-    ) -> List[Dict[str, Any]]:
+        self,
+        desired: builtins.dict[str, Any],
+        live: builtins.dict[str, Any],
+        app_name: str,
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Compare desired and live states to detect drift"""
 
         drifts = []
@@ -854,8 +867,11 @@ class ConfigurationDriftDetector:
         return drifts
 
     def _compare_resource_config(
-        self, desired: Dict[str, Any], live: Dict[str, Any], resource_path: str
-    ) -> List[Dict[str, Any]]:
+        self,
+        desired: builtins.dict[str, Any],
+        live: builtins.dict[str, Any],
+        resource_path: str,
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Compare specific resource configuration"""
 
         drifts = []
@@ -882,7 +898,9 @@ class ConfigurationDriftDetector:
 
         return drifts
 
-    async def remediate_drift(self, app_name: str, drift: Dict[str, Any]) -> bool:
+    async def remediate_drift(
+        self, app_name: str, drift: builtins.dict[str, Any]
+    ) -> bool:
         """Remediate configuration drift"""
 
         try:
@@ -927,19 +945,19 @@ class GitOpsOrchestrator:
 
     def __init__(self):
         self.repo_manager = GitRepositoryManager()
-        self.argocd = ArgocdIntegration()
+        self.argocd = ArgoCDIntegration()
         self.drift_detector = ConfigurationDriftDetector()
 
         # Operation tracking
-        self.operations: Dict[str, GitOpsOperation] = {}
-        self.applications: Dict[str, GitOpsApplication] = {}
+        self.operations: builtins.dict[str, GitOpsOperation] = {}
+        self.applications: builtins.dict[str, GitOpsApplication] = {}
 
         # Monitoring
         self.monitoring_enabled = True
         self.monitoring_interval = 60  # seconds
 
         # Event handlers
-        self.event_handlers: Dict[str, List[callable]] = {}
+        self.event_handlers: builtins.dict[str, builtins.list[callable]] = {}
 
     async def register_application(self, app: GitOpsApplication) -> bool:
         """Register a new GitOps application"""
@@ -1112,7 +1130,9 @@ class GitOpsOrchestrator:
         self.event_handlers[event_type].append(handler)
         print(f"✅ Added event handler for: {event_type}")
 
-    async def _trigger_event(self, event_type: str, event_data: Dict[str, Any]):
+    async def _trigger_event(
+        self, event_type: str, event_data: builtins.dict[str, Any]
+    ):
         """Trigger GitOps event"""
 
         if event_type in self.event_handlers:
@@ -1125,7 +1145,7 @@ class GitOpsOrchestrator:
                 except Exception as e:
                     print(f"❌ Error in event handler for {event_type}: {e}")
 
-    def get_orchestrator_status(self) -> Dict[str, Any]:
+    def get_orchestrator_status(self) -> builtins.dict[str, Any]:
         """Get GitOps orchestrator status"""
 
         app_statuses = {}
@@ -1177,7 +1197,7 @@ async def main():
     # Register application
     success = await gitops.register_application(example_app)
     if success:
-        print(f"✅ Application registered successfully")
+        print("✅ Application registered successfully")
 
     # Deploy application
     deployment = await gitops.deploy_application("example-app")
@@ -1193,7 +1213,7 @@ async def main():
 
     # Get status
     status = gitops.get_orchestrator_status()
-    print(f"\nGitOps Status:")
+    print("\nGitOps Status:")
     print(f"Applications: {status['applications']}")
     print(f"Repositories: {status['repositories']}")
     print(f"Operations: {status['operations']}")

@@ -12,11 +12,11 @@ Run with: pytest tests/e2e/test_master_e2e.py -v -s
 """
 
 import asyncio
+import builtins
 import json
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, dict
 
-import pytest
 import pytest_asyncio
 from tests.e2e.conftest import PerformanceAnalyzer, TimeoutMonitor
 from tests.e2e.performance_reporting import generate_comprehensive_performance_report
@@ -90,7 +90,7 @@ class TestMasterE2E:
                     master_report_dir / "bottleneck_analysis_report.json"
                 )
                 if bottleneck_report_file.exists():
-                    with open(bottleneck_report_file, "r") as f:
+                    with open(bottleneck_report_file) as f:
                         test_results["bottleneck_analysis"] = json.load(f)
 
                 print("✅ Bottleneck analysis completed successfully")
@@ -125,7 +125,7 @@ class TestMasterE2E:
                     master_report_dir / "timeout_detection_report.json"
                 )
                 if timeout_report_file.exists():
-                    with open(timeout_report_file, "r") as f:
+                    with open(timeout_report_file) as f:
                         test_results["timeout_detection"] = json.load(f)
 
                 print("✅ Timeout detection completed successfully")
@@ -158,7 +158,7 @@ class TestMasterE2E:
                 # Load the generated report
                 audit_report_file = master_report_dir / "auditability_report.json"
                 if audit_report_file.exists():
-                    with open(audit_report_file, "r") as f:
+                    with open(audit_report_file) as f:
                         test_results["auditability"] = json.load(f)
 
                 print("✅ Auditability analysis completed successfully")
@@ -187,7 +187,7 @@ class TestMasterE2E:
                 # Load the generated report
                 visual_report_file = master_report_dir / "visual_testing_report.json"
                 if visual_report_file.exists():
-                    with open(visual_report_file, "r") as f:
+                    with open(visual_report_file) as f:
                         test_results["visual_testing"] = json.load(f)
 
                 print("✅ Visual testing completed successfully")
@@ -240,8 +240,8 @@ class TestMasterE2E:
         print("=" * 70)
 
     def _generate_master_summary(
-        self, test_results: Dict, comprehensive_report: Dict
-    ) -> Dict:
+        self, test_results: builtins.dict, comprehensive_report: builtins.dict
+    ) -> builtins.dict:
         """Generate master summary of all test results."""
 
         # Count successful tests
@@ -342,7 +342,7 @@ class TestMasterE2E:
             and not comprehensive_report.get("error"),
         }
 
-    def _print_master_summary(self, master_summary: Dict, report_dir: Path):
+    def _print_master_summary(self, master_summary: builtins.dict, report_dir: Path):
         """Print comprehensive master summary."""
 
         print("\\n" + "=" * 70)
@@ -354,21 +354,21 @@ class TestMasterE2E:
         metrics = master_summary["key_metrics"]
 
         # Test execution summary
-        print(f"\\n🎯 TEST EXECUTION:")
+        print("\\n🎯 TEST EXECUTION:")
         print(
             f"   Tests Run: {execution['successful_tests']}/{execution['total_tests']}"
         )
         print(f"   Success Rate: {execution['success_rate']:.1f}%")
 
         # Individual test status
-        print(f"\\n📊 INDIVIDUAL TEST STATUS:")
+        print("\\n📊 INDIVIDUAL TEST STATUS:")
         for test_name, status in execution["test_status"].items():
             status_icon = "✅" if status == "passed" else "❌"
             test_display = test_name.replace("_", " ").title()
             print(f"   {status_icon} {test_display}")
 
         # Key metrics
-        print(f"\\n📈 KEY METRICS:")
+        print("\\n📈 KEY METRICS:")
         if "bottleneck" in metrics:
             b_metrics = metrics["bottleneck"]
             print(
@@ -398,7 +398,7 @@ class TestMasterE2E:
             )
 
         # Overall assessment
-        print(f"\\n🏆 OVERALL ASSESSMENT:")
+        print("\\n🏆 OVERALL ASSESSMENT:")
         health_icon = {"excellent": "🟢", "good": "🟡", "needs_attention": "🔴"}.get(
             assessment["health_status"], "⚪"
         )
@@ -408,12 +408,12 @@ class TestMasterE2E:
         print(f"   ⚠️  Critical Issues: {assessment['critical_issues_count']}")
 
         if assessment["critical_issues"]:
-            print(f"\\n🚨 CRITICAL ISSUES:")
+            print("\\n🚨 CRITICAL ISSUES:")
             for i, issue in enumerate(assessment["critical_issues"][:3], 1):
                 print(f"   {i}. {issue}")
 
         # Report locations
-        print(f"\\n📁 REPORTS GENERATED:")
+        print("\\n📁 REPORTS GENERATED:")
         print(f"   📋 Master Summary: {report_dir / 'master_e2e_summary.json'}")
         print(
             f"   📊 Comprehensive Report: {report_dir / 'comprehensive_performance_report.json'}"
@@ -422,7 +422,7 @@ class TestMasterE2E:
         print(f"   📈 Charts Directory: {report_dir / 'charts'}")
 
         # Next steps
-        print(f"\\n💡 RECOMMENDED NEXT STEPS:")
+        print("\\n💡 RECOMMENDED NEXT STEPS:")
         if assessment["health_status"] == "excellent":
             print("   ✨ System is performing excellently!")
             print("   📚 Document current configurations as best practices")
@@ -439,7 +439,9 @@ class TestMasterE2E:
 
         print("\\n" + "=" * 70)
 
-    def _validate_test_results(self, test_results: Dict, master_summary: Dict):
+    def _validate_test_results(
+        self, test_results: builtins.dict, master_summary: builtins.dict
+    ):
         """Validate test results and assert critical requirements."""
 
         execution = master_summary["test_execution_summary"]
@@ -495,7 +497,7 @@ class TestMasterE2E:
                 f"\\n⚠️  WARNING: {assessment['critical_issues_count']} critical issues detected"
             )
 
-        print(f"\\n✅ All validation assertions passed!")
+        print("\\n✅ All validation assertions passed!")
         print(f"   📊 Success Rate: {execution['success_rate']:.1f}%")
         print(
             f"   🎯 Tests Passed: {execution['successful_tests']}/{execution['total_tests']}"
@@ -512,8 +514,6 @@ async def run_master_e2e_test():
 
     # This would typically be called by pytest, but can be used standalone
     # Note: Requires proper fixture setup when run outside pytest
-
-    pass
 
 
 if __name__ == "__main__":

@@ -127,6 +127,8 @@ Messaging Patterns:
 """
 
 # New enterprise messaging components
+# (Removed incorrect/unused typing import for built-in List; use builtins.list annotations directly if needed)
+
 from .queue import (
     Message,
     MessageBroker,
@@ -163,111 +165,77 @@ from .streams import event_handler as stream_event_handler
 from .streams import event_streaming_context, get_event_manager
 
 __all__ = [
-    # Message Queue Components
-    "MessageBroker",
-    "MessagePattern",
-    "MessagePriority",
-    "MessageConfig",
-    "Message",
-    "MessageStats",
-    "MessageHandler",
-    "MessageQueue",
-    "get_message_queue",
-    "create_message_queue",
-    "message_queue_context",
-    "message_handler",
-    "publish_message",
+    "Aggregate",
+    "EventProcessor",
+    "EventSourcedRepository",
+    "EventStore",
+    "EventStream",
+    "EventStreamManager",
     # Event Streaming Components
     "EventType",
-    "StreamEvent",
-    "EventStream",
-    "EventStore",
     "InMemoryEventStore",
-    "StreamEventHandler",
-    "EventProcessor",
-    "Aggregate",
+    "Message",
+    # Message Queue Components
+    "MessageBroker",
+    "MessageConfig",
+    "MessageHandler",
+    "MessagePattern",
+    "MessagePriority",
+    "MessageQueue",
+    "MessageStats",
     "Repository",
-    "EventSourcedRepository",
+    "StreamEvent",
     "StreamEventBus",
+    "StreamEventHandler",
     "StreamProjection",
-    "EventStreamManager",
-    "get_event_manager",
     "create_event_manager",
-    "event_streaming_context",
-    "stream_event_handler",
+    "create_message_queue",
     "domain_event",
+    "event_streaming_context",
+    "get_event_manager",
+    "get_message_queue",
+    "message_handler",
+    "message_queue_context",
+    "publish_message",
+    "stream_event_handler",
 ]
 
 # New enterprise messaging components
-from .queue import (
-    Message,
-    MessageBroker,
-    MessageConfig,
-    MessageHandler,
-    MessagePattern,
-    MessagePriority,
-    MessageQueue,
-    MessageStats,
-    create_message_queue,
-    get_message_queue,
-    message_handler,
-    message_queue_context,
-    publish_message,
-)
-from .streams import Aggregate
-from .streams import Event as StreamEvent
-from .streams import EventBus as StreamEventBus
-from .streams import EventHandler as StreamEventHandler
-from .streams import (
-    EventProcessor,
-    EventSourcedRepository,
-    EventStore,
-    EventStream,
-    EventStreamManager,
-    EventType,
-    InMemoryEventStore,
-    Repository,
-    StreamProjection,
-    create_event_manager,
-    domain_event,
-)
-from .streams import event_handler as stream_event_handler
-from .streams import event_streaming_context, get_event_manager
 
 __all__ = [
-    # Message Queue Components
-    "MessageBroker",
-    "MessagePattern",
-    "MessagePriority",
-    "MessageConfig",
-    "Message",
-    "MessageStats",
-    "MessageHandler",
-    "MessageQueue",
-    "get_message_queue",
-    "create_message_queue",
-    "message_queue_context",
-    "message_handler",
-    "publish_message",
+    "Aggregate",
+    "EventProcessor",
+    "EventSourcedRepository",
+    "EventStore",
+    "EventStream",
+    "EventStreamManager",
     # Event Streaming Components
     "EventType",
-    "StreamEvent",
-    "EventStream",
-    "EventStore",
     "InMemoryEventStore",
-    "StreamEventHandler",
-    "EventProcessor",
-    "Aggregate",
+    "Message",
+    # Message Queue Components
+    "MessageBroker",
+    "MessageConfig",
+    "MessageHandler",
+    "MessagePattern",
+    "MessagePriority",
+    "MessageQueue",
+    "MessageStats",
     "Repository",
-    "EventSourcedRepository",
+    "StreamEvent",
     "StreamEventBus",
+    "StreamEventHandler",
     "StreamProjection",
-    "EventStreamManager",
-    "get_event_manager",
     "create_event_manager",
-    "event_streaming_context",
-    "stream_event_handler",
+    "create_message_queue",
     "domain_event",
+    "event_streaming_context",
+    "get_event_manager",
+    "get_message_queue",
+    "message_handler",
+    "message_queue_context",
+    "publish_message",
+    "stream_event_handler",
 ]
 
 # Legacy backend imports
@@ -289,9 +257,7 @@ from .events import (
     publish_event,
 )
 from .patterns import (
-    DeadLetterQueue,
     DelayedMessage,
-    MessagePattern,
     PatternHandler,
     PubSubPattern,
     RequestReplyPattern,
@@ -301,122 +267,88 @@ from .patterns import (
 # New enterprise messaging components
 from .queue import BaseMessage
 from .queue import Message as NewMessage
-from .queue import MessageBroker, MessageConfig, MessageConsumer
+from .queue import MessageConsumer
 from .queue import MessageHandler as NewMessageHandler
 from .queue import MessagePattern as NewMessagePattern
-from .queue import MessagePriority, MessageProducer
-from .queue import MessageQueue
+from .queue import MessageProducer
 from .queue import MessageQueue as NewMessageQueue
-from .queue import (
-    MessageRouter,
-    MessageStats,
-    QueueConfig,
-    QueueManager,
-    QueueMetrics,
-    create_message_queue,
-    get_message_queue,
-)
+from .queue import MessageRouter, QueueConfig, QueueManager, QueueMetrics
 from .queue import message_handler as new_message_handler
-from .queue import message_queue_context, publish_message
-from .streams import Aggregate
-from .streams import Event as StreamEvent
-from .streams import EventBus as StreamEventBus
-from .streams import EventHandler as StreamEventHandler
-from .streams import (
-    EventProcessor,
-    EventSourcedRepository,
-    EventStore,
-    EventStream,
-    EventStreamManager,
-    EventType,
-    InMemoryEventStore,
-    Repository,
-    StreamProjection,
-    create_event_manager,
-    domain_event,
-)
-from .streams import event_handler as stream_event_handler
-from .streams import event_streaming_context, get_event_manager
 
 __all__ = [
+    "Aggregate",
     # Legacy Backend Components
     "BackendConfig",
-    "InMemoryBackend",
-    "MessageBackend",
-    "RabbitMQBackend",
-    "RedisBackend",
-    "SQSBackend",
-    "create_backend",
-    # Legacy Event Components
-    "EventBus",
-    "Event",
-    "EventHandler",
-    "EventMetadata",
-    "event_handler",
-    "publish_event",
+    # Legacy Queue Components
+    "BaseMessage",
     # Legacy Pattern Components
     "DeadLetterQueue",
     "DelayedMessage",
-    "MessagePattern",
-    "PatternHandler",
-    "PubSubPattern",
-    "RequestReplyPattern",
-    "WorkQueuePattern",
-    # Legacy Queue Components
-    "BaseMessage",
+    "Event",
+    # Legacy Event Components
+    "EventBus",
+    "EventHandler",
+    "EventMetadata",
+    "EventProcessor",
+    "EventSourcedRepository",
+    "EventStore",
+    "EventStream",
+    "EventStreamManager",
+    # Event Streaming Components
+    "EventType",
+    "InMemoryBackend",
+    "InMemoryEventStore",
+    "MessageBackend",
+    # New Message Queue Components
+    "MessageBroker",
+    "MessageConfig",
     "MessageConsumer",
+    "MessagePattern",
+    "MessagePriority",
     "MessageProducer",
     "MessageQueue",
     "MessageRouter",
+    "MessageStats",
+    "NewMessage",
+    "NewMessageHandler",
+    "NewMessagePattern",
+    "NewMessageQueue",
+    "PatternHandler",
+    "PubSubPattern",
     "QueueConfig",
     "QueueManager",
     "QueueMetrics",
-    # New Message Queue Components
-    "MessageBroker",
-    "NewMessagePattern",
-    "MessagePriority",
-    "MessageConfig",
-    "NewMessage",
-    "MessageStats",
-    "NewMessageHandler",
-    "NewMessageQueue",
-    "get_message_queue",
+    "RabbitMQBackend",
+    "RedisBackend",
+    "Repository",
+    "RequestReplyPattern",
+    "SQSBackend",
+    "StreamEvent",
+    "StreamEventBus",
+    "StreamEventHandler",
+    "StreamProjection",
+    "WorkQueuePattern",
+    "create_backend",
+    "create_event_manager",
     "create_message_queue",
+    "domain_event",
+    "event_handler",
+    "event_streaming_context",
+    "get_event_manager",
+    "get_message_queue",
     "message_queue_context",
     "new_message_handler",
+    "publish_event",
     "publish_message",
-    # Event Streaming Components
-    "EventType",
-    "StreamEvent",
-    "EventStream",
-    "EventStore",
-    "InMemoryEventStore",
-    "StreamEventHandler",
-    "EventProcessor",
-    "Aggregate",
-    "Repository",
-    "EventSourcedRepository",
-    "StreamEventBus",
-    "StreamProjection",
-    "EventStreamManager",
-    "get_event_manager",
-    "create_event_manager",
-    "event_streaming_context",
     "stream_event_handler",
-    "domain_event",
 ]
 
 from .core import (
     ExchangeConfig,
     ExchangeType,
-    Message,
     MessageExchange,
     MessageHeaders,
-    MessagePriority,
-    MessageQueue,
     MessageStatus,
-    QueueConfig,
-    QueueManager,
 )
 from .dlq import (
     DeadLetterQueue,
@@ -443,19 +375,14 @@ from .middleware import (
 from .patterns import (
     Consumer,
     ConsumerConfig,
-    MessageHandler,
-    MessagePattern,
     Producer,
     ProducerConfig,
     PublishSubscribePattern,
-    RequestReplyPattern,
     RoutingPattern,
-    WorkQueuePattern,
 )
 from .routing import (
     DirectRouter,
     FanoutRouter,
-    MessageRouter,
     Route,
     Router,
     RoutingKey,
@@ -472,69 +399,69 @@ from .serialization import (
 )
 
 __all__ = [
-    # Core
-    "Message",
-    "MessageHeaders",
-    "MessagePriority",
-    "MessageStatus",
-    "QueueConfig",
-    "ExchangeConfig",
-    "ExchangeType",
-    "MessageQueue",
-    "MessageExchange",
-    "QueueManager",
-    # Serialization
-    "MessageSerializer",
-    "JSONSerializer",
-    "PickleSerializer",
-    "ProtobufSerializer",
+    "AuthenticationMiddleware",
     "AvroSerializer",
-    "SerializationError",
-    # Patterns
-    "Producer",
-    "Consumer",
-    "MessageHandler",
-    "ConsumerConfig",
-    "ProducerConfig",
-    "MessagePattern",
-    "RequestReplyPattern",
-    "PublishSubscribePattern",
-    "WorkQueuePattern",
-    "RoutingPattern",
-    # Backends
-    "MessageBackend",
-    "RedisBackend",
-    "RabbitMQBackend",
-    "SQSBackend",
-    "InMemoryBackend",
     "BackendConfig",
-    "create_backend",
-    # Dead Letter Queue
-    "DeadLetterQueue",
+    "CompressionMiddleware",
+    "Consumer",
+    "ConsumerConfig",
     "DLQConfig",
     "DLQStrategy",
-    "RetryStrategy",
-    "MessageFailureHandler",
-    # Routing
-    "Router",
-    "Route",
-    "RoutingKey",
-    "RoutingStrategy",
-    "MessageRouter",
-    "TopicRouter",
+    # Dead Letter Queue
+    "DeadLetterQueue",
     "DirectRouter",
+    "EncryptionMiddleware",
+    "ExchangeConfig",
+    "ExchangeType",
     "FanoutRouter",
+    "InMemoryBackend",
+    "JSONSerializer",
+    # Core
+    "Message",
+    # Backends
+    "MessageBackend",
+    "MessageExchange",
+    "MessageFailureHandler",
+    "MessageHandler",
+    "MessageHeaders",
     # Middleware
     "MessageMiddleware",
-    "AuthenticationMiddleware",
-    "EncryptionMiddleware",
-    "CompressionMiddleware",
-    "MetricsMiddleware",
-    "TracingMiddleware",
-    "MiddlewareChain",
+    "MessagePattern",
+    "MessagePriority",
+    "MessageQueue",
+    "MessageRouter",
+    # Serialization
+    "MessageSerializer",
+    "MessageStatus",
+    "MessagingConfig",
     # Manager
     "MessagingManager",
-    "MessagingConfig",
-    "initialize_messaging",
+    "MetricsMiddleware",
+    "MiddlewareChain",
+    "PickleSerializer",
+    # Patterns
+    "Producer",
+    "ProducerConfig",
+    "ProtobufSerializer",
+    "PublishSubscribePattern",
+    "QueueConfig",
+    "QueueManager",
+    "RabbitMQBackend",
+    "RedisBackend",
+    "RequestReplyPattern",
+    "RetryStrategy",
+    "Route",
+    # Routing
+    "Router",
+    "RoutingKey",
+    "RoutingPattern",
+    "RoutingStrategy",
+    "SQSBackend",
+    "SerializationError",
+    "TopicRouter",
+    "TracingMiddleware",
+    "WorkQueuePattern",
+    "create_backend",
     "get_messaging_manager",
+    "initialize_messaging",
 ]

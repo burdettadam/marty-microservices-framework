@@ -5,10 +5,11 @@ This adapter implements a FastAPI-based REST API that serves as an input adapter
 implementing the input ports defined in the application layer.
 """
 
-from typing import List, Optional
+import builtins
+from typing import List, Optional, list
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from ...application.ports.input_ports import (
@@ -31,15 +32,15 @@ class CreateTaskRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     description: str = Field(..., min_length=1)
     priority: str = Field("medium", regex="^(low|medium|high|urgent)$")
-    assignee_id: Optional[UUID] = None
+    assignee_id: UUID | None = None
 
 
 class UpdateTaskRequest(BaseModel):
     """Request model for updating a task."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=255)
-    description: Optional[str] = Field(None, min_length=1)
-    priority: Optional[str] = Field(None, regex="^(low|medium|high|urgent)$")
+    title: str | None = Field(None, min_length=1, max_length=255)
+    description: str | None = Field(None, min_length=1)
+    priority: str | None = Field(None, regex="^(low|medium|high|urgent)$")
 
 
 class AssignTaskRequest(BaseModel):
@@ -54,7 +55,7 @@ class CreateUserRequest(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     email: str = Field(..., regex=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-    phone: Optional[str] = None
+    phone: str | None = None
 
 
 class TaskResponse(BaseModel):
@@ -65,11 +66,11 @@ class TaskResponse(BaseModel):
     description: str
     priority: str
     status: str
-    assignee_id: Optional[UUID]
-    assignee_name: Optional[str]
+    assignee_id: UUID | None
+    assignee_name: str | None
     created_at: str
     updated_at: str
-    completed_at: Optional[str] = None
+    completed_at: str | None = None
 
     @classmethod
     def from_dto(cls, dto: TaskDTO) -> "TaskResponse":
@@ -94,7 +95,7 @@ class UserResponse(BaseModel):
     first_name: str
     last_name: str
     email: str
-    phone: Optional[str]
+    phone: str | None
     active: bool
     pending_task_count: int
     completed_task_count: int
@@ -237,13 +238,13 @@ class HTTPAdapter:
                     status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
                 )
 
-        @self._router.get("/tasks", response_model=List[TaskResponse])
+        @self._router.get("/tasks", response_model=builtins.list[TaskResponse])
         async def get_tasks(
-            status_filter: Optional[str] = None,
-            assignee_id: Optional[UUID] = None,
-            limit: Optional[int] = None,
+            status_filter: str | None = None,
+            assignee_id: UUID | None = None,
+            limit: int | None = None,
             offset: int = 0,
-        ) -> List[TaskResponse]:
+        ) -> builtins.list[TaskResponse]:
             """Get tasks with optional filters."""
             if status_filter:
                 tasks = await self._task_management.get_tasks_by_status(status_filter)
@@ -293,11 +294,11 @@ class HTTPAdapter:
                 )
             return UserResponse.from_dto(user_dto)
 
-        @self._router.get("/users", response_model=List[UserResponse])
+        @self._router.get("/users", response_model=builtins.list[UserResponse])
         async def get_users(
-            limit: Optional[int] = None,
+            limit: int | None = None,
             offset: int = 0,
-        ) -> List[UserResponse]:
+        ) -> builtins.list[UserResponse]:
             """Get all users."""
             users = await self._user_management.get_all_users(limit, offset)
             return [UserResponse.from_dto(user) for user in users]

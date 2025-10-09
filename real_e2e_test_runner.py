@@ -7,6 +7,7 @@ and provides genuine performance metrics and results.
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import os
@@ -14,7 +15,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, Final, dict
 
 import psutil
 
@@ -34,7 +35,7 @@ class RealPerformanceAnalyzer:
         self.bottlenecks_detected = []
         self.start_time = time.time()
 
-    def collect_system_metrics(self) -> Dict:
+    def collect_system_metrics(self) -> builtins.dict:
         """Collect real system performance metrics."""
         try:
             cpu_percent = psutil.cpu_percent(interval=0.1)
@@ -58,7 +59,9 @@ class RealPerformanceAnalyzer:
             logger.error(f"Error collecting metrics: {e}")
             return {}
 
-    def analyze_bottlenecks(self, metrics: Dict, load_level: int) -> Dict:
+    def analyze_bottlenecks(
+        self, metrics: builtins.dict, load_level: int
+    ) -> builtins.dict:
         """Analyze bottlenecks based on real metrics."""
         bottlenecks = []
 
@@ -205,7 +208,7 @@ class RealWorkloadSimulator:
                     f.write("test data " * 100)
 
                 # Read operation
-                with open(test_file, "r") as f:
+                with open(test_file) as f:
                     data = f.read()
 
                 # Delete operation

@@ -5,23 +5,18 @@ Use cases implement the business workflows and orchestrate domain services.
 They are the entry points from external adapters into the business logic.
 """
 
-from typing import List, Optional
+import builtins
+from typing import List, Optional, list
 from uuid import UUID
 
 from ..domain.entities import Task, User
-from ..domain.services import TaskManagementService, UserManagementService
-from ..domain.value_objects import Email, PersonName, PhoneNumber
+from ..domain.services import TaskManagementService
 from .ports.input_ports import (
     AssignTaskCommand,
     CreateTaskCommand,
-    CreateUserCommand,
-    HealthCheckPort,
     TaskDTO,
     TaskManagementPort,
     UpdateTaskCommand,
-    UserDTO,
-    UserManagementPort,
-    UserWorkloadDTO,
 )
 from .ports.output_ports import (
     CachePort,
@@ -190,7 +185,7 @@ class TaskManagementUseCase(TaskManagementPort):
 
         return self._task_to_dto(task, task.assignee)
 
-    async def get_task(self, task_id: UUID) -> Optional[TaskDTO]:
+    async def get_task(self, task_id: UUID) -> TaskDTO | None:
         """Get a task by its ID."""
         # Try cache first
         cache_key = f"task:{task_id}"
@@ -202,14 +197,14 @@ class TaskManagementUseCase(TaskManagementPort):
         assignee = task.assignee
         return self._task_to_dto(task, assignee)
 
-    async def get_tasks_by_assignee(self, user_id: UUID) -> List[TaskDTO]:
+    async def get_tasks_by_assignee(self, user_id: UUID) -> builtins.list[TaskDTO]:
         """Get all tasks assigned to a specific user."""
         tasks = await self._task_repository.find_by_assignee(user_id)
         assignee = await self._user_repository.find_by_id(user_id)
 
         return [self._task_to_dto(task, assignee) for task in tasks]
 
-    async def get_tasks_by_status(self, status: str) -> List[TaskDTO]:
+    async def get_tasks_by_status(self, status: str) -> builtins.list[TaskDTO]:
         """Get all tasks with a specific status."""
         tasks = await self._task_repository.find_by_status(status)
         result = []
@@ -221,8 +216,8 @@ class TaskManagementUseCase(TaskManagementPort):
         return result
 
     async def get_all_tasks(
-        self, limit: Optional[int] = None, offset: int = 0
-    ) -> List[TaskDTO]:
+        self, limit: int | None = None, offset: int = 0
+    ) -> builtins.list[TaskDTO]:
         """Get all tasks with optional pagination."""
         tasks = await self._task_repository.find_all(limit, offset)
         result = []
@@ -244,7 +239,7 @@ class TaskManagementUseCase(TaskManagementPort):
                 await self._cache.invalidate_pattern("tasks:*")
             return deleted
 
-    def _task_to_dto(self, task: Task, assignee: Optional[User] = None) -> TaskDTO:
+    def _task_to_dto(self, task: Task, assignee: User | None = None) -> TaskDTO:
         """Convert a task entity to a DTO."""
         return TaskDTO(
             id=task.id,

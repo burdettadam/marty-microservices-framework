@@ -9,13 +9,13 @@ Provides comprehensive load testing capabilities with:
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import statistics
 import time
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Dict, List, Optional, dict, list
 
 import aiohttp
 import grpc
@@ -33,20 +33,20 @@ class LoadTestConfig:
     test_duration_seconds: int = 60
     concurrent_users: int = 10
     ramp_up_seconds: int = 10
-    requests_per_second: Optional[int] = None
+    requests_per_second: int | None = None
     protocol: str = "grpc"  # grpc, http, https
     test_name: str = "load_test"
 
     # gRPC specific
-    grpc_service: Optional[str] = None
-    grpc_method: Optional[str] = None
-    grpc_payload: Optional[Dict] = None
+    grpc_service: str | None = None
+    grpc_method: str | None = None
+    grpc_payload: builtins.dict | None = None
 
     # HTTP specific
     http_path: str = "/"
     http_method: str = "GET"
-    http_headers: Optional[Dict[str, str]] = None
-    http_payload: Optional[Dict] = None
+    http_headers: builtins.dict[str, str] | None = None
+    http_payload: builtins.dict | None = None
 
 
 @dataclass
@@ -56,7 +56,7 @@ class TestResult:
     timestamp: float
     duration_ms: float
     status_code: str
-    error: Optional[str] = None
+    error: str | None = None
     response_size: int = 0
 
 
@@ -85,10 +85,10 @@ class LoadTestReport:
 
     # Error analysis
     error_rate_percent: float
-    errors_by_type: Dict[str, int]
+    errors_by_type: builtins.dict[str, int]
 
     # Raw results for analysis
-    results: List[TestResult]
+    results: builtins.list[TestResult]
 
 
 class PerformanceMonitor:
@@ -150,7 +150,7 @@ class GrpcLoadTester:
     def __init__(self, config: LoadTestConfig, monitor: PerformanceMonitor):
         self.config = config
         self.monitor = monitor
-        self.results: List[TestResult] = []
+        self.results: builtins.list[TestResult] = []
         self.active_connections = 0
 
     async def run_test(self) -> LoadTestReport:
@@ -318,7 +318,7 @@ class HttpLoadTester:
     def __init__(self, config: LoadTestConfig, monitor: PerformanceMonitor):
         self.config = config
         self.monitor = monitor
-        self.results: List[TestResult] = []
+        self.results: builtins.list[TestResult] = []
 
     async def run_test(self) -> LoadTestReport:
         """Execute the HTTP load test"""
@@ -433,7 +433,6 @@ class HttpLoadTester:
         """Generate comprehensive test report"""
         # Implementation similar to GrpcLoadTester._generate_report
         # ... (same logic as gRPC version)
-        pass
 
 
 class LoadTestRunner:
@@ -491,17 +490,17 @@ class LoadTestRunner:
         print(f"Successful: {report.successful_requests}")
         print(f"Failed: {report.failed_requests}")
         print(f"Error Rate: {report.error_rate_percent:.2f}%")
-        print(f"\nPerformance Metrics:")
+        print("\nPerformance Metrics:")
         print(f"  Average Response Time: {report.avg_response_time_ms:.2f} ms")
         print(f"  P50 Response Time: {report.p50_response_time_ms:.2f} ms")
         print(f"  P95 Response Time: {report.p95_response_time_ms:.2f} ms")
         print(f"  P99 Response Time: {report.p99_response_time_ms:.2f} ms")
-        print(f"\nThroughput:")
+        print("\nThroughput:")
         print(f"  Requests/second: {report.requests_per_second:.2f}")
         print(f"  Bytes/second: {report.bytes_per_second:.2f}")
 
         if report.errors_by_type:
-            print(f"\nErrors by Type:")
+            print("\nErrors by Type:")
             for error_type, count in report.errors_by_type.items():
                 print(f"  {error_type}: {count}")
 

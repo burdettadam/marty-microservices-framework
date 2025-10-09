@@ -7,19 +7,17 @@ performance monitoring for microservices architectures.
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import statistics
 import threading
 import time
-from abc import ABC, abstractmethod
-from collections import defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from contextlib import asynccontextmanager
+from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import Any, Dict, List, NamedTuple, Optional, dict, list
 
 import aiohttp
 import matplotlib.pyplot as plt
@@ -58,11 +56,11 @@ class RequestSpec:
 
     method: str
     url: str
-    headers: Dict[str, str] = field(default_factory=dict)
-    params: Dict[str, Any] = field(default_factory=dict)
-    body: Optional[Any] = None
+    headers: builtins.dict[str, str] = field(default_factory=dict)
+    params: builtins.dict[str, Any] = field(default_factory=dict)
+    body: Any | None = None
     timeout: float = 30.0
-    expected_status_codes: List[int] = field(default_factory=lambda: [200])
+    expected_status_codes: builtins.list[int] = field(default_factory=lambda: [200])
 
 
 @dataclass
@@ -75,8 +73,8 @@ class LoadConfiguration:
     ramp_duration: int = 60  # seconds
     hold_duration: int = 120  # seconds
     ramp_down_duration: int = 30  # seconds
-    iterations_per_user: Optional[int] = None
-    duration: Optional[int] = None  # Total test duration in seconds
+    iterations_per_user: int | None = None
+    duration: int | None = None  # Total test duration in seconds
     think_time: float = 1.0  # seconds between requests
     think_time_variation: float = 0.2  # variation factor
 
@@ -87,7 +85,7 @@ class ResponseMetric(NamedTuple):
     timestamp: float
     response_time: float
     status_code: int
-    error: Optional[str]
+    error: str | None
     request_size: int
     response_size: int
 
@@ -114,12 +112,12 @@ class PerformanceMetrics:
     bytes_per_second: float = 0.0
 
     # Error breakdown
-    error_breakdown: Dict[str, int] = field(default_factory=dict)
-    status_code_breakdown: Dict[int, int] = field(default_factory=dict)
+    error_breakdown: builtins.dict[str, int] = field(default_factory=dict)
+    status_code_breakdown: builtins.dict[int, int] = field(default_factory=dict)
 
     # Time series data
-    response_times: List[float] = field(default_factory=list)
-    timestamps: List[float] = field(default_factory=list)
+    response_times: builtins.list[float] = field(default_factory=list)
+    timestamps: builtins.list[float] = field(default_factory=list)
 
     def calculate_percentiles(self):
         """Calculate response time percentiles."""
@@ -129,7 +127,7 @@ class PerformanceMetrics:
             self.p95_response_time = np.percentile(sorted_times, 95)
             self.p99_response_time = np.percentile(sorted_times, 99)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert metrics to dictionary."""
         return {
             "total_requests": self.total_requests,
@@ -153,13 +151,13 @@ class MetricsCollector:
     """Collects and aggregates performance metrics."""
 
     def __init__(self):
-        self.raw_metrics: List[ResponseMetric] = []
+        self.raw_metrics: builtins.list[ResponseMetric] = []
         self.real_time_metrics = deque(
             maxlen=1000
         )  # Last 1000 requests for real-time monitoring
         self.lock = threading.Lock()
-        self.start_time: Optional[float] = None
-        self.end_time: Optional[float] = None
+        self.start_time: float | None = None
+        self.end_time: float | None = None
 
     def start_collection(self):
         """Start metrics collection."""
@@ -232,7 +230,9 @@ class MetricsCollector:
 
             return metrics
 
-    def get_real_time_metrics(self, window_seconds: int = 10) -> Dict[str, Any]:
+    def get_real_time_metrics(
+        self, window_seconds: int = 10
+    ) -> builtins.dict[str, Any]:
         """Get real-time metrics for the last N seconds."""
         with self.lock:
             current_time = time.time()
@@ -270,8 +270,8 @@ class LoadGenerator:
         self.request_spec = request_spec
         self.load_config = load_config
         self.metrics_collector = MetricsCollector()
-        self.session: Optional[aiohttp.ClientSession] = None
-        self.active_tasks: List[asyncio.Task] = []
+        self.session: aiohttp.ClientSession | None = None
+        self.active_tasks: builtins.list[asyncio.Task] = []
         self.stop_event = asyncio.Event()
 
     async def __aenter__(self):
@@ -536,9 +536,9 @@ class LoadGenerator:
         except asyncio.TimeoutError:
             error = "Request timeout"
         except aiohttp.ClientError as e:
-            error = f"Client error: {str(e)}"
+            error = f"Client error: {e!s}"
         except Exception as e:
-            error = f"Unexpected error: {str(e)}"
+            error = f"Unexpected error: {e!s}"
 
         # Record metrics
         response_time = time.time() - start_time
@@ -574,7 +574,7 @@ class PerformanceTestCase(TestCase):
         request_spec: RequestSpec,
         load_config: LoadConfiguration,
         test_type: PerformanceTestType = PerformanceTestType.LOAD_TEST,
-        performance_criteria: Dict[str, Any] = None,
+        performance_criteria: builtins.dict[str, Any] = None,
     ):
         super().__init__(
             name=f"Performance Test: {name}",
@@ -585,7 +585,7 @@ class PerformanceTestCase(TestCase):
         self.load_config = load_config
         self.performance_test_type = test_type
         self.performance_criteria = performance_criteria or {}
-        self.load_generator: Optional[LoadGenerator] = None
+        self.load_generator: LoadGenerator | None = None
 
     async def execute(self) -> TestResult:
         """Execute performance test."""
@@ -662,7 +662,9 @@ class PerformanceTestCase(TestCase):
                 severity=TestSeverity.CRITICAL,
             )
 
-    def _evaluate_criteria(self, metrics: PerformanceMetrics) -> Dict[str, bool]:
+    def _evaluate_criteria(
+        self, metrics: PerformanceMetrics
+    ) -> builtins.dict[str, bool]:
         """Evaluate performance criteria."""
         results = {}
 
@@ -722,7 +724,9 @@ class PerformanceReportGenerator:
         os.makedirs(output_dir, exist_ok=True)
 
     def generate_report(
-        self, test_results: List[TestResult], report_name: str = "performance_report"
+        self,
+        test_results: builtins.list[TestResult],
+        report_name: str = "performance_report",
     ) -> str:
         """Generate comprehensive performance report."""
         report = {
@@ -757,7 +761,9 @@ class PerformanceReportGenerator:
 
         return report_path
 
-    def _generate_summary(self, test_results: List[TestResult]) -> Dict[str, Any]:
+    def _generate_summary(
+        self, test_results: builtins.list[TestResult]
+    ) -> builtins.dict[str, Any]:
         """Generate test summary."""
         total_tests = len(test_results)
         passed_tests = len([r for r in test_results if r.status == TestStatus.PASSED])
@@ -795,7 +801,7 @@ class PerformanceReportGenerator:
         }
 
     def _generate_visualizations(
-        self, test_results: List[TestResult], report_name: str
+        self, test_results: builtins.list[TestResult], report_name: str
     ):
         """Generate performance visualizations."""
         try:
@@ -812,7 +818,7 @@ class PerformanceReportGenerator:
             logger.warning(f"Failed to generate visualizations: {e}")
 
     def _plot_response_time_distribution(
-        self, test_results: List[TestResult], report_name: str
+        self, test_results: builtins.list[TestResult], report_name: str
     ):
         """Plot response time distribution."""
         plt.figure(figsize=(12, 6))
@@ -838,14 +844,14 @@ class PerformanceReportGenerator:
         plt.close()
 
     def _plot_throughput_over_time(
-        self, test_results: List[TestResult], report_name: str
+        self, test_results: builtins.list[TestResult], report_name: str
     ):
         """Plot throughput over time."""
         plt.figure(figsize=(12, 6))
 
         for result in test_results:
             metrics = result.artifacts.get("performance_metrics", {})
-            if "timestamps" in metrics and metrics["timestamps"]:
+            if metrics.get("timestamps"):
                 # Calculate RPS in time windows
                 timestamps = metrics["timestamps"]
                 start_time = min(timestamps)
@@ -859,7 +865,7 @@ class PerformanceReportGenerator:
                     windows[window] = windows.get(window, 0) + 1
 
                 if windows:
-                    x_values = [w * window_size for w in windows.keys()]
+                    x_values = [w * window_size for w in windows]
                     y_values = [count / window_size for count in windows.values()]
 
                     plt.plot(x_values, y_values, label=result.name, marker="o")
@@ -876,7 +882,7 @@ class PerformanceReportGenerator:
         plt.close()
 
     def _plot_performance_comparison(
-        self, test_results: List[TestResult], report_name: str
+        self, test_results: builtins.list[TestResult], report_name: str
     ):
         """Plot performance comparison chart."""
         test_names = []
@@ -932,7 +938,7 @@ def create_load_test(
     url: str,
     users: int = 10,
     duration: int = 60,
-    criteria: Dict[str, Any] = None,
+    criteria: builtins.dict[str, Any] = None,
 ) -> PerformanceTestCase:
     """Create a basic load test."""
     request_spec = RequestSpec(method="GET", url=url)
@@ -954,7 +960,7 @@ def create_stress_test(
     url: str,
     max_users: int = 100,
     ramp_duration: int = 300,
-    criteria: Dict[str, Any] = None,
+    criteria: builtins.dict[str, Any] = None,
 ) -> PerformanceTestCase:
     """Create a stress test with gradual ramp-up."""
     request_spec = RequestSpec(method="GET", url=url)
@@ -980,7 +986,7 @@ def create_spike_test(
     url: str,
     normal_users: int = 10,
     spike_users: int = 100,
-    criteria: Dict[str, Any] = None,
+    criteria: builtins.dict[str, Any] = None,
 ) -> PerformanceTestCase:
     """Create a spike test."""
     request_spec = RequestSpec(method="GET", url=url)

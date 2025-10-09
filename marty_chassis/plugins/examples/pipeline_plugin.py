@@ -9,7 +9,7 @@ import asyncio
 import random
 import time
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..decorators import plugin
 from ..interfaces import IServicePlugin, PluginContext, PluginMetadata
@@ -101,10 +101,10 @@ class DataProcessingPipelinePlugin(IServicePlugin):
         }
 
         # Active jobs tracking
-        self.active_jobs: Dict[str, Dict[str, Any]] = {}
+        self.active_jobs: dict[str, dict[str, Any]] = {}
 
         # Background processor task
-        self._processor_task: Optional[asyncio.Task] = None
+        self._processor_task: asyncio.Task | None = None
         self._job_queue: asyncio.Queue = asyncio.Queue()
 
     async def initialize(self, context: PluginContext) -> None:
@@ -180,7 +180,7 @@ class DataProcessingPipelinePlugin(IServicePlugin):
         """Return plugin metadata."""
         return self._plugin_metadata
 
-    async def submit_job(self, job_data: Dict[str, Any], priority: int = 0) -> str:
+    async def submit_job(self, job_data: dict[str, Any], priority: int = 0) -> str:
         """
         Submit a job for processing through the pipeline.
 
@@ -227,7 +227,7 @@ class DataProcessingPipelinePlugin(IServicePlugin):
         self.logger.info(f"Job submitted: {job_id}")
         return job_id
 
-    async def get_job_status(self, job_id: str) -> Optional[Dict[str, Any]]:
+    async def get_job_status(self, job_id: str) -> dict[str, Any] | None:
         """Get status of a specific job."""
         job = self.active_jobs.get(job_id)
         if not job:
@@ -246,7 +246,7 @@ class DataProcessingPipelinePlugin(IServicePlugin):
             "errors": job["errors"][-3:],  # Last 3 errors
         }
 
-    async def get_pipeline_metrics(self) -> Dict[str, Any]:
+    async def get_pipeline_metrics(self) -> dict[str, Any]:
         """Get comprehensive pipeline metrics."""
         total_jobs = self.pipeline_metrics["total_jobs"]
 
@@ -305,7 +305,7 @@ class DataProcessingPipelinePlugin(IServicePlugin):
             except Exception as e:
                 self.logger.error(f"Error in background processor: {e}")
 
-    async def _process_job(self, job: Dict[str, Any]) -> None:
+    async def _process_job(self, job: dict[str, Any]) -> None:
         """Process a single job through the pipeline."""
         job_id = job["id"]
         job["status"] = ProcessingStatus.IN_PROGRESS
@@ -390,7 +390,7 @@ class DataProcessingPipelinePlugin(IServicePlugin):
             self.pipeline_metrics["failed_jobs"] += 1
             self.logger.error(f"Unexpected error processing job {job_id}: {e}")
 
-    async def _process_stage(self, job: Dict[str, Any], stage: ProcessingStage) -> bool:
+    async def _process_stage(self, job: dict[str, Any], stage: ProcessingStage) -> bool:
         """
         Process a single stage of the pipeline.
 
@@ -486,17 +486,17 @@ class DataProcessingPipelinePlugin(IServicePlugin):
             )
             return False
 
-    async def on_service_register(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_register(self, service_info: dict[str, Any]) -> None:
         """Called when a service is being registered."""
         self.logger.debug(f"Service registered: {service_info.get('name', 'unknown')}")
 
-    async def on_service_unregister(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_unregister(self, service_info: dict[str, Any]) -> None:
         """Called when a service is being unregistered."""
         self.logger.debug(
             f"Service unregistered: {service_info.get('name', 'unknown')}"
         )
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check with pipeline status."""
         health = await super().health_check()
 

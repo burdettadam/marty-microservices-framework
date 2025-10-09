@@ -29,7 +29,7 @@ from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Union, dict, list, type
 
 import httpx
 import structlog

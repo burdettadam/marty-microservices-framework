@@ -2,15 +2,17 @@
 Integration setup for observability components
 """
 
+from typing import Tuple
+
 from observability.kafka import EventBus, KafkaConfig, event_bus_context
 from observability.metrics import MetricsCollector, MetricsConfig
 
 __all__ = [
     "EventBus",
     "KafkaConfig",
-    "event_bus_context",
     "MetricsCollector",
     "MetricsConfig",
+    "event_bus_context",
     "setup_observability",
 ]
 

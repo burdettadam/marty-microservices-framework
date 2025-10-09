@@ -6,6 +6,7 @@ for scalable CQRS architecture patterns.
 """
 
 import asyncio
+import builtins
 import logging
 import uuid
 from abc import ABC, abstractmethod
@@ -13,9 +14,9 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, dict, list
 
-from .core import DomainEvent, Event, EventHandler, EventMetadata, IntegrationEvent
+from .core import Event
 
 logger = logging.getLogger(__name__)
 
@@ -51,16 +52,16 @@ class Command:
     command_type: str = field(default="")
     timestamp: datetime = field(default_factory=datetime.utcnow)
     correlation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    causation_id: Optional[str] = None
-    user_id: Optional[str] = None
-    tenant_id: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    causation_id: str | None = None
+    user_id: str | None = None
+    tenant_id: str | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.command_type:
             self.command_type = self.__class__.__name__
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert command to dictionary."""
         return {
             "command_id": self.command_id,
@@ -98,22 +99,22 @@ class Query:
     query_category: QueryType = QueryType.SINGLE
     timestamp: datetime = field(default_factory=datetime.utcnow)
     correlation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: Optional[str] = None
-    tenant_id: Optional[str] = None
+    user_id: str | None = None
+    tenant_id: str | None = None
 
     # Pagination
     page: int = 1
     page_size: int = 20
 
     # Sorting
-    sort_by: Optional[str] = None
+    sort_by: str | None = None
     sort_order: str = "asc"
 
     # Filtering
-    filters: Dict[str, Any] = field(default_factory=dict)
+    filters: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Metadata
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.query_type:
@@ -126,12 +127,12 @@ class QueryResult(Generic[TResult]):
 
     query_id: str
     data: TResult
-    total_count: Optional[int] = None
-    page: Optional[int] = None
-    page_size: Optional[int] = None
+    total_count: int | None = None
+    page: int | None = None
+    page_size: int | None = None
     has_more: bool = False
-    execution_time_ms: Optional[float] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    execution_time_ms: float | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -141,10 +142,10 @@ class CommandResult:
     command_id: str
     status: CommandStatus
     result_data: Any = None
-    error_message: Optional[str] = None
-    events: List[Event] = field(default_factory=list)
-    execution_time_ms: Optional[float] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    error_message: str | None = None
+    events: builtins.list[Event] = field(default_factory=list)
+    execution_time_ms: float | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class CommandHandler(ABC, Generic[TCommand]):
@@ -179,8 +180,8 @@ class CommandBus:
     """Command bus for dispatching commands to handlers."""
 
     def __init__(self):
-        self._handlers: Dict[str, CommandHandler] = {}
-        self._middleware: List[Callable] = []
+        self._handlers: builtins.dict[str, CommandHandler] = {}
+        self._middleware: builtins.list[Callable] = []
         self._lock = asyncio.Lock()
 
     def register_handler(self, command_type: str, handler: CommandHandler) -> None:
@@ -234,9 +235,9 @@ class QueryBus:
     """Query bus for dispatching queries to handlers."""
 
     def __init__(self):
-        self._handlers: Dict[str, QueryHandler] = {}
-        self._middleware: List[Callable] = []
-        self._cache: Optional[Dict[str, Any]] = None
+        self._handlers: builtins.dict[str, QueryHandler] = {}
+        self._middleware: builtins.list[Callable] = []
+        self._cache: builtins.dict[str, Any] | None = None
         self._lock = asyncio.Lock()
 
     def register_handler(self, query_type: str, handler: QueryHandler) -> None:
@@ -247,7 +248,7 @@ class QueryBus:
         """Add middleware to query pipeline."""
         self._middleware.append(middleware)
 
-    def enable_caching(self, cache: Dict[str, Any]) -> None:
+    def enable_caching(self, cache: builtins.dict[str, Any]) -> None:
         """Enable query result caching."""
         self._cache = cache
 
@@ -321,7 +322,7 @@ class Projection(ABC):
         return self._version
 
     @property
-    def last_processed_event(self) -> Optional[str]:
+    def last_processed_event(self) -> str | None:
         """Get last processed event ID."""
         return self._last_processed_event
 
@@ -351,12 +352,16 @@ class ReadModelStore(ABC):
     """Abstract read model store interface."""
 
     @abstractmethod
-    async def save(self, model_type: str, model_id: str, data: Dict[str, Any]) -> None:
+    async def save(
+        self, model_type: str, model_id: str, data: builtins.dict[str, Any]
+    ) -> None:
         """Save read model."""
         raise NotImplementedError
 
     @abstractmethod
-    async def get(self, model_type: str, model_id: str) -> Optional[Dict[str, Any]]:
+    async def get(
+        self, model_type: str, model_id: str
+    ) -> builtins.dict[str, Any] | None:
         """Get read model by ID."""
         raise NotImplementedError
 
@@ -364,12 +369,12 @@ class ReadModelStore(ABC):
     async def query(
         self,
         model_type: str,
-        filters: Dict[str, Any] = None,
+        filters: builtins.dict[str, Any] = None,
         sort_by: str = None,
         sort_order: str = "asc",
         page: int = 1,
         page_size: int = 20,
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Query read models."""
         raise NotImplementedError
 
@@ -379,7 +384,9 @@ class ReadModelStore(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def count(self, model_type: str, filters: Dict[str, Any] = None) -> int:
+    async def count(
+        self, model_type: str, filters: builtins.dict[str, Any] = None
+    ) -> int:
         """Count read models."""
         raise NotImplementedError
 
@@ -388,15 +395,21 @@ class InMemoryReadModelStore(ReadModelStore):
     """In-memory read model store implementation."""
 
     def __init__(self):
-        self._models: Dict[str, Dict[str, Dict[str, Any]]] = defaultdict(dict)
+        self._models: builtins.dict[
+            str, builtins.dict[str, builtins.dict[str, Any]]
+        ] = defaultdict(dict)
         self._lock = asyncio.Lock()
 
-    async def save(self, model_type: str, model_id: str, data: Dict[str, Any]) -> None:
+    async def save(
+        self, model_type: str, model_id: str, data: builtins.dict[str, Any]
+    ) -> None:
         """Save read model."""
         async with self._lock:
             self._models[model_type][model_id] = data.copy()
 
-    async def get(self, model_type: str, model_id: str) -> Optional[Dict[str, Any]]:
+    async def get(
+        self, model_type: str, model_id: str
+    ) -> builtins.dict[str, Any] | None:
         """Get read model by ID."""
         async with self._lock:
             return self._models[model_type].get(model_id)
@@ -404,12 +417,12 @@ class InMemoryReadModelStore(ReadModelStore):
     async def query(
         self,
         model_type: str,
-        filters: Dict[str, Any] = None,
+        filters: builtins.dict[str, Any] = None,
         sort_by: str = None,
         sort_order: str = "asc",
         page: int = 1,
         page_size: int = 20,
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Query read models."""
         async with self._lock:
             models = list(self._models[model_type].values())
@@ -439,7 +452,9 @@ class InMemoryReadModelStore(ReadModelStore):
             if model_id in self._models[model_type]:
                 del self._models[model_type][model_id]
 
-    async def count(self, model_type: str, filters: Dict[str, Any] = None) -> int:
+    async def count(
+        self, model_type: str, filters: builtins.dict[str, Any] = None
+    ) -> int:
         """Count read models."""
         async with self._lock:
             models = self._models[model_type].values()
@@ -454,7 +469,9 @@ class InMemoryReadModelStore(ReadModelStore):
 
             return count
 
-    def _matches_filters(self, model: Dict[str, Any], filters: Dict[str, Any]) -> bool:
+    def _matches_filters(
+        self, model: builtins.dict[str, Any], filters: builtins.dict[str, Any]
+    ) -> bool:
         """Check if model matches filters."""
         for key, value in filters.items():
             if key not in model:
@@ -465,10 +482,9 @@ class InMemoryReadModelStore(ReadModelStore):
                 for op, op_value in value.items():
                     if not self._apply_filter_operation(model[key], op, op_value):
                         return False
-            else:
-                # Simple equality filter
-                if model[key] != value:
-                    return False
+            # Simple equality filter
+            elif model[key] != value:
+                return False
 
         return True
 
@@ -478,22 +494,21 @@ class InMemoryReadModelStore(ReadModelStore):
         """Apply filter operation."""
         if operation == "$eq":
             return field_value == op_value
-        elif operation == "$ne":
+        if operation == "$ne":
             return field_value != op_value
-        elif operation == "$gt":
+        if operation == "$gt":
             return field_value > op_value
-        elif operation == "$gte":
+        if operation == "$gte":
             return field_value >= op_value
-        elif operation == "$lt":
+        if operation == "$lt":
             return field_value < op_value
-        elif operation == "$lte":
+        if operation == "$lte":
             return field_value <= op_value
-        elif operation == "$in":
+        if operation == "$in":
             return field_value in op_value
-        elif operation == "$nin":
+        if operation == "$nin":
             return field_value not in op_value
-        else:
-            return False
+        return False
 
 
 class ProjectionManager:
@@ -501,8 +516,10 @@ class ProjectionManager:
 
     def __init__(self, read_model_store: ReadModelStore):
         self.read_model_store = read_model_store
-        self._projections: Dict[str, Projection] = {}
-        self._event_handlers: Dict[str, List[Projection]] = defaultdict(list)
+        self._projections: builtins.dict[str, Projection] = {}
+        self._event_handlers: builtins.dict[
+            str, builtins.list[Projection]
+        ] = defaultdict(list)
 
     def register_projection(self, projection: Projection) -> None:
         """Register projection."""
@@ -527,7 +544,7 @@ class ProjectionManager:
             await asyncio.gather(*tasks, return_exceptions=True)
 
     async def rebuild_projection(
-        self, projection_name: str, events: List[Event]
+        self, projection_name: str, events: builtins.list[Event]
     ) -> None:
         """Rebuild projection from events."""
         projection = self._projections.get(projection_name)
@@ -548,19 +565,13 @@ class ProjectionManager:
 class CQRSError(Exception):
     """CQRS specific error."""
 
-    pass
-
 
 class CommandValidationError(CQRSError):
     """Command validation error."""
 
-    pass
-
 
 class QueryValidationError(CQRSError):
     """Query validation error."""
-
-    pass
 
 
 # Decorators for command and query handlers
@@ -593,7 +604,7 @@ def create_command_result(
     command_id: str,
     status: CommandStatus,
     result_data: Any = None,
-    events: List[Event] = None,
+    events: builtins.list[Event] = None,
 ) -> CommandResult:
     """Create command result."""
     return CommandResult(

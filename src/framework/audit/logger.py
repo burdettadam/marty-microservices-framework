@@ -1,16 +1,17 @@
 """
 Main audit logging manager for the enterprise audit framework.
-
 This module provides the central audit logger that manages multiple destinations,
 handles event routing, and provides compliance and retention features.
 """
 
 import asyncio
+import builtins
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, dict, list
 
 from .destinations import (
     ConsoleAuditDestination,
@@ -40,35 +41,27 @@ class AuditConfig:
         self.enable_database_logging: bool = True
         self.enable_console_logging: bool = False
         self.enable_siem_logging: bool = False
-
         # File configuration
         self.log_file_path: Path = Path("logs/audit.log")
         self.max_file_size: int = 100 * 1024 * 1024  # 100MB
         self.max_files: int = 10
-
         # Database configuration
         self.batch_size: int = 100
-
         # SIEM configuration
         self.siem_endpoint: str = ""
         self.siem_api_key: str = ""
-
         # Security
         self.encrypt_sensitive_data: bool = True
-
         # Performance
         self.async_logging: bool = True
         self.flush_interval_seconds: int = 30
-
         # Retention
         self.retention_days: int = 365
         self.auto_cleanup: bool = True
         self.cleanup_interval_hours: int = 24
-
         # Filtering
         self.min_severity: AuditSeverity = AuditSeverity.INFO
-        self.excluded_event_types: List[AuditEventType] = []
-
+        self.excluded_event_types: builtins.list[AuditEventType] = []
         # Compliance
         self.compliance_mode: bool = False
         self.immutable_logging: bool = False
@@ -81,56 +74,45 @@ class AuditLogger:
         self,
         config: AuditConfig,
         context: AuditContext,
-        db_session: Optional[Any] = None,
+        db_session: Any | None = None,
     ):
         self.config = config
         self.context = context
         self.db_session = db_session
-
-        self.destinations: List[AuditDestination] = []
+        self.destinations: builtins.list[AuditDestination] = []
         self._initialized = False
-        self._background_tasks: List[asyncio.Task] = []
+        self._background_tasks: builtins.list[asyncio.Task] = []
         self._shutdown = False
-
         # Event queue for async logging
         if config.async_logging:
             self._event_queue: asyncio.Queue = asyncio.Queue(maxsize=10000)
-
         logger.info(f"Audit logger initialized for service: {context.service_name}")
 
     async def initialize(self) -> None:
         """Initialize audit logger and destinations."""
         if self._initialized:
             return
-
         try:
             # Setup destinations
             await self._setup_destinations()
-
             # Start background tasks
             if self.config.async_logging:
                 task = asyncio.create_task(self._process_event_queue())
                 self._background_tasks.append(task)
-
             if self.config.auto_cleanup:
                 task = asyncio.create_task(self._cleanup_task())
                 self._background_tasks.append(task)
-
             # Periodic flush task
             task = asyncio.create_task(self._flush_task())
             self._background_tasks.append(task)
-
             self._initialized = True
-
             # Log initialization
             await self.log_system_event(
                 AuditEventType.SYSTEM_STARTUP,
                 "Audit logging system initialized",
                 severity=AuditSeverity.INFO,
             )
-
             logger.info("Audit logger initialized successfully")
-
         except Exception as e:
             logger.error(f"Failed to initialize audit logger: {e}")
             raise
@@ -145,10 +127,8 @@ class AuditLogger:
                     "Audit logging system shutting down",
                     severity=AuditSeverity.INFO,
                 )
-
             # Set shutdown flag
             self._shutdown = True
-
             # Process remaining events
             if self.config.async_logging and hasattr(self, "_event_queue"):
                 while not self._event_queue.empty():
@@ -157,7 +137,6 @@ class AuditLogger:
                         await self._log_to_destinations(event)
                     except asyncio.QueueEmpty:
                         break
-
             # Cancel background tasks
             for task in self._background_tasks:
                 task.cancel()
@@ -165,13 +144,10 @@ class AuditLogger:
                     await task
                 except asyncio.CancelledError:
                     pass
-
             # Close destinations
             for destination in self.destinations:
                 await destination.close()
-
             logger.info("Audit logger closed successfully")
-
         except Exception as e:
             logger.error(f"Error closing audit logger: {e}")
 
@@ -179,17 +155,14 @@ class AuditLogger:
         """Log an audit event."""
         if not self._should_log_event(event):
             return
-
         # Set context if not already set
         if not event.context:
             event.context = self.context
-
         try:
             if self.config.async_logging:
                 await self._event_queue.put(event)
             else:
                 await self._log_to_destinations(event)
-
         except Exception as e:
             logger.error(f"Failed to log audit event: {e}")
 
@@ -202,8 +175,8 @@ class AuditLogger:
         event_type: AuditEventType,
         user_id: str,
         outcome: AuditOutcome = AuditOutcome.SUCCESS,
-        source_ip: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        source_ip: str | None = None,
+        details: builtins.dict[str, Any] | None = None,
     ) -> None:
         """Log authentication event."""
         builder = (
@@ -218,13 +191,10 @@ class AuditLogger:
                 else AuditSeverity.HIGH
             )
         )
-
         if source_ip:
             builder.request(source_ip=source_ip)
-
         if details:
             builder.details(details)
-
         await self.log_event(builder.build())
 
     async def log_api_event(
@@ -232,15 +202,14 @@ class AuditLogger:
         method: str,
         endpoint: str,
         status_code: int,
-        user_id: Optional[str] = None,
-        source_ip: Optional[str] = None,
-        duration_ms: Optional[float] = None,
-        request_size: Optional[int] = None,
-        response_size: Optional[int] = None,
-        error_message: Optional[str] = None,
+        user_id: str | None = None,
+        source_ip: str | None = None,
+        duration_ms: float | None = None,
+        request_size: int | None = None,
+        response_size: int | None = None,
+        error_message: str | None = None,
     ) -> None:
         """Log API request/response event."""
-
         outcome = (
             AuditOutcome.SUCCESS if 200 <= status_code < 400 else AuditOutcome.FAILURE
         )
@@ -249,7 +218,6 @@ class AuditLogger:
             if outcome == AuditOutcome.SUCCESS
             else AuditSeverity.MEDIUM
         )
-
         builder = (
             self.create_event_builder()
             .event_type(AuditEventType.API_REQUEST)
@@ -261,16 +229,12 @@ class AuditLogger:
             .detail("request_size", request_size)
             .detail("response_size", response_size)
         )
-
         if user_id:
             builder.user(user_id)
-
         if duration_ms:
             builder.performance(duration_ms, response_size)
-
         if error_message:
             builder.error(error_message=error_message)
-
         await self.log_event(builder.build())
 
     async def log_data_event(
@@ -279,11 +243,10 @@ class AuditLogger:
         resource_type: str,
         resource_id: str,
         action: str,
-        user_id: Optional[str] = None,
-        changes: Optional[Dict[str, Any]] = None,
+        user_id: str | None = None,
+        changes: builtins.dict[str, Any] | None = None,
     ) -> None:
         """Log data operation event."""
-
         builder = (
             self.create_event_builder()
             .event_type(event_type)
@@ -292,13 +255,10 @@ class AuditLogger:
             .outcome(AuditOutcome.SUCCESS)
             .severity(AuditSeverity.MEDIUM)
         )
-
         if user_id:
             builder.user(user_id)
-
         if changes:
             builder.detail("changes", changes)
-
         await self.log_event(builder.build())
 
     async def log_security_event(
@@ -306,12 +266,11 @@ class AuditLogger:
         event_type: AuditEventType,
         message: str,
         severity: AuditSeverity = AuditSeverity.HIGH,
-        source_ip: Optional[str] = None,
-        user_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        source_ip: str | None = None,
+        user_id: str | None = None,
+        details: builtins.dict[str, Any] | None = None,
     ) -> None:
         """Log security event."""
-
         builder = (
             self.create_event_builder()
             .event_type(event_type)
@@ -320,16 +279,12 @@ class AuditLogger:
             .outcome(AuditOutcome.FAILURE)
             .action("security_violation")
         )
-
         if source_ip:
             builder.request(source_ip=source_ip)
-
         if user_id:
             builder.user(user_id)
-
         if details:
             builder.details(details)
-
         await self.log_event(builder.build())
 
     async def log_system_event(
@@ -337,10 +292,9 @@ class AuditLogger:
         event_type: AuditEventType,
         message: str,
         severity: AuditSeverity = AuditSeverity.INFO,
-        details: Optional[Dict[str, Any]] = None,
+        details: builtins.dict[str, Any] | None = None,
     ) -> None:
         """Log system event."""
-
         builder = (
             self.create_event_builder()
             .event_type(event_type)
@@ -349,23 +303,20 @@ class AuditLogger:
             .outcome(AuditOutcome.SUCCESS)
             .action("system_operation")
         )
-
         if details:
             builder.details(details)
-
         await self.log_event(builder.build())
 
     async def search_events(
         self,
-        event_type: Optional[AuditEventType] = None,
-        user_id: Optional[str] = None,
-        source_ip: Optional[str] = None,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        event_type: AuditEventType | None = None,
+        user_id: str | None = None,
+        source_ip: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         limit: int = 100,
     ) -> AsyncGenerator[AuditEvent, None]:
         """Search audit events across all destinations that support it."""
-
         criteria = {}
         if event_type:
             criteria["event_type"] = event_type.value
@@ -377,14 +328,12 @@ class AuditLogger:
             criteria["start_time"] = start_time
         if end_time:
             criteria["end_time"] = end_time
-
         # Search in database destination first (most efficient)
         for destination in self.destinations:
             if isinstance(destination, DatabaseAuditDestination):
                 async for event in destination.search_events(criteria, limit):
                     yield event
                 return
-
         # Fallback to file destination
         for destination in self.destinations:
             if isinstance(destination, FileAuditDestination):
@@ -393,15 +342,13 @@ class AuditLogger:
                 return
 
     async def get_audit_statistics(
-        self, start_time: Optional[datetime] = None, end_time: Optional[datetime] = None
-    ) -> Dict[str, Any]:
+        self, start_time: datetime | None = None, end_time: datetime | None = None
+    ) -> builtins.dict[str, Any]:
         """Get audit logging statistics."""
-
         if not start_time:
             start_time = datetime.now(timezone.utc) - timedelta(days=7)
         if not end_time:
             end_time = datetime.now(timezone.utc)
-
         stats = {
             "period": {"start": start_time.isoformat(), "end": end_time.isoformat()},
             "event_counts": {},
@@ -410,61 +357,49 @@ class AuditLogger:
             "error_events": 0,
             "total_events": 0,
         }
-
         try:
             async for event in self.search_events(
                 start_time=start_time, end_time=end_time, limit=10000
             ):
                 stats["total_events"] += 1
-
                 # Count by event type
                 event_type = event.event_type.value
                 stats["event_counts"][event_type] = (
                     stats["event_counts"].get(event_type, 0) + 1
                 )
-
                 # Count by user
                 if event.user_id:
                     stats["user_activity"][event.user_id] = (
                         stats["user_activity"].get(event.user_id, 0) + 1
                     )
-
                 # Count security events
                 if "security" in event_type.lower() or event.severity in [
                     AuditSeverity.HIGH,
                     AuditSeverity.CRITICAL,
                 ]:
                     stats["security_events"] += 1
-
                 # Count error events
                 if event.outcome in [AuditOutcome.FAILURE, AuditOutcome.ERROR]:
                     stats["error_events"] += 1
-
         except Exception as e:
             logger.error(f"Error generating audit statistics: {e}")
             stats["error"] = str(e)
-
         return stats
 
     async def cleanup_old_events(self, older_than_days: int = None) -> int:
         """Clean up old audit events based on retention policy."""
-
         if older_than_days is None:
             older_than_days = self.config.retention_days
-
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=older_than_days)
-
         logger.info(
             f"Cleaning up audit events older than {older_than_days} days (before {cutoff_date})"
         )
-
         # This would typically be implemented in the database destination
         # For now, return 0 as a placeholder
         return 0
 
     async def _setup_destinations(self) -> None:
         """Setup audit logging destinations."""
-
         # File destination
         if self.config.enable_file_logging:
             file_destination = FileAuditDestination(
@@ -475,7 +410,6 @@ class AuditLogger:
             )
             self.destinations.append(file_destination)
             logger.info(f"Added file audit destination: {self.config.log_file_path}")
-
         # Database destination
         if self.config.enable_database_logging and self.db_session:
             db_destination = DatabaseAuditDestination(
@@ -485,7 +419,6 @@ class AuditLogger:
             )
             self.destinations.append(db_destination)
             logger.info("Added database audit destination")
-
         # Console destination
         if self.config.enable_console_logging:
             console_destination = ConsoleAuditDestination(
@@ -493,7 +426,6 @@ class AuditLogger:
             )
             self.destinations.append(console_destination)
             logger.info("Added console audit destination")
-
         # SIEM destination
         if self.config.enable_siem_logging and self.config.siem_endpoint:
             siem_destination = SIEMAuditDestination(
@@ -506,7 +438,6 @@ class AuditLogger:
 
     def _should_log_event(self, event: AuditEvent) -> bool:
         """Check if event should be logged based on configuration."""
-
         # Check minimum severity
         severity_levels = {
             AuditSeverity.INFO: 0,
@@ -515,19 +446,15 @@ class AuditLogger:
             AuditSeverity.HIGH: 3,
             AuditSeverity.CRITICAL: 4,
         }
-
         if severity_levels[event.severity] < severity_levels[self.config.min_severity]:
             return False
-
         # Check excluded event types
         if event.event_type in self.config.excluded_event_types:
             return False
-
         return True
 
     async def _log_to_destinations(self, event: AuditEvent) -> None:
         """Log event to all configured destinations."""
-
         for destination in self.destinations:
             try:
                 await destination.log_event(event)
@@ -538,7 +465,6 @@ class AuditLogger:
 
     async def _process_event_queue(self) -> None:
         """Process events from the async queue."""
-
         while not self._shutdown:
             try:
                 # Wait for events with timeout
@@ -547,18 +473,15 @@ class AuditLogger:
                     await self._log_to_destinations(event)
                 except asyncio.TimeoutError:
                     continue
-
             except Exception as e:
                 logger.error(f"Error processing audit event queue: {e}")
                 await asyncio.sleep(1)
 
     async def _flush_task(self) -> None:
         """Periodic flush task for destinations."""
-
         while not self._shutdown:
             try:
                 await asyncio.sleep(self.config.flush_interval_seconds)
-
                 # Trigger flush on destinations that support it
                 for destination in self.destinations:
                     if hasattr(destination, "_flush_batch"):
@@ -568,7 +491,6 @@ class AuditLogger:
                             logger.error(
                                 f"Error flushing destination {type(destination).__name__}: {e}"
                             )
-
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -576,15 +498,12 @@ class AuditLogger:
 
     async def _cleanup_task(self) -> None:
         """Periodic cleanup task for old audit events."""
-
         while not self._shutdown:
             try:
                 await asyncio.sleep(self.config.cleanup_interval_hours * 3600)
-
                 if self.config.auto_cleanup:
                     cleaned_count = await self.cleanup_old_events()
                     logger.info(f"Cleaned up {cleaned_count} old audit events")
-
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -592,10 +511,10 @@ class AuditLogger:
 
 
 # Global audit logger instance
-_audit_logger: Optional[AuditLogger] = None
+_audit_logger: AuditLogger | None = None
 
 
-def get_audit_logger() -> Optional[AuditLogger]:
+def get_audit_logger() -> AuditLogger | None:
     """Get the global audit logger instance."""
     return _audit_logger
 
@@ -608,12 +527,10 @@ def set_audit_logger(audit_logger: AuditLogger) -> None:
 
 @asynccontextmanager
 async def audit_context(
-    config: AuditConfig, context: AuditContext, db_session: Optional[Any] = None
+    config: AuditConfig, context: AuditContext, db_session: Any | None = None
 ):
     """Context manager for audit logging."""
-
     audit_logger = AuditLogger(config, context, db_session)
-
     try:
         await audit_logger.initialize()
         set_audit_logger(audit_logger)

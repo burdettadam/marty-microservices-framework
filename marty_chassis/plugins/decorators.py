@@ -5,10 +5,9 @@ This module provides decorators that simplify plugin creation
 and registration of various plugin types and extension points.
 """
 
-import asyncio
 import functools
 import inspect
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from .interfaces import PluginMetadata
 
@@ -18,9 +17,9 @@ def plugin(
     version: str,
     description: str = "",
     author: str = "",
-    dependencies: Optional[List[str]] = None,
-    provides: Optional[List[str]] = None,
-    config_schema: Optional[Dict[str, Any]] = None,
+    dependencies: list[str] | None = None,
+    provides: list[str] | None = None,
+    config_schema: dict[str, Any] | None = None,
 ):
     """
     Decorator to mark a class as a plugin.
@@ -109,7 +108,7 @@ def middleware(priority: int = 0):
     return decorator
 
 
-def event_handler(event_types: List[str]):
+def event_handler(event_types: list[str]):
     """
     Decorator to register a method as an event handler.
 

@@ -7,7 +7,7 @@ collection using the metrics plugin interface.
 
 import asyncio
 import time
-from typing import Any, Dict
+from typing import Any
 
 import psutil
 
@@ -101,7 +101,7 @@ class CustomMetricsPlugin(IMetricsPlugin):
             provides=["metrics", "system-metrics", "performance"],
         )
 
-    async def collect_metrics(self) -> Dict[str, Any]:
+    async def collect_metrics(self) -> dict[str, Any]:
         """
         Collect all metrics.
 
@@ -121,7 +121,7 @@ class CustomMetricsPlugin(IMetricsPlugin):
 
         return metrics
 
-    def get_metric_definitions(self) -> Dict[str, Dict[str, Any]]:
+    def get_metric_definitions(self) -> dict[str, dict[str, Any]]:
         """
         Return metric definitions.
 
@@ -171,7 +171,7 @@ class CustomMetricsPlugin(IMetricsPlugin):
             },
         }
 
-    async def _collect_application_metrics(self) -> Dict[str, Any]:
+    async def _collect_application_metrics(self) -> dict[str, Any]:
         """Collect application-specific metrics."""
         uptime = time.time() - self.start_time
 
@@ -181,7 +181,7 @@ class CustomMetricsPlugin(IMetricsPlugin):
             "app_errors_total": self.error_count,
         }
 
-    async def _collect_system_metrics(self) -> Dict[str, Any]:
+    async def _collect_system_metrics(self) -> dict[str, Any]:
         """Collect system metrics using psutil."""
         try:
             # CPU metrics
@@ -207,7 +207,7 @@ class CustomMetricsPlugin(IMetricsPlugin):
             self.logger.error(f"Error collecting system metrics: {e}")
             return {}
 
-    async def _collect_plugin_metrics(self) -> Dict[str, Any]:
+    async def _collect_plugin_metrics(self) -> dict[str, Any]:
         """Collect plugin-specific metrics."""
         collection_start = time.time()
 
@@ -254,7 +254,7 @@ class CustomMetricsPlugin(IMetricsPlugin):
         """Handle request failed event."""
         self.error_count += 1
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check."""
         health = await super().health_check()
 

@@ -2,16 +2,14 @@
 Database utilities for the enterprise database framework.
 """
 
-import asyncio
+import builtins
 import logging
-from contextlib import asynccontextmanager
+import re
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, dict, list, type
 
-from sqlalchemy import MetaData, Table, inspect, text
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
-from sqlalchemy.orm import class_mapper
+from sqlalchemy import MetaData, Table, func, inspect, select, text
+from sqlalchemy.sql import quoted_name
 
 from .manager import DatabaseManager
 from .models import BaseModel
@@ -22,14 +20,40 @@ logger = logging.getLogger(__name__)
 class DatabaseUtilities:
     """Utility functions for database operations."""
 
+    def _validate_table_name(self, table_name: str) -> str:
+        """Validate and sanitize table name to prevent SQL injection."""
+        # Only allow alphanumeric characters, underscores, and periods
+        if not re.match(
+            r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$", table_name
+        ):
+            raise ValueError(f"Invalid table name: {table_name}")
+        return table_name
+
+    def _quote_identifier(self, identifier: str) -> str:
+        """Quote SQL identifier safely."""
+        validated = self._validate_table_name(identifier)
+        # Use double quotes for SQL standard identifier quoting
+        return f'"{validated}"'
+
     def __init__(self, db_manager: DatabaseManager):
         self.db_manager = db_manager
+        self._metadata = MetaData()
 
-    async def check_connection(self) -> Dict[str, Any]:
+    def _reflect_table(self, table_name: str) -> Table:
+        """Safely reflect a table using SQLAlchemy Core to avoid raw SQL string construction.
+
+        Bandit B608 flags f-string based SQL even when identifiers are validated. By
+        reflecting the table and using SQLAlchemy expression API we eliminate manual
+        string concatenation for DML/SELECT statements.
+        """
+        validated = self._validate_table_name(table_name)
+        return Table(validated, self._metadata, autoload_with=self.db_manager.sync_engine)
+
+    async def check_connection(self) -> builtins.dict[str, Any]:
         """Check database connection and return status."""
         return await self.db_manager.health_check()
 
-    async def get_database_info(self) -> Dict[str, Any]:
+    async def get_database_info(self) -> builtins.dict[str, Any]:
         """Get comprehensive database information."""
         async with self.db_manager.get_session() as session:
             info = {
@@ -75,7 +99,7 @@ class DatabaseUtilities:
 
             return info
 
-    async def get_table_info(self, table_name: str) -> Dict[str, Any]:
+    async def get_table_info(self, table_name: str) -> builtins.dict[str, Any]:
         """Get information about a specific table."""
         async with self.db_manager.get_session() as session:
             try:
@@ -87,11 +111,10 @@ class DatabaseUtilities:
                 foreign_keys = inspector.get_foreign_keys(table_name)
                 primary_key = inspector.get_pk_constraint(table_name)
 
-                # Get row count
-                result = await session.execute(
-                    text(f"SELECT COUNT(*) FROM {table_name}")
-                )
-                row_count = result.scalar()
+                # Use SQLAlchemy Core for row count to avoid raw SQL string (B608)
+                tbl = self._reflect_table(table_name)
+                result = await session.execute(select(func.count()).select_from(tbl))
+                row_count = result.scalar() or 0
 
                 return {
                     "table_name": table_name,
@@ -106,7 +129,7 @@ class DatabaseUtilities:
                 logger.error("Error getting table info for %s: %s", table_name, e)
                 raise
 
-    async def list_tables(self) -> List[str]:
+    async def list_tables(self) -> builtins.list[str]:
         """List all tables in the database."""
         try:
             inspector = inspect(self.db_manager.sync_engine)
@@ -163,7 +186,7 @@ class DatabaseUtilities:
                 await session.rollback()
                 return False
 
-    async def vacuum_analyze(self, table_name: Optional[str] = None) -> bool:
+    async def vacuum_analyze(self, table_name: str | None = None) -> bool:
         """Run VACUUM ANALYZE on table or entire database (PostgreSQL)."""
         if self.db_manager.config.db_type.value != "postgresql":
             logger.warning("VACUUM ANALYZE only supported for PostgreSQL")
@@ -186,23 +209,26 @@ class DatabaseUtilities:
             logger.error("Error running VACUUM ANALYZE: %s", e)
             return False
 
-    async def analyze_table_stats(self, table_name: str) -> Dict[str, Any]:
-        """Get table statistics."""
+    async def analyze_table_stats(self, table_name: str) -> builtins.dict[str, Any]:
+        """Get table statistics.
+
+        Returns dict with keys: table_name (str), row_count (int), column_statistics (list[dict])
+        """
         async with self.db_manager.get_session() as session:
             try:
-                stats = {"table_name": table_name}
+                stats: builtins.dict[str, Any] = {"table_name": table_name}
 
-                # Row count
-                result = await session.execute(
-                    text(f"SELECT COUNT(*) FROM {table_name}")
-                )
-                stats["row_count"] = result.scalar()
+                # Row count via Core (B608 mitigation)
+                tbl = self._reflect_table(table_name)
+                result = await session.execute(select(func.count()).select_from(tbl))
+                stats["row_count"] = result.scalar() or 0
 
                 if self.db_manager.config.db_type.value == "postgresql":
                     # PostgreSQL specific stats
+                    # Column statistics query - parameterize table name comparison to avoid inline string
                     result = await session.execute(
                         text(
-                            f"""
+                            """
                         SELECT
                             schemaname,
                             tablename,
@@ -210,12 +236,13 @@ class DatabaseUtilities:
                             n_distinct,
                             correlation
                         FROM pg_stats
-                        WHERE tablename = '{table_name}'
+                        WHERE tablename = :tbl
                     """
-                        )
+                        ),
+                        {"tbl": table_name},
                     )
 
-                    column_stats = []
+                    column_stats: list[dict[str, Any]] = []
                     for row in result:
                         column_stats.append(
                             {
@@ -233,7 +260,7 @@ class DatabaseUtilities:
                 raise
 
     async def backup_table(
-        self, table_name: str, backup_table_name: Optional[str] = None
+        self, table_name: str, backup_table_name: str | None = None
     ) -> str:
         """Create a backup copy of a table."""
         if not backup_table_name:
@@ -242,18 +269,26 @@ class DatabaseUtilities:
 
         async with self.db_manager.get_session() as session:
             try:
-                # Create backup table
-                await session.execute(
-                    text(
-                        f"""
-                    CREATE TABLE {backup_table_name} AS
-                    SELECT * FROM {table_name}
-                """
-                    )
+                # SQLAlchemy Core based copy (avoid raw SQL f-string to satisfy B608)
+                valid_src = self._validate_table_name(table_name)
+                valid_backup = self._validate_table_name(backup_table_name)
+                src_tbl = self._reflect_table(valid_src)
+
+                # Create backup table schema
+                backup_columns = [c.copy() for c in src_tbl.columns]
+                backup_tbl = Table(
+                    valid_backup, self._metadata, *backup_columns, extend_existing=True
                 )
+                backup_tbl.create(self.db_manager.sync_engine, checkfirst=True)
+
+                # Insert data
+                insert_stmt = backup_tbl.insert().from_select(
+                    [c.name for c in src_tbl.columns], select(src_tbl)
+                )
+                await session.execute(insert_stmt)
                 await session.commit()
 
-                logger.info("Created backup table: %s", backup_table_name)
+                logger.info("Created backup table via Core: %s", backup_table_name)
                 return backup_table_name
 
             except Exception as e:
@@ -267,15 +302,20 @@ class DatabaseUtilities:
         """Truncate a table."""
         async with self.db_manager.get_session() as session:
             try:
+                # Use quoted identifier to prevent SQL injection
+                quoted_table = self._quote_identifier(table_name)
+
                 if self.db_manager.config.db_type.value == "postgresql":
                     restart_clause = (
                         "RESTART IDENTITY" if restart_identity else "CONTINUE IDENTITY"
                     )
                     await session.execute(
-                        text(f"TRUNCATE TABLE {table_name} {restart_clause}")
+                        text(f"TRUNCATE TABLE {quoted_table} {restart_clause}")
                     )
                 else:
-                    await session.execute(text(f"DELETE FROM {table_name}"))
+                    # Use Core delete when possible (non-PostgreSQL path uses generic DELETE)
+                    tbl = self._reflect_table(table_name)
+                    await session.execute(tbl.delete())
 
                 await session.commit()
                 logger.info("Truncated table: %s", table_name)
@@ -287,7 +327,7 @@ class DatabaseUtilities:
                 return False
 
     async def clean_soft_deleted(
-        self, model_class: Type[BaseModel], older_than_days: int = 30
+        self, model_class: builtins.type[BaseModel], older_than_days: int = 30
     ) -> int:
         """Clean up soft-deleted records older than specified days."""
         if not hasattr(model_class, "deleted_at"):
@@ -296,34 +336,33 @@ class DatabaseUtilities:
             )
 
         cutoff_date = datetime.utcnow() - timedelta(days=older_than_days)
-        table_name = model_class.__tablename__
+        # Some ORMs provide __tablename__ as InstrumentedAttribute; cast to str safely
+        raw_table = getattr(model_class, "__tablename__", None)
+        if not isinstance(raw_table, str):
+            raise ValueError("Model class must define __tablename__ as a string")
+        table_name = raw_table
 
         async with self.db_manager.get_session() as session:
             try:
                 # Count records to be deleted
-                count_result = await session.execute(
-                    text(
-                        f"""
-                    SELECT COUNT(*) FROM {table_name}
-                    WHERE deleted_at IS NOT NULL AND deleted_at < :cutoff_date
-                """
-                    ),
-                    {"cutoff_date": cutoff_date},
+                # Validate table name but keep parameter binding for dynamic value
+                tbl = self._reflect_table(table_name)  # table_name is str here
+                # Build expression using column attributes to avoid raw SQL
+                if not hasattr(tbl.c, "deleted_at"):
+                    raise ValueError("Table does not support soft deletion (missing deleted_at column)")
+                count_expr = select(func.count()).select_from(tbl).where(
+                    tbl.c.deleted_at.is_not(None), tbl.c.deleted_at < text(":cutoff_date")
                 )
+                count_result = await session.execute(count_expr, {"cutoff_date": cutoff_date})
 
                 count = count_result.scalar()
 
                 # Delete records
                 if count > 0:
-                    await session.execute(
-                        text(
-                            f"""
-                        DELETE FROM {table_name}
-                        WHERE deleted_at IS NOT NULL AND deleted_at < :cutoff_date
-                    """
-                        ),
-                        {"cutoff_date": cutoff_date},
+                    delete_stmt = tbl.delete().where(
+                        tbl.c.deleted_at.is_not(None), tbl.c.deleted_at < text(":cutoff_date")
                     )
+                    await session.execute(delete_stmt, {"cutoff_date": cutoff_date})
 
                     await session.commit()
                     logger.info(
@@ -339,24 +378,34 @@ class DatabaseUtilities:
                 await session.rollback()
                 raise
 
-    async def get_connection_pool_status(self) -> Dict[str, Any]:
+    async def get_connection_pool_status(self) -> builtins.dict[str, Any]:
         """Get connection pool status."""
         if not self.db_manager.engine:
             return {"error": "Database not initialized"}
 
         pool = self.db_manager.engine.pool
 
+        # Access attributes defensively; some pool implementations differ
+        def _maybe_call(obj, name: str):  # runtime helper; type checker unaware of dynamic attrs
+            fn = getattr(obj, name, None)
+            if callable(fn):
+                try:
+                    return fn()
+                except Exception:
+                    return None
+            return None
+
         return {
-            "pool_size": pool.size(),
-            "checked_in": pool.checkedin(),
-            "checked_out": pool.checkedout(),
-            "overflow": pool.overflow(),
-            "invalid": pool.invalid(),
+            "pool_size": _maybe_call(pool, "size"),
+            "checked_in": _maybe_call(pool, "checkedin"),
+            "checked_out": _maybe_call(pool, "checkedout"),
+            "overflow": _maybe_call(pool, "overflow"),
+            "invalid": _maybe_call(pool, "invalid"),
         }
 
     async def execute_maintenance(
-        self, operations: List[str], dry_run: bool = False
-    ) -> Dict[str, Any]:
+        self, operations: builtins.list[str], dry_run: bool = False
+    ) -> builtins.dict[str, Any]:
         """Execute maintenance operations."""
         results = {}
 
@@ -410,8 +459,8 @@ async def get_database_utilities(db_manager: DatabaseManager) -> DatabaseUtiliti
 
 
 async def check_all_database_connections(
-    managers: Dict[str, DatabaseManager]
-) -> Dict[str, Dict[str, Any]]:
+    managers: builtins.dict[str, DatabaseManager],
+) -> builtins.dict[str, builtins.dict[str, Any]]:
     """Check connections for multiple database managers."""
     results = {}
 
@@ -430,10 +479,10 @@ async def check_all_database_connections(
 
 
 async def cleanup_all_soft_deleted(
-    managers: Dict[str, DatabaseManager],
-    model_classes: List[Type[BaseModel]],
+    managers: builtins.dict[str, DatabaseManager],
+    model_classes: builtins.list[builtins.type[BaseModel]],
     older_than_days: int = 30,
-) -> Dict[str, Dict[str, int]]:
+) -> builtins.dict[str, builtins.dict[str, int]]:
     """Clean up soft-deleted records across multiple services."""
     results = {}
 

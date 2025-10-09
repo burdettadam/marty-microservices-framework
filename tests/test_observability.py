@@ -2,9 +2,6 @@
 Tests for observability components
 """
 
-import asyncio
-from unittest.mock import Mock, patch
-
 import pytest
 from observability.kafka import EventBus, EventMessage, KafkaConfig
 from observability.load_testing.load_tester import LoadTestConfig, LoadTestRunner

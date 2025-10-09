@@ -13,13 +13,11 @@ Performs comprehensive security audits including:
 import argparse
 import json
 import logging
-import os
 import subprocess
 import sys
-import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import yaml
 
@@ -33,7 +31,7 @@ logger = logging.getLogger(__name__)
 class SecurityAuditTool:
     """Main security audit tool"""
 
-    def __init__(self, project_root: Path, output_dir: Optional[Path] = None):
+    def __init__(self, project_root: Path, output_dir: Path | None = None):
         self.project_root = project_root
         self.output_dir = output_dir or project_root / "reports" / "security"
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -52,7 +50,7 @@ class SecurityAuditTool:
             },
         }
 
-    def run_full_audit(self) -> Dict:
+    def run_full_audit(self) -> dict:
         """Run complete security audit"""
         logger.info("Starting comprehensive security audit...")
 
@@ -95,7 +93,7 @@ class SecurityAuditTool:
             logger.error(f"Security audit failed: {e}")
             raise
 
-    def _audit_code_security(self) -> Dict:
+    def _audit_code_security(self) -> dict:
         """Audit code security using multiple tools"""
         results = {
             "bandit": {},
@@ -137,7 +135,7 @@ class SecurityAuditTool:
 
         return results
 
-    def _run_bandit(self) -> Dict:
+    def _run_bandit(self) -> dict:
         """Run Bandit security analysis"""
         try:
             cmd = [
@@ -162,7 +160,7 @@ class SecurityAuditTool:
             for exclude in excludes:
                 cmd.extend(["-x", exclude])
 
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # Parse results
             results_file = self.output_dir / "bandit_results.json"
@@ -182,17 +180,18 @@ class SecurityAuditTool:
                     ),
                     "results_file": str(results_file),
                 }
-            else:
-                return {"status": "failed", "error": "No results file generated"}
+            return {"status": "failed", "error": "No results file generated"}
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def _run_semgrep(self) -> Dict:
+    def _run_semgrep(self) -> dict:
         """Run Semgrep analysis"""
         try:
             # Check if semgrep is available
-            result = subprocess.run(["semgrep", "--version"], capture_output=True)
+            result = subprocess.run(
+                ["semgrep", "--version"], capture_output=True, check=False
+            )
             if result.returncode != 0:
                 return {"status": "skipped", "reason": "Semgrep not available"}
 
@@ -205,7 +204,7 @@ class SecurityAuditTool:
                 str(self.project_root),
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # Parse results
             results_file = self.output_dir / "semgrep_results.json"
@@ -225,13 +224,12 @@ class SecurityAuditTool:
                     ),
                     "results_file": str(results_file),
                 }
-            else:
-                return {"status": "failed", "error": "No results file generated"}
+            return {"status": "failed", "error": "No results file generated"}
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def _run_custom_security_checks(self) -> Dict:
+    def _run_custom_security_checks(self) -> dict:
         """Run custom security checks specific to microservices"""
         issues = []
 
@@ -278,7 +276,7 @@ class SecurityAuditTool:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def _find_pattern_in_files(self, pattern: str, description: str) -> List[Dict]:
+    def _find_pattern_in_files(self, pattern: str, description: str) -> list[dict]:
         """Find pattern in Python files"""
         import re
 
@@ -286,7 +284,7 @@ class SecurityAuditTool:
 
         for py_file in self.project_root.rglob("*.py"):
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8") as f:
                     content = f.read()
                     matches = re.finditer(pattern, content, re.IGNORECASE)
 
@@ -307,7 +305,7 @@ class SecurityAuditTool:
 
         return issues
 
-    def _check_security_headers_implementation(self, issues: List[Dict]):
+    def _check_security_headers_implementation(self, issues: list[dict]):
         """Check if security headers are properly implemented"""
         security_headers = [
             "X-Content-Type-Options",
@@ -320,7 +318,7 @@ class SecurityAuditTool:
         middleware_found = False
         for py_file in self.project_root.rglob("*.py"):
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8") as f:
                     content = f.read()
                     if any(header in content for header in security_headers):
                         middleware_found = True
@@ -339,7 +337,7 @@ class SecurityAuditTool:
                 }
             )
 
-    def _check_input_validation(self, issues: List[Dict]):
+    def _check_input_validation(self, issues: list[dict]):
         """Check for proper input validation implementation"""
         validation_patterns = [
             "pydantic",
@@ -352,7 +350,7 @@ class SecurityAuditTool:
         validation_found = False
         for py_file in self.project_root.rglob("*.py"):
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8") as f:
                     content = f.read()
                     if any(pattern in content for pattern in validation_patterns):
                         validation_found = True
@@ -371,7 +369,7 @@ class SecurityAuditTool:
                 }
             )
 
-    def _audit_dependencies(self) -> Dict:
+    def _audit_dependencies(self) -> dict:
         """Audit dependencies for vulnerabilities"""
         results = {
             "safety": {},
@@ -404,7 +402,7 @@ class SecurityAuditTool:
 
         return results
 
-    def _run_safety_check(self) -> Dict:
+    def _run_safety_check(self) -> dict:
         """Run safety vulnerability check"""
         try:
             cmd = [
@@ -415,7 +413,7 @@ class SecurityAuditTool:
                 str(self.output_dir / "safety_results.json"),
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # Parse results
             results_file = self.output_dir / "safety_results.json"
@@ -428,17 +426,18 @@ class SecurityAuditTool:
                     "vulnerabilities_count": len(safety_data),
                     "results_file": str(results_file),
                 }
-            else:
-                return {"status": "failed", "error": "No results file generated"}
+            return {"status": "failed", "error": "No results file generated"}
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def _run_pip_audit(self) -> Dict:
+    def _run_pip_audit(self) -> dict:
         """Run pip-audit vulnerability check"""
         try:
             # Check if pip-audit is available
-            result = subprocess.run(["pip-audit", "--version"], capture_output=True)
+            result = subprocess.run(
+                ["pip-audit", "--version"], capture_output=True, check=False
+            )
             if result.returncode != 0:
                 return {"status": "skipped", "reason": "pip-audit not available"}
 
@@ -449,7 +448,7 @@ class SecurityAuditTool:
                 str(self.output_dir / "pip_audit_results.json"),
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # Parse results
             results_file = self.output_dir / "pip_audit_results.json"
@@ -462,17 +461,16 @@ class SecurityAuditTool:
                     "vulnerabilities_count": len(audit_data.get("vulnerabilities", [])),
                     "results_file": str(results_file),
                 }
-            else:
-                return {"status": "failed", "error": "No results file generated"}
+            return {"status": "failed", "error": "No results file generated"}
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def _check_outdated_packages(self) -> Dict:
+    def _check_outdated_packages(self) -> dict:
         """Check for outdated packages"""
         try:
             cmd = ["pip", "list", "--outdated", "--format=json"]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             if result.returncode == 0:
                 outdated_data = json.loads(result.stdout)
@@ -487,13 +485,12 @@ class SecurityAuditTool:
                     "outdated_count": len(outdated_data),
                     "results_file": str(results_file),
                 }
-            else:
-                return {"status": "failed", "error": result.stderr}
+            return {"status": "failed", "error": result.stderr}
 
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def _audit_containers(self) -> Dict:
+    def _audit_containers(self) -> dict:
         """Audit container security"""
         results = {
             "dockerfile_analysis": {},
@@ -516,14 +513,14 @@ class SecurityAuditTool:
 
         return results
 
-    def _analyze_dockerfiles(self) -> Dict:
+    def _analyze_dockerfiles(self) -> dict:
         """Analyze Dockerfiles for security issues"""
         issues = []
         dockerfiles = list(self.project_root.rglob("*Dockerfile*"))
 
         for dockerfile in dockerfiles:
             try:
-                with open(dockerfile, "r") as f:
+                with open(dockerfile) as f:
                     content = f.read()
                     file_issues = self._check_dockerfile_security(dockerfile, content)
                     issues.extend(file_issues)
@@ -536,7 +533,7 @@ class SecurityAuditTool:
             "issues": issues,
         }
 
-    def _check_dockerfile_security(self, dockerfile: Path, content: str) -> List[Dict]:
+    def _check_dockerfile_security(self, dockerfile: Path, content: str) -> list[dict]:
         """Check individual Dockerfile for security issues"""
         issues = []
         lines = content.split("\n")
@@ -581,7 +578,7 @@ class SecurityAuditTool:
                 )
 
             # Check for missing health check
-            if i == len(lines) and not any("HEALTHCHECK" in l for l in lines):
+            if i == len(lines) and not any("HEALTHCHECK" in line for line in lines):
                 issues.append(
                     {
                         "file": str(dockerfile.relative_to(self.project_root)),
@@ -594,7 +591,7 @@ class SecurityAuditTool:
 
         return issues
 
-    def _check_container_best_practices(self) -> Dict:
+    def _check_container_best_practices(self) -> dict:
         """Check container security best practices"""
         # This would integrate with tools like:
         # - Docker Bench Security
@@ -606,7 +603,7 @@ class SecurityAuditTool:
             "note": "Container security scanning requires additional tools like Trivy or Clair",
         }
 
-    def _audit_configurations(self) -> Dict:
+    def _audit_configurations(self) -> dict:
         """Audit configuration security"""
         results = {
             "kubernetes_configs": {},
@@ -633,7 +630,7 @@ class SecurityAuditTool:
 
         return results
 
-    def _audit_kubernetes_configs(self) -> Dict:
+    def _audit_kubernetes_configs(self) -> dict:
         """Audit Kubernetes configuration files"""
         issues = []
         k8s_files = []
@@ -641,7 +638,7 @@ class SecurityAuditTool:
         # Find Kubernetes YAML files
         for yaml_file in self.project_root.rglob("*.yaml"):
             try:
-                with open(yaml_file, "r") as f:
+                with open(yaml_file) as f:
                     content = yaml.safe_load(f)
                     if isinstance(content, dict) and content.get("apiVersion"):
                         k8s_files.append(yaml_file)
@@ -656,7 +653,7 @@ class SecurityAuditTool:
             "issues": issues,
         }
 
-    def _check_k8s_security(self, yaml_file: Path, content: Dict) -> List[Dict]:
+    def _check_k8s_security(self, yaml_file: Path, content: dict) -> list[dict]:
         """Check Kubernetes YAML for security issues"""
         issues = []
 
@@ -702,7 +699,7 @@ class SecurityAuditTool:
 
         return issues
 
-    def _audit_application_configs(self) -> Dict:
+    def _audit_application_configs(self) -> dict:
         """Audit application configuration files"""
         issues = []
         config_files = []
@@ -729,12 +726,12 @@ class SecurityAuditTool:
             "issues": issues,
         }
 
-    def _check_config_security(self, config_file: Path) -> List[Dict]:
+    def _check_config_security(self, config_file: Path) -> list[dict]:
         """Check configuration file for security issues"""
         issues = []
 
         try:
-            with open(config_file, "r") as f:
+            with open(config_file) as f:
                 content = f.read()
 
                 # Check for hardcoded secrets
@@ -756,7 +753,7 @@ class SecurityAuditTool:
 
         return issues
 
-    def _audit_secrets_management(self) -> Dict:
+    def _audit_secrets_management(self) -> dict:
         """Audit secrets management practices"""
         issues = []
 
@@ -776,7 +773,7 @@ class SecurityAuditTool:
         secret_files = []
         for py_file in self.project_root.rglob("*.py"):
             try:
-                with open(py_file, "r") as f:
+                with open(py_file) as f:
                     content = f.read()
                     if any(
                         pattern in content.lower() for pattern in ["getenv", "environ"]
@@ -792,7 +789,7 @@ class SecurityAuditTool:
             "recommendation": "Use proper secret management like Kubernetes secrets or HashiCorp Vault",
         }
 
-    def _audit_infrastructure(self) -> Dict:
+    def _audit_infrastructure(self) -> dict:
         """Audit infrastructure security"""
         results = {"network_policies": {}, "rbac": {}, "ingress_security": {}}
 
@@ -815,13 +812,13 @@ class SecurityAuditTool:
 
         return results
 
-    def _check_network_policies(self) -> Dict:
+    def _check_network_policies(self) -> dict:
         """Check for network policy implementations"""
         network_policies = []
 
         for yaml_file in self.project_root.rglob("*.yaml"):
             try:
-                with open(yaml_file, "r") as f:
+                with open(yaml_file) as f:
                     content = yaml.safe_load(f)
                     if (
                         isinstance(content, dict)
@@ -839,13 +836,13 @@ class SecurityAuditTool:
             else "Network policies found",
         }
 
-    def _check_rbac_configs(self) -> Dict:
+    def _check_rbac_configs(self) -> dict:
         """Check RBAC configurations"""
         rbac_files = []
 
         for yaml_file in self.project_root.rglob("*.yaml"):
             try:
-                with open(yaml_file, "r") as f:
+                with open(yaml_file) as f:
                     content = yaml.safe_load(f)
                     if isinstance(content, dict) and content.get("kind") in [
                         "Role",
@@ -863,14 +860,14 @@ class SecurityAuditTool:
             "recommendation": "Implement proper RBAC with least privilege principle",
         }
 
-    def _check_ingress_security(self) -> Dict:
+    def _check_ingress_security(self) -> dict:
         """Check ingress security configurations"""
         ingress_files = []
         security_annotations = []
 
         for yaml_file in self.project_root.rglob("*.yaml"):
             try:
-                with open(yaml_file, "r") as f:
+                with open(yaml_file) as f:
                     content = yaml.safe_load(f)
                     if isinstance(content, dict) and content.get("kind") == "Ingress":
                         ingress_files.append(yaml_file)
@@ -895,7 +892,7 @@ class SecurityAuditTool:
             "recommendation": "Add security annotations to ingress resources (SSL, rate limiting, etc.)",
         }
 
-    def _generate_summary(self) -> Dict:
+    def _generate_summary(self) -> dict:
         """Generate audit summary"""
         audit_results = self.results["audit_results"]
 
@@ -997,7 +994,7 @@ def main():
         results = auditor.run_full_audit()
 
         summary = results["audit_results"]["summary"]
-        print(f"\n🛡️  Security Audit Complete!")
+        print("\n🛡️  Security Audit Complete!")
         print(f"Security Score: {summary['security_score']}")
         print(f"Total Issues: {summary['total_issues']}")
         print(f"Critical Issues: {summary['critical_issues']}")

@@ -5,16 +5,16 @@ Factory functions and utilities for creating and managing
 service mesh components and configurations.
 """
 
-import asyncio
+import builtins
 import logging
-from typing import Any, Dict, List, Optional
+import tempfile
+from typing import Any, Dict, List, Optional, Set, dict, list
 
 from .core import (
     BasicServiceMeshManager,
     InMemoryServiceDiscovery,
     InMemoryServiceRegistry,
     ServiceDiscovery,
-    ServiceEndpoint,
     ServiceMeshConfig,
     ServiceMeshManager,
     ServiceMeshProvider,
@@ -23,41 +23,14 @@ from .core import (
     create_service_endpoint,
     create_service_metadata,
 )
-from .observability import (
-    AlertManager,
-    LoggingManager,
-    MetricsCollector,
-    MetricsExporter,
-    ObservabilityManager,
-    ServiceMonitor,
-    Telemetry,
-    TraceExporter,
-    TracingManager,
-)
-from .security import (
-    AuthenticationPolicy,
-    AuthorizationPolicy,
-    CertificateManager,
-    JWTPolicy,
-    PeerAuthentication,
-    RequestAuthentication,
-    SecurityContext,
-    SecurityPolicyManager,
-    TLSConfig,
-    create_security_context,
-)
+from .observability import ObservabilityManager
+from .security import AuthorizationPolicy, PeerAuthentication, SecurityPolicyManager
 from .traffic_management import (
     BlueGreenDeployment,
     CanaryDeployment,
     CircuitBreaker,
-    ConnectionPool,
-    DestinationRule,
-    Gateway,
     HTTPRoute,
     LoadBalancer,
-    RetryPolicy,
-    ServiceEntry,
-    TimeoutPolicy,
     TrafficManager,
     VirtualService,
 )
@@ -131,14 +104,14 @@ class ServiceMeshBuilder:
 
     def __init__(self, mesh_id: str, provider: ServiceMeshProvider):
         self.config = ServiceMeshConfig(mesh_id=mesh_id, provider=provider)
-        self.mesh_manager: Optional[ServiceMeshManager] = None
-        self.traffic_manager: Optional[TrafficManager] = None
-        self.security_manager: Optional[SecurityPolicyManager] = None
-        self.observability_manager: Optional[ObservabilityManager] = None
+        self.mesh_manager: ServiceMeshManager | None = None
+        self.traffic_manager: TrafficManager | None = None
+        self.security_manager: SecurityPolicyManager | None = None
+        self.observability_manager: ObservabilityManager | None = None
 
-        self._services: List[Dict[str, Any]] = []
-        self._virtual_services: List[VirtualService] = []
-        self._security_policies: List[Dict[str, Any]] = []
+        self._services: builtins.list[builtins.dict[str, Any]] = []
+        self._virtual_services: builtins.list[VirtualService] = []
+        self._security_policies: builtins.list[builtins.dict[str, Any]] = []
 
     def with_mtls(self, enabled: bool = True) -> "ServiceMeshBuilder":
         """Configure mTLS."""
@@ -164,7 +137,7 @@ class ServiceMeshBuilder:
         self,
         name: str,
         namespace: str = "default",
-        endpoints: List[str] = None,
+        endpoints: builtins.list[str] = None,
         port: int = 80,
     ) -> "ServiceMeshBuilder":
         """Add service to mesh."""
@@ -178,7 +151,7 @@ class ServiceMeshBuilder:
         return self
 
     def add_traffic_routing(
-        self, service_name: str, routes: List[Dict[str, Any]]
+        self, service_name: str, routes: builtins.list[builtins.dict[str, Any]]
     ) -> "ServiceMeshBuilder":
         """Add traffic routing configuration."""
         http_routes = []
@@ -202,7 +175,7 @@ class ServiceMeshBuilder:
         self._security_policies.append(policy_config)
         return self
 
-    async def build(self) -> Dict[str, Any]:
+    async def build(self) -> builtins.dict[str, Any]:
         """Build the service mesh."""
         # Create managers
         self.mesh_manager = ServiceMeshFactory.create_mesh_manager(self.config)
@@ -249,7 +222,9 @@ class ServiceMeshBuilder:
             "config": self.config.to_dict(),
         }
 
-    async def _apply_security_policy(self, policy_config: Dict[str, Any]) -> None:
+    async def _apply_security_policy(
+        self, policy_config: builtins.dict[str, Any]
+    ) -> None:
         """Apply security policy."""
         policy_type = policy_config["type"]
 
@@ -280,14 +255,16 @@ def create_istio_mesh(
     return builder
 
 
-def create_envoy_proxy(service_name: str, **kwargs) -> Dict[str, Any]:
+def create_envoy_proxy(service_name: str, **kwargs) -> builtins.dict[str, Any]:
     """Create Envoy proxy configuration."""
+    # Use secure temporary directory instead of hardcoded /tmp
+    log_dir = tempfile.gettempdir()
     return {
         "service_name": service_name,
         "proxy_type": "envoy",
         "configuration": {
             "admin": {
-                "access_log_path": "/tmp/admin_access.log",
+                "access_log_path": f"{log_dir}/admin_access.log",
                 "address": {
                     "socket_address": {
                         "protocol": "TCP",
@@ -352,9 +329,9 @@ class MeshTopology:
     """Service mesh topology management."""
 
     def __init__(self):
-        self._services: Dict[str, ServiceMetadata] = {}
-        self._connections: Dict[str, List[str]] = {}
-        self._dependencies: Dict[str, List[str]] = {}
+        self._services: builtins.dict[str, ServiceMetadata] = {}
+        self._connections: builtins.dict[str, builtins.list[str]] = {}
+        self._dependencies: builtins.dict[str, builtins.list[str]] = {}
 
     def add_service(self, service: ServiceMetadata) -> None:
         """Add service to topology."""
@@ -379,7 +356,7 @@ class MeshTopology:
         if dependency not in self._dependencies[service]:
             self._dependencies[service].append(dependency)
 
-    def get_topology(self) -> Dict[str, Any]:
+    def get_topology(self) -> builtins.dict[str, Any]:
         """Get mesh topology."""
         return {
             "services": {k: v.to_dict() for k, v in self._services.items()},
@@ -389,7 +366,7 @@ class MeshTopology:
             "connection_count": sum(len(conns) for conns in self._connections.values()),
         }
 
-    def get_service_graph(self) -> Dict[str, List[str]]:
+    def get_service_graph(self) -> builtins.dict[str, builtins.list[str]]:
         """Get service dependency graph."""
         return self._dependencies.copy()
 
@@ -398,23 +375,25 @@ class MeshConfiguration:
     """Comprehensive mesh configuration management."""
 
     def __init__(self):
-        self.global_config: Dict[str, Any] = {}
-        self.service_configs: Dict[str, Dict[str, Any]] = {}
-        self.policy_configs: Dict[str, Dict[str, Any]] = {}
+        self.global_config: builtins.dict[str, Any] = {}
+        self.service_configs: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.policy_configs: builtins.dict[str, builtins.dict[str, Any]] = {}
 
     def set_global_config(self, key: str, value: Any) -> None:
         """Set global configuration."""
         self.global_config[key] = value
 
-    def set_service_config(self, service: str, config: Dict[str, Any]) -> None:
+    def set_service_config(self, service: str, config: builtins.dict[str, Any]) -> None:
         """Set service-specific configuration."""
         self.service_configs[service] = config
 
-    def set_policy_config(self, policy_name: str, config: Dict[str, Any]) -> None:
+    def set_policy_config(
+        self, policy_name: str, config: builtins.dict[str, Any]
+    ) -> None:
         """Set policy configuration."""
         self.policy_configs[policy_name] = config
 
-    def get_configuration(self) -> Dict[str, Any]:
+    def get_configuration(self) -> builtins.dict[str, Any]:
         """Get complete configuration."""
         return {
             "global": self.global_config,
@@ -442,8 +421,8 @@ class MeshConfiguration:
 
 
 async def quick_setup_mesh(
-    mesh_id: str, services: List[Dict[str, Any]]
-) -> Dict[str, Any]:
+    mesh_id: str, services: builtins.list[builtins.dict[str, Any]]
+) -> builtins.dict[str, Any]:
     """Quick setup for service mesh with services."""
     builder = create_istio_mesh(mesh_id)
 

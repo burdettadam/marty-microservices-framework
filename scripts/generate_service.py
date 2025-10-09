@@ -45,6 +45,7 @@ class ServiceGenerator:
             loader=FileSystemLoader(templates_dir),
             trim_blocks=True,
             lstrip_blocks=True,
+            autoescape=True,
         )
 
     def generate_service(
@@ -84,11 +85,11 @@ class ServiceGenerator:
 
         print(f"✅ Generated {service_type} service: {service_name}")
         print(f"📁 Location: {self.output_dir / template_vars['service_package']}")
-        print(f"🚀 To get started:")
-        print(f"   1. Review and customize the generated configuration")
-        print(f"   2. Add any new dependencies with: uv add <package-name>")
-        print(f"   3. Implement your business logic in the service class")
-        print(f"   4. Add your API endpoints or gRPC methods")
+        print("🚀 To get started:")
+        print("   1. Review and customize the generated configuration")
+        print("   2. Add any new dependencies with: uv add <package-name>")
+        print("   3. Implement your business logic in the service class")
+        print("   4. Add your API endpoints or gRPC methods")
         print(
             f"   5. Run tests: uv run pytest src/{template_vars['service_package']}/tests/"
         )
@@ -98,12 +99,12 @@ class ServiceGenerator:
 
         # Add service mesh deployment instructions
         if template_vars.get("service_mesh_enabled", False):
-            print(f"🕸️  Service Mesh Configuration:")
+            print("🕸️  Service Mesh Configuration:")
             print(
-                f"   7. Deploy with service mesh: kubectl apply -k k8s/overlays/service-mesh/"
+                "   7. Deploy with service mesh: kubectl apply -k k8s/overlays/service-mesh/"
             )
             print(
-                f"   8. Apply service mesh policies: kubectl apply -f k8s/service-mesh/"
+                "   8. Apply service mesh policies: kubectl apply -f k8s/service-mesh/"
             )
             print(
                 f"   9. Verify mesh injection: kubectl get pods -n {template_vars.get('namespace', 'default')} -o wide"

@@ -8,23 +8,19 @@ Provides comprehensive business metrics collection, including:
 - Custom business event tracking
 """
 
-import asyncio
+import builtins
 import logging
-import time
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, dict, list
 
 from prometheus_client import (
-    CONTENT_TYPE_LATEST,
     CollectorRegistry,
     Counter,
     Gauge,
     Histogram,
-    Info,
-    Summary,
     generate_latest,
 )
 
@@ -61,8 +57,10 @@ class BusinessMetricsConfig:
     enable_performance_kpis: bool = True
     enable_cost_tracking: bool = True
     default_currency: str = "USD"
-    custom_labels: Optional[Dict[str, str]] = None
-    retention_periods: List[int] = field(default_factory=lambda: [1, 7, 30, 90])
+    custom_labels: builtins.dict[str, str] | None = None
+    retention_periods: builtins.list[int] = field(
+        default_factory=lambda: [1, 7, 30, 90]
+    )
     cohort_analysis_enabled: bool = True
 
 
@@ -71,13 +69,13 @@ class BusinessEvent:
     """Business event for tracking"""
 
     event_type: BusinessEventType
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
-    amount: Optional[float] = None
+    user_id: str | None = None
+    session_id: str | None = None
+    amount: float | None = None
     currency: str = "USD"
-    properties: Optional[Dict[str, Any]] = None
-    timestamp: Optional[datetime] = None
-    labels: Optional[Dict[str, str]] = None
+    properties: builtins.dict[str, Any] | None = None
+    timestamp: datetime | None = None
+    labels: builtins.dict[str, str] | None = None
 
     def __post_init__(self):
         if self.timestamp is None:

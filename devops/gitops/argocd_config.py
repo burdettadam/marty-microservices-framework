@@ -10,11 +10,10 @@ Provides comprehensive ArgoCD integration including:
 - GitOps best practices implementation
 """
 
-import json
-from dataclasses import asdict, dataclass, field
-from datetime import datetime
+import builtins
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, dict, list
 
 import yaml
 
@@ -42,23 +41,25 @@ class ArgoCDApplication:
     self_heal: bool = False
 
     # Helm configuration
-    helm_values_files: List[str] = field(default_factory=list)
-    helm_parameters: Dict[str, str] = field(default_factory=dict)
+    helm_values_files: builtins.list[str] = field(default_factory=list)
+    helm_parameters: builtins.dict[str, str] = field(default_factory=dict)
     helm_value_overrides: str = ""
 
     # Kustomize configuration
-    kustomize_images: List[str] = field(default_factory=list)
+    kustomize_images: builtins.list[str] = field(default_factory=list)
     kustomize_name_prefix: str = ""
     kustomize_name_suffix: str = ""
 
     # Sync options
-    sync_options: List[str] = field(default_factory=list)
+    sync_options: builtins.list[str] = field(default_factory=list)
     retry_limit: int = 5
     retry_backoff_duration: str = "5s"
     retry_backoff_factor: int = 2
 
     # Ignorances
-    ignore_differences: List[Dict[str, Any]] = field(default_factory=list)
+    ignore_differences: builtins.list[builtins.dict[str, Any]] = field(
+        default_factory=list
+    )
 
     def to_yaml(self) -> str:
         """Convert to ArgoCD Application YAML"""
@@ -158,22 +159,26 @@ class ArgoCDProject:
     description: str = ""
 
     # Source repositories
-    source_repos: List[str] = field(default_factory=list)
+    source_repos: builtins.list[str] = field(default_factory=list)
 
     # Destinations
-    destinations: List[Dict[str, str]] = field(default_factory=list)
+    destinations: builtins.list[builtins.dict[str, str]] = field(default_factory=list)
 
     # Cluster resource whitelist
-    cluster_resource_whitelist: List[Dict[str, str]] = field(default_factory=list)
+    cluster_resource_whitelist: builtins.list[builtins.dict[str, str]] = field(
+        default_factory=list
+    )
 
     # Namespace resource whitelist
-    namespace_resource_whitelist: List[Dict[str, str]] = field(default_factory=list)
+    namespace_resource_whitelist: builtins.list[builtins.dict[str, str]] = field(
+        default_factory=list
+    )
 
     # Roles
-    roles: List[Dict[str, Any]] = field(default_factory=list)
+    roles: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Sync windows
-    sync_windows: List[Dict[str, Any]] = field(default_factory=list)
+    sync_windows: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     def to_yaml(self) -> str:
         """Convert to ArgoCD Project YAML"""
@@ -226,7 +231,7 @@ class ArgoCDConfigGenerator:
     def generate_application_set(
         self,
         app_name: str,
-        environments: List[str],
+        environments: builtins.list[str],
         repo_url: str,
         base_path: str = ".",
     ) -> str:
@@ -326,7 +331,7 @@ class ArgoCDConfigGenerator:
 
         return security_project.to_yaml()
 
-    def generate_monitoring_setup(self) -> Dict[str, str]:
+    def generate_monitoring_setup(self) -> builtins.dict[str, str]:
         """Generate monitoring and observability applications"""
 
         configurations = {}
@@ -558,7 +563,7 @@ slack:
 
         return yaml.dump(notification_config, default_flow_style=False)
 
-    def generate_progressive_delivery_config(self) -> Dict[str, str]:
+    def generate_progressive_delivery_config(self) -> builtins.dict[str, str]:
         """Generate progressive delivery configurations"""
 
         configurations = {}
@@ -623,7 +628,9 @@ slack:
 
         return configurations
 
-    def save_configurations(self, configs: Dict[str, str], subdirectory: str = ""):
+    def save_configurations(
+        self, configs: builtins.dict[str, str], subdirectory: str = ""
+    ):
         """Save configurations to files"""
 
         output_path = (

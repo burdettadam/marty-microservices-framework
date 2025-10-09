@@ -8,7 +8,7 @@ perform health checks, and integrate with distributed tracing systems.
 import logging
 import time
 from datetime import datetime
-from typing import Any, Callable, Dict, Optional
+from typing import Optional
 
 # FastAPI imports
 try:
@@ -30,7 +30,7 @@ try:
 except ImportError:
     GRPC_AVAILABLE = False
 
-from .core import HealthStatus, MonitoringManager, get_monitoring_manager
+from .core import HealthStatus, get_monitoring_manager
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +107,9 @@ if FASTAPI_AVAILABLE:
             # Handle built-in monitoring endpoints
             if request_path == self.config.health_endpoint:
                 return await self._handle_health_endpoint(detailed=False)
-            elif request_path == self.config.detailed_health_endpoint:
+            if request_path == self.config.detailed_health_endpoint:
                 return await self._handle_health_endpoint(detailed=True)
-            elif request_path == self.config.metrics_endpoint:
+            if request_path == self.config.metrics_endpoint:
                 return await self._handle_metrics_endpoint()
 
             # Check if we should monitor this request
@@ -209,24 +209,23 @@ if FASTAPI_AVAILABLE:
                 health_data = await monitoring_manager.get_service_health()
                 status_code = 200 if health_data["status"] == "healthy" else 503
                 return JSONResponse(status_code=status_code, content=health_data)
-            else:
-                # Simple health check
-                health_results = await monitoring_manager.perform_health_checks()
+            # Simple health check
+            health_results = await monitoring_manager.perform_health_checks()
 
-                # Determine overall status
-                overall_healthy = all(
-                    result.status in [HealthStatus.HEALTHY, HealthStatus.DEGRADED]
-                    for result in health_results.values()
-                )
+            # Determine overall status
+            overall_healthy = all(
+                result.status in [HealthStatus.HEALTHY, HealthStatus.DEGRADED]
+                for result in health_results.values()
+            )
 
-                status_code = 200 if overall_healthy else 503
-                return JSONResponse(
-                    status_code=status_code,
-                    content={
-                        "status": "healthy" if overall_healthy else "unhealthy",
-                        "timestamp": datetime.utcnow().isoformat(),
-                    },
-                )
+            status_code = 200 if overall_healthy else 503
+            return JSONResponse(
+                status_code=status_code,
+                content={
+                    "status": "healthy" if overall_healthy else "unhealthy",
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
+            )
 
         async def _handle_metrics_endpoint(self) -> Response:
             """Handle metrics endpoint."""
@@ -240,8 +239,7 @@ if FASTAPI_AVAILABLE:
             metrics_text = monitoring_manager.get_metrics_text()
             if metrics_text:
                 return Response(metrics_text, media_type="text/plain")
-            else:
-                return Response("# No metrics available\n", media_type="text/plain")
+            return Response("# No metrics available\n", media_type="text/plain")
 
         def _normalize_endpoint(self, path: str) -> str:
             """Normalize endpoint path for metrics (replace IDs with placeholders)."""
@@ -380,7 +378,7 @@ def setup_grpc_monitoring(server, config: MonitoringMiddlewareConfig = None):
 
 # Monitoring decorators for manual instrumentation
 def monitor_function(
-    operation_name: Optional[str] = None,
+    operation_name: str | None = None,
     record_duration: bool = True,
     record_errors: bool = True,
 ):
@@ -417,7 +415,7 @@ def monitor_function(
 
 
 async def monitor_async_function(
-    operation_name: Optional[str] = None,
+    operation_name: str | None = None,
     record_duration: bool = True,
     record_errors: bool = True,
 ):

@@ -6,15 +6,15 @@ and code generators, allowing teams to create domain-specific templates while
 maintaining integration with the Phase 1-3 infrastructure.
 """
 
+import builtins
 import importlib
 import inspect
-import json
 import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type, Union
+from typing import Any, Dict, List, Optional, Set, dict, list, set
 
 from jinja2 import Environment, FileSystemLoader, Template
 
@@ -49,9 +49,9 @@ class TemplateMetadata:
     description: str
     author: str
     template_type: TemplateType
-    supported_phases: List[PluginPhase]
-    dependencies: List[str] = field(default_factory=list)
-    tags: List[str] = field(default_factory=list)
+    supported_phases: builtins.list[PluginPhase]
+    dependencies: builtins.list[str] = field(default_factory=list)
+    tags: builtins.list[str] = field(default_factory=list)
     schema_version: str = "1.0.0"
 
 
@@ -60,12 +60,12 @@ class TemplateContext:
     """Context passed to template plugins."""
 
     service_name: str
-    service_config: Dict[str, Any]
-    framework_config: Dict[str, Any]
+    service_config: builtins.dict[str, Any]
+    framework_config: builtins.dict[str, Any]
     output_directory: Path
-    template_variables: Dict[str, Any]
-    infrastructure_components: Set[str]
-    custom_data: Dict[str, Any] = field(default_factory=dict)
+    template_variables: builtins.dict[str, Any]
+    infrastructure_components: builtins.set[str]
+    custom_data: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class TemplatePlugin(ABC):
@@ -79,35 +79,30 @@ class TemplatePlugin(ABC):
     @abstractmethod
     def get_metadata(self) -> TemplateMetadata:
         """Return plugin metadata."""
-        pass
 
     @abstractmethod
     def initialize(self, framework_root: Path) -> None:
         """Initialize the plugin with framework root directory."""
-        pass
 
     @abstractmethod
     def validate_context(self, context: TemplateContext) -> bool:
         """Validate that the plugin can handle the given context."""
-        pass
 
     @abstractmethod
-    def generate_templates(self, context: TemplateContext) -> Dict[str, str]:
+    def generate_templates(self, context: TemplateContext) -> builtins.dict[str, str]:
         """Generate templates and return mapping of file paths to content."""
-        pass
 
     def pre_generation_hook(self, context: TemplateContext) -> TemplateContext:
         """Hook called before template generation."""
         return context
 
     def post_generation_hook(
-        self, context: TemplateContext, generated_files: List[Path]
+        self, context: TemplateContext, generated_files: builtins.list[Path]
     ) -> None:
         """Hook called after template generation."""
-        pass
 
     def validate_generated_files(
-        self, context: TemplateContext, generated_files: List[Path]
+        self, context: TemplateContext, generated_files: builtins.list[Path]
     ) -> bool:
         """Validate generated files."""
         return True
@@ -117,35 +112,34 @@ class ServiceTemplatePlugin(TemplatePlugin):
     """Specialized plugin for service templates."""
 
     @abstractmethod
-    def get_service_dependencies(self, context: TemplateContext) -> List[str]:
+    def get_service_dependencies(self, context: TemplateContext) -> builtins.list[str]:
         """Return list of infrastructure dependencies for this service type."""
-        pass
 
     @abstractmethod
     def get_deployment_manifest_templates(
         self, context: TemplateContext
-    ) -> Dict[str, str]:
+    ) -> builtins.dict[str, str]:
         """Return Kubernetes deployment manifests for this service type."""
-        pass
 
     @abstractmethod
-    def get_helm_chart_templates(self, context: TemplateContext) -> Dict[str, str]:
+    def get_helm_chart_templates(
+        self, context: TemplateContext
+    ) -> builtins.dict[str, str]:
         """Return Helm chart templates for this service type."""
-        pass
 
 
 class ComponentTemplatePlugin(TemplatePlugin):
     """Specialized plugin for infrastructure component templates."""
 
     @abstractmethod
-    def get_integration_templates(self, context: TemplateContext) -> Dict[str, str]:
+    def get_integration_templates(
+        self, context: TemplateContext
+    ) -> builtins.dict[str, str]:
         """Return integration templates for this component."""
-        pass
 
     @abstractmethod
-    def get_configuration_schema(self) -> Dict[str, Any]:
+    def get_configuration_schema(self) -> builtins.dict[str, Any]:
         """Return JSON schema for component configuration."""
-        pass
 
 
 class PluginRegistry:
@@ -154,13 +148,13 @@ class PluginRegistry:
     def __init__(self, framework_root: Path):
         """Initialize the plugin registry."""
         self.framework_root = framework_root
-        self.plugins: Dict[str, TemplatePlugin] = {}
-        self.plugins_by_type: Dict[TemplateType, List[TemplatePlugin]] = {
-            template_type: [] for template_type in TemplateType
-        }
-        self.plugins_by_phase: Dict[PluginPhase, List[TemplatePlugin]] = {
-            phase: [] for phase in PluginPhase
-        }
+        self.plugins: builtins.dict[str, TemplatePlugin] = {}
+        self.plugins_by_type: builtins.dict[
+            TemplateType, builtins.list[TemplatePlugin]
+        ] = {template_type: [] for template_type in TemplateType}
+        self.plugins_by_phase: builtins.dict[
+            PluginPhase, builtins.list[TemplatePlugin]
+        ] = {phase: [] for phase in PluginPhase}
 
         # Plugin discovery paths
         self.plugin_paths = [
@@ -193,19 +187,21 @@ class PluginRegistry:
         for phase in metadata.supported_phases:
             self.plugins_by_phase[phase].append(plugin)
 
-    def get_plugin(self, name: str) -> Optional[TemplatePlugin]:
+    def get_plugin(self, name: str) -> TemplatePlugin | None:
         """Get plugin by name."""
         return self.plugins.get(name)
 
-    def get_plugins_by_type(self, template_type: TemplateType) -> List[TemplatePlugin]:
+    def get_plugins_by_type(
+        self, template_type: TemplateType
+    ) -> builtins.list[TemplatePlugin]:
         """Get all plugins of a specific type."""
         return self.plugins_by_type.get(template_type, [])
 
-    def get_plugins_by_phase(self, phase: PluginPhase) -> List[TemplatePlugin]:
+    def get_plugins_by_phase(self, phase: PluginPhase) -> builtins.list[TemplatePlugin]:
         """Get all plugins that support a specific phase."""
         return self.plugins_by_phase.get(phase, [])
 
-    def list_plugins(self) -> List[TemplateMetadata]:
+    def list_plugins(self) -> builtins.list[TemplateMetadata]:
         """List all registered plugins."""
         return [plugin.get_metadata() for plugin in self.plugins.values()]
 
@@ -300,14 +296,15 @@ class TemplateEngine:
             loader=FileSystemLoader(str(framework_root / "templates")),
             trim_blocks=True,
             lstrip_blocks=True,
+            autoescape=True,
         )
 
         # Discover plugins
         self.plugin_registry.discover_plugins()
 
     def generate_service(
-        self, context: TemplateContext, plugin_names: Optional[List[str]] = None
-    ) -> Dict[str, List[Path]]:
+        self, context: TemplateContext, plugin_names: builtins.list[str] | None = None
+    ) -> builtins.dict[str, builtins.list[Path]]:
         """Generate service using plugins."""
         results = {}
 
@@ -356,8 +353,8 @@ class TemplateEngine:
         return results
 
     def _write_templates(
-        self, templates: Dict[str, str], output_dir: Path
-    ) -> List[Path]:
+        self, templates: builtins.dict[str, str], output_dir: Path
+    ) -> builtins.list[Path]:
         """Write templates to disk and return list of created files."""
         created_files = []
 
@@ -399,7 +396,7 @@ class FastAPIServicePlugin(ServiceTemplatePlugin):
         """Validate context for FastAPI service generation."""
         return context.template_variables.get("has_rest", False)
 
-    def generate_templates(self, context: TemplateContext) -> Dict[str, str]:
+    def generate_templates(self, context: TemplateContext) -> builtins.dict[str, str]:
         """Generate FastAPI service templates."""
         if not self._initialized:
             raise RuntimeError("Plugin not initialized")
@@ -408,7 +405,7 @@ class FastAPIServicePlugin(ServiceTemplatePlugin):
 
         # Load and render each template
         for template_file in self.templates_dir.glob("*.j2"):
-            with open(template_file, "r", encoding="utf-8") as f:
+            with open(template_file, encoding="utf-8") as f:
                 template_content = f.read()
 
             template = Template(template_content)
@@ -425,7 +422,7 @@ class FastAPIServicePlugin(ServiceTemplatePlugin):
 
         return templates
 
-    def get_service_dependencies(self, context: TemplateContext) -> List[str]:
+    def get_service_dependencies(self, context: TemplateContext) -> builtins.list[str]:
         """Return service dependencies."""
         return [
             "fastapi",
@@ -437,7 +434,7 @@ class FastAPIServicePlugin(ServiceTemplatePlugin):
 
     def get_deployment_manifest_templates(
         self, context: TemplateContext
-    ) -> Dict[str, str]:
+    ) -> builtins.dict[str, str]:
         """Return Kubernetes manifests."""
         return {
             "deployment.yaml": f"""apiVersion: apps/v1
@@ -462,7 +459,9 @@ spec:
 """
         }
 
-    def get_helm_chart_templates(self, context: TemplateContext) -> Dict[str, str]:
+    def get_helm_chart_templates(
+        self, context: TemplateContext
+    ) -> builtins.dict[str, str]:
         """Return Helm chart templates."""
         return {
             "Chart.yaml": f"""apiVersion: v2
@@ -512,7 +511,7 @@ class GRPCServicePlugin(ServiceTemplatePlugin):
         """Validate context for gRPC service generation."""
         return context.template_variables.get("has_grpc", False)
 
-    def generate_templates(self, context: TemplateContext) -> Dict[str, str]:
+    def generate_templates(self, context: TemplateContext) -> builtins.dict[str, str]:
         """Generate gRPC service templates."""
         if not self._initialized:
             raise RuntimeError("Plugin not initialized")
@@ -521,7 +520,7 @@ class GRPCServicePlugin(ServiceTemplatePlugin):
 
         # Load and render each template
         for template_file in self.templates_dir.glob("*.j2"):
-            with open(template_file, "r", encoding="utf-8") as f:
+            with open(template_file, encoding="utf-8") as f:
                 template_content = f.read()
 
             template = Template(template_content)
@@ -533,7 +532,7 @@ class GRPCServicePlugin(ServiceTemplatePlugin):
 
         return templates
 
-    def get_service_dependencies(self, context: TemplateContext) -> List[str]:
+    def get_service_dependencies(self, context: TemplateContext) -> builtins.list[str]:
         """Return service dependencies."""
         return [
             "grpcio",
@@ -545,7 +544,7 @@ class GRPCServicePlugin(ServiceTemplatePlugin):
 
     def get_deployment_manifest_templates(
         self, context: TemplateContext
-    ) -> Dict[str, str]:
+    ) -> builtins.dict[str, str]:
         """Return Kubernetes manifests."""
         return {
             "deployment.yaml": f"""apiVersion: apps/v1
@@ -570,7 +569,9 @@ spec:
 """
         }
 
-    def get_helm_chart_templates(self, context: TemplateContext) -> Dict[str, str]:
+    def get_helm_chart_templates(
+        self, context: TemplateContext
+    ) -> builtins.dict[str, str]:
         """Return Helm chart templates."""
         return {
             "Chart.yaml": f"""apiVersion: v2
@@ -619,7 +620,7 @@ This plugin provides custom template generation for {plugin_type.value} componen
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, dict, list
 
 from src.framework.generators.plugin_system import (
     TemplatePlugin, TemplateMetadata, TemplateContext, TemplateType, PluginPhase

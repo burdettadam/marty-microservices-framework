@@ -9,11 +9,12 @@ Provides JWT-based authentication middleware with support for:
 - Audit logging
 """
 
+import builtins
 import logging
 import time
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, dict, list
 
 import jwt
 import redis.asyncio as redis
@@ -35,9 +36,9 @@ class SecurityConfig:
         jwt_expiration_hours: int = 24,
         rate_limit_requests: int = 100,
         rate_limit_window_seconds: int = 3600,
-        redis_url: Optional[str] = None,
+        redis_url: str | None = None,
         enable_audit_logging: bool = True,
-        allowed_origins: Optional[List[str]] = None,
+        allowed_origins: builtins.list[str] | None = None,
     ):
         self.jwt_secret_key = jwt_secret_key
         self.jwt_algorithm = jwt_algorithm
@@ -57,7 +58,10 @@ class JWTAuthenticator:
         self.security = HTTPBearer()
 
     def create_access_token(
-        self, user_id: str, roles: List[str], extra_claims: Optional[Dict] = None
+        self,
+        user_id: str,
+        roles: builtins.list[str],
+        extra_claims: builtins.dict | None = None,
     ) -> str:
         """Create a JWT access token"""
         to_encode = {
@@ -77,7 +81,7 @@ class JWTAuthenticator:
         )
         return encoded_jwt
 
-    def verify_token(self, token: str) -> Dict[str, Any]:
+    def verify_token(self, token: str) -> builtins.dict[str, Any]:
         """Verify and decode JWT token"""
         try:
             payload = jwt.decode(
@@ -102,12 +106,12 @@ class JWTAuthenticator:
         except jwt.JWTError as e:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid token: {str(e)}",
+                detail=f"Invalid token: {e!s}",
             )
 
     async def get_current_user(
         self, credentials: HTTPAuthorizationCredentials
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Extract and validate current user from JWT token"""
         token = credentials.credentials
         payload = self.verify_token(token)
@@ -175,7 +179,7 @@ class SecurityAuditor:
         ip_address: str,
         user_agent: str,
         success: bool,
-        reason: Optional[str] = None,
+        reason: str | None = None,
     ):
         """Log authentication attempt"""
         if not self.config.enable_audit_logging:
@@ -199,8 +203,8 @@ class SecurityAuditor:
         self,
         user_id: str,
         endpoint: str,
-        required_roles: List[str],
-        user_roles: List[str],
+        required_roles: builtins.list[str],
+        user_roles: builtins.list[str],
         success: bool,
     ):
         """Log authorization attempt"""
@@ -224,7 +228,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
     """Main authentication middleware"""
 
     def __init__(
-        self, app, config: SecurityConfig, excluded_paths: Optional[List[str]] = None
+        self,
+        app,
+        config: SecurityConfig,
+        excluded_paths: builtins.list[str] | None = None,
     ):
         super().__init__(app)
         self.config = config
@@ -322,7 +329,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 client_ip,
                 user_agent,
                 False,
-                f"Internal error: {str(e)}",
+                f"Internal error: {e!s}",
             )
             return JSONResponse(
                 status_code=500, content={"detail": "Internal authentication error"}
@@ -355,7 +362,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         )
 
 
-def require_roles(required_roles: List[str]):
+def require_roles(required_roles: builtins.list[str]):
     """Decorator to require specific roles for endpoint access"""
 
     def decorator(func: Callable):
@@ -414,8 +421,8 @@ def get_current_user_dependency(config: SecurityConfig):
 # Example usage functions
 def create_authentication_middleware(
     jwt_secret_key: str,
-    redis_url: Optional[str] = None,
-    excluded_paths: Optional[List[str]] = None,
+    redis_url: str | None = None,
+    excluded_paths: builtins.list[str] | None = None,
 ) -> AuthenticationMiddleware:
     """Factory function to create authentication middleware"""
     config = SecurityConfig(jwt_secret_key=jwt_secret_key, redis_url=redis_url)

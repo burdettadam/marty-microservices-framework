@@ -81,14 +81,13 @@ def main():
         print("   uv add --dev pytest pytest-json-report")
         print("   uv pip install -e .")
         return 1
-    else:
-        print("✅ All setup steps completed successfully!")
-        print("\n🎉 Ready to use Marty CLI!")
-        print("\nNext steps:")
-        print("   1. Run tests: python3 test_runner.py")
-        print("   2. Try CLI: marty --help")
-        print("   3. Create a service: marty new fastapi-service my-service")
-        return 0
+    print("✅ All setup steps completed successfully!")
+    print("\n🎉 Ready to use Marty CLI!")
+    print("\nNext steps:")
+    print("   1. Run tests: python3 test_runner.py")
+    print("   2. Try CLI: marty --help")
+    print("   3. Create a service: marty new fastapi-service my-service")
+    return 0
 
 
 if __name__ == "__main__":

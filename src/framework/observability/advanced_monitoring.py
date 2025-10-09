@@ -6,25 +6,22 @@ distributed tracing, intelligent alerting, log aggregation, and observability an
 """
 
 import asyncio
-import json
+import builtins
 import statistics
-import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Dict, Final, List, Optional, dict, list
 from uuid import uuid4
 
 import aiohttp
 import structlog
-from opentelemetry import metrics, trace
+from opentelemetry import trace
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
-from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from opentelemetry.instrumentation.aiohttp_client import AioHttpClientInstrumentor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -58,16 +55,16 @@ class TraceSpan:
 
     trace_id: str
     span_id: str
-    parent_span_id: Optional[str]
+    parent_span_id: str | None
     operation_name: str
     span_type: TraceSpanType
     start_time: datetime
-    end_time: Optional[datetime] = None
-    duration_ms: Optional[float] = None
+    end_time: datetime | None = None
+    duration_ms: float | None = None
     status: str = "ok"
-    tags: Dict[str, str] = field(default_factory=dict)
-    logs: List[Dict[str, Any]] = field(default_factory=list)
-    error: Optional[str] = None
+    tags: builtins.dict[str, str] = field(default_factory=dict)
+    logs: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
+    error: str | None = None
 
 
 @dataclass
@@ -82,15 +79,15 @@ class AlertRule:
     threshold: float
     duration: timedelta
     evaluation_interval: timedelta = field(default=timedelta(seconds=30))
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
     enabled: bool = True
 
     # Advanced features
     anomaly_detection: bool = False
     baseline_period: timedelta = field(default=timedelta(hours=24))
     sensitivity: float = 0.8
-    dependency_rules: List[str] = field(default_factory=list)
+    dependency_rules: builtins.list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -116,7 +113,7 @@ class ObservabilityMetrics:
     # Business metrics
     active_users: int = 0
     transaction_volume: float = 0.0
-    business_events: Dict[str, int] = field(default_factory=dict)
+    business_events: builtins.dict[str, int] = field(default_factory=dict)
 
     # Quality metrics
     availability: float = 100.0
@@ -139,7 +136,7 @@ class DistributedTracer:
 
         # Span storage for analytics
         self.spans: deque = deque(maxlen=10000)
-        self.active_spans: Dict[str, TraceSpan] = {}
+        self.active_spans: builtins.dict[str, TraceSpan] = {}
 
         # Performance analytics
         self.span_stats = defaultdict(list)
@@ -188,7 +185,7 @@ class DistributedTracer:
         self,
         operation_name: str,
         span_type: TraceSpanType,
-        parent_span_id: Optional[str] = None,
+        parent_span_id: str | None = None,
         **tags,
     ) -> TraceSpan:
         """Start a new trace span."""
@@ -209,7 +206,7 @@ class DistributedTracer:
         return span
 
     def finish_span(
-        self, span: TraceSpan, status: str = "ok", error: Optional[str] = None
+        self, span: TraceSpan, status: str = "ok", error: str | None = None
     ):
         """Finish a trace span."""
         span.end_time = datetime.now(timezone.utc)
@@ -241,7 +238,7 @@ class DistributedTracer:
         if span.error:
             self.error_patterns[span.error] += 1
 
-    def get_trace_analytics(self) -> Dict[str, Any]:
+    def get_trace_analytics(self) -> builtins.dict[str, Any]:
         """Get trace analytics."""
         analytics = {
             "total_spans": len(self.spans),
@@ -267,7 +264,7 @@ class DistributedTracer:
         return analytics
 
     @staticmethod
-    def _percentile(data: List[float], percentile: float) -> float:
+    def _percentile(data: builtins.list[float], percentile: float) -> float:
         """Calculate percentile."""
         if not data:
             return 0.0
@@ -282,28 +279,30 @@ class IntelligentAlerting:
     def __init__(self, service_name: str):
         """Initialize intelligent alerting."""
         self.service_name = service_name
-        self.alert_rules: Dict[str, AlertRule] = {}
-        self.active_alerts: Dict[str, Alert] = {}
+        self.alert_rules: builtins.dict[str, AlertRule] = {}
+        self.active_alerts: builtins.dict[str, Alert] = {}
         self.alert_history: deque = deque(maxlen=10000)
 
         # Anomaly detection
-        self.metric_baselines: Dict[str, deque] = defaultdict(
+        self.metric_baselines: builtins.dict[str, deque] = defaultdict(
             lambda: deque(maxlen=1440)
         )  # 24h at 1min resolution
-        self.anomaly_scores: Dict[str, float] = {}
+        self.anomaly_scores: builtins.dict[str, float] = {}
 
         # Alert suppression
-        self.suppression_rules: Dict[str, timedelta] = {}
-        self.last_alert_times: Dict[str, datetime] = {}
+        self.suppression_rules: builtins.dict[str, timedelta] = {}
+        self.last_alert_times: builtins.dict[str, datetime] = {}
 
         # Notification channels
-        self.notification_channels: List[Dict[str, Any]] = []
+        self.notification_channels: builtins.list[builtins.dict[str, Any]] = []
 
     def add_alert_rule(self, rule: AlertRule):
         """Add an alert rule."""
         self.alert_rules[rule.name] = rule
 
-    def add_notification_channel(self, channel_type: str, config: Dict[str, Any]):
+    def add_notification_channel(
+        self, channel_type: str, config: builtins.dict[str, Any]
+    ):
         """Add a notification channel."""
         self.notification_channels.append({"type": channel_type, "config": config})
 
@@ -362,7 +361,7 @@ class IntelligentAlerting:
 
     def _get_metric_value(
         self, metric_query: str, metrics: ObservabilityMetrics
-    ) -> Optional[float]:
+    ) -> float | None:
         """Get metric value from metrics object."""
         metric_map = {
             "request_rate": metrics.request_rate,
@@ -382,14 +381,13 @@ class IntelligentAlerting:
         """Evaluate threshold condition."""
         if condition == "greater_than":
             return value > threshold
-        elif condition == "less_than":
+        if condition == "less_than":
             return value < threshold
-        elif condition == "equals":
+        if condition == "equals":
             return abs(value - threshold) < 0.01
-        elif condition == "not_equals":
+        if condition == "not_equals":
             return abs(value - threshold) >= 0.01
-        else:
-            return False
+        return False
 
     def _detect_anomaly(
         self, metric_name: str, value: float, sensitivity: float
@@ -417,7 +415,7 @@ class IntelligentAlerting:
         return is_anomaly
 
     def _check_dependencies(
-        self, dependency_rules: List[str], current_time: datetime
+        self, dependency_rules: builtins.list[str], current_time: datetime
     ) -> bool:
         """Check if dependency rules are satisfied."""
         if not dependency_rules:
@@ -516,7 +514,10 @@ class IntelligentAlerting:
                 print(f"Error sending notification: {e}")
 
     async def _send_webhook_notification(
-        self, config: Dict[str, Any], alert: Alert, metrics: ObservabilityMetrics
+        self,
+        config: builtins.dict[str, Any],
+        alert: Alert,
+        metrics: ObservabilityMetrics,
     ):
         """Send webhook notification."""
         webhook_url = config["url"]
@@ -548,16 +549,17 @@ class IntelligentAlerting:
                     )
 
     async def _send_slack_notification(
-        self, config: Dict[str, Any], alert: Alert, metrics: ObservabilityMetrics
+        self,
+        config: builtins.dict[str, Any],
+        alert: Alert,
+        metrics: ObservabilityMetrics,
     ):
         """Send Slack notification."""
         # Placeholder for Slack integration
-        pass
 
     async def _send_resolution_notification(self, alert: Alert):
         """Send alert resolution notification."""
         # Create resolution payload and send through all channels
-        pass
 
 
 class LogAggregator:
@@ -589,8 +591,8 @@ class LogAggregator:
 
         # Log storage and analysis
         self.log_buffer: deque = deque(maxlen=10000)
-        self.log_patterns: Dict[str, int] = defaultdict(int)
-        self.error_patterns: Dict[str, int] = defaultdict(int)
+        self.log_patterns: builtins.dict[str, int] = defaultdict(int)
+        self.error_patterns: builtins.dict[str, int] = defaultdict(int)
 
         # Performance tracking
         self.log_rates: deque = deque(maxlen=60)  # 1 minute of data
@@ -619,7 +621,7 @@ class LogAggregator:
         self.log_buffer.append(log_data)
         self._analyze_log_patterns(log_data)
 
-    def _get_trace_context(self) -> Optional[Dict[str, str]]:
+    def _get_trace_context(self) -> builtins.dict[str, str] | None:
         """Get current trace context."""
         try:
             current_span = trace.get_current_span()
@@ -633,7 +635,7 @@ class LogAggregator:
             pass
         return None
 
-    def _analyze_log_patterns(self, log_data: Dict[str, Any]):
+    def _analyze_log_patterns(self, log_data: builtins.dict[str, Any]):
         """Analyze log patterns for insights."""
         message = log_data.get("message", "")
         level = log_data.get("level", "")
@@ -648,7 +650,7 @@ class LogAggregator:
         if level.upper() in ["ERROR", "CRITICAL"]:
             self.error_patterns[message] += 1
 
-    def get_log_analytics(self) -> Dict[str, Any]:
+    def get_log_analytics(self) -> builtins.dict[str, Any]:
         """Get log analytics."""
         current_log_count = len(self.log_buffer)
         log_rate = current_log_count - self.last_log_count
@@ -666,7 +668,7 @@ class LogAggregator:
             "log_levels": self._get_log_level_distribution(),
         }
 
-    def _get_log_level_distribution(self) -> Dict[str, int]:
+    def _get_log_level_distribution(self) -> builtins.dict[str, int]:
         """Get distribution of log levels."""
         levels = defaultdict(int)
         for log_entry in self.log_buffer:
@@ -678,7 +680,7 @@ class LogAggregator:
 class AdvancedObservabilityManager:
     """Advanced observability manager with full-stack monitoring."""
 
-    def __init__(self, service_name: str, config: Dict[str, Any]):
+    def __init__(self, service_name: str, config: builtins.dict[str, Any]):
         """Initialize advanced observability manager."""
         self.service_name = service_name
         self.config = config
@@ -821,13 +823,15 @@ class AdvancedObservabilityManager:
 
         return metrics
 
-    def _calculate_request_rate(self, trace_analytics: Dict[str, Any]) -> float:
+    def _calculate_request_rate(
+        self, trace_analytics: builtins.dict[str, Any]
+    ) -> float:
         """Calculate request rate from trace analytics."""
         operation_stats = trace_analytics.get("operation_stats", {})
         total_requests = sum(stats["count"] for stats in operation_stats.values())
         return total_requests / 60.0  # Requests per second (assuming 1-minute window)
 
-    def _calculate_error_rate(self, trace_analytics: Dict[str, Any]) -> float:
+    def _calculate_error_rate(self, trace_analytics: builtins.dict[str, Any]) -> float:
         """Calculate error rate from trace analytics."""
         error_patterns = trace_analytics.get("error_patterns", {})
         total_errors = sum(error_patterns.values())
@@ -835,7 +839,7 @@ class AdvancedObservabilityManager:
         return total_errors / max(total_spans, 1)
 
     def _get_percentile_latency(
-        self, trace_analytics: Dict[str, Any], percentile: float
+        self, trace_analytics: builtins.dict[str, Any], percentile: float
     ) -> float:
         """Get percentile latency from trace analytics."""
         operation_stats = trace_analytics.get("operation_stats", {})
@@ -844,7 +848,9 @@ class AdvancedObservabilityManager:
         latencies = [stats.get(percentile_key, 0) for stats in operation_stats.values()]
         return max(latencies) if latencies else 0.0
 
-    def _get_system_metric(self, metric_name: str, basic_metrics: List) -> float:
+    def _get_system_metric(
+        self, metric_name: str, basic_metrics: builtins.list
+    ) -> float:
         """Get system metric value."""
         for metric in basic_metrics:
             if metric_name in metric.name:
@@ -854,9 +860,8 @@ class AdvancedObservabilityManager:
     def _update_system_metrics(self):
         """Update system metrics."""
         # This would integrate with the existing SystemMetrics class
-        pass
 
-    def get_comprehensive_status(self) -> Dict[str, Any]:
+    def get_comprehensive_status(self) -> builtins.dict[str, Any]:
         """Get comprehensive observability status."""
         return {
             "service": self.service_name,

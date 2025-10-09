@@ -3,7 +3,6 @@
 Quick test to verify the UV adoption for marty_chassis
 """
 
-import os
 import sys
 from pathlib import Path
 

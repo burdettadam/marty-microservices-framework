@@ -15,16 +15,28 @@ Features:
 """
 
 import asyncio
-import hashlib
+import builtins
 import json
 import logging
 import pickle
 import time
+import warnings
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Set,
+    TypeVar,
+    dict,
+    list,
+)
 
 # Optional Redis imports
 try:
@@ -60,6 +72,40 @@ class CachePattern(Enum):
     REFRESH_AHEAD = "refresh_ahead"
 
 
+class RestrictedUnpickler(pickle.Unpickler):
+    """Restricted unpickler that only allows safe types to prevent code execution."""
+
+    SAFE_BUILTINS = {
+        "str",
+        "int",
+        "float",
+        "bool",
+        "list",
+        "tuple",
+        "dict",
+        "set",
+        "frozenset",
+        "bytes",
+        "bytearray",
+        "complex",
+        "type",
+        "slice",
+        "range",
+    }
+
+    def find_class(self, module, name):
+        # Only allow safe built-in types and specific allowed modules
+        if module == "builtins" and name in self.SAFE_BUILTINS:
+            return getattr(builtins, name)
+        # Allow datetime objects which are commonly cached
+        if module == "datetime" and name in {"datetime", "date", "time", "timedelta"}:
+            import datetime
+
+            return getattr(datetime, name)
+        # Block everything else
+        raise pickle.UnpicklingError(f"Forbidden class {module}.{name}")
+
+
 class SerializationFormat(Enum):
     """Serialization formats for cache values."""
 
@@ -77,7 +123,7 @@ class CacheConfig:
     host: str = "localhost"
     port: int = 6379
     database: int = 0
-    password: Optional[str] = None
+    password: str | None = None
     max_connections: int = 100
     default_ttl: int = 3600  # 1 hour
     serialization: SerializationFormat = SerializationFormat.PICKLE
@@ -115,14 +161,13 @@ class CacheSerializer:
         try:
             if self.format == SerializationFormat.PICKLE:
                 return pickle.dumps(value)
-            elif self.format == SerializationFormat.JSON:
+            if self.format == SerializationFormat.JSON:
                 return json.dumps(value).encode("utf-8")
-            elif self.format == SerializationFormat.STRING:
+            if self.format == SerializationFormat.STRING:
                 return str(value).encode("utf-8")
-            elif self.format == SerializationFormat.BYTES:
+            if self.format == SerializationFormat.BYTES:
                 return value if isinstance(value, bytes) else str(value).encode("utf-8")
-            else:
-                raise ValueError(f"Unsupported serialization format: {self.format}")
+            raise ValueError(f"Unsupported serialization format: {self.format}")
         except Exception as e:
             logger.error(f"Serialization failed: {e}")
             raise
@@ -131,15 +176,22 @@ class CacheSerializer:
         """Deserialize bytes to value."""
         try:
             if self.format == SerializationFormat.PICKLE:
-                return pickle.loads(data)
-            elif self.format == SerializationFormat.JSON:
+                # Security: Use restricted unpickler to prevent arbitrary code execution
+                warnings.warn(
+                    "Pickle deserialization is potentially unsafe. Consider using JSON format for better security.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                import io
+
+                return RestrictedUnpickler(io.BytesIO(data)).load()
+            if self.format == SerializationFormat.JSON:
                 return json.loads(data.decode("utf-8"))
-            elif self.format == SerializationFormat.STRING:
+            if self.format == SerializationFormat.STRING:
                 return data.decode("utf-8")
-            elif self.format == SerializationFormat.BYTES:
+            if self.format == SerializationFormat.BYTES:
                 return data
-            else:
-                raise ValueError(f"Unsupported serialization format: {self.format}")
+            raise ValueError(f"Unsupported serialization format: {self.format}")
         except Exception as e:
             logger.error(f"Deserialization failed: {e}")
             raise
@@ -149,45 +201,39 @@ class CacheBackendInterface(ABC):
     """Abstract interface for cache backends."""
 
     @abstractmethod
-    async def get(self, key: str) -> Optional[bytes]:
+    async def get(self, key: str) -> bytes | None:
         """Get value from cache."""
-        pass
 
     @abstractmethod
-    async def set(self, key: str, value: bytes, ttl: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: bytes, ttl: int | None = None) -> bool:
         """Set value in cache."""
-        pass
 
     @abstractmethod
     async def delete(self, key: str) -> bool:
         """Delete value from cache."""
-        pass
 
     @abstractmethod
     async def exists(self, key: str) -> bool:
         """Check if key exists in cache."""
-        pass
 
     @abstractmethod
     async def clear(self) -> bool:
         """Clear all cache entries."""
-        pass
 
     @abstractmethod
     async def get_stats(self) -> CacheStats:
         """Get cache statistics."""
-        pass
 
 
 class InMemoryCache(CacheBackendInterface):
     """In-memory cache backend."""
 
     def __init__(self, max_size: int = 1000):
-        self.cache: Dict[str, tuple] = {}  # key -> (value, expiry_time)
+        self.cache: builtins.dict[str, tuple] = {}  # key -> (value, expiry_time)
         self.max_size = max_size
         self.stats = CacheStats()
 
-    def _is_expired(self, expiry_time: Optional[float]) -> bool:
+    def _is_expired(self, expiry_time: float | None) -> bool:
         """Check if cache entry is expired."""
         return expiry_time is not None and time.time() > expiry_time
 
@@ -209,7 +255,7 @@ class InMemoryCache(CacheBackendInterface):
             oldest_key = next(iter(self.cache))
             del self.cache[oldest_key]
 
-    async def get(self, key: str) -> Optional[bytes]:
+    async def get(self, key: str) -> bytes | None:
         """Get value from cache."""
         self._cleanup_expired()
 
@@ -218,13 +264,12 @@ class InMemoryCache(CacheBackendInterface):
             if not self._is_expired(expiry):
                 self.stats.hits += 1
                 return value
-            else:
-                del self.cache[key]
+            del self.cache[key]
 
         self.stats.misses += 1
         return None
 
-    async def set(self, key: str, value: bytes, ttl: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: bytes, ttl: int | None = None) -> bool:
         """Set value in cache."""
         try:
             self._cleanup_expired()
@@ -273,7 +318,7 @@ class RedisCache(CacheBackendInterface):
             )
 
         self.config = config
-        self.redis: Optional[Any] = None  # Type as Any to avoid typing issues
+        self.redis: Any | None = None  # Type as Any to avoid typing issues
         self.stats = CacheStats()
 
     async def connect(self) -> None:
@@ -309,7 +354,7 @@ class RedisCache(CacheBackendInterface):
         prefix = f"{self.config.key_prefix}:" if self.config.key_prefix else ""
         return f"{prefix}{self.config.namespace}:{key}"
 
-    async def get(self, key: str) -> Optional[bytes]:
+    async def get(self, key: str) -> bytes | None:
         """Get value from cache."""
         if not self.redis:
             await self.connect()
@@ -321,9 +366,8 @@ class RedisCache(CacheBackendInterface):
             if value is not None:
                 self.stats.hits += 1
                 return value
-            else:
-                self.stats.misses += 1
-                return None
+            self.stats.misses += 1
+            return None
 
         except (
             Exception
@@ -332,7 +376,7 @@ class RedisCache(CacheBackendInterface):
             self.stats.errors += 1
             return None
 
-    async def set(self, key: str, value: bytes, ttl: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: bytes, ttl: int | None = None) -> bool:
         """Set value in cache."""
         if not self.redis:
             await self.connect()
@@ -409,14 +453,14 @@ class CacheManager(Generic[T]):
     def __init__(
         self,
         backend: CacheBackendInterface,
-        serializer: Optional[CacheSerializer] = None,
+        serializer: CacheSerializer | None = None,
         pattern: CachePattern = CachePattern.CACHE_ASIDE,
     ):
         self.backend = backend
         self.serializer = serializer or CacheSerializer()
         self.pattern = pattern
         self._write_behind_queue: asyncio.Queue = asyncio.Queue()
-        self._write_behind_task: Optional[asyncio.Task] = None
+        self._write_behind_task: asyncio.Task | None = None
 
     async def start(self) -> None:
         """Start cache manager."""
@@ -432,7 +476,7 @@ class CacheManager(Generic[T]):
             except asyncio.CancelledError:
                 pass
 
-    async def get(self, key: str) -> Optional[T]:
+    async def get(self, key: str) -> T | None:
         """Get value from cache with deserialization."""
         try:
             data = await self.backend.get(key)
@@ -443,7 +487,7 @@ class CacheManager(Generic[T]):
             logger.error(f"Cache get failed for key {key}: {e}")
             return None
 
-    async def set(self, key: str, value: T, ttl: Optional[int] = None) -> bool:
+    async def set(self, key: str, value: T, ttl: int | None = None) -> bool:
         """Set value in cache with serialization."""
         try:
             data = self.serializer.serialize(value)
@@ -452,8 +496,7 @@ class CacheManager(Generic[T]):
                 # Queue for background writing
                 await self._write_behind_queue.put((key, data, ttl))
                 return True
-            else:
-                return await self.backend.set(key, data, ttl)
+            return await self.backend.set(key, data, ttl)
 
         except Exception as e:
             logger.error(f"Cache set failed for key {key}: {e}")
@@ -467,7 +510,7 @@ class CacheManager(Generic[T]):
         self,
         key: str,
         factory: Callable[[], T],
-        ttl: Optional[int] = None,
+        ttl: int | None = None,
     ) -> T:
         """Get value from cache or set it using factory (Cache-Aside pattern)."""
         value = await self.get(key)
@@ -480,7 +523,7 @@ class CacheManager(Generic[T]):
 
         return value
 
-    async def get_multi(self, keys: List[str]) -> Dict[str, Optional[T]]:
+    async def get_multi(self, keys: builtins.list[str]) -> builtins.dict[str, T | None]:
         """Get multiple values from cache."""
         results = {}
         for key in keys:
@@ -489,9 +532,9 @@ class CacheManager(Generic[T]):
 
     async def set_multi(
         self,
-        items: Dict[str, T],
-        ttl: Optional[int] = None,
-    ) -> Dict[str, bool]:
+        items: builtins.dict[str, T],
+        ttl: int | None = None,
+    ) -> builtins.dict[str, bool]:
         """Set multiple values in cache."""
         results = {}
         for key, value in items.items():
@@ -500,8 +543,8 @@ class CacheManager(Generic[T]):
 
     async def cache_warming(
         self,
-        keys_and_factories: Dict[str, Callable[[], T]],
-        ttl: Optional[int] = None,
+        keys_and_factories: builtins.dict[str, Callable[[], T]],
+        ttl: int | None = None,
     ) -> None:
         """Warm up cache with data."""
         tasks = []
@@ -542,10 +585,9 @@ class CacheFactory:
         """Create cache backend based on configuration."""
         if config.backend == CacheBackend.MEMORY:
             return InMemoryCache(max_size=1000)
-        elif config.backend == CacheBackend.REDIS:
+        if config.backend == CacheBackend.REDIS:
             return RedisCache(config)
-        else:
-            raise ValueError(f"Unsupported cache backend: {config.backend}")
+        raise ValueError(f"Unsupported cache backend: {config.backend}")
 
     @staticmethod
     def create_manager(
@@ -559,10 +601,10 @@ class CacheFactory:
 
 
 # Global cache instances
-_cache_managers: Dict[str, CacheManager] = {}
+_cache_managers: builtins.dict[str, CacheManager] = {}
 
 
-def get_cache_manager(name: str = "default") -> Optional[CacheManager]:
+def get_cache_manager(name: str = "default") -> CacheManager | None:
     """Get global cache manager."""
     return _cache_managers.get(name)
 
@@ -597,7 +639,7 @@ async def cache_context(
 # Decorators for caching
 def cached(
     key_template: str,
-    ttl: Optional[int] = None,
+    ttl: int | None = None,
     cache_name: str = "default",
 ):
     """Decorator for caching function results."""

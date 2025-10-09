@@ -6,43 +6,29 @@ load balancing, health monitoring, circuit breakers, and metrics collection.
 """
 
 import asyncio
+import builtins
 import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list, set
 
-from .circuit_breaker import (
-    CircuitBreakerConfig,
-    CircuitBreakerManager,
-    get_circuit_breaker,
-)
-from .core import HealthStatus, ServiceInstance, ServiceRegistry, ServiceWatcher
+from .circuit_breaker import CircuitBreakerConfig, CircuitBreakerManager
+from .core import ServiceInstance, ServiceRegistry, ServiceWatcher
 from .discovery import (
     ClientSideDiscovery,
     DiscoveryConfig,
-    DiscoveryResult,
     ServiceDiscoveryClient,
     ServiceQuery,
 )
-from .health import (
-    HealthCheckConfig,
-    HealthChecker,
-    HealthMonitor,
-    create_health_checker,
-)
+from .health import HealthCheckConfig, HealthMonitor, create_health_checker
 from .load_balancing import (
     LoadBalancer,
     LoadBalancingConfig,
     LoadBalancingContext,
     create_load_balancer,
 )
-from .mesh import (
-    ServiceMeshClient,
-    ServiceMeshConfig,
-    ServiceMeshManager,
-    create_service_mesh_client,
-)
+from .mesh import ServiceMeshConfig, ServiceMeshManager, create_service_mesh_client
 from .monitoring import DiscoveryMetrics, MetricsAggregator, MetricsCollector
 from .registry import (
     ConsulServiceRegistry,
@@ -74,27 +60,27 @@ class DiscoveryManagerConfig:
 
     # Registry configuration
     primary_registry_type: str = "memory"  # memory, consul, etcd, kubernetes
-    backup_registry_types: List[str] = field(default_factory=list)
+    backup_registry_types: builtins.list[str] = field(default_factory=list)
     registry_failover_enabled: bool = True
 
     # Load balancing
     load_balancing_enabled: bool = True
-    load_balancing_config: Optional[LoadBalancingConfig] = None
+    load_balancing_config: LoadBalancingConfig | None = None
 
     # Health monitoring
     health_monitoring_enabled: bool = True
-    default_health_check_config: Optional[HealthCheckConfig] = None
+    default_health_check_config: HealthCheckConfig | None = None
 
     # Circuit breakers
     circuit_breaker_enabled: bool = True
-    circuit_breaker_config: Optional[CircuitBreakerConfig] = None
+    circuit_breaker_config: CircuitBreakerConfig | None = None
 
     # Service mesh integration
     service_mesh_enabled: bool = False
-    service_mesh_configs: List[ServiceMeshConfig] = field(default_factory=list)
+    service_mesh_configs: builtins.list[ServiceMeshConfig] = field(default_factory=list)
 
     # Discovery settings
-    discovery_config: Optional[DiscoveryConfig] = None
+    discovery_config: DiscoveryConfig | None = None
     auto_registration: bool = True
 
     # Monitoring and metrics
@@ -120,10 +106,10 @@ class ServiceDiscoveryManager:
         self.state = DiscoveryManagerState.STOPPED
 
         # Core components
-        self._primary_registry: Optional[ServiceRegistry] = None
-        self._backup_registries: List[ServiceRegistry] = []
-        self._load_balancer: Optional[LoadBalancer] = None
-        self._discovery_client: Optional[ServiceDiscoveryClient] = None
+        self._primary_registry: ServiceRegistry | None = None
+        self._backup_registries: builtins.list[ServiceRegistry] = []
+        self._load_balancer: LoadBalancer | None = None
+        self._discovery_client: ServiceDiscoveryClient | None = None
         self._health_monitor = HealthMonitor()
         self._circuit_breaker_manager = CircuitBreakerManager()
         self._service_mesh_manager = ServiceMeshManager()
@@ -134,9 +120,9 @@ class ServiceDiscoveryManager:
         self._metrics_aggregator = MetricsAggregator()
 
         # State management
-        self._registered_services: Set[str] = set()
-        self._watched_services: Dict[str, ServiceWatcher] = {}
-        self._background_tasks: List[asyncio.Task] = []
+        self._registered_services: builtins.set[str] = set()
+        self._watched_services: builtins.dict[str, ServiceWatcher] = {}
+        self._background_tasks: builtins.list[asyncio.Task] = []
         self._shutdown_event = asyncio.Event()
 
         # Statistics
@@ -224,11 +210,10 @@ class ServiceDiscoveryManager:
 
                 logger.info("Registered service instance: %s", instance.instance_id)
                 return True
-            else:
-                logger.error(
-                    "Failed to register service instance: %s", instance.instance_id
-                )
-                return False
+            logger.error(
+                "Failed to register service instance: %s", instance.instance_id
+            )
+            return False
 
         except Exception as e:
             logger.error(
@@ -249,17 +234,16 @@ class ServiceDiscoveryManager:
                 self._registered_services.discard(instance_id)
                 logger.info("Deregistered service instance: %s", instance_id)
                 return True
-            else:
-                logger.error("Failed to deregister service instance: %s", instance_id)
-                return False
+            logger.error("Failed to deregister service instance: %s", instance_id)
+            return False
 
         except Exception as e:
             logger.error("Error deregistering service instance %s: %s", instance_id, e)
             return False
 
     async def discover_service(
-        self, query: ServiceQuery, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, query: ServiceQuery, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Discover and select a service instance."""
         if self.state != DiscoveryManagerState.RUNNING:
             raise RuntimeError(f"Manager not running: {self.state}")
@@ -294,9 +278,8 @@ class ServiceDiscoveryManager:
                 )
 
                 return instance
-            else:
-                self._stats["failed_discoveries"] += 1
-                return None
+            self._stats["failed_discoveries"] += 1
+            return None
 
         except Exception as e:
             self._stats["failed_discoveries"] += 1
@@ -307,7 +290,9 @@ class ServiceDiscoveryManager:
             logger.error("Service discovery failed for %s: %s", query.service_name, e)
             return None
 
-    async def get_service_instances(self, service_name: str) -> List[ServiceInstance]:
+    async def get_service_instances(
+        self, service_name: str
+    ) -> builtins.list[ServiceInstance]:
         """Get all instances for a service."""
         if self.state != DiscoveryManagerState.RUNNING:
             raise RuntimeError(f"Manager not running: {self.state}")
@@ -319,7 +304,9 @@ class ServiceDiscoveryManager:
             return []
 
     async def watch_service(
-        self, service_name: str, callback: Callable[[List[ServiceInstance]], None]
+        self,
+        service_name: str,
+        callback: Callable[[builtins.list[ServiceInstance]], None],
     ):
         """Watch a service for changes."""
         if self.state != DiscoveryManagerState.RUNNING:
@@ -339,7 +326,7 @@ class ServiceDiscoveryManager:
             await watcher.stop()
             logger.info("Stopped watching service: %s", service_name)
 
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> builtins.dict[str, Any]:
         """Get health status of the discovery manager."""
         return {
             "state": self.state.value,
@@ -354,7 +341,7 @@ class ServiceDiscoveryManager:
             "statistics": self._stats.copy(),
         }
 
-    def get_detailed_stats(self) -> Dict[str, Any]:
+    def get_detailed_stats(self) -> builtins.dict[str, Any]:
         """Get detailed statistics."""
         stats = {
             "manager": self.get_health_status(),
@@ -397,14 +384,13 @@ class ServiceDiscoveryManager:
         """Create service registry instance."""
         if registry_type == "memory":
             return InMemoryServiceRegistry()
-        elif registry_type == "consul":
+        if registry_type == "consul":
             return ConsulServiceRegistry()
-        elif registry_type == "etcd":
+        if registry_type == "etcd":
             return EtcdServiceRegistry()
-        elif registry_type == "kubernetes":
+        if registry_type == "kubernetes":
             return KubernetesServiceRegistry()
-        else:
-            raise ValueError(f"Unsupported registry type: {registry_type}")
+        raise ValueError(f"Unsupported registry type: {registry_type}")
 
     async def _initialize_load_balancer(self):
         """Initialize load balancer."""
@@ -565,7 +551,6 @@ class ServiceDiscoveryManager:
     async def _shutdown_service_mesh(self):
         """Shutdown service mesh components."""
         # Service mesh manager would handle client disconnections
-        pass
 
     async def _shutdown_health_monitoring(self):
         """Shutdown health monitoring."""

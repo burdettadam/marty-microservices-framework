@@ -72,29 +72,29 @@ from .middleware import (
 )
 
 __all__ = [
+    "AuditConfig",
+    "AuditContext",
+    "AuditDestination",
+    "AuditEncryption",
     # Events
     "AuditEvent",
     "AuditEventBuilder",
     "AuditEventType",
-    "AuditSeverity",
-    "AuditOutcome",
-    "AuditContext",
-    "AuditEncryption",
-    "AuditDestination",
-    # Destinations
-    "FileAuditDestination",
-    "DatabaseAuditDestination",
-    "ConsoleAuditDestination",
-    "SIEMAuditDestination",
     "AuditLogRecord",
     # Logger
     "AuditLogger",
-    "AuditConfig",
-    "get_audit_logger",
-    "set_audit_logger",
-    "audit_context",
     # Middleware
     "AuditMiddlewareConfig",
+    "AuditOutcome",
+    "AuditSeverity",
+    "ConsoleAuditDestination",
+    "DatabaseAuditDestination",
+    # Destinations
+    "FileAuditDestination",
+    "SIEMAuditDestination",
+    "audit_context",
+    "get_audit_logger",
+    "set_audit_logger",
     "setup_fastapi_audit_middleware",
     "setup_grpc_audit_interceptor",
 ]

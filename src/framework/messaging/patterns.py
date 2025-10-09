@@ -6,16 +6,17 @@ work queues, and routing patterns with producer/consumer abstractions.
 """
 
 import asyncio
+import builtins
 import logging
 import time
 import uuid
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, dict, list
 
-from .core import ExchangeConfig, Message, MessageHeaders, MessagePriority, QueueConfig
-from .serialization import JSONSerializer, MessageSerializer, SerializationConfig
+from .core import Message, MessageHeaders, MessagePriority
+from .serialization import JSONSerializer, MessageSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -44,16 +45,16 @@ class ProducerConfig:
 
     # Basic config
     name: str
-    exchange: Optional[str] = None
+    exchange: str | None = None
     routing_key: str = ""
 
     # Message settings
     default_priority: MessagePriority = MessagePriority.NORMAL
-    default_ttl: Optional[float] = None
+    default_ttl: float | None = None
     persistent: bool = True
 
     # Serialization
-    serializer: Optional[MessageSerializer] = None
+    serializer: MessageSerializer | None = None
 
     # Reliability
     confirm_delivery: bool = True
@@ -76,7 +77,7 @@ class ConsumerConfig:
     # Basic config
     name: str
     queue: str
-    consumer_tag: Optional[str] = None
+    consumer_tag: str | None = None
 
     # Processing settings
     mode: ConsumerMode = ConsumerMode.PULL
@@ -94,7 +95,7 @@ class ConsumerConfig:
     dead_letter_enabled: bool = True
 
     # Serialization
-    serializer: Optional[MessageSerializer] = None
+    serializer: MessageSerializer | None = None
 
     # Monitoring
     enable_metrics: bool = True
@@ -114,7 +115,6 @@ class MessageHandler(ABC):
         Returns:
             True if message was processed successfully, False otherwise
         """
-        pass
 
     async def on_error(self, message: Message, error: Exception):
         """Handle processing error."""
@@ -164,10 +164,10 @@ class Producer:
     async def publish(
         self,
         body: Any,
-        routing_key: Optional[str] = None,
-        headers: Optional[Dict[str, Any]] = None,
-        priority: Optional[MessagePriority] = None,
-        exchange: Optional[str] = None,
+        routing_key: str | None = None,
+        headers: builtins.dict[str, Any] | None = None,
+        priority: MessagePriority | None = None,
+        exchange: str | None = None,
     ) -> str:
         """
         Publish a message.
@@ -265,7 +265,7 @@ class Producer:
         elif not success:
             raise RuntimeError("Failed to publish message")
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get producer statistics."""
         avg_publish_time = self._total_publish_time / max(1, self._published_count)
 
@@ -381,7 +381,7 @@ class Consumer:
         finally:
             logger.info(f"Worker {worker_id} stopped")
 
-    async def _get_message(self) -> Optional[Message]:
+    async def _get_message(self) -> Message | None:
         """Get message from backend."""
         if not self.backend:
             return None
@@ -446,7 +446,7 @@ class Consumer:
             if self.backend:
                 await self.backend.nack(message, requeue=False)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get consumer statistics."""
         avg_process_time = self._total_process_time / max(1, self._consumed_count)
 
@@ -481,7 +481,7 @@ class RequestReplyPattern:
         self.producer = producer
         self.consumer = consumer
         self.timeout = timeout
-        self._pending_requests: Dict[str, asyncio.Future] = {}
+        self._pending_requests: builtins.dict[str, asyncio.Future] = {}
 
     async def request(self, body: Any, routing_key: str = "") -> Any:
         """Send request and wait for reply."""
@@ -526,7 +526,7 @@ class PublishSubscribePattern:
     def __init__(self, producer: Producer, exchange: str):
         self.producer = producer
         self.exchange = exchange
-        self.subscribers: List[Consumer] = []
+        self.subscribers: builtins.list[Consumer] = []
 
     async def publish(self, body: Any, topic: str = "") -> str:
         """Publish message to topic."""
@@ -550,7 +550,7 @@ class WorkQueuePattern:
     def __init__(self, producer: Producer, queue: str):
         self.producer = producer
         self.queue = queue
-        self.workers: List[Consumer] = []
+        self.workers: builtins.list[Consumer] = []
 
     async def add_work(
         self, body: Any, priority: MessagePriority = MessagePriority.NORMAL
@@ -576,7 +576,7 @@ class RoutingPattern:
     def __init__(self, producer: Producer, exchange: str):
         self.producer = producer
         self.exchange = exchange
-        self.routes: Dict[str, List[Consumer]] = {}
+        self.routes: builtins.dict[str, builtins.list[Consumer]] = {}
 
     async def send(self, body: Any, routing_key: str) -> str:
         """Send message with routing key."""

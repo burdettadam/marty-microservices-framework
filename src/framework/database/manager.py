@@ -1,14 +1,15 @@
 """
-Database manager for the enterprise database framework.
+Dfrom contextlib import AbstractAsyncContextManager, AsyncContextManager, asynccontextmanager
+from typing import Any, Dict, Optional, Setabase manager for the enterprise database framework.
 """
 
 import asyncio
+import builtins
 import logging
-from contextlib import asynccontextmanager
-from typing import Any, AsyncContextManager, Dict, Optional, Type
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
+from typing import Any, AsyncContextManager, Dict, Optional, Set, dict
 
 from sqlalchemy import create_engine, event, text
-from sqlalchemy.exc import DisconnectionError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -16,7 +17,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import Session, sessionmaker
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.pool import QueuePool
 
 from .config import DatabaseConfig
 from .models import BaseModel
@@ -27,13 +28,9 @@ logger = logging.getLogger(__name__)
 class DatabaseError(Exception):
     """Base database error."""
 
-    pass
-
 
 class ConnectionError(DatabaseError):
     """Database connection error."""
-
-    pass
 
 
 class DatabaseManager:
@@ -42,12 +39,10 @@ class DatabaseManager:
     def __init__(self, config: DatabaseConfig):
         self.config = config
         self.config.validate()
-
-        self._async_engine: Optional[AsyncEngine] = None
+        self._async_engine: AsyncEngine | None = None
         self._sync_engine = None
-        self._async_session_factory: Optional[async_sessionmaker] = None
+        self._async_session_factory: async_sessionmaker | None = None
         self._sync_session_factory = None
-
         self._initialized = False
         self._health_check_query = self._get_health_check_query()
 
@@ -55,7 +50,6 @@ class DatabaseManager:
         """Initialize the database manager."""
         if self._initialized:
             return
-
         try:
             # Create async engine
             self._async_engine = create_async_engine(
@@ -69,7 +63,6 @@ class DatabaseManager:
                 echo_pool=self.config.pool_config.echo_pool,
                 poolclass=QueuePool,
             )
-
             # Create sync engine for migrations and admin tasks
             self._sync_engine = create_engine(
                 self.config.sync_connection_url,
@@ -82,31 +75,25 @@ class DatabaseManager:
                 echo_pool=self.config.pool_config.echo_pool,
                 poolclass=QueuePool,
             )
-
             # Create session factories
             self._async_session_factory = async_sessionmaker(
                 self._async_engine,
                 class_=AsyncSession,
                 expire_on_commit=False,
             )
-
             self._sync_session_factory = sessionmaker(
                 self._sync_engine,
                 class_=Session,
                 expire_on_commit=False,
             )
-
             # Set up event listeners
             self._setup_event_listeners()
-
             # Test connection
             await self.health_check()
-
             self._initialized = True
             logger.info(
                 "Database manager initialized for service: %s", self.config.service_name
             )
-
         except Exception as e:
             logger.error("Failed to initialize database manager: %s", e)
             raise ConnectionError(f"Failed to initialize database: {e}") from e
@@ -144,19 +131,15 @@ class DatabaseManager:
             if self._async_engine:
                 await self._async_engine.dispose()
                 self._async_engine = None
-
             if self._sync_engine:
                 self._sync_engine.dispose()
                 self._sync_engine = None
-
             self._async_session_factory = None
             self._sync_session_factory = None
             self._initialized = False
-
             logger.info(
                 "Database manager closed for service: %s", self.config.service_name
             )
-
         except Exception as e:
             logger.error("Error closing database manager: %s", e)
             raise
@@ -166,10 +149,8 @@ class DatabaseManager:
         """Get an async database session."""
         if not self._initialized:
             await self.initialize()
-
         if not self._async_session_factory:
             raise DatabaseError("Database not initialized")
-
         session = self._async_session_factory()
         try:
             yield session
@@ -191,21 +172,17 @@ class DatabaseManager:
         """Get a synchronous database session (for migrations, admin tasks)."""
         if not self._sync_session_factory:
             raise DatabaseError("Database not initialized")
-
         return self._sync_session_factory()
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> builtins.dict[str, Any]:
         """Perform a database health check."""
         try:
             start_time = asyncio.get_event_loop().time()
-
             async with self.get_session() as session:
                 result = await session.execute(text(self._health_check_query))
                 await result.fetchone()
-
             end_time = asyncio.get_event_loop().time()
             response_time = (end_time - start_time) * 1000  # Convert to milliseconds
-
             return {
                 "status": "healthy",
                 "service": self.config.service_name,
@@ -213,7 +190,6 @@ class DatabaseManager:
                 "response_time_ms": round(response_time, 2),
                 "connection_url": self._mask_connection_url(),
             }
-
         except Exception as e:
             logger.error("Database health check failed: %s", e)
             return {
@@ -228,17 +204,13 @@ class DatabaseManager:
         """Create all tables defined in the metadata."""
         if not self._initialized:
             await self.initialize()
-
         target_metadata = metadata or BaseModel.metadata
-
         try:
             async with self._async_engine.begin() as conn:
                 await conn.run_sync(target_metadata.create_all)
-
             logger.info(
                 "Database tables created for service: %s", self.config.service_name
             )
-
         except Exception as e:
             logger.error("Failed to create tables: %s", e)
             raise DatabaseError(f"Failed to create tables: {e}") from e
@@ -247,23 +219,19 @@ class DatabaseManager:
         """Drop all tables defined in the metadata."""
         if not self._initialized:
             await self.initialize()
-
         target_metadata = metadata or BaseModel.metadata
-
         try:
             async with self._async_engine.begin() as conn:
                 await conn.run_sync(target_metadata.drop_all)
-
             logger.info(
                 "Database tables dropped for service: %s", self.config.service_name
             )
-
         except Exception as e:
             logger.error("Failed to drop tables: %s", e)
             raise DatabaseError(f"Failed to drop tables: {e}") from e
 
     async def execute_raw_sql(
-        self, sql: str, params: Optional[Dict[str, Any]] = None
+        self, sql: str, params: builtins.dict[str, Any] | None = None
     ) -> Any:
         """Execute raw SQL."""
         async with self.get_session() as session:
@@ -318,7 +286,7 @@ class DatabaseManager:
 
 
 # Global database managers registry
-_database_managers: Dict[str, DatabaseManager] = {}
+_database_managers: builtins.dict[str, DatabaseManager] = {}
 
 
 def get_database_manager(service_name: str) -> DatabaseManager:
@@ -327,7 +295,6 @@ def get_database_manager(service_name: str) -> DatabaseManager:
         # Try to create from environment
         config = DatabaseConfig.from_environment(service_name)
         _database_managers[service_name] = DatabaseManager(config)
-
     return _database_managers[service_name]
 
 
@@ -350,7 +317,7 @@ async def close_all_database_managers() -> None:
     _database_managers.clear()
 
 
-async def health_check_all_databases() -> Dict[str, Dict[str, Any]]:
+async def health_check_all_databases() -> builtins.dict[str, builtins.dict[str, Any]]:
     """Perform health checks on all registered databases."""
     results = {}
     for service_name, manager in _database_managers.items():

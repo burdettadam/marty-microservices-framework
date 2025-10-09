@@ -9,9 +9,10 @@ This script validates all service templates to ensure they:
 """
 
 import ast
+import builtins
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, cast, dict, list
 
 try:
     from jinja2 import Environment, FileSystemLoader, TemplateSyntaxError
@@ -39,16 +40,17 @@ class ServiceTemplateValidator:
             loader=FileSystemLoader(templates_dir),
             trim_blocks=True,
             lstrip_blocks=True,
+            autoescape=True,
         )
 
-    def validate_all_templates(self) -> Dict[str, Any]:
+    def validate_all_templates(self) -> builtins.dict[str, Any]:
         """
         Validate all service templates.
 
         Returns:
             Dictionary with validation results
         """
-        results: Dict[str, Any] = {
+        results: builtins.dict[str, Any] = {
             "total": 0,
             "passed": 0,
             "failed": 0,
@@ -90,10 +92,10 @@ class ServiceTemplateValidator:
                 results["failed"] = cast(int, results["failed"]) + 1
                 results["templates"][template_name] = {
                     "valid": False,
-                    "errors": [f"Validation exception: {str(e)}"],
+                    "errors": [f"Validation exception: {e!s}"],
                     "files_validated": 0,
                 }
-                print(f"❌ {template_name}: FAILED - {str(e)}")
+                print(f"❌ {template_name}: FAILED - {e!s}")
 
             print()
 
@@ -106,7 +108,7 @@ class ServiceTemplateValidator:
         self._print_summary(results)
         return results
 
-    def _validate_template(self, template_dir: Path) -> Dict[str, Any]:
+    def _validate_template(self, template_dir: Path) -> builtins.dict[str, Any]:
         """
         Validate a single template directory.
 
@@ -116,7 +118,7 @@ class ServiceTemplateValidator:
         Returns:
             Validation result dictionary
         """
-        result: Dict[str, Any] = {
+        result: builtins.dict[str, Any] = {
             "valid": True,
             "errors": [],
             "files_validated": 0,
@@ -129,7 +131,9 @@ class ServiceTemplateValidator:
 
         if not template_files:
             result["valid"] = False
-            cast(List[str], result["errors"]).append("No template files (.j2) found")
+            cast(builtins.list[str], result["errors"]).append(
+                "No template files (.j2) found"
+            )
             return result
 
         # Validate each template file
@@ -146,8 +150,8 @@ class ServiceTemplateValidator:
 
             except Exception as e:
                 result["valid"] = False
-                cast(List[str], result["errors"]).append(
-                    f"{template_file.name}: {str(e)}"
+                cast(builtins.list[str], result["errors"]).append(
+                    f"{template_file.name}: {e!s}"
                 )
 
         return result
@@ -168,7 +172,7 @@ class ServiceTemplateValidator:
             # This will raise TemplateSyntaxError if syntax is invalid
             self.env.get_template(template_path)
         except TemplateSyntaxError as e:
-            raise Exception(f"Jinja2 syntax error: {str(e)}")
+            raise Exception(f"Jinja2 syntax error: {e!s}")
 
     def _validate_python_generation(
         self, template_file: Path, template_dir: Path
@@ -196,13 +200,13 @@ class ServiceTemplateValidator:
             ast.parse(rendered_content)
 
         except TemplateSyntaxError as e:
-            raise Exception(f"Jinja2 syntax error during rendering: {str(e)}")
+            raise Exception(f"Jinja2 syntax error during rendering: {e!s}")
         except SyntaxError as e:
-            raise Exception(f"Generated Python code has syntax errors: {str(e)}")
+            raise Exception(f"Generated Python code has syntax errors: {e!s}")
         except Exception as e:
-            raise Exception(f"Template rendering failed: {str(e)}")
+            raise Exception(f"Template rendering failed: {e!s}")
 
-    def _get_sample_template_vars(self) -> Dict[str, Any]:
+    def _get_sample_template_vars(self) -> builtins.dict[str, Any]:
         """
         Get sample template variables for testing.
 
@@ -220,7 +224,7 @@ class ServiceTemplateValidator:
             "use_database": True,
         }
 
-    def _print_summary(self, results: Dict[str, Any]) -> None:
+    def _print_summary(self, results: builtins.dict[str, Any]) -> None:
         """
         Print validation summary.
 

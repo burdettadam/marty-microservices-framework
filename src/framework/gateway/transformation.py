@@ -5,16 +5,17 @@ Advanced request and response transformation capabilities including header manip
 body transformation, content type conversion, and sophisticated mapping rules.
 """
 
-import base64
+import builtins
 import json
 import logging
 import re
 import urllib.parse
-import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Pattern, Union
+from typing import Any, Dict, List, Optional, Set, dict, list
+
+from defusedxml import ElementTree as ET
 
 from .core import GatewayRequest, GatewayResponse
 
@@ -58,19 +59,19 @@ class TransformationRule:
     name: str
     type: TransformationType
     direction: TransformationDirection
-    condition: Optional[str] = None  # JSONPath, XPath, or regex condition
+    condition: str | None = None  # JSONPath, XPath, or regex condition
     action: str = "set"  # set, add, remove, rename, map
 
     # Source and target specifications
-    source: Optional[str] = None
-    target: Optional[str] = None
-    value: Optional[Any] = None
+    source: str | None = None
+    target: str | None = None
+    value: Any | None = None
 
     # Advanced options
     preserve_original: bool = False
     case_sensitive: bool = True
-    regex_pattern: Optional[str] = None
-    replacement: Optional[str] = None
+    regex_pattern: str | None = None
+    replacement: str | None = None
 
     # Conditional logic
     when_present: bool = True
@@ -110,14 +111,14 @@ class Transformer(ABC):
 
     @abstractmethod
     def transform_request(
-        self, request: GatewayRequest, rules: List[TransformationRule]
+        self, request: GatewayRequest, rules: builtins.list[TransformationRule]
     ) -> GatewayRequest:
         """Transform request according to rules."""
         raise NotImplementedError
 
     @abstractmethod
     def transform_response(
-        self, response: GatewayResponse, rules: List[TransformationRule]
+        self, response: GatewayResponse, rules: builtins.list[TransformationRule]
     ) -> GatewayResponse:
         """Transform response according to rules."""
         raise NotImplementedError
@@ -130,7 +131,7 @@ class HeaderTransformer(Transformer):
         self.config = config
 
     def transform_request(
-        self, request: GatewayRequest, rules: List[TransformationRule]
+        self, request: GatewayRequest, rules: builtins.list[TransformationRule]
     ) -> GatewayRequest:
         """Transform request headers."""
         header_rules = [
@@ -148,7 +149,7 @@ class HeaderTransformer(Transformer):
         return request
 
     def transform_response(
-        self, response: GatewayResponse, rules: List[TransformationRule]
+        self, response: GatewayResponse, rules: builtins.list[TransformationRule]
     ) -> GatewayResponse:
         """Transform response headers."""
         header_rules = [
@@ -165,7 +166,9 @@ class HeaderTransformer(Transformer):
 
         return response
 
-    def _apply_header_rule(self, rule: TransformationRule, headers: Dict[str, str]):
+    def _apply_header_rule(
+        self, rule: TransformationRule, headers: builtins.dict[str, str]
+    ):
         """Apply header transformation rule."""
         if rule.action == "set":
             if rule.target and rule.value is not None:
@@ -238,7 +241,7 @@ class QueryParamTransformer(Transformer):
         self.config = config
 
     def transform_request(
-        self, request: GatewayRequest, rules: List[TransformationRule]
+        self, request: GatewayRequest, rules: builtins.list[TransformationRule]
     ) -> GatewayRequest:
         """Transform request query parameters."""
         query_rules = [
@@ -255,12 +258,14 @@ class QueryParamTransformer(Transformer):
         return request
 
     def transform_response(
-        self, response: GatewayResponse, rules: List[TransformationRule]
+        self, response: GatewayResponse, rules: builtins.list[TransformationRule]
     ) -> GatewayResponse:
         """Query parameters not applicable to responses."""
         return response
 
-    def _apply_query_rule(self, rule: TransformationRule, params: Dict[str, str]):
+    def _apply_query_rule(
+        self, rule: TransformationRule, params: builtins.dict[str, str]
+    ):
         """Apply query parameter transformation rule."""
         if rule.action == "set":
             if rule.target and rule.value is not None:
@@ -285,7 +290,7 @@ class BodyTransformer(Transformer):
         self.config = config
 
     def transform_request(
-        self, request: GatewayRequest, rules: List[TransformationRule]
+        self, request: GatewayRequest, rules: builtins.list[TransformationRule]
     ) -> GatewayRequest:
         """Transform request body."""
         body_rules = [
@@ -319,7 +324,7 @@ class BodyTransformer(Transformer):
         return request
 
     def transform_response(
-        self, response: GatewayResponse, rules: List[TransformationRule]
+        self, response: GatewayResponse, rules: builtins.list[TransformationRule]
     ) -> GatewayResponse:
         """Transform response body."""
         body_rules = [
@@ -356,27 +361,25 @@ class BodyTransformer(Transformer):
         """Parse body content based on content type."""
         if "application/json" in content_type:
             return json.loads(body)
-        elif "application/xml" in content_type or "text/xml" in content_type:
+        if "application/xml" in content_type or "text/xml" in content_type:
             return ET.fromstring(body)
-        elif "application/x-www-form-urlencoded" in content_type:
+        if "application/x-www-form-urlencoded" in content_type:
             return dict(urllib.parse.parse_qsl(body))
-        else:
-            return body  # Return as string for unknown types
+        return body  # Return as string for unknown types
 
     def _serialize_body(self, data: Any, content_type: str) -> str:
         """Serialize body content based on content type."""
         if "application/json" in content_type:
             return json.dumps(data, ensure_ascii=False)
-        elif "application/xml" in content_type or "text/xml" in content_type:
+        if "application/xml" in content_type or "text/xml" in content_type:
             if isinstance(data, ET.Element):
                 return ET.tostring(data, encoding="unicode")
             return str(data)
-        elif "application/x-www-form-urlencoded" in content_type:
+        if "application/x-www-form-urlencoded" in content_type:
             if isinstance(data, dict):
                 return urllib.parse.urlencode(data)
             return str(data)
-        else:
-            return str(data)
+        return str(data)
 
     def _apply_body_rule(self, rule: TransformationRule, data: Any) -> Any:
         """Apply body transformation rule."""
@@ -409,7 +412,7 @@ class BodyTransformer(Transformer):
 
         return data
 
-    def _get_nested_value(self, data: Dict, path: str) -> Any:
+    def _get_nested_value(self, data: builtins.dict, path: str) -> Any:
         """Get nested value using dot notation."""
         keys = path.split(".")
         current = data
@@ -422,7 +425,7 @@ class BodyTransformer(Transformer):
 
         return current
 
-    def _set_nested_value(self, data: Dict, path: str, value: Any):
+    def _set_nested_value(self, data: builtins.dict, path: str, value: Any):
         """Set nested value using dot notation."""
         keys = path.split(".")
         current = data
@@ -434,7 +437,7 @@ class BodyTransformer(Transformer):
 
         current[keys[-1]] = value
 
-    def _remove_nested_value(self, data: Dict, path: str):
+    def _remove_nested_value(self, data: builtins.dict, path: str):
         """Remove nested value using dot notation."""
         keys = path.split(".")
         current = data
@@ -456,7 +459,7 @@ class PathTransformer(Transformer):
         self.config = config
 
     def transform_request(
-        self, request: GatewayRequest, rules: List[TransformationRule]
+        self, request: GatewayRequest, rules: builtins.list[TransformationRule]
     ) -> GatewayRequest:
         """Transform request path."""
         path_rules = [
@@ -473,7 +476,7 @@ class PathTransformer(Transformer):
         return request
 
     def transform_response(
-        self, response: GatewayResponse, rules: List[TransformationRule]
+        self, response: GatewayResponse, rules: builtins.list[TransformationRule]
     ) -> GatewayResponse:
         """Path transformation not applicable to responses."""
         return response
@@ -483,7 +486,7 @@ class PathTransformer(Transformer):
         if rule.action == "set" and rule.value:
             return str(rule.value)
 
-        elif rule.action == "map" and rule.regex_pattern and rule.replacement:
+        if rule.action == "map" and rule.regex_pattern and rule.replacement:
             flags = 0 if rule.case_sensitive else re.IGNORECASE
             return re.sub(rule.regex_pattern, rule.replacement, path, flags=flags)
 
@@ -503,7 +506,7 @@ class ContentTypeTransformer(Transformer):
         }
 
     def transform_request(
-        self, request: GatewayRequest, rules: List[TransformationRule]
+        self, request: GatewayRequest, rules: builtins.list[TransformationRule]
     ) -> GatewayRequest:
         """Transform request content type."""
         ct_rules = [
@@ -535,7 +538,7 @@ class ContentTypeTransformer(Transformer):
         return request
 
     def transform_response(
-        self, response: GatewayResponse, rules: List[TransformationRule]
+        self, response: GatewayResponse, rules: builtins.list[TransformationRule]
     ) -> GatewayResponse:
         """Transform response content type."""
         ct_rules = [
@@ -572,12 +575,11 @@ class ContentTypeTransformer(Transformer):
 
         if "json" in content_type:
             return BodyFormat.JSON
-        elif "xml" in content_type:
+        if "xml" in content_type:
             return BodyFormat.XML
-        elif "form" in content_type:
+        if "form" in content_type:
             return BodyFormat.FORM_DATA
-        else:
-            return BodyFormat.TEXT
+        return BodyFormat.TEXT
 
     def _json_to_xml(self, json_data: str) -> str:
         """Convert JSON to XML."""
@@ -658,7 +660,7 @@ class TransformationEngine:
             TransformationType.PATH: PathTransformer(self.config),
             TransformationType.CONTENT_TYPE: ContentTypeTransformer(self.config),
         }
-        self.rules: List[TransformationRule] = []
+        self.rules: builtins.list[TransformationRule] = []
 
     def add_rule(self, rule: TransformationRule):
         """Add transformation rule."""
@@ -666,7 +668,7 @@ class TransformationEngine:
         # Sort rules by priority
         self.rules.sort(key=lambda r: r.priority, reverse=True)
 
-    def add_rules(self, rules: List[TransformationRule]):
+    def add_rules(self, rules: builtins.list[TransformationRule]):
         """Add multiple transformation rules."""
         self.rules.extend(rules)
         self.rules.sort(key=lambda r: r.priority, reverse=True)
@@ -770,11 +772,11 @@ class TransformationMiddleware:
         """Add transformation rule."""
         self.engine.add_rule(rule)
 
-    def add_rules(self, rules: List[TransformationRule]):
+    def add_rules(self, rules: builtins.list[TransformationRule]):
         """Add multiple transformation rules."""
         self.engine.add_rules(rules)
 
-    def process_request(self, request: GatewayRequest) -> Optional[GatewayResponse]:
+    def process_request(self, request: GatewayRequest) -> GatewayResponse | None:
         """Process request transformation."""
         try:
             self.engine.transform_request(request)

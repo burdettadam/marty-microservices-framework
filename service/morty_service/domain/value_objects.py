@@ -6,13 +6,12 @@ with no conceptual identity. They are compared by their structural equality.
 """
 
 import re
-from typing import Any
 
 
 class ValueObject:
     """Base class for all value objects."""
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, self.__class__):
             return False
         return self.__dict__ == other.__dict__

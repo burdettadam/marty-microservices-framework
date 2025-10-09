@@ -9,7 +9,7 @@ This module provides:
 """
 
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Set, Union, dict, list
 
 from fastapi import Request, Response
 from prometheus_client import (
@@ -152,7 +152,7 @@ class MetricsCollector:
         self,
         operation: str,
         status: str,
-        duration: Optional[float] = None,
+        duration: float | None = None,
     ) -> None:
         """Record business operation metrics."""
         self.business_operations_total.labels(
@@ -170,7 +170,7 @@ class MetricsCollector:
         self.active_connections.labels(connection_type=connection_type).set(count)
 
     def increment_counter(
-        self, name: str, labels: Optional[Dict[str, str]] = None
+        self, name: str, labels: dict[str, str] | None = None
     ) -> None:
         """Increment a custom counter metric."""
         if not hasattr(self, f"_counter_{name}"):
@@ -188,7 +188,7 @@ class MetricsCollector:
             counter.inc()
 
     def set_gauge(
-        self, name: str, value: float, labels: Optional[Dict[str, str]] = None
+        self, name: str, value: float, labels: dict[str, str] | None = None
     ) -> None:
         """Set a custom gauge metric."""
         if not hasattr(self, f"_gauge_{name}"):
@@ -209,8 +209,8 @@ class MetricsCollector:
         self,
         name: str,
         value: float,
-        labels: Optional[Dict[str, str]] = None,
-        buckets: Optional[List[float]] = None,
+        labels: dict[str, str] | None = None,
+        buckets: list[float] | None = None,
     ) -> None:
         """Observe a custom histogram metric."""
         if not hasattr(self, f"_histogram_{name}"):
@@ -309,7 +309,7 @@ class OperationTracker:
     def __init__(self, metrics_collector: MetricsCollector, operation: str):
         self.metrics = metrics_collector
         self.operation = operation
-        self.start_time: Optional[float] = None
+        self.start_time: float | None = None
 
     def __enter__(self):
         self.start_time = time.time()
@@ -327,7 +327,7 @@ class OperationTracker:
 
 
 # Global metrics collector instance
-_global_metrics_collector: Optional[MetricsCollector] = None
+_global_metrics_collector: MetricsCollector | None = None
 
 
 def get_metrics_collector() -> MetricsCollector:

@@ -5,7 +5,7 @@ This module defines the exception hierarchy used throughout the chassis,
 providing clear error types for different failure scenarios.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class ChassisError(Exception):
@@ -14,8 +14,8 @@ class ChassisError(Exception):
     def __init__(
         self,
         message: str,
-        error_code: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        error_code: str | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
         self.message = message
@@ -27,7 +27,7 @@ class ChassisError(Exception):
             return f"[{self.error_code}] {self.message}"
         return self.message
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert exception to dictionary representation."""
         return {
             "error": self.__class__.__name__,

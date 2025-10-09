@@ -11,13 +11,13 @@ Provides comprehensive traffic management capabilities including:
 """
 
 import asyncio
+import builtins
 import json
-import uuid
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, dict, list
 
 # External dependencies
 try:
@@ -81,13 +81,13 @@ class TrafficDestination:
     health_check_retries: int = 3
 
     # Routing configuration
-    subset: Optional[str] = None  # For Istio destination rules
-    labels: Dict[str, str] = field(default_factory=dict)
+    subset: str | None = None  # For Istio destination rules
+    labels: builtins.dict[str, str] = field(default_factory=dict)
 
     # Load balancing
     load_balancer_policy: str = "round_robin"  # round_robin, least_conn, random, hash
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -97,30 +97,30 @@ class TrafficRoute:
 
     name: str
     rule_type: RoutingRule
-    destinations: List[TrafficDestination]
+    destinations: builtins.list[TrafficDestination]
 
     # Matching criteria
-    match_headers: Dict[str, str] = field(default_factory=dict)
-    match_paths: List[str] = field(default_factory=list)
-    match_methods: List[str] = field(default_factory=list)
-    match_query_params: Dict[str, str] = field(default_factory=dict)
+    match_headers: builtins.dict[str, str] = field(default_factory=dict)
+    match_paths: builtins.list[str] = field(default_factory=list)
+    match_methods: builtins.list[str] = field(default_factory=list)
+    match_query_params: builtins.dict[str, str] = field(default_factory=dict)
 
     # Advanced matching
-    user_agent_patterns: List[str] = field(default_factory=list)
-    geographic_regions: List[str] = field(default_factory=list)
-    feature_flags: Dict[str, Any] = field(default_factory=dict)
-    time_windows: List[Dict[str, str]] = field(default_factory=list)
+    user_agent_patterns: builtins.list[str] = field(default_factory=list)
+    geographic_regions: builtins.list[str] = field(default_factory=list)
+    feature_flags: builtins.dict[str, Any] = field(default_factory=dict)
+    time_windows: builtins.list[builtins.dict[str, str]] = field(default_factory=list)
 
     # Route configuration
     timeout: int = 30
     retries: int = 3
-    retry_on: List[str] = field(default_factory=lambda: ["5xx", "timeout"])
+    retry_on: builtins.list[str] = field(default_factory=lambda: ["5xx", "timeout"])
 
     # Traffic policies
-    rate_limit: Optional[Dict[str, Any]] = None
-    circuit_breaker: Optional[Dict[str, Any]] = None
+    rate_limit: builtins.dict[str, Any] | None = None
+    circuit_breaker: builtins.dict[str, Any] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "rule_type": self.rule_type.value,
@@ -136,24 +136,24 @@ class TrafficPolicy:
     namespace: str = "default"
 
     # Load balancing
-    load_balancer: Dict[str, Any] = field(default_factory=dict)
+    load_balancer: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Connection pool settings
-    connection_pool: Dict[str, Any] = field(default_factory=dict)
+    connection_pool: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Circuit breaker settings
-    circuit_breaker: Dict[str, Any] = field(default_factory=dict)
+    circuit_breaker: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Retry policy
-    retry_policy: Dict[str, Any] = field(default_factory=dict)
+    retry_policy: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Timeout settings
-    timeout: Dict[str, Any] = field(default_factory=dict)
+    timeout: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Rate limiting
-    rate_limit: Dict[str, Any] = field(default_factory=dict)
+    rate_limit: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -166,35 +166,30 @@ class TrafficManagerBase(ABC):
 
     def __init__(self, backend: TrafficBackend):
         self.backend = backend
-        self.routes: Dict[str, TrafficRoute] = {}
-        self.policies: Dict[str, TrafficPolicy] = {}
+        self.routes: builtins.dict[str, TrafficRoute] = {}
+        self.policies: builtins.dict[str, TrafficPolicy] = {}
 
     @abstractmethod
     async def configure_route(self, route: TrafficRoute) -> bool:
         """Configure traffic route"""
-        pass
 
     @abstractmethod
     async def update_traffic_split(
-        self, route_name: str, destinations: List[TrafficDestination]
+        self, route_name: str, destinations: builtins.list[TrafficDestination]
     ) -> bool:
         """Update traffic split weights"""
-        pass
 
     @abstractmethod
     async def apply_policy(self, policy: TrafficPolicy) -> bool:
         """Apply traffic policy"""
-        pass
 
     @abstractmethod
-    async def get_traffic_metrics(self, route_name: str) -> Dict[str, Any]:
+    async def get_traffic_metrics(self, route_name: str) -> builtins.dict[str, Any]:
         """Get traffic metrics for route"""
-        pass
 
     @abstractmethod
-    async def validate_configuration(self) -> Dict[str, Any]:
+    async def validate_configuration(self) -> builtins.dict[str, Any]:
         """Validate traffic configuration"""
-        pass
 
 
 class IstioTrafficManager(TrafficManagerBase):
@@ -239,7 +234,7 @@ class IstioTrafficManager(TrafficManagerBase):
                 await self._apply_virtual_service(virtual_service)
             else:
                 # Mock configuration
-                print(f"📋 Mock Istio VirtualService configuration:")
+                print("📋 Mock Istio VirtualService configuration:")
                 print(json.dumps(virtual_service, indent=2))
 
             # Create Destination Rules for each destination
@@ -250,7 +245,7 @@ class IstioTrafficManager(TrafficManagerBase):
                     if self.kubernetes_client:
                         await self._apply_destination_rule(destination_rule)
                     else:
-                        print(f"📋 Mock Istio DestinationRule configuration:")
+                        print("📋 Mock Istio DestinationRule configuration:")
                         print(json.dumps(destination_rule, indent=2))
 
             self.routes[route.name] = route
@@ -261,7 +256,7 @@ class IstioTrafficManager(TrafficManagerBase):
             return False
 
     async def update_traffic_split(
-        self, route_name: str, destinations: List[TrafficDestination]
+        self, route_name: str, destinations: builtins.list[TrafficDestination]
     ) -> bool:
         """Update traffic split in Istio Virtual Service"""
 
@@ -303,7 +298,7 @@ class IstioTrafficManager(TrafficManagerBase):
             if self.kubernetes_client:
                 await self._apply_destination_rule(destination_rule)
             else:
-                print(f"📋 Mock Istio policy configuration:")
+                print("📋 Mock Istio policy configuration:")
                 print(json.dumps(destination_rule, indent=2))
 
             self.policies[policy.name] = policy
@@ -313,7 +308,7 @@ class IstioTrafficManager(TrafficManagerBase):
             print(f"❌ Failed to apply Istio policy {policy.name}: {e}")
             return False
 
-    async def get_traffic_metrics(self, route_name: str) -> Dict[str, Any]:
+    async def get_traffic_metrics(self, route_name: str) -> builtins.dict[str, Any]:
         """Get traffic metrics from Istio/Prometheus"""
 
         try:
@@ -342,7 +337,7 @@ class IstioTrafficManager(TrafficManagerBase):
             print(f"❌ Failed to get traffic metrics for {route_name}: {e}")
             return {}
 
-    async def validate_configuration(self) -> Dict[str, Any]:
+    async def validate_configuration(self) -> builtins.dict[str, Any]:
         """Validate Istio configuration"""
 
         validation_results = {
@@ -376,7 +371,7 @@ class IstioTrafficManager(TrafficManagerBase):
 
         return validation_results
 
-    def _create_virtual_service(self, route: TrafficRoute) -> Dict[str, Any]:
+    def _create_virtual_service(self, route: TrafficRoute) -> builtins.dict[str, Any]:
         """Create Istio Virtual Service manifest"""
 
         # Build HTTP routes
@@ -447,7 +442,7 @@ class IstioTrafficManager(TrafficManagerBase):
 
     def _create_destination_rule(
         self, destination: TrafficDestination
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Create Istio Destination Rule manifest"""
 
         return {
@@ -468,7 +463,9 @@ class IstioTrafficManager(TrafficManagerBase):
             },
         }
 
-    def _create_policy_destination_rule(self, policy: TrafficPolicy) -> Dict[str, Any]:
+    def _create_policy_destination_rule(
+        self, policy: TrafficPolicy
+    ) -> builtins.dict[str, Any]:
         """Create Destination Rule with traffic policy"""
 
         traffic_policy = {}
@@ -495,7 +492,7 @@ class IstioTrafficManager(TrafficManagerBase):
             "spec": {"host": policy.name, "trafficPolicy": traffic_policy},
         }
 
-    async def _apply_virtual_service(self, virtual_service: Dict[str, Any]):
+    async def _apply_virtual_service(self, virtual_service: builtins.dict[str, Any]):
         """Apply Virtual Service to Kubernetes"""
 
         try:
@@ -512,7 +509,7 @@ class IstioTrafficManager(TrafficManagerBase):
             else:
                 raise e
 
-    async def _update_virtual_service(self, virtual_service: Dict[str, Any]):
+    async def _update_virtual_service(self, virtual_service: builtins.dict[str, Any]):
         """Update Virtual Service in Kubernetes"""
 
         self.kubernetes_client.patch_namespaced_custom_object(
@@ -524,7 +521,7 @@ class IstioTrafficManager(TrafficManagerBase):
             body=virtual_service,
         )
 
-    async def _apply_destination_rule(self, destination_rule: Dict[str, Any]):
+    async def _apply_destination_rule(self, destination_rule: builtins.dict[str, Any]):
         """Apply Destination Rule to Kubernetes"""
 
         try:
@@ -548,7 +545,7 @@ class IstioTrafficManager(TrafficManagerBase):
             else:
                 raise e
 
-    def _validate_route(self, route: TrafficRoute) -> Dict[str, Any]:
+    def _validate_route(self, route: TrafficRoute) -> builtins.dict[str, Any]:
         """Validate route configuration"""
 
         validation = {"valid": True, "errors": [], "warnings": []}
@@ -573,7 +570,7 @@ class IstioTrafficManager(TrafficManagerBase):
 
         return validation
 
-    def _validate_policy(self, policy: TrafficPolicy) -> Dict[str, Any]:
+    def _validate_policy(self, policy: TrafficPolicy) -> builtins.dict[str, Any]:
         """Validate policy configuration"""
 
         validation = {"valid": True, "errors": [], "warnings": []}
@@ -639,7 +636,7 @@ class NginxTrafficManager(TrafficManagerBase):
             if self.kubernetes_client:
                 await self._apply_ingress(ingress)
             else:
-                print(f"📋 Mock NGINX Ingress configuration:")
+                print("📋 Mock NGINX Ingress configuration:")
                 print(json.dumps(ingress, indent=2))
 
             # Create ConfigMap for upstream configuration
@@ -649,7 +646,7 @@ class NginxTrafficManager(TrafficManagerBase):
                 core_v1 = client.CoreV1Api()
                 await self._apply_configmap(core_v1, configmap)
             else:
-                print(f"📋 Mock NGINX upstream configuration:")
+                print("📋 Mock NGINX upstream configuration:")
                 print(json.dumps(configmap, indent=2))
 
             self.routes[route.name] = route
@@ -660,7 +657,7 @@ class NginxTrafficManager(TrafficManagerBase):
             return False
 
     async def update_traffic_split(
-        self, route_name: str, destinations: List[TrafficDestination]
+        self, route_name: str, destinations: builtins.list[TrafficDestination]
     ) -> bool:
         """Update traffic split in NGINX upstream"""
 
@@ -697,7 +694,7 @@ class NginxTrafficManager(TrafficManagerBase):
             print(f"📐 Applying NGINX policy: {policy.name}")
 
             # Mock policy application
-            print(f"📋 NGINX policy configuration:")
+            print("📋 NGINX policy configuration:")
             print(f"  Rate limit: {policy.rate_limit}")
             print(f"  Connection pool: {policy.connection_pool}")
             print(f"  Timeout: {policy.timeout}")
@@ -709,7 +706,7 @@ class NginxTrafficManager(TrafficManagerBase):
             print(f"❌ Failed to apply NGINX policy {policy.name}: {e}")
             return False
 
-    async def get_traffic_metrics(self, route_name: str) -> Dict[str, Any]:
+    async def get_traffic_metrics(self, route_name: str) -> builtins.dict[str, Any]:
         """Get traffic metrics from NGINX"""
 
         try:
@@ -729,7 +726,7 @@ class NginxTrafficManager(TrafficManagerBase):
             print(f"❌ Failed to get NGINX traffic metrics for {route_name}: {e}")
             return {}
 
-    async def validate_configuration(self) -> Dict[str, Any]:
+    async def validate_configuration(self) -> builtins.dict[str, Any]:
         """Validate NGINX configuration"""
 
         validation_results = {
@@ -750,7 +747,7 @@ class NginxTrafficManager(TrafficManagerBase):
 
         return validation_results
 
-    def _create_ingress(self, route: TrafficRoute) -> Dict[str, Any]:
+    def _create_ingress(self, route: TrafficRoute) -> builtins.dict[str, Any]:
         """Create NGINX Ingress manifest"""
 
         # Build ingress rules
@@ -805,7 +802,9 @@ class NginxTrafficManager(TrafficManagerBase):
             "spec": {"rules": rules},
         }
 
-    def _create_upstream_configmap(self, route: TrafficRoute) -> Dict[str, Any]:
+    def _create_upstream_configmap(
+        self, route: TrafficRoute
+    ) -> builtins.dict[str, Any]:
         """Create ConfigMap for NGINX upstream configuration"""
 
         # Build upstream configuration
@@ -826,7 +825,7 @@ upstream {route.name} {{
             "data": {"upstream.conf": upstream_config},
         }
 
-    async def _apply_ingress(self, ingress: Dict[str, Any]):
+    async def _apply_ingress(self, ingress: builtins.dict[str, Any]):
         """Apply Ingress to Kubernetes"""
 
         try:
@@ -844,7 +843,7 @@ upstream {route.name} {{
                 raise e
 
     async def _apply_configmap(
-        self, core_v1: client.CoreV1Api, configmap: Dict[str, Any]
+        self, core_v1: client.CoreV1Api, configmap: builtins.dict[str, Any]
     ):
         """Apply ConfigMap to Kubernetes"""
 
@@ -859,7 +858,7 @@ upstream {route.name} {{
                 raise e
 
     async def _update_configmap(
-        self, core_v1: client.CoreV1Api, configmap: Dict[str, Any]
+        self, core_v1: client.CoreV1Api, configmap: builtins.dict[str, Any]
     ):
         """Update ConfigMap in Kubernetes"""
 
@@ -883,10 +882,9 @@ class TrafficManagerFactory:
 
         if backend == TrafficBackend.ISTIO:
             return IstioTrafficManager()
-        elif backend == TrafficBackend.NGINX:
+        if backend == TrafficBackend.NGINX:
             return NginxTrafficManager()
-        else:
-            raise ValueError(f"Unsupported traffic backend: {backend.value}")
+        raise ValueError(f"Unsupported traffic backend: {backend.value}")
 
 
 class TrafficOrchestrator:
@@ -902,7 +900,7 @@ class TrafficOrchestrator:
 
     def __init__(self, primary_backend: TrafficBackend = TrafficBackend.ISTIO):
         self.primary_backend = primary_backend
-        self.managers: Dict[TrafficBackend, TrafficManagerBase] = {}
+        self.managers: builtins.dict[TrafficBackend, TrafficManagerBase] = {}
 
         # Initialize primary manager
         self.managers[primary_backend] = TrafficManagerFactory.create_manager(
@@ -910,7 +908,7 @@ class TrafficOrchestrator:
         )
 
         # Traffic operations
-        self.active_splits: Dict[str, Dict[str, Any]] = {}
+        self.active_splits: builtins.dict[str, builtins.dict[str, Any]] = {}
 
     def add_backend(self, backend: TrafficBackend):
         """Add additional traffic management backend"""
@@ -920,8 +918,8 @@ class TrafficOrchestrator:
             print(f"➕ Added {backend.value} traffic manager")
 
     async def configure_route(
-        self, route: TrafficRoute, backends: Optional[List[TrafficBackend]] = None
-    ) -> Dict[TrafficBackend, bool]:
+        self, route: TrafficRoute, backends: builtins.list[TrafficBackend] | None = None
+    ) -> builtins.dict[TrafficBackend, bool]:
         """Configure traffic route across specified backends"""
 
         if backends is None:
@@ -951,9 +949,9 @@ class TrafficOrchestrator:
     async def execute_traffic_split(
         self,
         route_name: str,
-        destinations: List[TrafficDestination],
-        backends: Optional[List[TrafficBackend]] = None,
-    ) -> Dict[TrafficBackend, bool]:
+        destinations: builtins.list[TrafficDestination],
+        backends: builtins.list[TrafficBackend] | None = None,
+    ) -> builtins.dict[TrafficBackend, bool]:
         """Execute traffic split across backends"""
 
         if backends is None:
@@ -988,7 +986,7 @@ class TrafficOrchestrator:
 
         return results
 
-    async def get_aggregated_metrics(self, route_name: str) -> Dict[str, Any]:
+    async def get_aggregated_metrics(self, route_name: str) -> builtins.dict[str, Any]:
         """Get aggregated traffic metrics across all backends"""
 
         aggregated_metrics = {
@@ -1033,7 +1031,7 @@ class TrafficOrchestrator:
 
         return aggregated_metrics
 
-    async def validate_all_configurations(self) -> Dict[str, Any]:
+    async def validate_all_configurations(self) -> builtins.dict[str, Any]:
         """Validate configurations across all backends"""
 
         validation_results = {
@@ -1078,7 +1076,7 @@ class TrafficOrchestrator:
 
         return validation_results
 
-    def get_active_splits(self) -> Dict[str, Any]:
+    def get_active_splits(self) -> builtins.dict[str, Any]:
         """Get all active traffic splits"""
         return self.active_splits
 

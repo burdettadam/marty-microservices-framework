@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
+from typing import Optional, Set
 
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -43,7 +43,7 @@ OTEL_CONSOLE_EXPORT = os.getenv("OTEL_CONSOLE_EXPORT", "false").lower() in (
 )
 
 # Global tracer reference
-_tracer: Optional[trace.Tracer] = None
+_tracer: trace.Tracer | None = None
 _instrumented = False
 
 
@@ -59,7 +59,7 @@ def get_tracer() -> trace.Tracer:
     return _tracer
 
 
-def init_tracing(service_name: Optional[str] = None) -> None:
+def init_tracing(service_name: str | None = None) -> None:
     """Initialize OpenTelemetry tracing with OTLP export.
 
     Args:
@@ -319,7 +319,7 @@ class traced_operation:
             self.span.end()
 
 
-def trace_function(operation_name: Optional[str] = None):
+def trace_function(operation_name: str | None = None):
     """Decorator to trace function calls.
 
     Args:

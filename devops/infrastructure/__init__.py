@@ -12,6 +12,7 @@ Provides comprehensive Infrastructure as Code capabilities including:
 """
 
 import asyncio
+import builtins
 import hashlib
 import json
 import os
@@ -24,7 +25,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, dict, list, tuple
 
 import yaml
 
@@ -107,26 +108,26 @@ class InfrastructureResource:
     provider: CloudProvider
 
     # Resource configuration
-    configuration: Dict[str, Any] = field(default_factory=dict)
+    configuration: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Dependencies
-    depends_on: List[str] = field(default_factory=list)
+    depends_on: builtins.list[str] = field(default_factory=list)
 
     # Tags and metadata
-    tags: Dict[str, str] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Lifecycle
     prevent_destroy: bool = False
     create_before_destroy: bool = False
 
     # State
-    resource_id: Optional[str] = None
+    resource_id: str | None = None
     status: str = "not_created"
-    created_at: Optional[datetime] = None
-    last_modified: Optional[datetime] = None
+    created_at: datetime | None = None
+    last_modified: datetime | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "resource_type": self.resource_type.value,
@@ -148,14 +149,14 @@ class InfrastructureStack:
     tool: IaCTool
 
     # Resources
-    resources: List[InfrastructureResource] = field(default_factory=list)
+    resources: builtins.list[InfrastructureResource] = field(default_factory=list)
 
     # Configuration
-    variables: Dict[str, Any] = field(default_factory=dict)
-    outputs: Dict[str, Any] = field(default_factory=dict)
+    variables: builtins.dict[str, Any] = field(default_factory=dict)
+    outputs: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Backend configuration
-    backend_config: Dict[str, Any] = field(default_factory=dict)
+    backend_config: builtins.dict[str, Any] = field(default_factory=dict)
 
     # State management
     state_location: str = ""
@@ -168,13 +169,13 @@ class InfrastructureStack:
 
     # Metadata
     version: str = "1.0.0"
-    tags: Dict[str, str] = field(default_factory=dict)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
 
     # Lifecycle
-    created_at: Optional[datetime] = None
-    last_deployed: Optional[datetime] = None
+    created_at: datetime | None = None
+    last_deployed: datetime | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "provider": self.provider.value,
@@ -212,13 +213,13 @@ class InfrastructureOperation:
     # Execution details
     plan_output: str = ""
     apply_output: str = ""
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
     # Timing
-    completed_at: Optional[datetime] = None
-    duration: Optional[float] = None
+    completed_at: datetime | None = None
+    duration: float | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "status": self.status.value,
@@ -239,42 +240,36 @@ class IaCProviderBase(ABC):
     def __init__(self, tool: IaCTool, provider: CloudProvider):
         self.tool = tool
         self.provider = provider
-        self.stacks: Dict[str, InfrastructureStack] = {}
-        self.operations: Dict[str, InfrastructureOperation] = {}
+        self.stacks: builtins.dict[str, InfrastructureStack] = {}
+        self.operations: builtins.dict[str, InfrastructureOperation] = {}
 
     @abstractmethod
     async def initialize_stack(self, stack: InfrastructureStack) -> bool:
         """Initialize infrastructure stack"""
-        pass
 
     @abstractmethod
     async def plan_stack(self, stack_name: str) -> InfrastructureOperation:
         """Generate infrastructure plan"""
-        pass
 
     @abstractmethod
     async def apply_stack(
         self, stack_name: str, auto_approve: bool = False
     ) -> InfrastructureOperation:
         """Apply infrastructure changes"""
-        pass
 
     @abstractmethod
     async def destroy_stack(
         self, stack_name: str, auto_approve: bool = False
     ) -> InfrastructureOperation:
         """Destroy infrastructure stack"""
-        pass
 
     @abstractmethod
-    async def get_stack_state(self, stack_name: str) -> Dict[str, Any]:
+    async def get_stack_state(self, stack_name: str) -> builtins.dict[str, Any]:
         """Get current stack state"""
-        pass
 
     @abstractmethod
-    async def validate_configuration(self, stack_name: str) -> Dict[str, Any]:
+    async def validate_configuration(self, stack_name: str) -> builtins.dict[str, Any]:
         """Validate infrastructure configuration"""
-        pass
 
 
 class TerraformProvider(IaCProviderBase):
@@ -545,7 +540,7 @@ class TerraformProvider(IaCProviderBase):
 
         return operation
 
-    async def get_stack_state(self, stack_name: str) -> Dict[str, Any]:
+    async def get_stack_state(self, stack_name: str) -> builtins.dict[str, Any]:
         """Get current Terraform state"""
 
         if stack_name not in self.stacks:
@@ -562,17 +557,16 @@ class TerraformProvider(IaCProviderBase):
             if show_result["returncode"] == 0:
                 state_data = json.loads(show_result["stdout"])
                 return state_data
-            else:
-                print(
-                    f"⚠️ Could not retrieve state for {stack_name}: {show_result['stderr']}"
-                )
-                return {}
+            print(
+                f"⚠️ Could not retrieve state for {stack_name}: {show_result['stderr']}"
+            )
+            return {}
 
         except Exception as e:
             print(f"❌ Error getting state for {stack_name}: {e}")
             return {}
 
-    async def validate_configuration(self, stack_name: str) -> Dict[str, Any]:
+    async def validate_configuration(self, stack_name: str) -> builtins.dict[str, Any]:
         """Validate Terraform configuration"""
 
         validation_result = {"valid": False, "errors": [], "warnings": []}
@@ -665,7 +659,9 @@ class TerraformProvider(IaCProviderBase):
         with open(os.path.join(stack_dir, "main.tf"), "w") as f:
             self._write_tf_config(f, {**main_tf, **resources_tf})
 
-    def _get_required_providers(self, provider: CloudProvider) -> Dict[str, Any]:
+    def _get_required_providers(
+        self, provider: CloudProvider
+    ) -> builtins.dict[str, Any]:
         """Get required Terraform providers"""
 
         providers = {}
@@ -686,21 +682,21 @@ class TerraformProvider(IaCProviderBase):
 
     def _get_provider_config(
         self, provider: CloudProvider, region: str
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Get provider configuration"""
 
         if provider == CloudProvider.AWS:
             return {"aws": {"region": region}}
-        elif provider == CloudProvider.AZURE:
+        if provider == CloudProvider.AZURE:
             return {"azurerm": {"features": {}}}
-        elif provider == CloudProvider.GCP:
+        if provider == CloudProvider.GCP:
             return {"google": {"region": region}}
 
         return {}
 
     def _convert_resource_to_terraform(
         self, resource: InfrastructureResource
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Convert infrastructure resource to Terraform configuration"""
 
         # Get provider prefix
@@ -729,9 +725,10 @@ class TerraformProvider(IaCProviderBase):
 
         # Add tags
         if resource.tags:
-            if resource.provider == CloudProvider.AWS:
-                resource_config["tags"] = resource.tags
-            elif resource.provider == CloudProvider.AZURE:
+            if (
+                resource.provider == CloudProvider.AWS
+                or resource.provider == CloudProvider.AZURE
+            ):
                 resource_config["tags"] = resource.tags
             elif resource.provider == CloudProvider.GCP:
                 resource_config["labels"] = resource.tags
@@ -754,7 +751,7 @@ class TerraformProvider(IaCProviderBase):
 
         return {f'resource "{tf_resource_type}" "{resource.name}"': resource_config}
 
-    def _write_tf_config(self, file_handle, config: Dict[str, Any]):
+    def _write_tf_config(self, file_handle, config: builtins.dict[str, Any]):
         """Write Terraform configuration to file"""
 
         # This is a simplified HCL writer
@@ -797,8 +794,8 @@ class TerraformProvider(IaCProviderBase):
                 file_handle.write("\n")
 
     async def _run_terraform_command(
-        self, args: List[str], working_dir: str
-    ) -> Dict[str, Any]:
+        self, args: builtins.list[str], working_dir: str
+    ) -> builtins.dict[str, Any]:
         """Run Terraform command"""
 
         try:
@@ -1090,7 +1087,7 @@ class PulumiProvider(IaCProviderBase):
 
         return operation
 
-    async def get_stack_state(self, stack_name: str) -> Dict[str, Any]:
+    async def get_stack_state(self, stack_name: str) -> builtins.dict[str, Any]:
         """Get current Pulumi stack state"""
 
         if stack_name not in self.stacks:
@@ -1107,17 +1104,16 @@ class PulumiProvider(IaCProviderBase):
             if export_result["returncode"] == 0:
                 state_data = json.loads(export_result["stdout"])
                 return state_data
-            else:
-                print(
-                    f"⚠️ Could not retrieve state for {stack_name}: {export_result['stderr']}"
-                )
-                return {}
+            print(
+                f"⚠️ Could not retrieve state for {stack_name}: {export_result['stderr']}"
+            )
+            return {}
 
         except Exception as e:
             print(f"❌ Error getting state for {stack_name}: {e}")
             return {}
 
-    async def validate_configuration(self, stack_name: str) -> Dict[str, Any]:
+    async def validate_configuration(self, stack_name: str) -> builtins.dict[str, Any]:
         """Validate Pulumi configuration"""
 
         validation_result = {"valid": True, "errors": [], "warnings": []}
@@ -1274,8 +1270,8 @@ class PulumiProvider(IaCProviderBase):
 )"""
 
     async def _run_pulumi_command(
-        self, args: List[str], working_dir: str
-    ) -> Dict[str, Any]:
+        self, args: builtins.list[str], working_dir: str
+    ) -> builtins.dict[str, Any]:
         """Run Pulumi command"""
 
         try:
@@ -1316,11 +1312,13 @@ class InfrastructureOrchestrator:
 
     def __init__(self):
         # IaC providers
-        self.providers: Dict[Tuple[IaCTool, CloudProvider], IaCProviderBase] = {}
+        self.providers: builtins.dict[
+            builtins.tuple[IaCTool, CloudProvider], IaCProviderBase
+        ] = {}
 
         # Stack registry
-        self.stacks: Dict[str, InfrastructureStack] = {}
-        self.operations: Dict[str, InfrastructureOperation] = {}
+        self.stacks: builtins.dict[str, InfrastructureStack] = {}
+        self.operations: builtins.dict[str, InfrastructureOperation] = {}
 
         # Configuration
         self.default_tags = {
@@ -1438,7 +1436,7 @@ class InfrastructureOrchestrator:
         self.operations[destroy_operation.operation_id] = destroy_operation
         return destroy_operation
 
-    async def detect_drift(self, stack_name: str) -> Dict[str, Any]:
+    async def detect_drift(self, stack_name: str) -> builtins.dict[str, Any]:
         """Detect infrastructure drift"""
 
         if stack_name not in self.stacks:
@@ -1448,7 +1446,7 @@ class InfrastructureOrchestrator:
         provider_key = (stack.tool, stack.provider)
 
         if provider_key not in self.providers:
-            raise ValueError(f"Provider not available")
+            raise ValueError("Provider not available")
 
         iac_provider = self.providers[provider_key]
 
@@ -1492,7 +1490,7 @@ class InfrastructureOrchestrator:
                 "detected_at": datetime.now().isoformat(),
             }
 
-    def get_stack_status(self, stack_name: str) -> Optional[Dict[str, Any]]:
+    def get_stack_status(self, stack_name: str) -> builtins.dict[str, Any] | None:
         """Get stack status and information"""
 
         if stack_name not in self.stacks:
@@ -1514,7 +1512,7 @@ class InfrastructureOrchestrator:
             "resource_types": list(set(r.resource_type.value for r in stack.resources)),
         }
 
-    def list_stacks(self) -> List[Dict[str, Any]]:
+    def list_stacks(self) -> builtins.list[builtins.dict[str, Any]]:
         """List all registered stacks"""
 
         return [
@@ -1532,8 +1530,8 @@ class InfrastructureOrchestrator:
         ]
 
     async def generate_cost_report(
-        self, stack_name: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, stack_name: str | None = None
+    ) -> builtins.dict[str, Any]:
         """Generate cost analysis report"""
 
         # Mock cost analysis - in production would integrate with cloud billing APIs

@@ -6,13 +6,14 @@ including static fallbacks, function-based fallbacks, and cache fallbacks.
 """
 
 import asyncio
+import builtins
 import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, dict, list
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ class FallbackConfig:
 class FallbackStrategy(ABC):
     """Abstract base class for fallback strategies."""
 
-    def __init__(self, name: str, config: Optional[FallbackConfig] = None):
+    def __init__(self, name: str, config: FallbackConfig | None = None):
         self.name = name
         self.config = config or FallbackConfig()
 
@@ -79,7 +80,6 @@ class FallbackStrategy(ABC):
     @abstractmethod
     async def execute_fallback(self, original_error: Exception, *args, **kwargs) -> T:
         """Execute the fallback strategy."""
-        pass
 
     def _record_attempt(self, success: bool, execution_time: float):
         """Record fallback attempt."""
@@ -91,7 +91,7 @@ class FallbackStrategy(ABC):
         else:
             self._failed_fallbacks += 1
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get fallback strategy statistics."""
         success_rate = self._successful_fallbacks / max(1, self._total_attempts)
         avg_execution_time = self._total_fallback_time / max(1, self._total_attempts)
@@ -111,7 +111,7 @@ class StaticFallback(FallbackStrategy):
     """Fallback that returns a static value."""
 
     def __init__(
-        self, name: str, fallback_value: T, config: Optional[FallbackConfig] = None
+        self, name: str, fallback_value: T, config: FallbackConfig | None = None
     ):
         super().__init__(name, config)
         self.fallback_value = fallback_value
@@ -145,7 +145,7 @@ class FunctionFallback(FallbackStrategy):
         self,
         name: str,
         fallback_func: Callable[..., T],
-        config: Optional[FallbackConfig] = None,
+        config: FallbackConfig | None = None,
     ):
         super().__init__(name, config)
         self.fallback_func = fallback_func
@@ -191,9 +191,9 @@ class CacheFallback(FallbackStrategy):
     def __init__(
         self,
         name: str,
-        cache_provider: Callable[[str], Optional[T]],
+        cache_provider: Callable[[str], T | None],
         cache_key_func: Callable[..., str],
-        config: Optional[FallbackConfig] = None,
+        config: FallbackConfig | None = None,
     ):
         super().__init__(name, config)
         self.cache_provider = cache_provider
@@ -222,13 +222,12 @@ class CacheFallback(FallbackStrategy):
 
                 self._record_attempt(True, time.time() - start_time)
                 return cached_value
-            else:
-                self._record_attempt(False, time.time() - start_time)
-                raise FallbackError(
-                    f"Cache fallback '{self.name}' returned None for key '{cache_key}'",
-                    original_error,
-                    1,
-                )
+            self._record_attempt(False, time.time() - start_time)
+            raise FallbackError(
+                f"Cache fallback '{self.name}' returned None for key '{cache_key}'",
+                original_error,
+                1,
+            )
 
         except Exception as e:
             self._record_attempt(False, time.time() - start_time)
@@ -243,8 +242,8 @@ class ChainFallback(FallbackStrategy):
     def __init__(
         self,
         name: str,
-        fallback_strategies: List[FallbackStrategy],
-        config: Optional[FallbackConfig] = None,
+        fallback_strategies: builtins.list[FallbackStrategy],
+        config: FallbackConfig | None = None,
     ):
         super().__init__(name, config)
         self.fallback_strategies = fallback_strategies
@@ -296,9 +295,9 @@ class ChainFallback(FallbackStrategy):
 class FallbackManager:
     """Manages fallback operations."""
 
-    def __init__(self, config: Optional[FallbackConfig] = None):
+    def __init__(self, config: FallbackConfig | None = None):
         self.config = config or FallbackConfig()
-        self._fallback_strategies: Dict[str, FallbackStrategy] = {}
+        self._fallback_strategies: builtins.dict[str, FallbackStrategy] = {}
 
         # Metrics
         self._total_operations = 0
@@ -322,7 +321,7 @@ class FallbackManager:
     async def execute_with_fallback(
         self,
         func: Callable[..., T],
-        fallback_strategy: Union[str, FallbackStrategy],
+        fallback_strategy: str | FallbackStrategy,
         *args,
         **kwargs,
     ) -> T:
@@ -332,9 +331,8 @@ class FallbackManager:
         try:
             if asyncio.iscoroutinefunction(func):
                 return await func(*args, **kwargs)
-            else:
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(None, func, *args, **kwargs)
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, func, *args, **kwargs)
 
         except Exception as e:
             if not self._should_trigger_fallback(e):
@@ -366,7 +364,7 @@ class FallbackManager:
                     1,
                 ) from fallback_error
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get fallback manager statistics."""
         fallback_rate = self._fallback_triggered / max(1, self._total_operations)
         fallback_success_rate = self._fallback_successful / max(
@@ -398,8 +396,8 @@ def get_fallback_manager() -> FallbackManager:
 
 
 def with_fallback(
-    fallback_strategy: Union[str, FallbackStrategy],
-    config: Optional[FallbackConfig] = None,
+    fallback_strategy: str | FallbackStrategy,
+    config: FallbackConfig | None = None,
 ):
     """
     Decorator to add fallback protection to functions.
@@ -423,15 +421,14 @@ def with_fallback(
                 )
 
             return async_wrapper
-        else:
 
-            @wraps(func)
-            async def sync_wrapper(*args, **kwargs) -> T:
-                return await manager.execute_with_fallback(
-                    func, fallback_strategy, *args, **kwargs
-                )
+        @wraps(func)
+        async def sync_wrapper(*args, **kwargs) -> T:
+            return await manager.execute_with_fallback(
+                func, fallback_strategy, *args, **kwargs
+            )
 
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 
@@ -449,7 +446,7 @@ def create_function_fallback(name: str, func: Callable[..., T]) -> FunctionFallb
 
 def create_cache_fallback(
     name: str,
-    cache_provider: Callable[[str], Optional[T]],
+    cache_provider: Callable[[str], T | None],
     cache_key_func: Callable[..., str],
 ) -> CacheFallback:
     """Create a cache fallback strategy."""
@@ -457,7 +454,7 @@ def create_cache_fallback(
 
 
 def create_chain_fallback(
-    name: str, strategies: List[FallbackStrategy]
+    name: str, strategies: builtins.list[FallbackStrategy]
 ) -> ChainFallback:
     """Create a chain fallback strategy."""
     return ChainFallback(name, strategies)

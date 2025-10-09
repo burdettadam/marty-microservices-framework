@@ -7,7 +7,7 @@ resource usage tracking, and alerting capabilities.
 
 import asyncio
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import psutil
 
@@ -49,16 +49,16 @@ class PerformanceMonitorPlugin(IMetricsPlugin):
         self.response_time_threshold = 5.0  # seconds
 
         # Performance history
-        self.performance_history: List[Dict[str, Any]] = []
-        self.alert_history: List[Dict[str, Any]] = []
+        self.performance_history: list[dict[str, Any]] = []
+        self.alert_history: list[dict[str, Any]] = []
 
         # Monitoring state
-        self._monitoring_task: Optional[asyncio.Task] = None
-        self._last_alert_times: Dict[str, float] = {}
+        self._monitoring_task: asyncio.Task | None = None
+        self._last_alert_times: dict[str, float] = {}
         self.alert_cooldown = 30.0  # seconds between similar alerts
 
         # Custom metrics
-        self.request_times: List[float] = []
+        self.request_times: list[float] = []
         self.error_count = 0
         self.alert_count = 0
 
@@ -138,7 +138,7 @@ class PerformanceMonitorPlugin(IMetricsPlugin):
             provides=["performance", "monitoring", "alerting"],
         )
 
-    async def collect_metrics(self) -> Dict[str, Any]:
+    async def collect_metrics(self) -> dict[str, Any]:
         """Collect performance metrics."""
         current_perf = await self._collect_current_performance()
 
@@ -171,7 +171,7 @@ class PerformanceMonitorPlugin(IMetricsPlugin):
             ),  # 5 minutes
         }
 
-    def get_metric_definitions(self) -> Dict[str, Dict[str, Any]]:
+    def get_metric_definitions(self) -> dict[str, dict[str, Any]]:
         """Return metric definitions."""
         return {
             "cpu_percent": {
@@ -211,15 +211,15 @@ class PerformanceMonitorPlugin(IMetricsPlugin):
             },
         }
 
-    async def get_current_performance(self) -> Dict[str, Any]:
+    async def get_current_performance(self) -> dict[str, Any]:
         """Get current performance metrics."""
         return await self._collect_current_performance()
 
-    async def get_performance_history(self, limit: int = 50) -> List[Dict[str, Any]]:
+    async def get_performance_history(self, limit: int = 50) -> list[dict[str, Any]]:
         """Get performance history."""
         return self.performance_history[-limit:]
 
-    async def get_alerts(self, limit: int = 20) -> List[Dict[str, Any]]:
+    async def get_alerts(self, limit: int = 20) -> list[dict[str, Any]]:
         """Get recent alerts."""
         return self.alert_history[-limit:]
 
@@ -259,7 +259,7 @@ class PerformanceMonitorPlugin(IMetricsPlugin):
                 self.logger.error(f"Error in performance monitoring: {e}")
                 self.error_count += 1
 
-    async def _collect_current_performance(self) -> Dict[str, Any]:
+    async def _collect_current_performance(self) -> dict[str, Any]:
         """Collect current system performance metrics."""
         try:
             # CPU metrics
@@ -308,7 +308,7 @@ class PerformanceMonitorPlugin(IMetricsPlugin):
                 "error": str(e),
             }
 
-    async def _check_alerts(self, perf_data: Dict[str, Any]) -> None:
+    async def _check_alerts(self, perf_data: dict[str, Any]) -> None:
         """Check performance data against thresholds and generate alerts."""
         current_time = time.time()
 
@@ -365,7 +365,7 @@ class PerformanceMonitorPlugin(IMetricsPlugin):
                 )
 
     async def _generate_alert(
-        self, alert_type: str, message: str, data: Dict[str, Any], timestamp: float
+        self, alert_type: str, message: str, data: dict[str, Any], timestamp: float
     ) -> None:
         """Generate an alert if not in cooldown period."""
         # Check cooldown
@@ -394,7 +394,7 @@ class PerformanceMonitorPlugin(IMetricsPlugin):
 
         self.logger.warning(f"Performance alert: {message}")
 
-    def _get_alert_severity(self, alert_type: str, data: Dict[str, Any]) -> str:
+    def _get_alert_severity(self, alert_type: str, data: dict[str, Any]) -> str:
         """Determine alert severity based on type and values."""
         if alert_type == "high_cpu":
             cpu = data.get("cpu_percent", 0)
@@ -458,7 +458,7 @@ class PerformanceMonitorPlugin(IMetricsPlugin):
             if len(self.request_times) > 100:
                 self.request_times = self.request_times[-100:]
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check with monitoring status."""
         health = await super().health_check()
 

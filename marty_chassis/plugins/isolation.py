@@ -6,13 +6,10 @@ cannot interfere with each other or the core framework.
 """
 
 import asyncio
-import logging
 import sys
 import threading
-import traceback
 from contextlib import contextmanager
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from ..logger import get_logger
 from .exceptions import PluginError
@@ -30,12 +27,12 @@ class ResourceLimits:
 
     def __init__(
         self,
-        max_memory_mb: Optional[int] = None,
-        max_cpu_time_seconds: Optional[float] = None,
-        max_threads: Optional[int] = None,
-        max_file_handles: Optional[int] = None,
-        allowed_modules: Optional[Set[str]] = None,
-        blocked_modules: Optional[Set[str]] = None,
+        max_memory_mb: int | None = None,
+        max_cpu_time_seconds: float | None = None,
+        max_threads: int | None = None,
+        max_file_handles: int | None = None,
+        allowed_modules: set[str] | None = None,
+        blocked_modules: set[str] | None = None,
     ):
         self.max_memory_mb = max_memory_mb
         self.max_cpu_time_seconds = max_cpu_time_seconds
@@ -65,15 +62,15 @@ class PluginSandbox:
     - Namespace isolation
     """
 
-    def __init__(self, plugin_name: str, limits: Optional[ResourceLimits] = None):
+    def __init__(self, plugin_name: str, limits: ResourceLimits | None = None):
         self.plugin_name = plugin_name
         self.limits = limits or ResourceLimits()
         self.logger = get_logger(f"Sandbox.{plugin_name}")
 
         # Resource tracking
         self._thread_count = 0
-        self._file_handles: Set[Any] = set()
-        self._original_modules: Dict[str, Any] = {}
+        self._file_handles: set[Any] = set()
+        self._original_modules: dict[str, Any] = {}
 
         # Isolation state
         self._isolated = False
@@ -252,17 +249,17 @@ class PluginIsolationManager:
     and enforces isolation policies.
     """
 
-    def __init__(self, default_limits: Optional[ResourceLimits] = None):
+    def __init__(self, default_limits: ResourceLimits | None = None):
         self.default_limits = default_limits or ResourceLimits()
-        self.sandboxes: Dict[str, PluginSandbox] = {}
+        self.sandboxes: dict[str, PluginSandbox] = {}
         self.logger = get_logger(self.__class__.__name__)
 
         # Global isolation settings
         self._global_isolation_enabled = True
-        self._plugin_limits: Dict[str, ResourceLimits] = {}
+        self._plugin_limits: dict[str, ResourceLimits] = {}
 
     def create_sandbox(
-        self, plugin_name: str, limits: Optional[ResourceLimits] = None
+        self, plugin_name: str, limits: ResourceLimits | None = None
     ) -> PluginSandbox:
         """
         Create a sandbox for a plugin.
@@ -289,7 +286,7 @@ class PluginIsolationManager:
         self.logger.info(f"Created sandbox for plugin: {plugin_name}")
         return sandbox
 
-    def get_sandbox(self, plugin_name: str) -> Optional[PluginSandbox]:
+    def get_sandbox(self, plugin_name: str) -> PluginSandbox | None:
         """Get sandbox for a plugin."""
         return self.sandboxes.get(plugin_name)
 
@@ -362,7 +359,7 @@ class PluginIsolationManager:
             f"Global plugin isolation {'enabled' if enabled else 'disabled'}"
         )
 
-    def get_isolation_status(self) -> Dict[str, Any]:
+    def get_isolation_status(self) -> dict[str, Any]:
         """Get status of plugin isolation."""
         return {
             "global_isolation_enabled": self._global_isolation_enabled,
@@ -391,7 +388,7 @@ class PluginIsolationManager:
 
 
 # Global isolation manager instance
-_isolation_manager: Optional[PluginIsolationManager] = None
+_isolation_manager: PluginIsolationManager | None = None
 
 
 def get_isolation_manager() -> PluginIsolationManager:

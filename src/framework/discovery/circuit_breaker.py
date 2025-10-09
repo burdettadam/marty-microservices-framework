@@ -6,13 +6,13 @@ gracefully and prevent cascade failures in distributed systems.
 """
 
 import asyncio
+import builtins
 import logging
 import threading
 import time
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, dict, list, tuple
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +70,11 @@ class CircuitBreakerConfig:
 
     # Monitoring
     enable_metrics: bool = True
-    state_change_callback: Optional[Callable] = None
+    state_change_callback: Callable | None = None
 
     # Fallback configuration
     fallback_enabled: bool = True
-    fallback_function: Optional[Callable] = None
+    fallback_function: Callable | None = None
 
 
 @dataclass
@@ -95,8 +95,10 @@ class CircuitBreakerMetrics:
     slow_requests: int = 0
 
     # Window statistics
-    recent_requests: List[bool] = field(default_factory=list)  # True for success
-    recent_response_times: List[float] = field(default_factory=list)
+    recent_requests: builtins.list[bool] = field(
+        default_factory=list
+    )  # True for success
+    recent_response_times: builtins.list[float] = field(default_factory=list)
     window_start_time: float = field(default_factory=time.time)
 
     # Half-open statistics
@@ -105,7 +107,9 @@ class CircuitBreakerMetrics:
     half_open_failures: int = 0
 
     # State change history
-    state_changes: List[Tuple[CircuitBreakerState, float]] = field(default_factory=list)
+    state_changes: builtins.list[builtins.tuple[CircuitBreakerState, float]] = field(
+        default_factory=list
+    )
 
     def get_failure_rate(self) -> float:
         """Calculate current failure rate."""
@@ -187,7 +191,7 @@ class CircuitBreaker:
 
             return result
 
-        except Exception as e:
+        except Exception:
             # Record failure
             response_time = time.time() - start_time
             await self._record_failure(response_time)
@@ -252,14 +256,14 @@ class CircuitBreaker:
         if self.config.strategy == CircuitBreakerStrategy.FAILURE_COUNT:
             return self.metrics.failed_requests >= self.config.failure_threshold
 
-        elif self.config.strategy == CircuitBreakerStrategy.FAILURE_RATE:
+        if self.config.strategy == CircuitBreakerStrategy.FAILURE_RATE:
             if self.metrics.total_requests < self.config.minimum_request_threshold:
                 return False
 
             failure_rate = self.metrics.get_recent_failure_rate()
             return failure_rate >= self.config.failure_rate_threshold
 
-        elif self.config.strategy == CircuitBreakerStrategy.RESPONSE_TIME:
+        if self.config.strategy == CircuitBreakerStrategy.RESPONSE_TIME:
             return self.metrics.slow_requests >= self.config.slow_request_threshold
 
         return False
@@ -399,8 +403,7 @@ class CircuitBreaker:
         try:
             if asyncio.iscoroutinefunction(self.config.fallback_function):
                 return await self.config.fallback_function()
-            else:
-                return self.config.fallback_function()
+            return self.config.fallback_function()
         except Exception as e:
             logger.error("Fallback function failed for %s: %s", self.name, e)
             raise CircuitBreakerException(
@@ -416,7 +419,7 @@ class CircuitBreaker:
         """Get circuit breaker metrics."""
         return self.metrics
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get circuit breaker statistics."""
         with self._lock:
             return {
@@ -461,7 +464,7 @@ class CircuitBreakerManager:
     """Manager for multiple circuit breakers."""
 
     def __init__(self):
-        self._circuit_breakers: Dict[str, CircuitBreaker] = {}
+        self._circuit_breakers: builtins.dict[str, CircuitBreaker] = {}
         self._default_config = CircuitBreakerConfig()
 
     def set_default_config(self, config: CircuitBreakerConfig):
@@ -469,7 +472,7 @@ class CircuitBreakerManager:
         self._default_config = config
 
     def get_circuit_breaker(
-        self, name: str, config: Optional[CircuitBreakerConfig] = None
+        self, name: str, config: CircuitBreakerConfig | None = None
     ) -> CircuitBreaker:
         """Get or create circuit breaker."""
 
@@ -483,14 +486,14 @@ class CircuitBreakerManager:
         """Remove circuit breaker."""
         self._circuit_breakers.pop(name, None)
 
-    def get_all_stats(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_stats(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Get statistics for all circuit breakers."""
         return {
             name: breaker.get_stats()
             for name, breaker in self._circuit_breakers.items()
         }
 
-    def get_open_circuit_breakers(self) -> List[str]:
+    def get_open_circuit_breakers(self) -> builtins.list[str]:
         """Get list of open circuit breakers."""
         return [
             name
@@ -498,7 +501,7 @@ class CircuitBreakerManager:
             if breaker.get_state() == CircuitBreakerState.OPEN
         ]
 
-    def get_half_open_circuit_breakers(self) -> List[str]:
+    def get_half_open_circuit_breakers(self) -> builtins.list[str]:
         """Get list of half-open circuit breakers."""
         return [
             name
@@ -515,8 +518,8 @@ class CircuitBreakerManager:
 # Decorator for circuit breaker protection
 def circuit_breaker(
     name: str,
-    config: Optional[CircuitBreakerConfig] = None,
-    manager: Optional[CircuitBreakerManager] = None,
+    config: CircuitBreakerConfig | None = None,
+    manager: CircuitBreakerManager | None = None,
 ):
     """Decorator to protect function with circuit breaker."""
 
@@ -532,8 +535,7 @@ def circuit_breaker(
 
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 
@@ -544,13 +546,13 @@ global_circuit_breaker_manager = CircuitBreakerManager()
 
 # Convenience functions
 def get_circuit_breaker(
-    name: str, config: Optional[CircuitBreakerConfig] = None
+    name: str, config: CircuitBreakerConfig | None = None
 ) -> CircuitBreaker:
     """Get circuit breaker from global manager."""
     return global_circuit_breaker_manager.get_circuit_breaker(name, config)
 
 
-def get_all_circuit_breaker_stats() -> Dict[str, Dict[str, Any]]:
+def get_all_circuit_breaker_stats() -> builtins.dict[str, builtins.dict[str, Any]]:
     """Get stats for all circuit breakers."""
     return global_circuit_breaker_manager.get_all_stats()
 

@@ -6,11 +6,11 @@ to ensure they work together seamlessly and provide the expected security postur
 """
 
 import asyncio
+import builtins
 import json
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any, Dict, Optional, dict
 
-import pytest
 from security.compliance import ComplianceManager
 from security.compliance.risk_management import RiskCategory, RiskManager
 from security.iam import AdvancedAuthenticationManager, AuthorizationEngine
@@ -19,7 +19,7 @@ from security.monitoring import (
     SecurityEventType,
     SecurityMonitoringSystem,
 )
-from security.threat_detection import ThreatDetectionEngine, ThreatSeverity, ThreatType
+from security.threat_detection import ThreatDetectionEngine, ThreatSeverity
 
 # Import security components
 from security.zero_trust import ZeroTrustOrchestrator
@@ -31,16 +31,16 @@ class SecurityIntegrationTestSuite:
     """
 
     def __init__(self):
-        self.test_results: Dict[str, Any] = {}
+        self.test_results: builtins.dict[str, Any] = {}
         self.components_initialized = False
 
         # Component instances
-        self.zero_trust: Optional[ZeroTrustOrchestrator] = None
-        self.threat_detection: Optional[ThreatDetectionEngine] = None
-        self.iam_manager: Optional[AdvancedAuthenticationManager] = None
-        self.compliance_manager: Optional[ComplianceManager] = None
-        self.risk_manager: Optional[RiskManager] = None
-        self.monitoring_system: Optional[SecurityMonitoringSystem] = None
+        self.zero_trust: ZeroTrustOrchestrator | None = None
+        self.threat_detection: ThreatDetectionEngine | None = None
+        self.iam_manager: AdvancedAuthenticationManager | None = None
+        self.compliance_manager: ComplianceManager | None = None
+        self.risk_manager: RiskManager | None = None
+        self.monitoring_system: SecurityMonitoringSystem | None = None
 
     async def initialize_components(self):
         """Initialize all security components for testing"""
@@ -77,7 +77,7 @@ class SecurityIntegrationTestSuite:
             print(f"❌ Failed to initialize components: {e}")
             raise
 
-    async def test_authentication_flow(self) -> Dict[str, Any]:
+    async def test_authentication_flow(self) -> builtins.dict[str, Any]:
         """Test complete authentication and authorization flow"""
 
         test_name = "Authentication Flow"
@@ -135,7 +135,7 @@ class SecurityIntegrationTestSuite:
             print(f"❌ {test_name} failed: {e}")
             return result
 
-    async def test_zero_trust_policy_enforcement(self) -> Dict[str, Any]:
+    async def test_zero_trust_policy_enforcement(self) -> builtins.dict[str, Any]:
         """Test zero-trust policy enforcement"""
 
         test_name = "Zero-Trust Policy Enforcement"
@@ -196,7 +196,7 @@ class SecurityIntegrationTestSuite:
             print(f"❌ {test_name} failed: {e}")
             return result
 
-    async def test_threat_detection_and_response(self) -> Dict[str, Any]:
+    async def test_threat_detection_and_response(self) -> builtins.dict[str, Any]:
         """Test threat detection and automated response"""
 
         test_name = "Threat Detection and Response"
@@ -255,7 +255,7 @@ class SecurityIntegrationTestSuite:
             print(f"❌ {test_name} failed: {e}")
             return result
 
-    async def test_compliance_automation(self) -> Dict[str, Any]:
+    async def test_compliance_automation(self) -> builtins.dict[str, Any]:
         """Test compliance automation and monitoring"""
 
         test_name = "Compliance Automation"
@@ -319,7 +319,7 @@ class SecurityIntegrationTestSuite:
             print(f"❌ {test_name} failed: {e}")
             return result
 
-    async def test_risk_management(self) -> Dict[str, Any]:
+    async def test_risk_management(self) -> builtins.dict[str, Any]:
         """Test risk assessment and management"""
 
         test_name = "Risk Management"
@@ -370,7 +370,7 @@ class SecurityIntegrationTestSuite:
             print(f"❌ {test_name} failed: {e}")
             return result
 
-    async def test_security_monitoring(self) -> Dict[str, Any]:
+    async def test_security_monitoring(self) -> builtins.dict[str, Any]:
         """Test security monitoring and event correlation"""
 
         test_name = "Security Monitoring"
@@ -445,7 +445,7 @@ class SecurityIntegrationTestSuite:
             print(f"❌ {test_name} failed: {e}")
             return result
 
-    async def test_end_to_end_security_scenario(self) -> Dict[str, Any]:
+    async def test_end_to_end_security_scenario(self) -> builtins.dict[str, Any]:
         """Test complete end-to-end security scenario"""
 
         test_name = "End-to-End Security Scenario"
@@ -543,7 +543,7 @@ class SecurityIntegrationTestSuite:
             print(f"❌ {test_name} failed: {e}")
             return result
 
-    async def run_all_tests(self) -> Dict[str, Any]:
+    async def run_all_tests(self) -> builtins.dict[str, Any]:
         """Run all integration tests"""
 
         print("🚀 Starting Phase 3 Security Integration Tests")

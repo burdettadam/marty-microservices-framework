@@ -10,16 +10,16 @@ Validates:
 - Metrics collection components work correctly
 """
 
+import builtins
 import json
-import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import List, list
 
 import yaml
 
 
-def validate_kafka_configs() -> List[str]:
+def validate_kafka_configs() -> builtins.list[str]:
     """Validate Kafka configuration files"""
     errors = []
     kafka_dir = Path("observability/kafka")
@@ -31,7 +31,7 @@ def validate_kafka_configs() -> List[str]:
     docker_compose_file = kafka_dir / "docker-compose.kafka.yml"
     if docker_compose_file.exists():
         try:
-            with open(docker_compose_file, "r") as f:
+            with open(docker_compose_file) as f:
                 yaml.safe_load(f)
         except yaml.YAMLError as e:
             errors.append(f"Invalid Kafka docker-compose.yml: {e}")
@@ -54,7 +54,7 @@ def validate_kafka_configs() -> List[str]:
     return errors
 
 
-def validate_prometheus_configs() -> List[str]:
+def validate_prometheus_configs() -> builtins.list[str]:
     """Validate Prometheus configuration files"""
     errors = []
     prometheus_dir = Path("observability/monitoring/prometheus")
@@ -66,7 +66,7 @@ def validate_prometheus_configs() -> List[str]:
     prometheus_config = prometheus_dir / "prometheus.yml"
     if prometheus_config.exists():
         try:
-            with open(prometheus_config, "r") as f:
+            with open(prometheus_config) as f:
                 yaml.safe_load(f)
         except yaml.YAMLError as e:
             errors.append(f"Invalid prometheus.yml: {e}")
@@ -77,7 +77,7 @@ def validate_prometheus_configs() -> List[str]:
     alert_rules = prometheus_dir / "alert_rules.yml"
     if alert_rules.exists():
         try:
-            with open(alert_rules, "r") as f:
+            with open(alert_rules) as f:
                 rules = yaml.safe_load(f)
 
             # Basic validation of alert rules structure
@@ -98,7 +98,7 @@ def validate_prometheus_configs() -> List[str]:
     return errors
 
 
-def validate_grafana_dashboards() -> List[str]:
+def validate_grafana_dashboards() -> builtins.list[str]:
     """Validate Grafana dashboard JSON files"""
     errors = []
     grafana_dir = Path("observability/monitoring/grafana/dashboards")
@@ -113,7 +113,7 @@ def validate_grafana_dashboards() -> List[str]:
 
     for dashboard_file in dashboard_files:
         try:
-            with open(dashboard_file, "r") as f:
+            with open(dashboard_file) as f:
                 dashboard = json.load(f)
 
             # Basic dashboard structure validation
@@ -130,7 +130,7 @@ def validate_grafana_dashboards() -> List[str]:
     return errors
 
 
-def validate_metrics_components() -> List[str]:
+def validate_metrics_components() -> builtins.list[str]:
     """Validate metrics collection components"""
     errors = []
 
@@ -164,7 +164,7 @@ def validate_metrics_components() -> List[str]:
     return errors
 
 
-def validate_load_testing() -> List[str]:
+def validate_load_testing() -> builtins.list[str]:
     """Validate load testing components"""
     errors = []
 
@@ -199,7 +199,7 @@ def validate_load_testing() -> List[str]:
     return errors
 
 
-def validate_docker_configs() -> List[str]:
+def validate_docker_configs() -> builtins.list[str]:
     """Validate Docker Compose files"""
     errors = []
 
@@ -211,7 +211,7 @@ def validate_docker_configs() -> List[str]:
     for docker_file in docker_files:
         if Path(docker_file).exists():
             try:
-                with open(docker_file, "r") as f:
+                with open(docker_file) as f:
                     compose_config = yaml.safe_load(f)
 
                 # Basic validation
@@ -256,9 +256,8 @@ def main() -> int:
     if all_errors:
         print(f"\n❌ Observability validation failed with {len(all_errors)} error(s)")
         return 1
-    else:
-        print("\n✅ All observability components validated successfully!")
-        return 0
+    print("\n✅ All observability components validated successfully!")
+    return 0
 
 
 if __name__ == "__main__":

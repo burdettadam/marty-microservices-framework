@@ -1,6 +1,5 @@
 """
 Audit logging destinations for the enterprise audit framework.
-
 This module provides various destinations for audit events:
 - File-based logging with rotation
 - Database logging with structured storage
@@ -9,25 +8,16 @@ This module provides various destinations for audit events:
 """
 
 import asyncio
+import builtins
 import json
 import logging
-import os
+from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, Dict, List, dict, list
 
 import aiofiles
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    Integer,
-    String,
-    Text,
-    and_,
-    select,
-    text,
-)
+from sqlalchemy import Column, DateTime, Integer, String, Text, and_, select
 from sqlalchemy.dialects.postgresql import INET, JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base
@@ -41,7 +31,6 @@ from .events import (
 )
 
 logger = logging.getLogger(__name__)
-
 Base = declarative_base()
 
 
@@ -49,51 +38,42 @@ class AuditLogRecord(Base):
     """Database model for audit log records."""
 
     __tablename__ = "audit_logs"
-
     id = Column(Integer, primary_key=True, autoincrement=True)
     event_id = Column(String(36), unique=True, nullable=False, index=True)
     event_type = Column(String(100), nullable=False, index=True)
     severity = Column(String(20), nullable=False, index=True)
     outcome = Column(String(20), nullable=False)
     timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
-
     # Actor information
     user_id = Column(String(255), index=True)
     username = Column(String(255))
     session_id = Column(String(255), index=True)
     api_key_id = Column(String(255))
     client_id = Column(String(255))
-
     # Request information
     source_ip = Column(INET)
     user_agent = Column(Text)
     request_id = Column(String(255), index=True)
     method = Column(String(10))
     endpoint = Column(String(500))
-
     # Resource and action
     resource_type = Column(String(100), index=True)
     resource_id = Column(String(255))
     action = Column(String(255), nullable=False)
-
     # Event details
     message = Column(Text)
     details = Column(JSONB)
-
     # Context
     service_name = Column(String(100), index=True)
     environment = Column(String(50), index=True)
     correlation_id = Column(String(255), index=True)
     trace_id = Column(String(255), index=True)
-
     # Performance
     duration_ms = Column(Integer)
     response_size = Column(Integer)
-
     # Error information
     error_code = Column(String(100))
     error_message = Column(Text)
-
     # Integrity and metadata
     event_hash = Column(String(64))
     encrypted_fields = Column(JSONB)
@@ -114,13 +94,10 @@ class FileAuditDestination(AuditDestination):
         self.max_file_size = max_file_size
         self.max_files = max_files
         self.encrypt_sensitive = encrypt_sensitive
-
         if encrypt_sensitive:
             self.encryption = AuditEncryption()
-
         # Ensure directory exists
         self.log_file_path.parent.mkdir(parents=True, exist_ok=True)
-
         self._lock = asyncio.Lock()
 
     async def log_event(self, event: AuditEvent) -> None:
@@ -129,68 +106,56 @@ class FileAuditDestination(AuditDestination):
             async with self._lock:
                 # Check if rotation is needed
                 await self._rotate_if_needed()
-
                 # Prepare event data
                 event_data = event.to_dict()
-
                 # Encrypt sensitive data if enabled
                 if self.encrypt_sensitive:
                     event_data["details"] = self.encryption.encrypt_sensitive_data(
                         event_data.get("details", {})
                     )
-
                 # Add integrity hash
                 event_data["event_hash"] = event.get_hash()
-
                 # Write to file
                 async with aiofiles.open(
                     self.log_file_path, "a", encoding="utf-8"
                 ) as f:
                     await f.write(json.dumps(event_data, default=str) + "\n")
-
                 logger.debug(f"Logged audit event {event.event_id} to file")
-
         except Exception as e:
             logger.error(f"Failed to log audit event to file: {e}")
 
     async def search_events(
-        self, criteria: Dict[str, Any], limit: int = 100
+        self, criteria: builtins.dict[str, Any], limit: int = 100
     ) -> AsyncGenerator[AuditEvent, None]:
         """Search audit events in file (simple implementation)."""
         try:
             if not self.log_file_path.exists():
                 return
-
             count = 0
-            async with aiofiles.open(self.log_file_path, "r", encoding="utf-8") as f:
+            async with aiofiles.open(self.log_file_path, encoding="utf-8") as f:
                 async for line in f:
                     if count >= limit:
                         break
-
                     try:
                         event_data = json.loads(line.strip())
-
                         # Simple filtering
                         if self._matches_criteria(event_data, criteria):
                             # Convert back to AuditEvent (simplified)
                             yield self._dict_to_event(event_data)
                             count += 1
-
                     except json.JSONDecodeError:
                         continue
-
         except Exception as e:
             logger.error(f"Failed to search audit events in file: {e}")
 
     async def close(self) -> None:
         """Close file destination."""
-        pass  # No persistent connections to close
+        # No persistent connections to close
 
     async def _rotate_if_needed(self) -> None:
         """Rotate log file if it exceeds size limit."""
         if not self.log_file_path.exists():
             return
-
         if self.log_file_path.stat().st_size > self.max_file_size:
             await self._rotate_files()
 
@@ -201,25 +166,19 @@ class FileAuditDestination(AuditDestination):
             oldest_file = self.log_file_path.with_suffix(f".{self.max_files - 1}.log")
             if oldest_file.exists():
                 oldest_file.unlink()
-
             # Shift existing files
             for i in range(self.max_files - 2, 0, -1):
                 current_file = self.log_file_path.with_suffix(f".{i}.log")
                 next_file = self.log_file_path.with_suffix(f".{i + 1}.log")
-
                 if current_file.exists():
                     current_file.rename(next_file)
-
             # Move current file to .1
             if self.log_file_path.exists():
                 rotated_file = self.log_file_path.with_suffix(".1.log")
                 self.log_file_path.rename(rotated_file)
-
                 # Optionally compress rotated file
                 await self._compress_file(rotated_file)
-
             logger.info(f"Rotated audit log file: {self.log_file_path}")
-
         except Exception as e:
             logger.error(f"Failed to rotate audit log files: {e}")
 
@@ -229,39 +188,33 @@ class FileAuditDestination(AuditDestination):
             import gzip
 
             compressed_path = file_path.with_suffix(file_path.suffix + ".gz")
-
             with open(file_path, "rb") as f_in:
                 with gzip.open(compressed_path, "wb") as f_out:
                     f_out.writelines(f_in)
-
             # Remove original file
             file_path.unlink()
-
             logger.debug(f"Compressed audit log file: {compressed_path}")
-
         except Exception as e:
             logger.error(f"Failed to compress audit log file: {e}")
 
     def _matches_criteria(
-        self, event_data: Dict[str, Any], criteria: Dict[str, Any]
+        self, event_data: builtins.dict[str, Any], criteria: builtins.dict[str, Any]
     ) -> bool:
         """Check if event matches search criteria."""
         for key, value in criteria.items():
             if key not in event_data:
                 return False
-
             if isinstance(value, list):
                 if event_data[key] not in value:
                     return False
             elif event_data[key] != value:
                 return False
-
         return True
 
-    def _dict_to_event(self, event_data: Dict[str, Any]) -> AuditEvent:
+    def _dict_to_event(self, event_data: builtins.dict[str, Any]) -> AuditEvent:
         """Convert dictionary back to AuditEvent (simplified)."""
         # This is a simplified conversion - in production you might want more robust handling
-        from .events import AuditContext, AuditEventType, AuditOutcome, AuditSeverity
+        from .events import AuditEventType, AuditOutcome
 
         return AuditEvent(
             event_id=event_data.get("event_id", ""),
@@ -290,9 +243,8 @@ class DatabaseAuditDestination(AuditDestination):
         self.db_session = db_session
         self.encrypt_sensitive = encrypt_sensitive
         self.batch_size = batch_size
-        self._batch: List[AuditEvent] = []
+        self._batch: builtins.list[AuditEvent] = []
         self._batch_lock = asyncio.Lock()
-
         if encrypt_sensitive:
             self.encryption = AuditEncryption()
 
@@ -301,53 +253,39 @@ class DatabaseAuditDestination(AuditDestination):
         try:
             async with self._batch_lock:
                 self._batch.append(event)
-
                 if len(self._batch) >= self.batch_size:
                     await self._flush_batch()
-
         except Exception as e:
             logger.error(f"Failed to add audit event to batch: {e}")
 
     async def search_events(
-        self, criteria: Dict[str, Any], limit: int = 100
+        self, criteria: builtins.dict[str, Any], limit: int = 100
     ) -> AsyncGenerator[AuditEvent, None]:
         """Search audit events in database."""
         try:
             query = select(AuditLogRecord)
-
             # Apply filters
             conditions = []
-
             if "event_type" in criteria:
                 conditions.append(AuditLogRecord.event_type == criteria["event_type"])
-
             if "user_id" in criteria:
                 conditions.append(AuditLogRecord.user_id == criteria["user_id"])
-
             if "source_ip" in criteria:
                 conditions.append(AuditLogRecord.source_ip == criteria["source_ip"])
-
             if "start_time" in criteria:
                 conditions.append(AuditLogRecord.timestamp >= criteria["start_time"])
-
             if "end_time" in criteria:
                 conditions.append(AuditLogRecord.timestamp <= criteria["end_time"])
-
             if "service_name" in criteria:
                 conditions.append(
                     AuditLogRecord.service_name == criteria["service_name"]
                 )
-
             if conditions:
                 query = query.where(and_(*conditions))
-
             query = query.order_by(AuditLogRecord.timestamp.desc()).limit(limit)
-
             result = await self.db_session.execute(query)
-
             for record in result.scalars():
                 yield self._record_to_event(record)
-
         except Exception as e:
             logger.error(f"Failed to search audit events in database: {e}")
 
@@ -364,22 +302,18 @@ class DatabaseAuditDestination(AuditDestination):
         """Flush batched events to database."""
         if not self._batch:
             return
-
         try:
             for event in self._batch:
                 # Prepare event data
                 details = event.details or {}
                 encrypted_fields = []
-
                 if self.encrypt_sensitive:
                     original_details = details.copy()
                     details = self.encryption.encrypt_sensitive_data(details)
-
                     # Track which fields were encrypted
                     for key in original_details:
                         if f"{key}_encrypted" in details:
                             encrypted_fields.append(key)
-
                 # Create database record
                 record = AuditLogRecord(
                     event_id=event.event_id,
@@ -415,27 +349,22 @@ class DatabaseAuditDestination(AuditDestination):
                     event_hash=event.get_hash(),
                     encrypted_fields=encrypted_fields if encrypted_fields else None,
                 )
-
                 self.db_session.add(record)
-
             await self.db_session.commit()
             logger.debug(f"Flushed {len(self._batch)} audit events to database")
-
             self._batch.clear()
-
         except Exception as e:
             logger.error(f"Failed to flush audit events to database: {e}")
             await self.db_session.rollback()
 
     def _record_to_event(self, record: AuditLogRecord) -> AuditEvent:
         """Convert database record to AuditEvent."""
-        from .events import AuditContext, AuditEventType, AuditOutcome, AuditSeverity
+        from .events import AuditContext, AuditOutcome, AuditSeverity
 
         # Decrypt sensitive fields if needed
         details = record.details or {}
         if self.encrypt_sensitive and record.encrypted_fields:
             details = self.encryption.decrypt_sensitive_data(details)
-
         # Create context if available
         context = None
         if record.service_name:
@@ -447,7 +376,6 @@ class DatabaseAuditDestination(AuditDestination):
                 correlation_id=record.correlation_id,
                 trace_id=record.trace_id,
             )
-
         return AuditEvent(
             event_id=record.event_id,
             event_type=AuditEventType(record.event_type),
@@ -483,7 +411,6 @@ class ConsoleAuditDestination(AuditDestination):
     def __init__(self, format_json: bool = False, include_details: bool = True):
         self.format_json = format_json
         self.include_details = include_details
-
         # Setup colored output if available
         try:
             from colorama import Fore, Style, init
@@ -509,7 +436,6 @@ class ConsoleAuditDestination(AuditDestination):
             else:
                 color = self.colors.get(event.severity.value.upper(), "")
                 reset = self.reset_color
-
                 output = (
                     f"{color}[{event.timestamp.isoformat()}] "
                     f"{event.severity.value.upper()}: "
@@ -518,26 +444,20 @@ class ConsoleAuditDestination(AuditDestination):
                     f"({event.outcome.value})"
                     f"{reset}"
                 )
-
                 if event.user_id:
                     output += f" | User: {event.user_id}"
-
                 if event.source_ip:
                     output += f" | IP: {event.source_ip}"
-
                 if event.message:
                     output += f" | {event.message}"
-
                 if self.include_details and event.details:
                     output += f" | Details: {json.dumps(event.details, default=str)}"
-
                 print(output)
-
         except Exception as e:
             logger.error(f"Failed to log audit event to console: {e}")
 
     async def search_events(
-        self, criteria: Dict[str, Any], limit: int = 100
+        self, criteria: builtins.dict[str, Any], limit: int = 100
     ) -> AsyncGenerator[AuditEvent, None]:
         """Console destination doesn't support searching."""
         return
@@ -545,7 +465,6 @@ class ConsoleAuditDestination(AuditDestination):
 
     async def close(self) -> None:
         """Close console destination."""
-        pass
 
 
 class SIEMAuditDestination(AuditDestination):
@@ -555,7 +474,7 @@ class SIEMAuditDestination(AuditDestination):
         self.siem_endpoint = siem_endpoint
         self.api_key = api_key
         self.batch_size = batch_size
-        self._batch: List[AuditEvent] = []
+        self._batch: builtins.list[AuditEvent] = []
         self._batch_lock = asyncio.Lock()
 
     async def log_event(self, event: AuditEvent) -> None:
@@ -563,15 +482,13 @@ class SIEMAuditDestination(AuditDestination):
         try:
             async with self._batch_lock:
                 self._batch.append(event)
-
                 if len(self._batch) >= self.batch_size:
                     await self._send_batch()
-
         except Exception as e:
             logger.error(f"Failed to add audit event to SIEM batch: {e}")
 
     async def search_events(
-        self, criteria: Dict[str, Any], limit: int = 100
+        self, criteria: builtins.dict[str, Any], limit: int = 100
     ) -> AsyncGenerator[AuditEvent, None]:
         """SIEM destination typically doesn't support searching from application."""
         return
@@ -590,7 +507,6 @@ class SIEMAuditDestination(AuditDestination):
         """Send batched events to SIEM."""
         if not self._batch:
             return
-
         try:
             import aiohttp
 
@@ -601,12 +517,10 @@ class SIEMAuditDestination(AuditDestination):
                 "source": "audit-framework",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
-
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
             }
-
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     self.siem_endpoint,
@@ -618,9 +532,7 @@ class SIEMAuditDestination(AuditDestination):
                         logger.debug(f"Sent {len(self._batch)} audit events to SIEM")
                     else:
                         logger.error(f"SIEM responded with status {response.status}")
-
             self._batch.clear()
-
         except Exception as e:
             logger.error(f"Failed to send audit events to SIEM: {e}")
             # Don't clear batch on error - will retry on next batch or close

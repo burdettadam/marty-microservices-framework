@@ -13,6 +13,7 @@ Provides comprehensive identity and access management including:
 
 import asyncio
 import base64
+import builtins
 import hashlib
 import hmac
 import json
@@ -22,7 +23,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, set, tuple
 from urllib.parse import parse_qs, urlparse
 
 import bcrypt
@@ -87,29 +88,29 @@ class User:
     user_id: str
     username: str
     email: str
-    password_hash: Optional[str]
-    roles: Set[UserRole] = field(default_factory=set)
-    permissions: Set[Permission] = field(default_factory=set)
+    password_hash: str | None
+    roles: builtins.set[UserRole] = field(default_factory=set)
+    permissions: builtins.set[Permission] = field(default_factory=set)
 
     # Profile information
-    full_name: Optional[str] = None
-    department: Optional[str] = None
+    full_name: str | None = None
+    department: str | None = None
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-    last_login: Optional[datetime] = None
+    last_login: datetime | None = None
 
     # Security settings
     mfa_enabled: bool = False
-    mfa_secret: Optional[str] = None
+    mfa_secret: str | None = None
     failed_login_attempts: int = 0
-    account_locked_until: Optional[datetime] = None
-    password_expires_at: Optional[datetime] = None
+    account_locked_until: datetime | None = None
+    password_expires_at: datetime | None = None
 
     # Status
     is_active: bool = True
     is_verified: bool = False
 
-    def to_dict(self, include_sensitive: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_sensitive: bool = False) -> builtins.dict[str, Any]:
         """Convert user to dictionary"""
         data = {
             "user_id": self.user_id,
@@ -155,9 +156,9 @@ class AccessToken:
     token_hash: str
     expires_at: datetime
     created_at: datetime = field(default_factory=datetime.now)
-    last_used: Optional[datetime] = None
-    scopes: Set[str] = field(default_factory=set)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    last_used: datetime | None = None
+    scopes: builtins.set[str] = field(default_factory=set)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
     is_revoked: bool = False
 
 
@@ -170,9 +171,9 @@ class APIKey:
     name: str
     key_hash: str
     created_at: datetime = field(default_factory=datetime.now)
-    expires_at: Optional[datetime] = None
-    last_used: Optional[datetime] = None
-    permissions: Set[Permission] = field(default_factory=set)
+    expires_at: datetime | None = None
+    last_used: datetime | None = None
+    permissions: builtins.set[Permission] = field(default_factory=set)
     rate_limit: int = 1000  # requests per hour
     is_active: bool = True
 
@@ -206,7 +207,7 @@ class PasswordManager:
 
     def __init__(self, min_length: int = 12):
         self.min_length = min_length
-        self.password_history: Dict[str, List[str]] = {}
+        self.password_history: builtins.dict[str, builtins.list[str]] = {}
 
     def hash_password(self, password: str) -> str:
         """Hash password using bcrypt"""
@@ -223,7 +224,9 @@ class PasswordManager:
         except Exception:
             return False
 
-    def validate_password_strength(self, password: str) -> Tuple[bool, List[str]]:
+    def validate_password_strength(
+        self, password: str
+    ) -> builtins.tuple[bool, builtins.list[str]]:
         """Validate password strength"""
         errors = []
 
@@ -316,7 +319,7 @@ class JWTManager:
     def __init__(self, secret_key: str, algorithm: str = "HS256"):
         self.secret_key = secret_key
         self.algorithm = algorithm
-        self.token_blacklist: Set[str] = set()
+        self.token_blacklist: builtins.set[str] = set()
 
         # Default token expiry times
         self.access_token_expiry = timedelta(hours=1)
@@ -325,10 +328,10 @@ class JWTManager:
     def create_access_token(
         self,
         user_id: str,
-        roles: List[str],
-        permissions: List[str],
-        custom_claims: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[str, datetime]:
+        roles: builtins.list[str],
+        permissions: builtins.list[str],
+        custom_claims: builtins.dict[str, Any] | None = None,
+    ) -> builtins.tuple[str, datetime]:
         """Create JWT access token"""
 
         now = datetime.utcnow()
@@ -350,7 +353,7 @@ class JWTManager:
         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
         return token, expires_at
 
-    def create_refresh_token(self, user_id: str) -> Tuple[str, datetime]:
+    def create_refresh_token(self, user_id: str) -> builtins.tuple[str, datetime]:
         """Create JWT refresh token"""
 
         now = datetime.utcnow()
@@ -369,7 +372,7 @@ class JWTManager:
 
     def validate_token(
         self, token: str
-    ) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
+    ) -> builtins.tuple[bool, builtins.dict[str, Any] | None, str | None]:
         """Validate JWT token"""
 
         try:
@@ -391,7 +394,7 @@ class JWTManager:
         except jwt.ExpiredSignatureError:
             return False, None, "Token has expired"
         except jwt.InvalidTokenError as e:
-            return False, None, f"Invalid token: {str(e)}"
+            return False, None, f"Invalid token: {e!s}"
 
     def revoke_token(self, token: str) -> bool:
         """Revoke token by adding to blacklist"""
@@ -412,7 +415,7 @@ class JWTManager:
 
     def refresh_access_token(
         self, refresh_token: str
-    ) -> Tuple[bool, Optional[str], Optional[str]]:
+    ) -> builtins.tuple[bool, str | None, str | None]:
         """Create new access token using refresh token"""
 
         is_valid, payload, error = self.validate_token(refresh_token)
@@ -488,9 +491,13 @@ class RBACManager:
         }
 
         # Resource-specific permissions
-        self.resource_permissions: Dict[str, Dict[str, Set[Permission]]] = {}
+        self.resource_permissions: builtins.dict[
+            str, builtins.dict[str, builtins.set[Permission]]
+        ] = {}
 
-    def get_effective_roles(self, user_roles: Set[UserRole]) -> Set[UserRole]:
+    def get_effective_roles(
+        self, user_roles: builtins.set[UserRole]
+    ) -> builtins.set[UserRole]:
         """Get all effective roles including inherited ones"""
         effective_roles = set(user_roles)
 
@@ -501,8 +508,10 @@ class RBACManager:
         return effective_roles
 
     def get_effective_permissions(
-        self, user_roles: Set[UserRole], user_permissions: Set[Permission]
-    ) -> Set[Permission]:
+        self,
+        user_roles: builtins.set[UserRole],
+        user_permissions: builtins.set[Permission],
+    ) -> builtins.set[Permission]:
         """Get all effective permissions for user"""
         effective_permissions = set(user_permissions)
         effective_roles = self.get_effective_roles(user_roles)
@@ -516,10 +525,10 @@ class RBACManager:
 
     def check_permission(
         self,
-        user_roles: Set[UserRole],
-        user_permissions: Set[Permission],
+        user_roles: builtins.set[UserRole],
+        user_permissions: builtins.set[Permission],
         required_permission: Permission,
-        resource: Optional[str] = None,
+        resource: str | None = None,
     ) -> bool:
         """Check if user has required permission"""
 
@@ -548,7 +557,7 @@ class RBACManager:
         return False
 
     def assign_resource_permission(
-        self, resource: str, role: str, permissions: Set[Permission]
+        self, resource: str, role: str, permissions: builtins.set[Permission]
     ):
         """Assign permissions to role for specific resource"""
         if resource not in self.resource_permissions:
@@ -556,7 +565,9 @@ class RBACManager:
 
         self.resource_permissions[resource][role] = permissions
 
-    def get_accessible_resources(self, user_roles: Set[UserRole]) -> List[str]:
+    def get_accessible_resources(
+        self, user_roles: builtins.set[UserRole]
+    ) -> builtins.list[str]:
         """Get list of resources user can access"""
         accessible = []
         effective_roles = self.get_effective_roles(user_roles)
@@ -582,17 +593,17 @@ class APIKeyManager:
     """
 
     def __init__(self):
-        self.api_keys: Dict[str, APIKey] = {}
-        self.key_usage: Dict[str, List[datetime]] = {}
+        self.api_keys: builtins.dict[str, APIKey] = {}
+        self.key_usage: builtins.dict[str, builtins.list[datetime]] = {}
 
     def generate_api_key(
         self,
         user_id: str,
         name: str,
-        permissions: Set[Permission],
-        expires_in_days: Optional[int] = None,
+        permissions: builtins.set[Permission],
+        expires_in_days: int | None = None,
         rate_limit: int = 1000,
-    ) -> Tuple[str, APIKey]:
+    ) -> builtins.tuple[str, APIKey]:
         """Generate new API key"""
 
         # Generate secure random key
@@ -626,7 +637,7 @@ class APIKeyManager:
 
     def validate_api_key(
         self, api_key_string: str
-    ) -> Tuple[bool, Optional[APIKey], Optional[str]]:
+    ) -> builtins.tuple[bool, APIKey | None, str | None]:
         """Validate API key and return key info"""
 
         try:
@@ -665,7 +676,7 @@ class APIKeyManager:
             return True, api_key, None
 
         except Exception as e:
-            return False, None, f"Key validation error: {str(e)}"
+            return False, None, f"Key validation error: {e!s}"
 
     def _check_rate_limit(self, key_id: str, rate_limit: int) -> bool:
         """Check if API key is within rate limit"""
@@ -697,7 +708,7 @@ class APIKeyManager:
             return True
         return False
 
-    def list_user_keys(self, user_id: str) -> List[APIKey]:
+    def list_user_keys(self, user_id: str) -> builtins.list[APIKey]:
         """List all API keys for user"""
         return [key for key in self.api_keys.values() if key.user_id == user_id]
 
@@ -715,8 +726,8 @@ class IAMManager:
     """
 
     def __init__(self, jwt_secret: str):
-        self.users: Dict[str, User] = {}
-        self.sessions: Dict[str, Session] = {}
+        self.users: builtins.dict[str, User] = {}
+        self.sessions: builtins.dict[str, Session] = {}
 
         # Initialize components
         self.password_manager = PasswordManager()
@@ -759,7 +770,7 @@ class IAMManager:
 
     async def authenticate_user(
         self, username: str, password: str, ip_address: str = "", user_agent: str = ""
-    ) -> Tuple[bool, Optional[User], Optional[str], Optional[str]]:
+    ) -> builtins.tuple[bool, User | None, str | None, str | None]:
         """Authenticate user with username/password"""
 
         # Find user
@@ -823,7 +834,7 @@ class IAMManager:
 
     async def authenticate_api_key(
         self, api_key: str
-    ) -> Tuple[bool, Optional[User], Optional[str]]:
+    ) -> builtins.tuple[bool, User | None, str | None]:
         """Authenticate using API key"""
 
         is_valid, api_key_obj, error = self.api_key_manager.validate_api_key(api_key)
@@ -849,7 +860,7 @@ class IAMManager:
 
     async def authenticate_jwt(
         self, token: str
-    ) -> Tuple[bool, Optional[User], Optional[str]]:
+    ) -> builtins.tuple[bool, User | None, str | None]:
         """Authenticate using JWT token"""
 
         is_valid, payload, error = self.jwt_manager.validate_token(token)
@@ -892,7 +903,7 @@ class IAMManager:
 
         return session_id
 
-    def validate_session(self, session_id: str) -> Tuple[bool, Optional[Session]]:
+    def validate_session(self, session_id: str) -> builtins.tuple[bool, Session | None]:
         """Validate user session"""
         session = self.sessions.get(session_id)
 
@@ -920,9 +931,9 @@ class IAMManager:
         username: str,
         email: str,
         password: str,
-        roles: Set[UserRole] = None,
+        roles: builtins.set[UserRole] = None,
         full_name: str = None,
-    ) -> Tuple[bool, Optional[User], List[str]]:
+    ) -> builtins.tuple[bool, User | None, builtins.list[str]]:
         """Create new user"""
 
         errors = []
@@ -964,7 +975,7 @@ class IAMManager:
         return True, user, []
 
     def check_permission(
-        self, user_id: str, permission: Permission, resource: Optional[str] = None
+        self, user_id: str, permission: Permission, resource: str | None = None
     ) -> bool:
         """Check if user has permission"""
 
@@ -976,7 +987,7 @@ class IAMManager:
             user.roles, user.permissions, permission, resource
         )
 
-    def get_user_permissions(self, user_id: str) -> Set[Permission]:
+    def get_user_permissions(self, user_id: str) -> builtins.set[Permission]:
         """Get all effective permissions for user"""
         user = self.users.get(user_id)
         if not user:
@@ -984,7 +995,7 @@ class IAMManager:
 
         return self.rbac_manager.get_effective_permissions(user.roles, user.permissions)
 
-    def get_system_status(self) -> Dict[str, Any]:
+    def get_system_status(self) -> builtins.dict[str, Any]:
         """Get IAM system status"""
         active_sessions = [
             s

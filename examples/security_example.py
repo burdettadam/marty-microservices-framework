@@ -9,14 +9,14 @@ This example shows:
 5. Using different authentication methods
 """
 
-import asyncio
 import logging
 from contextlib import asynccontextmanager
 
+# Import the security framework
+from typing import List, Optional
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-
-# Import the security framework
 from framework.security import (
     APIKeyConfig,
     AuthenticatedUser,
@@ -215,8 +215,7 @@ async def get_user_info(current_user: AuthenticatedUser = Depends(get_current_us
                 "auth_method": current_user.auth_method,
             },
         }
-    else:
-        return {"authenticated": False, "message": "No authentication provided"}
+    return {"authenticated": False, "message": "No authentication provided"}
 
 
 # API Key protected endpoint
@@ -229,12 +228,11 @@ async def service_endpoint(user: AuthenticatedUser = Depends(require_authenticat
             "service_user": user.user_id,
             "permissions": user.permissions,
         }
-    else:
-        return {
-            "message": "Service endpoint accessed with other auth method",
-            "user": user.username,
-            "auth_method": user.auth_method,
-        }
+    return {
+        "message": "Service endpoint accessed with other auth method",
+        "user": user.username,
+        "auth_method": user.auth_method,
+    }
 
 
 # Role management endpoints

@@ -3,13 +3,13 @@ Metrics collection service for gathering system and service metrics.
 """
 
 import asyncio
+import builtins
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, dict, list
 
 import httpx
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import get_settings
 from ..database import AsyncSessionLocal, Service, ServiceMetrics
@@ -23,8 +23,8 @@ class MetricsCollector:
     def __init__(self):
         self.settings = get_settings()
         self.running = False
-        self.task: Optional[asyncio.Task] = None
-        self.http_client: Optional[httpx.AsyncClient] = None
+        self.task: asyncio.Task | None = None
+        self.http_client: httpx.AsyncClient | None = None
 
     async def start(self):
         """Start the metrics collection service."""
@@ -57,7 +57,7 @@ class MetricsCollector:
 
         logger.info("Metrics collection service stopped")
 
-    async def collect_service_metrics(self, service_name: str) -> Dict:
+    async def collect_service_metrics(self, service_name: str) -> builtins.dict:
         """Collect metrics from a specific service."""
         try:
             async with AsyncSessionLocal() as session:
@@ -93,8 +93,8 @@ class MetricsCollector:
         return {}
 
     async def get_service_metrics(
-        self, service_name: str, metric_name: Optional[str] = None, limit: int = 100
-    ) -> List[Dict]:
+        self, service_name: str, metric_name: str | None = None, limit: int = 100
+    ) -> builtins.list[builtins.dict]:
         """Get stored metrics for a service."""
         try:
             async with AsyncSessionLocal() as session:
@@ -157,7 +157,7 @@ class MetricsCollector:
         except Exception as exc:
             logger.error(f"Failed to get services for metrics collection: {exc}")
 
-    def _parse_prometheus_metrics(self, metrics_text: str) -> Dict:
+    def _parse_prometheus_metrics(self, metrics_text: str) -> builtins.dict:
         """Parse Prometheus metrics format."""
         metrics = {}
 
@@ -199,7 +199,7 @@ class MetricsCollector:
 
         return metrics
 
-    def _parse_labels(self, labels_text: str) -> Dict:
+    def _parse_labels(self, labels_text: str) -> builtins.dict:
         """Parse Prometheus labels format."""
         labels = {}
 
@@ -214,7 +214,7 @@ class MetricsCollector:
 
         return labels
 
-    async def _store_metrics(self, service_name: str, metrics: Dict):
+    async def _store_metrics(self, service_name: str, metrics: builtins.dict):
         """Store metrics in database."""
         try:
             async with AsyncSessionLocal() as session:

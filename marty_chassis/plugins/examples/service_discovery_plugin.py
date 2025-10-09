@@ -7,7 +7,7 @@ functionality using the service plugin interface.
 
 import asyncio
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from ..decorators import plugin
 from ..interfaces import IServicePlugin, PluginContext, PluginMetadata
@@ -36,7 +36,7 @@ class ConsulServiceDiscoveryPlugin(IServicePlugin):
         self.consul_host = "localhost"
         self.consul_port = 8500
         self.service_prefix = "marty"
-        self.services_cache: Dict[str, Dict[str, Any]] = {}
+        self.services_cache: dict[str, dict[str, Any]] = {}
         self.health_check_interval = 30
         self._health_check_task: asyncio.Task = None
 
@@ -101,7 +101,7 @@ class ConsulServiceDiscoveryPlugin(IServicePlugin):
             provides=["service-discovery", "consul", "health-checks"],
         )
 
-    async def on_service_register(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_register(self, service_info: dict[str, Any]) -> None:
         """
         Called when a service is being registered.
 
@@ -140,7 +140,7 @@ class ConsulServiceDiscoveryPlugin(IServicePlugin):
             f"Registered service with Consul: {service_name} (ID: {service_id})"
         )
 
-    async def on_service_unregister(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_unregister(self, service_info: dict[str, Any]) -> None:
         """
         Called when a service is being unregistered.
 
@@ -160,7 +160,7 @@ class ConsulServiceDiscoveryPlugin(IServicePlugin):
             f"Unregistered service from Consul: {service_name} (ID: {service_id})"
         )
 
-    async def on_service_discovery(self, query: Dict[str, Any]) -> List[Dict[str, Any]]:
+    async def on_service_discovery(self, query: dict[str, Any]) -> list[dict[str, Any]]:
         """
         Called during service discovery.
 
@@ -176,7 +176,7 @@ class ConsulServiceDiscoveryPlugin(IServicePlugin):
 
         return services
 
-    async def _register_with_consul(self, service: Dict[str, Any]) -> None:
+    async def _register_with_consul(self, service: dict[str, Any]) -> None:
         """
         Register a service with Consul.
 
@@ -213,8 +213,8 @@ class ConsulServiceDiscoveryPlugin(IServicePlugin):
         #             raise Exception(f"Failed to deregister service: {response.status}")
 
     async def _query_consul_services(
-        self, service_name: str = None, tags: List[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, service_name: str = None, tags: list[str] = None
+    ) -> list[dict[str, Any]]:
         """
         Query Consul for services.
 
@@ -259,7 +259,7 @@ class ConsulServiceDiscoveryPlugin(IServicePlugin):
                 await asyncio.sleep(self.health_check_interval)
 
                 # In real implementation, query Consul for health status
-                healthy_services = len([s for s in self.services_cache.values()])
+                healthy_services = len(list(self.services_cache.values()))
 
                 # Publish health status event
                 if self.context and self.context.event_bus:
@@ -283,7 +283,7 @@ class ConsulServiceDiscoveryPlugin(IServicePlugin):
             except Exception as e:
                 self.logger.error(f"Error in periodic health check: {e}")
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check."""
         health = await super().health_check()
 

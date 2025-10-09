@@ -5,9 +5,10 @@ These interfaces define the contracts that external adapters (HTTP, gRPC, etc.)
 must implement to interact with the application's use cases.
 """
 
+import builtins
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, list
 from uuid import UUID
 
 
@@ -19,7 +20,7 @@ class CreateTaskCommand:
     title: str
     description: str
     priority: str = "medium"
-    assignee_id: Optional[UUID] = None
+    assignee_id: UUID | None = None
 
 
 @dataclass
@@ -27,9 +28,9 @@ class UpdateTaskCommand:
     """Command for updating an existing task."""
 
     task_id: UUID
-    title: Optional[str] = None
-    description: Optional[str] = None
-    priority: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    priority: str | None = None
 
 
 @dataclass
@@ -47,7 +48,7 @@ class CreateUserCommand:
     first_name: str
     last_name: str
     email: str
-    phone: Optional[str] = None
+    phone: str | None = None
 
 
 @dataclass
@@ -59,11 +60,11 @@ class TaskDTO:
     description: str
     priority: str
     status: str
-    assignee_id: Optional[UUID]
-    assignee_name: Optional[str]
+    assignee_id: UUID | None
+    assignee_name: str | None
     created_at: str
     updated_at: str
-    completed_at: Optional[str] = None
+    completed_at: str | None = None
 
 
 @dataclass
@@ -74,7 +75,7 @@ class UserDTO:
     first_name: str
     last_name: str
     email: str
-    phone: Optional[str]
+    phone: str | None
     active: bool
     pending_task_count: int
     completed_task_count: int
@@ -119,24 +120,24 @@ class TaskManagementPort(ABC):
         ...
 
     @abstractmethod
-    async def get_task(self, task_id: UUID) -> Optional[TaskDTO]:
+    async def get_task(self, task_id: UUID) -> TaskDTO | None:
         """Get a task by its ID."""
         ...
 
     @abstractmethod
-    async def get_tasks_by_assignee(self, user_id: UUID) -> List[TaskDTO]:
+    async def get_tasks_by_assignee(self, user_id: UUID) -> builtins.list[TaskDTO]:
         """Get all tasks assigned to a specific user."""
         ...
 
     @abstractmethod
-    async def get_tasks_by_status(self, status: str) -> List[TaskDTO]:
+    async def get_tasks_by_status(self, status: str) -> builtins.list[TaskDTO]:
         """Get all tasks with a specific status."""
         ...
 
     @abstractmethod
     async def get_all_tasks(
-        self, limit: Optional[int] = None, offset: int = 0
-    ) -> List[TaskDTO]:
+        self, limit: int | None = None, offset: int = 0
+    ) -> builtins.list[TaskDTO]:
         """Get all tasks with optional pagination."""
         ...
 
@@ -152,49 +153,40 @@ class UserManagementPort(ABC):
     @abstractmethod
     async def create_user(self, command: CreateUserCommand) -> UserDTO:
         """Create a new user."""
-        pass
 
     @abstractmethod
-    async def get_user(self, user_id: UUID) -> Optional[UserDTO]:
+    async def get_user(self, user_id: UUID) -> UserDTO | None:
         """Get a user by their ID."""
-        pass
 
     @abstractmethod
-    async def get_user_by_email(self, email: str) -> Optional[UserDTO]:
+    async def get_user_by_email(self, email: str) -> UserDTO | None:
         """Get a user by their email address."""
-        pass
 
     @abstractmethod
     async def get_all_users(
-        self, limit: Optional[int] = None, offset: int = 0
-    ) -> List[UserDTO]:
+        self, limit: int | None = None, offset: int = 0
+    ) -> builtins.list[UserDTO]:
         """Get all users with optional pagination."""
-        pass
 
     @abstractmethod
     async def activate_user(self, user_id: UUID) -> UserDTO:
         """Activate a user."""
-        pass
 
     @abstractmethod
     async def deactivate_user(self, user_id: UUID) -> UserDTO:
         """Deactivate a user."""
-        pass
 
     @abstractmethod
     async def get_user_workload(self, user_id: UUID) -> UserWorkloadDTO:
         """Get workload information for a user."""
-        pass
 
     @abstractmethod
-    async def find_best_assignee(self, task_priority: str) -> Optional[UserDTO]:
+    async def find_best_assignee(self, task_priority: str) -> UserDTO | None:
         """Find the best user to assign a task to."""
-        pass
 
     @abstractmethod
     async def delete_user(self, user_id: UUID) -> bool:
         """Delete a user by their ID."""
-        pass
 
 
 class HealthCheckPort(ABC):
@@ -203,9 +195,7 @@ class HealthCheckPort(ABC):
     @abstractmethod
     async def check_health(self) -> dict:
         """Perform a health check of the service."""
-        pass
 
     @abstractmethod
     async def check_readiness(self) -> dict:
         """Check if the service is ready to serve requests."""
-        pass

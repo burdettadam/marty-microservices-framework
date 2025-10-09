@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Set
 
 
 def run_tests():
@@ -70,7 +71,7 @@ def run_tests():
                             if test.get("call", {}).get("longrepr"):
                                 print(f"    Error: {test['call']['longrepr']}")
 
-            except (OSError, IOError, json.JSONDecodeError) as e:
+            except (OSError, json.JSONDecodeError) as e:
                 print(f"Could not parse test results: {e}")
 
         return result.returncode == 0
@@ -154,7 +155,7 @@ def test_template_discovery():
         print(f"\n📊 Valid templates: {valid_templates}/{len(template_dirs)}")
         return valid_templates > 0
 
-    except (OSError, IOError) as e:
+    except OSError as e:
         print(f"❌ Template discovery error: {e}")
         return False
 
@@ -199,11 +200,8 @@ def main():
     if passed == total:
         print("\n🎉 All validations passed! CLI is ready for use.")
         return 0
-    else:
-        print(
-            f"\n⚠️  {total - passed} validation(s) failed. Please review and fix issues."
-        )
-        return 1
+    print(f"\n⚠️  {total - passed} validation(s) failed. Please review and fix issues.")
+    return 1
 
 
 if __name__ == "__main__":

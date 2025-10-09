@@ -5,13 +5,15 @@ Advanced routing system with path matching, host-based routing, header-based rou
 and composite routing strategies for sophisticated request routing capabilities.
 """
 
+import builtins
 import fnmatch
 import logging
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Pattern, Tuple, Union
+from re import Pattern
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, dict, list, tuple
 
 from .core import GatewayRequest, HTTPMethod, Route, RouteConfig, RouteGroup
 
@@ -46,8 +48,8 @@ class RoutingRule:
     match_type: MatchType
     pattern: str
     weight: float = 1.0
-    conditions: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    conditions: builtins.dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -58,7 +60,7 @@ class RoutingConfig:
     case_sensitive: bool = True
     strict_slashes: bool = False
     merge_slashes: bool = True
-    default_route: Optional[str] = None
+    default_route: str | None = None
 
     # Advanced routing features
     enable_canary: bool = False
@@ -80,7 +82,7 @@ class RouteMatcher(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def extract_params(self, pattern: str, path: str) -> Dict[str, str]:
+    def extract_params(self, pattern: str, path: str) -> builtins.dict[str, str]:
         """Extract parameters from matched path."""
         raise NotImplementedError
 
@@ -98,7 +100,7 @@ class ExactMatcher(RouteMatcher):
             path = path.lower()
         return pattern == path
 
-    def extract_params(self, pattern: str, path: str) -> Dict[str, str]:
+    def extract_params(self, pattern: str, path: str) -> builtins.dict[str, str]:
         """No parameters for exact match."""
         return {}
 
@@ -116,7 +118,7 @@ class PrefixMatcher(RouteMatcher):
             path = path.lower()
         return path.startswith(pattern)
 
-    def extract_params(self, pattern: str, path: str) -> Dict[str, str]:
+    def extract_params(self, pattern: str, path: str) -> builtins.dict[str, str]:
         """Extract remaining path as parameter."""
         if self.matches(pattern, path):
             remaining = path[len(pattern) :].lstrip("/")
@@ -129,7 +131,7 @@ class RegexMatcher(RouteMatcher):
 
     def __init__(self, case_sensitive: bool = True):
         self.case_sensitive = case_sensitive
-        self._compiled_patterns: Dict[str, Pattern] = {}
+        self._compiled_patterns: builtins.dict[str, Pattern] = {}
 
     def _compile_pattern(self, pattern: str) -> Pattern:
         """Compile regex pattern with caching."""
@@ -143,7 +145,7 @@ class RegexMatcher(RouteMatcher):
         compiled = self._compile_pattern(pattern)
         return bool(compiled.match(path))
 
-    def extract_params(self, pattern: str, path: str) -> Dict[str, str]:
+    def extract_params(self, pattern: str, path: str) -> builtins.dict[str, str]:
         """Extract named groups as parameters."""
         compiled = self._compile_pattern(pattern)
         match = compiled.match(path)
@@ -163,7 +165,7 @@ class WildcardMatcher(RouteMatcher):
             path = path.lower()
         return fnmatch.fnmatch(path, pattern)
 
-    def extract_params(self, pattern: str, path: str) -> Dict[str, str]:
+    def extract_params(self, pattern: str, path: str) -> builtins.dict[str, str]:
         """Limited parameter extraction for wildcards."""
         # Simple implementation - could be enhanced
         if "*" in pattern:
@@ -176,9 +178,13 @@ class TemplateMatcher(RouteMatcher):
 
     def __init__(self, case_sensitive: bool = True):
         self.case_sensitive = case_sensitive
-        self._compiled_patterns: Dict[str, Tuple[Pattern, List[str]]] = {}
+        self._compiled_patterns: builtins.dict[
+            str, builtins.tuple[Pattern, builtins.list[str]]
+        ] = {}
 
-    def _compile_template(self, template: str) -> Tuple[Pattern, List[str]]:
+    def _compile_template(
+        self, template: str
+    ) -> builtins.tuple[Pattern, builtins.list[str]]:
         """Compile template pattern with parameter names."""
         if template not in self._compiled_patterns:
             # Convert template to regex pattern
@@ -213,7 +219,7 @@ class TemplateMatcher(RouteMatcher):
         compiled, _ = self._compile_template(pattern)
         return bool(compiled.match(path))
 
-    def extract_params(self, pattern: str, path: str) -> Dict[str, str]:
+    def extract_params(self, pattern: str, path: str) -> builtins.dict[str, str]:
         """Extract template parameters."""
         compiled, param_names = self._compile_template(pattern)
         match = compiled.match(path)
@@ -229,7 +235,7 @@ class PathRouter(ABC):
 
     def __init__(self, config: RoutingConfig):
         self.config = config
-        self.routes: List[Route] = []
+        self.routes: builtins.list[Route] = []
         self._matcher = self._create_matcher()
 
     @abstractmethod
@@ -248,7 +254,7 @@ class PathRouter(ABC):
 
     def find_route(
         self, request: GatewayRequest
-    ) -> Optional[Tuple[Route, Dict[str, str]]]:
+    ) -> builtins.tuple[Route, builtins.dict[str, str]] | None:
         """Find matching route and extract parameters."""
         path = self._normalize_path(request.path)
 
@@ -329,8 +335,8 @@ class HostRouter:
 
     def __init__(self, config: RoutingConfig):
         self.config = config
-        self.host_routes: Dict[str, PathRouter] = {}
-        self.default_router: Optional[PathRouter] = None
+        self.host_routes: builtins.dict[str, PathRouter] = {}
+        self.default_router: PathRouter | None = None
 
     def add_host_router(self, host: str, router: PathRouter):
         """Add router for specific host."""
@@ -342,7 +348,7 @@ class HostRouter:
 
     def find_route(
         self, request: GatewayRequest
-    ) -> Optional[Tuple[Route, Dict[str, str]]]:
+    ) -> builtins.tuple[Route, builtins.dict[str, str]] | None:
         """Find route based on host header."""
         host_header = request.get_header("Host")
 
@@ -372,8 +378,8 @@ class HeaderRouter:
 
     def __init__(self, config: RoutingConfig):
         self.config = config
-        self.header_routes: Dict[str, Dict[str, PathRouter]] = {}
-        self.default_router: Optional[PathRouter] = None
+        self.header_routes: builtins.dict[str, builtins.dict[str, PathRouter]] = {}
+        self.default_router: PathRouter | None = None
 
     def add_header_router(
         self, header_name: str, header_value: str, router: PathRouter
@@ -389,7 +395,7 @@ class HeaderRouter:
 
     def find_route(
         self, request: GatewayRequest
-    ) -> Optional[Tuple[Route, Dict[str, str]]]:
+    ) -> builtins.tuple[Route, builtins.dict[str, str]] | None:
         """Find route based on headers."""
         for header_name, value_routers in self.header_routes.items():
             header_value = request.get_header(header_name)
@@ -413,7 +419,7 @@ class WeightedRouter:
 
     def __init__(self, config: RoutingConfig):
         self.config = config
-        self.weighted_routes: List[Tuple[PathRouter, float]] = []
+        self.weighted_routes: builtins.list[builtins.tuple[PathRouter, float]] = []
         self._total_weight = 0.0
 
     def add_weighted_router(self, router: PathRouter, weight: float):
@@ -426,7 +432,7 @@ class WeightedRouter:
 
     def find_route(
         self, request: GatewayRequest
-    ) -> Optional[Tuple[Route, Dict[str, str]]]:
+    ) -> builtins.tuple[Route, builtins.dict[str, str]] | None:
         """Find route using weighted selection."""
         if not self.weighted_routes:
             return None
@@ -474,13 +480,13 @@ class CompositeRouter:
 
     def __init__(self, config: RoutingConfig):
         self.config = config
-        self.routers: List[
-            Union[PathRouter, HostRouter, HeaderRouter, WeightedRouter]
+        self.routers: builtins.list[
+            PathRouter | HostRouter | HeaderRouter | WeightedRouter
         ] = []
-        self.fallback_router: Optional[PathRouter] = None
+        self.fallback_router: PathRouter | None = None
 
     def add_router(
-        self, router: Union[PathRouter, HostRouter, HeaderRouter, WeightedRouter]
+        self, router: PathRouter | HostRouter | HeaderRouter | WeightedRouter
     ):
         """Add router to composite."""
         self.routers.append(router)
@@ -491,7 +497,7 @@ class CompositeRouter:
 
     def find_route(
         self, request: GatewayRequest
-    ) -> Optional[Tuple[Route, Dict[str, str]]]:
+    ) -> builtins.tuple[Route, builtins.dict[str, str]] | None:
         """Find route using all registered routers."""
         for router in self.routers:
             result = router.find_route(request)
@@ -508,10 +514,12 @@ class CompositeRouter:
 class Router:
     """Main router class orchestrating all routing strategies."""
 
-    def __init__(self, config: Optional[RoutingConfig] = None):
+    def __init__(self, config: RoutingConfig | None = None):
         self.config = config or RoutingConfig()
         self.composite_router = CompositeRouter(self.config)
-        self._route_cache: Dict[str, Tuple[Route, Dict[str, str]]] = {}
+        self._route_cache: builtins.dict[
+            str, builtins.tuple[Route, builtins.dict[str, str]]
+        ] = {}
 
         # Initialize default routers
         self._setup_default_routers()
@@ -555,7 +563,9 @@ class Router:
         self.composite_router.add_router(header_router)
         self._clear_cache()
 
-    def add_weighted_router(self, routers: List[Tuple[PathRouter, float]]):
+    def add_weighted_router(
+        self, routers: builtins.list[builtins.tuple[PathRouter, float]]
+    ):
         """Add weighted routing for canary/A/B testing."""
         weighted_router = WeightedRouter(self.config)
         for router, weight in routers:
@@ -565,7 +575,7 @@ class Router:
 
     def find_route(
         self, request: GatewayRequest
-    ) -> Optional[Tuple[Route, Dict[str, str]]]:
+    ) -> builtins.tuple[Route, builtins.dict[str, str]] | None:
         """Find matching route for request."""
         # Generate cache key
         cache_key = self._generate_cache_key(request)
@@ -608,7 +618,7 @@ class Router:
         """Clear route cache."""
         self._route_cache.clear()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get router statistics."""
         total_routes = len(self.primary_router.routes)
 
@@ -630,7 +640,7 @@ class RouteBuilder:
 
     def __init__(self):
         self._config = RouteConfig(path="", upstream="")
-        self._middleware: List[str] = []
+        self._middleware: builtins.list[str] = []
 
     def path(self, path: str) -> "RouteBuilder":
         """Set route path."""
@@ -693,7 +703,7 @@ class RouteBuilder:
         self._config.auth_required = required
         return self
 
-    def rate_limit(self, rate_limit: Dict[str, Any]) -> "RouteBuilder":
+    def rate_limit(self, rate_limit: builtins.dict[str, Any]) -> "RouteBuilder":
         """Set rate limiting configuration."""
         self._config.rate_limit = rate_limit
         return self
@@ -738,7 +748,7 @@ class RouterBuilder:
 
     def __init__(self):
         self._config = RoutingConfig()
-        self._routes: List[Route] = []
+        self._routes: builtins.list[Route] = []
 
     def strategy(self, strategy: RoutingStrategy) -> "RouterBuilder":
         """Set routing strategy."""

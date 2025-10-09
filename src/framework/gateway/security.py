@@ -5,19 +5,14 @@ Advanced security capabilities including CORS handling, security headers,
 input validation, attack prevention, and comprehensive security policies.
 """
 
-import base64
-import hashlib
-import hmac
-import html
-import json
+import builtins
 import logging
 import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Pattern, Set, Union
-from urllib.parse import quote, unquote
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list, set
 
 from .core import GatewayRequest, GatewayResponse
 
@@ -44,14 +39,14 @@ class CORSConfig:
     """CORS configuration."""
 
     enabled: bool = True
-    allow_origins: List[str] = field(default_factory=lambda: ["*"])
-    allow_methods: List[str] = field(
+    allow_origins: builtins.list[str] = field(default_factory=lambda: ["*"])
+    allow_methods: builtins.list[str] = field(
         default_factory=lambda: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
     )
-    allow_headers: List[str] = field(
+    allow_headers: builtins.list[str] = field(
         default_factory=lambda: ["Content-Type", "Authorization"]
     )
-    expose_headers: List[str] = field(default_factory=list)
+    expose_headers: builtins.list[str] = field(default_factory=list)
     allow_credentials: bool = False
     max_age: int = 86400  # 24 hours
 
@@ -80,10 +75,10 @@ class SecurityHeadersConfig:
     x_content_type_options: bool = True
     x_xss_protection: str = "1; mode=block"
     referrer_policy: str = "strict-origin-when-cross-origin"
-    permissions_policy: Optional[str] = None
+    permissions_policy: str | None = None
 
     # Custom headers
-    custom_headers: Dict[str, str] = field(default_factory=dict)
+    custom_headers: builtins.dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -103,7 +98,7 @@ class ValidationConfig:
     max_path_length: int = 2048
 
     # Validation rules
-    allowed_content_types: Set[str] = field(
+    allowed_content_types: builtins.set[str] = field(
         default_factory=lambda: {
             "application/json",
             "application/xml",
@@ -119,7 +114,9 @@ class ValidationConfig:
     normalize_unicode: bool = True
 
     # Custom validation
-    custom_validators: List[Callable[[str], bool]] = field(default_factory=list)
+    custom_validators: builtins.list[Callable[[str], bool]] = field(
+        default_factory=list
+    )
 
 
 @dataclass
@@ -139,7 +136,7 @@ class AttackPreventionConfig:
 
     # Path Traversal Prevention
     path_traversal_protection: bool = True
-    directory_traversal_patterns: List[str] = field(
+    directory_traversal_patterns: builtins.list[str] = field(
         default_factory=lambda: [
             "../",
             "..\\",
@@ -152,7 +149,7 @@ class AttackPreventionConfig:
 
     # Command Injection Prevention
     command_injection_protection: bool = True
-    dangerous_commands: List[str] = field(
+    dangerous_commands: builtins.list[str] = field(
         default_factory=lambda: [
             "rm",
             "del",
@@ -184,7 +181,7 @@ class SecurityEvent:
     source_ip: str
     user_agent: str
     request_path: str
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: builtins.dict[str, Any] = field(default_factory=dict)
     blocked: bool = False
 
 
@@ -193,8 +190,8 @@ class SecurityValidator(ABC):
 
     @abstractmethod
     def validate(
-        self, data: str, context: Dict[str, Any] = None
-    ) -> List[SecurityThreat]:
+        self, data: str, context: builtins.dict[str, Any] = None
+    ) -> builtins.list[SecurityThreat]:
         """Validate data and return list of detected threats."""
         raise NotImplementedError
 
@@ -216,8 +213,8 @@ class XSSValidator(SecurityValidator):
         ]
 
     def validate(
-        self, data: str, context: Dict[str, Any] = None
-    ) -> List[SecurityThreat]:
+        self, data: str, context: builtins.dict[str, Any] = None
+    ) -> builtins.list[SecurityThreat]:
         """Check for XSS patterns."""
         threats = []
 
@@ -251,8 +248,8 @@ class SQLInjectionValidator(SecurityValidator):
         ]
 
     def validate(
-        self, data: str, context: Dict[str, Any] = None
-    ) -> List[SecurityThreat]:
+        self, data: str, context: builtins.dict[str, Any] = None
+    ) -> builtins.list[SecurityThreat]:
         """Check for SQL injection patterns."""
         threats = []
 
@@ -279,8 +276,8 @@ class PathTraversalValidator(SecurityValidator):
         ]
 
     def validate(
-        self, data: str, context: Dict[str, Any] = None
-    ) -> List[SecurityThreat]:
+        self, data: str, context: builtins.dict[str, Any] = None
+    ) -> builtins.list[SecurityThreat]:
         """Check for path traversal patterns."""
         threats = []
 
@@ -305,8 +302,8 @@ class CommandInjectionValidator(SecurityValidator):
         ]
 
     def validate(
-        self, data: str, context: Dict[str, Any] = None
-    ) -> List[SecurityThreat]:
+        self, data: str, context: builtins.dict[str, Any] = None
+    ) -> builtins.list[SecurityThreat]:
         """Check for command injection patterns."""
         threats = []
 
@@ -324,7 +321,7 @@ class CORSHandler:
     def __init__(self, config: CORSConfig):
         self.config = config
 
-    def handle_cors(self, request: GatewayRequest) -> Optional[GatewayResponse]:
+    def handle_cors(self, request: GatewayRequest) -> GatewayResponse | None:
         """Handle CORS request."""
         if not self.config.enabled:
             return None
@@ -486,7 +483,7 @@ class InputValidator:
             CommandInjectionValidator(),
         ]
 
-    def validate_request(self, request: GatewayRequest) -> List[SecurityEvent]:
+    def validate_request(self, request: GatewayRequest) -> builtins.list[SecurityEvent]:
         """Validate entire request."""
         events = []
 
@@ -511,7 +508,9 @@ class InputValidator:
 
         return events
 
-    def _validate_headers(self, request: GatewayRequest) -> List[SecurityEvent]:
+    def _validate_headers(
+        self, request: GatewayRequest
+    ) -> builtins.list[SecurityEvent]:
         """Validate request headers."""
         events = []
 
@@ -542,7 +541,9 @@ class InputValidator:
 
         return events
 
-    def _validate_query_params(self, request: GatewayRequest) -> List[SecurityEvent]:
+    def _validate_query_params(
+        self, request: GatewayRequest
+    ) -> builtins.list[SecurityEvent]:
         """Validate query parameters."""
         events = []
 
@@ -573,7 +574,7 @@ class InputValidator:
 
         return events
 
-    def _validate_path(self, request: GatewayRequest) -> List[SecurityEvent]:
+    def _validate_path(self, request: GatewayRequest) -> builtins.list[SecurityEvent]:
         """Validate request path."""
         events = []
 
@@ -597,7 +598,7 @@ class InputValidator:
 
         return events
 
-    def _validate_body(self, request: GatewayRequest) -> List[SecurityEvent]:
+    def _validate_body(self, request: GatewayRequest) -> builtins.list[SecurityEvent]:
         """Validate request body."""
         events = []
 
@@ -650,7 +651,7 @@ class InputValidator:
 
         return events
 
-    def _validate_string(self, data: str) -> List[SecurityThreat]:
+    def _validate_string(self, data: str) -> builtins.list[SecurityThreat]:
         """Validate string data using all validators."""
         threats = []
 
@@ -678,7 +679,7 @@ class InputValidator:
         threat: SecurityThreat,
         severity: str,
         request: GatewayRequest,
-        details: Dict[str, Any],
+        details: builtins.dict[str, Any],
     ) -> SecurityEvent:
         """Create security event."""
         return SecurityEvent(
@@ -715,9 +716,9 @@ class SecurityMiddleware:
         self.input_validator = InputValidator(self.validation_config)
 
         # Attack tracking
-        self.attack_counts: Dict[str, List[float]] = {}
+        self.attack_counts: builtins.dict[str, builtins.list[float]] = {}
 
-    def process_request(self, request: GatewayRequest) -> Optional[GatewayResponse]:
+    def process_request(self, request: GatewayRequest) -> GatewayResponse | None:
         """Process request for security."""
         try:
             # Handle CORS
@@ -765,8 +766,8 @@ class SecurityMiddleware:
         return response
 
     def _handle_security_events(
-        self, events: List[SecurityEvent], request: GatewayRequest
-    ) -> List[SecurityEvent]:
+        self, events: builtins.list[SecurityEvent], request: GatewayRequest
+    ) -> builtins.list[SecurityEvent]:
         """Handle security events and determine if request should be blocked."""
         blocked_events = []
         source_ip = events[0].source_ip if events else "unknown"
@@ -853,7 +854,8 @@ def create_strict_security() -> SecurityMiddleware:
     )
 
     validation_config = ValidationConfig(
-        max_body_size=1024 * 1024, allowed_content_types={"application/json"}  # 1MB
+        max_body_size=1024 * 1024,
+        allowed_content_types={"application/json"},  # 1MB
     )
 
     attack_prevention_config = AttackPreventionConfig(max_attacks_per_window=5)

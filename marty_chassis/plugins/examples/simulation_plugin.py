@@ -8,7 +8,7 @@ and observability features for testing and demonstration purposes.
 import asyncio
 import random
 import time
-from typing import Any, Dict
+from typing import Any
 
 from ..decorators import plugin
 from ..interfaces import IServicePlugin, PluginContext, PluginMetadata
@@ -129,7 +129,7 @@ class SimulationServicePlugin(IServicePlugin):
 
     async def simulate_work(
         self, work_type: str = "default", complexity: int = 1
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Simulate work with configurable delay and error scenarios.
 
@@ -223,7 +223,7 @@ class SimulationServicePlugin(IServicePlugin):
             self.logger.error(f"Simulated work failed: {work_type} - {e}")
             raise
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Get simulation statistics."""
         total_requests = self.work_requests
         success_rate = (
@@ -292,13 +292,13 @@ class SimulationServicePlugin(IServicePlugin):
             except Exception as e:
                 self.logger.error(f"Error in background work simulation: {e}")
 
-    async def on_service_register(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_register(self, service_info: dict[str, Any]) -> None:
         """Called when a service is being registered."""
         # Simulate service registration processing
         await asyncio.sleep(0.01)  # Small delay to simulate work
         self.logger.debug(f"Service registered: {service_info.get('name', 'unknown')}")
 
-    async def on_service_unregister(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_unregister(self, service_info: dict[str, Any]) -> None:
         """Called when a service is being unregistered."""
         # Simulate service unregistration processing
         await asyncio.sleep(0.01)  # Small delay to simulate work
@@ -306,7 +306,7 @@ class SimulationServicePlugin(IServicePlugin):
             f"Service unregistered: {service_info.get('name', 'unknown')}"
         )
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check with simulation data."""
         health = await super().health_check()
 

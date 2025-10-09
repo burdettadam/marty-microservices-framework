@@ -2,12 +2,13 @@
 Base database models and mixins for the enterprise database framework.
 """
 
+import builtins
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Set, dict
 
 from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.sql import func
 
@@ -24,7 +25,7 @@ class BaseModel(DeclarativeBase):
         name = re.sub(r"(?<!^)(?=[A-Z])", "_", cls.__name__).lower()
         return name
 
-    def to_dict(self, include_relationships: bool = False) -> Dict[str, Any]:
+    def to_dict(self, include_relationships: bool = False) -> builtins.dict[str, Any]:
         """Convert model instance to dictionary."""
         result = {}
 
@@ -56,7 +57,7 @@ class BaseModel(DeclarativeBase):
         return result
 
     def update_from_dict(
-        self, data: Dict[str, Any], exclude: Optional[set] = None
+        self, data: builtins.dict[str, Any], exclude: set | None = None
     ) -> None:
         """Update model instance from dictionary."""
         exclude = exclude or set()
@@ -83,8 +84,7 @@ class BaseModel(DeclarativeBase):
 
         if id_value is not None:
             return f"<{class_name}(id={id_value})>"
-        else:
-            return f"<{class_name}()>"
+        return f"<{class_name}()>"
 
 
 class TimestampMixin:
@@ -158,7 +158,7 @@ class SoftDeleteMixin:
         String(255), nullable=True, doc="User ID who soft deleted the record"
     )
 
-    def soft_delete(self, deleted_by: Optional[str] = None) -> None:
+    def soft_delete(self, deleted_by: str | None = None) -> None:
         """Soft delete the record."""
         self.is_deleted = True
         self.deleted_at = datetime.now(timezone.utc)

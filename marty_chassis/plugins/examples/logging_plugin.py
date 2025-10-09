@@ -7,9 +7,9 @@ using the event handler plugin interface.
 
 import json
 import time
-from typing import Any, Dict
+from typing import Any
 
-from ..decorators import event_handler, plugin
+from ..decorators import plugin
 from ..interfaces import IEventHandlerPlugin, PluginContext, PluginMetadata
 
 
@@ -73,7 +73,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
             provides=["logging", "structured-logs", "audit"],
         )
 
-    def get_event_subscriptions(self) -> Dict[str, str]:
+    def get_event_subscriptions(self) -> dict[str, str]:
         """
         Return event subscriptions for this plugin.
 
@@ -92,7 +92,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
             "auth.failed": "handle_auth_event",
         }
 
-    async def handle_event(self, event_type: str, event_data: Dict[str, Any]) -> None:
+    async def handle_event(self, event_type: str, event_data: dict[str, Any]) -> None:
         """
         Handle an event by routing to specific handler.
 
@@ -110,7 +110,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
             # Default handler for unspecified events
             await self.handle_generic_event(event_type, event_data)
 
-    async def handle_request_completed(self, event_data: Dict[str, Any]) -> None:
+    async def handle_request_completed(self, event_data: dict[str, Any]) -> None:
         """Handle request completed event."""
         log_entry = self._create_log_entry(
             "REQUEST_COMPLETED",
@@ -126,7 +126,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
         await self._write_log(log_entry)
         self.events_logged += 1
 
-    async def handle_request_failed(self, event_data: Dict[str, Any]) -> None:
+    async def handle_request_failed(self, event_data: dict[str, Any]) -> None:
         """Handle request failed event."""
         log_entry = self._create_log_entry(
             "REQUEST_FAILED",
@@ -142,7 +142,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
         await self._write_log(log_entry, level="ERROR")
         self.events_logged += 1
 
-    async def handle_service_registered(self, event_data: Dict[str, Any]) -> None:
+    async def handle_service_registered(self, event_data: dict[str, Any]) -> None:
         """Handle service registered event."""
         if self.audit_enabled:
             log_entry = self._create_log_entry(
@@ -159,7 +159,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
             await self._write_log(log_entry, level="INFO", category="AUDIT")
             self.events_logged += 1
 
-    async def handle_service_unregistered(self, event_data: Dict[str, Any]) -> None:
+    async def handle_service_unregistered(self, event_data: dict[str, Any]) -> None:
         """Handle service unregistered event."""
         if self.audit_enabled:
             log_entry = self._create_log_entry(
@@ -174,7 +174,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
             await self._write_log(log_entry, level="INFO", category="AUDIT")
             self.events_logged += 1
 
-    async def handle_plugin_started(self, event_data: Dict[str, Any]) -> None:
+    async def handle_plugin_started(self, event_data: dict[str, Any]) -> None:
         """Handle plugin started event."""
         if self.audit_enabled:
             log_entry = self._create_log_entry(
@@ -189,7 +189,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
             await self._write_log(log_entry, level="INFO", category="AUDIT")
             self.events_logged += 1
 
-    async def handle_plugin_stopped(self, event_data: Dict[str, Any]) -> None:
+    async def handle_plugin_stopped(self, event_data: dict[str, Any]) -> None:
         """Handle plugin stopped event."""
         if self.audit_enabled:
             log_entry = self._create_log_entry(
@@ -201,7 +201,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
             await self._write_log(log_entry, level="INFO", category="AUDIT")
             self.events_logged += 1
 
-    async def handle_auth_event(self, event_data: Dict[str, Any]) -> None:
+    async def handle_auth_event(self, event_data: dict[str, Any]) -> None:
         """Handle authentication events."""
         if self.audit_enabled:
             event_type = event_data.get("event_type", "AUTH_EVENT")
@@ -221,7 +221,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
             self.events_logged += 1
 
     async def handle_generic_event(
-        self, event_type: str, event_data: Dict[str, Any]
+        self, event_type: str, event_data: dict[str, Any]
     ) -> None:
         """Handle generic events."""
         log_entry = self._create_log_entry(f"EVENT_{event_type.upper()}", event_data)
@@ -231,9 +231,9 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
     def _create_log_entry(
         self,
         event_type: str,
-        event_data: Dict[str, Any],
-        structured_data: Dict[str, Any] = None,
-    ) -> Dict[str, Any]:
+        event_data: dict[str, Any],
+        structured_data: dict[str, Any] = None,
+    ) -> dict[str, Any]:
         """
         Create a structured log entry.
 
@@ -266,7 +266,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
 
     async def _write_log(
         self,
-        log_entry: Dict[str, Any],
+        log_entry: dict[str, Any],
         level: str = "INFO",
         category: str = "APPLICATION",
     ) -> None:
@@ -310,7 +310,7 @@ class StructuredLoggingPlugin(IEventHandlerPlugin):
             except Exception as e:
                 self.logger.error(f"Failed to write to log file: {e}")
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check."""
         health = await super().health_check()
 

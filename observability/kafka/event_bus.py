@@ -6,14 +6,14 @@ based on patterns from the main Marty project.
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, dict, list
 
-import aiokafka
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from pydantic import BaseModel, Field
 
@@ -27,8 +27,8 @@ class EventMessage(BaseModel):
     event_type: str
     service_name: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    payload: Dict[str, Any]
-    correlation_id: Optional[str] = None
+    payload: builtins.dict[str, Any]
+    correlation_id: str | None = None
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
@@ -37,11 +37,11 @@ class EventMessage(BaseModel):
 class KafkaConfig(BaseModel):
     """Kafka configuration settings"""
 
-    bootstrap_servers: List[str] = ["localhost:9092"]
+    bootstrap_servers: builtins.list[str] = ["localhost:9092"]
     security_protocol: str = "PLAINTEXT"
-    sasl_mechanism: Optional[str] = None
-    sasl_plain_username: Optional[str] = None
-    sasl_plain_password: Optional[str] = None
+    sasl_mechanism: str | None = None
+    sasl_plain_username: str | None = None
+    sasl_plain_password: str | None = None
     consumer_group_id: str = "marty-microservice"
     auto_offset_reset: str = "latest"
     enable_auto_commit: bool = True
@@ -64,9 +64,9 @@ class EventBus:
     def __init__(self, config: KafkaConfig, service_name: str):
         self.config = config
         self.service_name = service_name
-        self.producer: Optional[AIOKafkaProducer] = None
-        self.consumers: Dict[str, AIOKafkaConsumer] = {}
-        self.event_handlers: Dict[str, List[Callable]] = {}
+        self.producer: AIOKafkaProducer | None = None
+        self.consumers: builtins.dict[str, AIOKafkaConsumer] = {}
+        self.event_handlers: builtins.dict[str, builtins.list[Callable]] = {}
         self._running = False
 
     async def start(self) -> None:
@@ -108,9 +108,9 @@ class EventBus:
         self,
         topic: str,
         event_type: str,
-        payload: Dict[str, Any],
-        key: Optional[str] = None,
-        correlation_id: Optional[str] = None,
+        payload: builtins.dict[str, Any],
+        key: str | None = None,
+        correlation_id: str | None = None,
     ) -> None:
         """
         Publish an event to a Kafka topic
@@ -168,7 +168,7 @@ class EventBus:
         self.event_handlers[topic].append(handler)
         logger.info(f"Registered handler for topic: {topic}")
 
-    async def start_consumer(self, topics: List[str]) -> None:
+    async def start_consumer(self, topics: builtins.list[str]) -> None:
         """
         Start consuming events from specified topics
 
@@ -266,8 +266,8 @@ async def event_bus_context(config: KafkaConfig, service_name: str):
 async def publish_service_event(
     event_bus: EventBus,
     event_type: str,
-    data: Dict[str, Any],
-    correlation_id: Optional[str] = None,
+    data: builtins.dict[str, Any],
+    correlation_id: str | None = None,
 ) -> None:
     """Publish a service-level event"""
     topic = f"service.{event_bus.service_name}.events"
@@ -280,8 +280,8 @@ async def publish_domain_event(
     event_bus: EventBus,
     domain: str,
     event_type: str,
-    data: Dict[str, Any],
-    correlation_id: Optional[str] = None,
+    data: builtins.dict[str, Any],
+    correlation_id: str | None = None,
 ) -> None:
     """Publish a domain-specific event"""
     topic = f"domain.{domain}.events"

@@ -18,17 +18,16 @@ Features:
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import re
 import time
-import uuid
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from urllib.parse import parse_qs, urlparse
+from typing import Any, Callable, Dict, List, Optional, Tuple, dict, list, tuple
 
 # HTTP client imports
 try:
@@ -96,7 +95,7 @@ class ServiceInstance:
     healthy: bool = True
     connections: int = 0
     last_health_check: float = field(default_factory=time.time)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
     @property
     def url(self) -> str:
@@ -117,19 +116,21 @@ class RouteRule:
     """Route matching rule."""
 
     path_pattern: str
-    methods: List[RoutingMethod] = field(default_factory=lambda: [RoutingMethod.ANY])
-    host_pattern: Optional[str] = None
-    headers: Dict[str, str] = field(default_factory=dict)
-    query_params: Dict[str, str] = field(default_factory=dict)
+    methods: builtins.list[RoutingMethod] = field(
+        default_factory=lambda: [RoutingMethod.ANY]
+    )
+    host_pattern: str | None = None
+    headers: builtins.dict[str, str] = field(default_factory=dict)
+    query_params: builtins.dict[str, str] = field(default_factory=dict)
     priority: int = 0
 
     def matches(
         self,
         method: str,
         path: str,
-        host: Optional[str] = None,
-        headers: Optional[Dict[str, str]] = None,
-        query_params: Optional[Dict[str, str]] = None,
+        host: str | None = None,
+        headers: builtins.dict[str, str] | None = None,
+        query_params: builtins.dict[str, str] | None = None,
     ) -> bool:
         """Check if request matches this rule."""
         # Check method
@@ -171,9 +172,9 @@ class RateLimitConfig:
     requests_per_second: float = 100.0
     burst_size: int = 200
     window_size: int = 60
-    key_extractor: Optional[Callable] = None
+    key_extractor: Callable | None = None
 
-    def get_key(self, request_data: Dict[str, Any]) -> str:
+    def get_key(self, request_data: builtins.dict[str, Any]) -> str:
         """Extract rate limiting key from request."""
         if self.key_extractor:
             return self.key_extractor(request_data)
@@ -187,12 +188,12 @@ class AuthConfig:
     """Authentication configuration."""
 
     type: AuthenticationType = AuthenticationType.NONE
-    secret_key: Optional[str] = None
+    secret_key: str | None = None
     api_key_header: str = "X-API-Key"
     jwt_algorithm: str = "HS256"
     jwt_expiry: int = 3600
-    oauth2_endpoint: Optional[str] = None
-    custom_validator: Optional[Callable] = None
+    oauth2_endpoint: str | None = None
+    custom_validator: Callable | None = None
 
 
 @dataclass
@@ -202,15 +203,15 @@ class RouteConfig:
     name: str
     rule: RouteRule
     target_service: str
-    path_rewrite: Optional[str] = None
+    path_rewrite: str | None = None
     timeout: float = 30.0
     retries: int = 3
     auth: AuthConfig = field(default_factory=AuthConfig)
-    rate_limit: Optional[RateLimitConfig] = None
+    rate_limit: RateLimitConfig | None = None
     load_balancing: LoadBalancingAlgorithm = LoadBalancingAlgorithm.ROUND_ROBIN
     circuit_breaker: bool = True
-    request_transformers: List[Callable] = field(default_factory=list)
-    response_transformers: List[Callable] = field(default_factory=list)
+    request_transformers: builtins.list[Callable] = field(default_factory=list)
+    response_transformers: builtins.list[Callable] = field(default_factory=list)
 
 
 @dataclass
@@ -244,12 +245,10 @@ class RateLimiter(ABC):
     @abstractmethod
     async def is_allowed(self, key: str) -> bool:
         """Check if request is allowed."""
-        pass
 
     @abstractmethod
     async def reset(self, key: str) -> None:
         """Reset rate limiter for key."""
-        pass
 
 
 class TokenBucketRateLimiter(RateLimiter):
@@ -257,7 +256,7 @@ class TokenBucketRateLimiter(RateLimiter):
 
     def __init__(self, config: RateLimitConfig):
         self.config = config
-        self.buckets: Dict[str, Dict[str, float]] = {}
+        self.buckets: builtins.dict[str, builtins.dict[str, float]] = {}
 
     async def is_allowed(self, key: str) -> bool:
         """Check if request is allowed."""
@@ -296,24 +295,23 @@ class LoadBalancer(ABC):
     @abstractmethod
     async def select_instance(
         self,
-        instances: List[ServiceInstance],
-        request_data: Optional[Dict[str, Any]] = None,
-    ) -> Optional[ServiceInstance]:
+        instances: builtins.list[ServiceInstance],
+        request_data: builtins.dict[str, Any] | None = None,
+    ) -> ServiceInstance | None:
         """Select service instance."""
-        pass
 
 
 class RoundRobinLoadBalancer(LoadBalancer):
     """Round robin load balancer."""
 
     def __init__(self):
-        self.counters: Dict[str, int] = {}
+        self.counters: builtins.dict[str, int] = {}
 
     async def select_instance(
         self,
-        instances: List[ServiceInstance],
-        request_data: Optional[Dict[str, Any]] = None,
-    ) -> Optional[ServiceInstance]:
+        instances: builtins.list[ServiceInstance],
+        request_data: builtins.dict[str, Any] | None = None,
+    ) -> ServiceInstance | None:
         """Select service instance using round robin."""
         healthy_instances = [i for i in instances if i.healthy]
 
@@ -338,9 +336,9 @@ class LeastConnectionsLoadBalancer(LoadBalancer):
 
     async def select_instance(
         self,
-        instances: List[ServiceInstance],
-        request_data: Optional[Dict[str, Any]] = None,
-    ) -> Optional[ServiceInstance]:
+        instances: builtins.list[ServiceInstance],
+        request_data: builtins.dict[str, Any] | None = None,
+    ) -> ServiceInstance | None:
         """Select instance with least connections."""
         healthy_instances = [i for i in instances if i.healthy]
 
@@ -355,10 +353,9 @@ class Authenticator(ABC):
 
     @abstractmethod
     async def authenticate(
-        self, request_data: Dict[str, Any]
-    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
+        self, request_data: builtins.dict[str, Any]
+    ) -> builtins.tuple[bool, builtins.dict[str, Any] | None]:
         """Authenticate request. Returns (success, user_context)."""
-        pass
 
 
 class JWTAuthenticator(Authenticator):
@@ -374,8 +371,8 @@ class JWTAuthenticator(Authenticator):
             raise ImportError("JWT authentication requires PyJWT: pip install PyJWT")
 
     async def authenticate(
-        self, request_data: Dict[str, Any]
-    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
+        self, request_data: builtins.dict[str, Any]
+    ) -> builtins.tuple[bool, builtins.dict[str, Any] | None]:
         """Authenticate JWT token."""
         try:
             auth_header = request_data.get("headers", {}).get("Authorization", "")
@@ -399,13 +396,17 @@ class JWTAuthenticator(Authenticator):
 class APIKeyAuthenticator(Authenticator):
     """API key authenticator."""
 
-    def __init__(self, config: AuthConfig, valid_keys: Dict[str, Dict[str, Any]]):
+    def __init__(
+        self,
+        config: AuthConfig,
+        valid_keys: builtins.dict[str, builtins.dict[str, Any]],
+    ):
         self.config = config
         self.valid_keys = valid_keys  # key -> user_context mapping
 
     async def authenticate(
-        self, request_data: Dict[str, Any]
-    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
+        self, request_data: builtins.dict[str, Any]
+    ) -> builtins.tuple[bool, builtins.dict[str, Any] | None]:
         """Authenticate API key."""
         headers = request_data.get("headers", {})
         api_key = headers.get(self.config.api_key_header)
@@ -460,9 +461,9 @@ class ServiceRegistry:
     """Service discovery and registry."""
 
     def __init__(self):
-        self.services: Dict[str, List[ServiceInstance]] = {}
+        self.services: builtins.dict[str, builtins.list[ServiceInstance]] = {}
         self.health_check_interval = 30.0
-        self._health_check_task: Optional[asyncio.Task] = None
+        self._health_check_task: asyncio.Task | None = None
 
     async def register_service(
         self, service_name: str, instance: ServiceInstance
@@ -487,7 +488,9 @@ class ServiceRegistry:
             ]
             logger.info(f"Deregistered service instance: {service_name}/{instance_id}")
 
-    async def get_service_instances(self, service_name: str) -> List[ServiceInstance]:
+    async def get_service_instances(
+        self, service_name: str
+    ) -> builtins.list[ServiceInstance]:
         """Get healthy service instances."""
         return self.services.get(service_name, [])
 
@@ -541,15 +544,15 @@ class APIGateway:
     """Enterprise API Gateway."""
 
     def __init__(self):
-        self.routes: List[RouteConfig] = []
+        self.routes: builtins.list[RouteConfig] = []
         self.service_registry = ServiceRegistry()
-        self.load_balancers: Dict[LoadBalancingAlgorithm, LoadBalancer] = {
+        self.load_balancers: builtins.dict[LoadBalancingAlgorithm, LoadBalancer] = {
             LoadBalancingAlgorithm.ROUND_ROBIN: RoundRobinLoadBalancer(),
             LoadBalancingAlgorithm.LEAST_CONNECTIONS: LeastConnectionsLoadBalancer(),
         }
-        self.rate_limiters: Dict[str, RateLimiter] = {}
-        self.authenticators: Dict[str, Authenticator] = {}
-        self.circuit_breakers: Dict[str, CircuitBreaker] = {}
+        self.rate_limiters: builtins.dict[str, RateLimiter] = {}
+        self.authenticators: builtins.dict[str, Authenticator] = {}
+        self.circuit_breakers: builtins.dict[str, CircuitBreaker] = {}
         self.stats = GatewayStats()
 
     async def start(self) -> None:
@@ -588,7 +591,9 @@ class APIGateway:
         """Register service instance."""
         await self.service_registry.register_service(service_name, instance)
 
-    async def handle_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def handle_request(
+        self, request_data: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Handle incoming request."""
         start_time = time.time()
 
@@ -629,7 +634,9 @@ class APIGateway:
             self.stats.record_request(False, response_time)
             return self._create_error_response(500, "Internal server error")
 
-    async def _find_route(self, request_data: Dict[str, Any]) -> Optional[RouteConfig]:
+    async def _find_route(
+        self, request_data: builtins.dict[str, Any]
+    ) -> RouteConfig | None:
         """Find matching route for request."""
         method = request_data.get("method", "GET")
         path = request_data.get("path", "/")
@@ -644,7 +651,7 @@ class APIGateway:
         return None
 
     async def _check_rate_limit(
-        self, route: RouteConfig, request_data: Dict[str, Any]
+        self, route: RouteConfig, request_data: builtins.dict[str, Any]
     ) -> bool:
         """Check rate limiting."""
         if not route.rate_limit:
@@ -658,7 +665,7 @@ class APIGateway:
         return await rate_limiter.is_allowed(key)
 
     async def _authenticate_request(
-        self, route: RouteConfig, request_data: Dict[str, Any]
+        self, route: RouteConfig, request_data: builtins.dict[str, Any]
     ) -> bool:
         """Authenticate request."""
         if route.auth.type == AuthenticationType.NONE:
@@ -678,8 +685,8 @@ class APIGateway:
         return success
 
     async def _select_service_instance(
-        self, route: RouteConfig, request_data: Dict[str, Any]
-    ) -> Optional[ServiceInstance]:
+        self, route: RouteConfig, request_data: builtins.dict[str, Any]
+    ) -> ServiceInstance | None:
         """Select service instance using load balancing."""
         instances = await self.service_registry.get_service_instances(
             route.target_service
@@ -698,8 +705,8 @@ class APIGateway:
         self,
         route: RouteConfig,
         instance: ServiceInstance,
-        request_data: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        request_data: builtins.dict[str, Any],
+    ) -> builtins.dict[str, Any]:
         """Forward request to service instance."""
         if not AIOHTTP_AVAILABLE:
             return self._create_error_response(500, "HTTP client not available")
@@ -746,8 +753,8 @@ class APIGateway:
             instance.decrement_connections()
 
     async def _make_http_request(
-        self, url: str, request_data: Dict[str, Any], timeout: float
-    ) -> Dict[str, Any]:
+        self, url: str, request_data: builtins.dict[str, Any], timeout: float
+    ) -> builtins.dict[str, Any]:
         """Make HTTP request to service."""
         method = request_data.get("method", "GET")
         headers = request_data.get("headers", {})
@@ -769,7 +776,9 @@ class APIGateway:
                     "body": response_body,
                 }
 
-    def _create_error_response(self, status: int, message: str) -> Dict[str, Any]:
+    def _create_error_response(
+        self, status: int, message: str
+    ) -> builtins.dict[str, Any]:
         """Create error response."""
         return {
             "status": status,
@@ -783,10 +792,10 @@ class APIGateway:
 
 
 # Global gateway instance
-_gateway: Optional[APIGateway] = None
+_gateway: APIGateway | None = None
 
 
-def get_gateway() -> Optional[APIGateway]:
+def get_gateway() -> APIGateway | None:
     """Get global API gateway."""
     return _gateway
 
@@ -816,7 +825,7 @@ def create_jwt_auth_route(
     path_pattern: str,
     target_service: str,
     secret_key: str,
-    methods: List[RoutingMethod] = None,
+    methods: builtins.list[RoutingMethod] = None,
 ) -> RouteConfig:
     """Create route with JWT authentication."""
     return RouteConfig(
@@ -834,7 +843,7 @@ def create_rate_limited_route(
     path_pattern: str,
     target_service: str,
     requests_per_second: float = 100.0,
-    methods: List[RoutingMethod] = None,
+    methods: builtins.list[RoutingMethod] = None,
 ) -> RouteConfig:
     """Create route with rate limiting."""
     return RouteConfig(

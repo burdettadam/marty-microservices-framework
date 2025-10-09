@@ -5,7 +5,7 @@ This plugin demonstrates how to implement authentication
 functionality using the service plugin interface.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 import jwt
 
@@ -33,7 +33,7 @@ class JWTAuthenticationPlugin(IServicePlugin):
 
     def __init__(self):
         super().__init__()
-        self.jwt_secret: Optional[str] = None
+        self.jwt_secret: str | None = None
         self.jwt_algorithm: str = "HS256"
         self.token_expiry: int = 3600  # 1 hour
 
@@ -75,7 +75,7 @@ class JWTAuthenticationPlugin(IServicePlugin):
                 source=self.plugin_metadata.name,
             )
 
-    async def on_service_register(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_register(self, service_info: dict[str, Any]) -> None:
         """Called when a service is being registered."""
         # Automatically add authentication requirement to services
         if service_info.get("require_auth", True):
@@ -84,15 +84,13 @@ class JWTAuthenticationPlugin(IServicePlugin):
                 f"Added auth requirement to service: {service_info.get('name', 'unknown')}"
             )
 
-    async def on_service_unregister(self, service_info: Dict[str, Any]) -> None:
+    async def on_service_unregister(self, service_info: dict[str, Any]) -> None:
         """Called when a service is being unregistered."""
         self.logger.debug(
             f"Service unregistered: {service_info.get('name', 'unknown')}"
         )
 
-    def generate_token(
-        self, user_id: str, claims: Optional[Dict[str, Any]] = None
-    ) -> str:
+    def generate_token(self, user_id: str, claims: dict[str, Any] | None = None) -> str:
         """
         Generate a JWT token for a user.
 
@@ -122,7 +120,7 @@ class JWTAuthenticationPlugin(IServicePlugin):
 
         return token
 
-    def validate_token(self, token: str) -> Dict[str, Any]:
+    def validate_token(self, token: str) -> dict[str, Any]:
         """
         Validate a JWT token.
 
@@ -153,7 +151,7 @@ class JWTAuthenticationPlugin(IServicePlugin):
             self.logger.warning(f"Token validation failed: {e}")
             raise
 
-    async def check_health(self) -> Dict[str, Any]:
+    async def check_health(self) -> dict[str, Any]:
         """Perform health check."""
         health = await super().health_check()
 
@@ -167,8 +165,8 @@ class JWTAuthenticationPlugin(IServicePlugin):
         return health
 
     async def handle_authentication_request(
-        self, request_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, request_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Handle authentication request.
 

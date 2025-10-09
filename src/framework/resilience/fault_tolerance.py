@@ -7,6 +7,7 @@ capabilities for production reliability.
 """
 
 import asyncio
+import builtins
 import logging
 import random
 
@@ -15,16 +16,14 @@ import statistics
 import threading
 import time
 import uuid
-from abc import ABC, abstractmethod
-from collections import Counter, defaultdict, deque
+from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as ConcurrentTimeoutError
-from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Set, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Set, TypeVar, dict, list, set
 
 
 class CircuitState(Enum):
@@ -84,8 +83,10 @@ class RetryConfig:
     max_delay: float = 60.0  # seconds
     backoff_multiplier: float = 2.0
     jitter_range: float = 0.1  # 10% jitter
-    retryable_exceptions: List[type] = field(default_factory=lambda: [Exception])
-    non_retryable_exceptions: List[type] = field(default_factory=list)
+    retryable_exceptions: builtins.list[type] = field(
+        default_factory=lambda: [Exception]
+    )
+    non_retryable_exceptions: builtins.list[type] = field(default_factory=list)
 
 
 @dataclass
@@ -129,7 +130,7 @@ class ResilienceMetric:
     metric_type: ResilienceMetricType
     value: float
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    labels: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -139,11 +140,11 @@ class ChaosExperiment:
     experiment_id: str
     name: str
     experiment_type: ChaosExperimentType
-    target_services: List[str]
-    parameters: Dict[str, Any]
+    target_services: builtins.list[str]
+    parameters: builtins.dict[str, Any]
     duration_seconds: int
     probability: float = 1.0  # 100% by default
-    schedule: Optional[str] = None  # Cron-like schedule
+    schedule: str | None = None  # Cron-like schedule
     is_active: bool = False
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -154,19 +155,13 @@ T = TypeVar("T")
 class CircuitBreakerException(Exception):
     """Exception raised when circuit breaker is open."""
 
-    pass
-
 
 class BulkheadRejectionException(Exception):
     """Exception raised when bulkhead rejects request."""
 
-    pass
-
 
 class TimeoutException(Exception):
     """Exception raised when operation times out."""
-
-    pass
 
 
 class CircuitBreaker:
@@ -181,8 +176,8 @@ class CircuitBreaker:
         self.state = CircuitState.CLOSED
         self.failure_count = 0
         self.success_count = 0
-        self.last_failure_time: Optional[datetime] = None
-        self.next_attempt_time: Optional[datetime] = None
+        self.last_failure_time: datetime | None = None
+        self.next_attempt_time: datetime | None = None
 
         # Metrics tracking
         self.request_history: deque = deque(maxlen=config.evaluation_window)
@@ -205,8 +200,7 @@ class CircuitBreaker:
         # Return appropriate wrapper based on function type
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return wrapper
+        return wrapper
 
     def execute(self, operation: Callable[[], T]) -> T:
         """Execute operation with circuit breaker protection."""
@@ -349,7 +343,7 @@ class CircuitBreaker:
         )
         self.metrics.append(metric)
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> builtins.dict[str, Any]:
         """Get current circuit breaker state."""
         with self._lock:
             return {
@@ -398,8 +392,7 @@ class RetryMechanism:
         # Return appropriate wrapper based on function type
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return wrapper
+        return wrapper
 
     def execute(self, operation: Callable[[], T]) -> T:
         """Execute operation with retry logic."""
@@ -436,8 +429,7 @@ class RetryMechanism:
         # Raise the last exception
         if last_exception:
             raise last_exception
-        else:
-            raise Exception("Max retry attempts exceeded")
+        raise Exception("Max retry attempts exceeded")
 
     async def execute_async(self, operation: Callable[[], T]) -> T:
         """Execute async operation with retry logic."""
@@ -477,8 +469,7 @@ class RetryMechanism:
         # Raise the last exception
         if last_exception:
             raise last_exception
-        else:
-            raise Exception("Max retry attempts exceeded")
+        raise Exception("Max retry attempts exceeded")
 
     def _is_retryable_exception(self, exception: Exception) -> bool:
         """Check if exception is retryable."""
@@ -570,30 +561,27 @@ class BulkheadIsolation:
         # Return appropriate wrapper based on function type
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return wrapper
+        return wrapper
 
     def execute(self, operation: Callable[[], T]) -> T:
         """Execute operation with bulkhead isolation."""
         if self.config.type == BulkheadType.THREAD_POOL:
             return self._execute_with_thread_pool(operation)
-        elif self.config.type == BulkheadType.SEMAPHORE:
+        if self.config.type == BulkheadType.SEMAPHORE:
             return self._execute_with_semaphore(operation)
-        elif self.config.type == BulkheadType.RATE_LIMIT:
+        if self.config.type == BulkheadType.RATE_LIMIT:
             return self._execute_with_rate_limit(operation)
-        else:
-            raise ValueError(f"Unsupported bulkhead type: {self.config.type}")
+        raise ValueError(f"Unsupported bulkhead type: {self.config.type}")
 
     async def execute_async(self, operation: Callable[[], T]) -> T:
         """Execute async operation with bulkhead isolation."""
         if self.config.type == BulkheadType.SEMAPHORE:
             return await self._execute_async_with_semaphore(operation)
-        elif self.config.type == BulkheadType.RATE_LIMIT:
+        if self.config.type == BulkheadType.RATE_LIMIT:
             return await self._execute_async_with_rate_limit(operation)
-        else:
-            # For thread pool, we'll run in executor
-            loop = asyncio.get_event_loop()
-            return await loop.run_in_executor(None, self.execute, operation)
+        # For thread pool, we'll run in executor
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.execute, operation)
 
     def _execute_with_thread_pool(self, operation: Callable[[], T]) -> T:
         """Execute operation using thread pool."""
@@ -698,7 +686,7 @@ class BulkheadIsolation:
         )
         self.metrics.append(metric)
 
-    def get_utilization(self) -> Dict[str, Any]:
+    def get_utilization(self) -> builtins.dict[str, Any]:
         """Get current bulkhead utilization."""
         return {
             "name": self.name,
@@ -778,8 +766,7 @@ class TimeoutManager:
         # Return appropriate wrapper based on function type
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
-        else:
-            return wrapper
+        return wrapper
 
     def execute(self, operation: Callable[[], T]) -> T:
         """Execute operation with timeout."""
@@ -880,7 +867,7 @@ class TimeoutManager:
         )
         self.metrics.append(metric)
 
-    def get_timeout_stats(self) -> Dict[str, Any]:
+    def get_timeout_stats(self) -> builtins.dict[str, Any]:
         """Get timeout statistics."""
         if not self.response_times:
             return {
@@ -913,11 +900,11 @@ class ChaosEngineeringEngine:
         self.service_name = service_name
 
         # Active experiments
-        self.experiments: Dict[str, ChaosExperiment] = {}
-        self.active_experiments: Set[str] = set()
+        self.experiments: builtins.dict[str, ChaosExperiment] = {}
+        self.active_experiments: builtins.set[str] = set()
 
         # Experiment execution
-        self.experiment_tasks: Dict[str, asyncio.Task] = {}
+        self.experiment_tasks: builtins.dict[str, asyncio.Task] = {}
 
         # Metrics and results
         self.experiment_results: deque = deque(maxlen=1000)
@@ -930,8 +917,8 @@ class ChaosEngineeringEngine:
         self,
         name: str,
         experiment_type: ChaosExperimentType,
-        target_services: List[str],
-        parameters: Dict[str, Any],
+        target_services: builtins.list[str],
+        parameters: builtins.dict[str, Any],
         duration_seconds: int,
         probability: float = 1.0,
     ) -> str:
@@ -1036,7 +1023,7 @@ class ChaosEngineeringEngine:
         except asyncio.CancelledError:
             logging.info(f"Chaos experiment cancelled: {experiment.name}")
         except Exception as e:
-            logging.error(f"Error in chaos experiment {experiment.name}: {e}")
+            logging.exception(f"Error in chaos experiment {experiment.name}: {e}")
         finally:
             # Cleanup
             experiment.is_active = False
@@ -1105,7 +1092,7 @@ class ChaosEngineeringEngine:
             for experiment_id in list(self.active_experiments):
                 asyncio.create_task(self.stop_experiment(experiment_id))
 
-    def get_experiment_status(self) -> Dict[str, Any]:
+    def get_experiment_status(self) -> builtins.dict[str, Any]:
         """Get status of all experiments."""
         return {
             "total_experiments": len(self.experiments),
@@ -1125,10 +1112,10 @@ class ResilienceFramework:
         self.service_name = service_name
 
         # Core resilience components
-        self.circuit_breakers: Dict[str, CircuitBreaker] = {}
-        self.retry_mechanisms: Dict[str, RetryMechanism] = {}
-        self.bulkheads: Dict[str, BulkheadIsolation] = {}
-        self.timeout_managers: Dict[str, TimeoutManager] = {}
+        self.circuit_breakers: builtins.dict[str, CircuitBreaker] = {}
+        self.retry_mechanisms: builtins.dict[str, RetryMechanism] = {}
+        self.bulkheads: builtins.dict[str, BulkheadIsolation] = {}
+        self.timeout_managers: builtins.dict[str, TimeoutManager] = {}
 
         # Chaos engineering
         self.chaos_engine = ChaosEngineeringEngine(service_name)
@@ -1137,8 +1124,8 @@ class ResilienceFramework:
         self.all_metrics: deque = deque(maxlen=10000)
 
         # Health monitoring
-        self.health_checks: Dict[str, Callable] = {}
-        self.health_status: Dict[str, bool] = {}
+        self.health_checks: builtins.dict[str, Callable] = {}
+        self.health_status: builtins.dict[str, bool] = {}
 
     def create_circuit_breaker(
         self, name: str, config: CircuitBreakerConfig = None
@@ -1180,7 +1167,7 @@ class ResilienceFramework:
         """Register health check function."""
         self.health_checks[name] = check_function
 
-    async def run_health_checks(self) -> Dict[str, bool]:
+    async def run_health_checks(self) -> builtins.dict[str, bool]:
         """Run all health checks."""
         results = {}
 
@@ -1192,13 +1179,13 @@ class ResilienceFramework:
                     result = check_function()
                 results[name] = bool(result)
             except Exception as e:
-                logging.error(f"Health check {name} failed: {e}")
+                logging.exception(f"Health check {name} failed: {e}")
                 results[name] = False
 
         self.health_status.update(results)
         return results
 
-    def get_overall_resilience_status(self) -> Dict[str, Any]:
+    def get_overall_resilience_status(self) -> builtins.dict[str, Any]:
         """Get overall resilience status."""
         # Circuit breaker status
         cb_status = {}

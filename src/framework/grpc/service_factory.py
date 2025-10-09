@@ -10,16 +10,14 @@ service discovery and registration.
 from __future__ import annotations
 
 import asyncio
+import builtins
 import importlib
 import inspect
 import logging
-import os
 import signal
-import sys
-from abc import ABC, abstractmethod
 from concurrent import futures
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Protocol
+from typing import Any, Callable, Dict, List, Optional, Protocol, Set, dict, list
 
 import grpc
 from grpc_health.v1 import health_pb2, health_pb2_grpc
@@ -86,16 +84,16 @@ class ServiceDefinition:
 class GRPCServiceFactory:
     """Factory for creating and managing gRPC services with DRY patterns."""
 
-    def __init__(self, config: Dict[str, Any]) -> None:
+    def __init__(self, config: builtins.dict[str, Any]) -> None:
         """Initialize the service factory with configuration.
 
         Args:
             config: Service configuration dictionary
         """
         self.config = config
-        self.services: Dict[str, ServiceDefinition] = {}
-        self.server: Optional[grpc.aio.Server] = None
-        self.health_servicer: Optional[HealthServicer] = None
+        self.services: builtins.dict[str, ServiceDefinition] = {}
+        self.server: grpc.aio.Server | None = None
+        self.health_servicer: HealthServicer | None = None
         self._running = False
 
     def register_service(self, service_def: ServiceDefinition) -> None:
@@ -111,9 +109,9 @@ class GRPCServiceFactory:
         self,
         port: int,
         max_workers: int = 10,
-        options: List[tuple] | None = None,
+        options: builtins.list[tuple] | None = None,
         credentials: grpc.ServerCredentials | None = None,
-        interceptors: List[grpc.aio.ServerInterceptor] | None = None,
+        interceptors: builtins.list[grpc.aio.ServerInterceptor] | None = None,
     ) -> grpc.aio.Server:
         """Create and configure gRPC server.
 
@@ -245,7 +243,7 @@ class ServiceRegistry:
     """Registry for automatic service discovery and registration."""
 
     def __init__(self) -> None:
-        self.factories: Dict[str, GRPCServiceFactory] = {}
+        self.factories: builtins.dict[str, GRPCServiceFactory] = {}
 
     def register_factory(self, name: str, factory: GRPCServiceFactory) -> None:
         """Register a service factory.
@@ -267,7 +265,7 @@ class ServiceRegistry:
         """
         return self.factories.get(name)
 
-    def discover_services(self, package_path: str) -> List[ServiceDefinition]:
+    def discover_services(self, package_path: str) -> builtins.list[ServiceDefinition]:
         """Discover services in a package.
 
         Args:

@@ -6,7 +6,7 @@ both REST (FastAPI) and gRPC protocols simultaneously.
 """
 
 import asyncio
-from typing import Any, List, Optional, Type
+from typing import Any
 
 from fastapi import FastAPI
 from grpc import aio
@@ -24,9 +24,9 @@ class HybridService:
     def __init__(
         self,
         service_name: str,
-        config: Optional[ChassisConfig] = None,
-        fastapi_app: Optional[FastAPI] = None,
-        grpc_server: Optional[aio.Server] = None,
+        config: ChassisConfig | None = None,
+        fastapi_app: FastAPI | None = None,
+        grpc_server: aio.Server | None = None,
     ):
         self.service_name = service_name
         self.config = config or ChassisConfig.from_env()
@@ -84,11 +84,11 @@ class HybridService:
 class HybridServiceBuilder:
     """Builder for creating hybrid services."""
 
-    def __init__(self, service_name: str, config: Optional[ChassisConfig] = None):
+    def __init__(self, service_name: str, config: ChassisConfig | None = None):
         self.service_name = service_name
         self.config = config or ChassisConfig.from_env()
-        self.fastapi_app: Optional[FastAPI] = None
-        self.grpc_builder: Optional[GRPCServiceBuilder] = None
+        self.fastapi_app: FastAPI | None = None
+        self.grpc_builder: GRPCServiceBuilder | None = None
 
         logger.info("Hybrid service builder initialized", service_name=service_name)
 
@@ -98,8 +98,8 @@ class HybridServiceBuilder:
         enable_metrics: bool = True,
         enable_health_checks: bool = True,
         enable_cors: bool = True,
-        trusted_hosts: Optional[List[str]] = None,
-        custom_middleware: Optional[List[Any]] = None,
+        trusted_hosts: list[str] | None = None,
+        custom_middleware: list[Any] | None = None,
     ) -> "HybridServiceBuilder":
         """Add FastAPI to the hybrid service."""
         # Use a different port for FastAPI if gRPC is also enabled
@@ -146,7 +146,7 @@ class HybridServiceBuilder:
         return self.grpc_builder
 
     def add_grpc_servicer(
-        self, servicer: Any, service_class: Type
+        self, servicer: Any, service_class: type
     ) -> "HybridServiceBuilder":
         """Add a gRPC servicer."""
         if not self.grpc_builder:
@@ -175,7 +175,7 @@ class HybridServiceBuilder:
 
 def create_hybrid_service(
     service_name: str,
-    config: Optional[ChassisConfig] = None,
+    config: ChassisConfig | None = None,
     enable_fastapi: bool = True,
     enable_grpc: bool = True,
     enable_auth: bool = True,

@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 from jinja2 import BaseLoader, Environment, Template, meta
@@ -41,11 +41,11 @@ class InheritanceMode(Enum):
 class TemplateContext:
     """Context for template rendering."""
 
-    variables: Dict[str, Any] = field(default_factory=dict)
-    functions: Dict[str, Callable] = field(default_factory=dict)
-    filters: Dict[str, Callable] = field(default_factory=dict)
-    globals: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    variables: dict[str, Any] = field(default_factory=dict)
+    functions: dict[str, Callable] = field(default_factory=dict)
+    filters: dict[str, Callable] = field(default_factory=dict)
+    globals: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -55,20 +55,20 @@ class TemplateSpec:
     name: str
     path: Path
     template_type: TemplateType
-    inheritance_mode: Optional[InheritanceMode] = None
-    parent_template: Optional[str] = None
-    includes: List[str] = field(default_factory=list)
-    variables: Dict[str, Any] = field(default_factory=dict)
-    required_variables: List[str] = field(default_factory=list)
-    optional_variables: List[str] = field(default_factory=list)
-    conditions: Dict[str, str] = field(default_factory=dict)
-    transformations: List[str] = field(default_factory=list)
+    inheritance_mode: InheritanceMode | None = None
+    parent_template: str | None = None
+    includes: list[str] = field(default_factory=list)
+    variables: dict[str, Any] = field(default_factory=dict)
+    required_variables: list[str] = field(default_factory=list)
+    optional_variables: list[str] = field(default_factory=list)
+    conditions: dict[str, str] = field(default_factory=dict)
+    transformations: list[str] = field(default_factory=list)
 
 
 class TemplateLoader(BaseLoader):
     """Custom template loader with caching and validation."""
 
-    def __init__(self, template_dirs: List[Path]):
+    def __init__(self, template_dirs: list[Path]):
         """Initialize with template directories."""
         self.template_dirs = template_dirs
         self._cache = {}
@@ -81,18 +81,25 @@ class TemplateLoader(BaseLoader):
         for template_dir in self.template_dirs:
             template_path = template_dir / template
             if template_path.exists():
-                with open(template_path, "r", encoding="utf-8") as f:
+                with open(template_path, encoding="utf-8") as f:
                     source = f.read()
 
                 mtime = template_path.stat().st_mtime
 
-                def uptodate():
-                    try:
-                        return template_path.stat().st_mtime == mtime
-                    except OSError:
-                        return False
+                def create_uptodate_checker(path, original_mtime):
+                    def uptodate():
+                        try:
+                            return path.stat().st_mtime == original_mtime
+                        except OSError:
+                            return False
 
-                result = (source, str(template_path), uptodate)
+                    return uptodate
+
+                result = (
+                    source,
+                    str(template_path),
+                    create_uptodate_checker(template_path, mtime),
+                )
                 self._cache[template] = result
                 return result
 
@@ -105,12 +112,10 @@ class TemplateTransformer(ABC):
     @abstractmethod
     def transform(self, content: str, context: TemplateContext) -> str:
         """Transform template content."""
-        pass
 
     @abstractmethod
     def get_name(self) -> str:
         """Get transformer name."""
-        pass
 
 
 class VariableInjectionTransformer(TemplateTransformer):
@@ -207,7 +212,7 @@ class IncludeTransformer(TemplateTransformer):
             template_name = match.group(1)
 
             try:
-                env = Environment(loader=self.template_loader)
+                env = Environment(loader=self.template_loader, autoescape=True)
                 source, _, _ = self.template_loader.get_source(env, template_name)
                 return source
             except TemplateNotFound:
@@ -289,11 +294,11 @@ class MacroTransformer(TemplateTransformer):
 class TemplateCustomizationEngine:
     """Advanced template customization engine."""
 
-    def __init__(self, template_dirs: List[Path]):
+    def __init__(self, template_dirs: list[Path]):
         """Initialize the customization engine."""
         self.template_dirs = template_dirs
         self.template_loader = TemplateLoader(template_dirs)
-        self.jinja_env = Environment(loader=self.template_loader)
+        self.jinja_env = Environment(loader=self.template_loader, autoescape=True)
 
         # Initialize transformers
         self.transformers = {
@@ -312,7 +317,7 @@ class TemplateCustomizationEngine:
         if spec_path in self._template_specs:
             return self._template_specs[spec_path]
 
-        with open(spec_path, "r", encoding="utf-8") as f:
+        with open(spec_path, encoding="utf-8") as f:
             if spec_path.suffix.lower() == ".json":
                 spec_data = json.load(f)
             else:
@@ -341,7 +346,7 @@ class TemplateCustomizationEngine:
         self,
         template_name: str,
         context: TemplateContext,
-        spec: Optional[TemplateSpec] = None,
+        spec: TemplateSpec | None = None,
     ) -> str:
         """Customize a template with the given context."""
         # Load template content
@@ -374,7 +379,7 @@ class TemplateCustomizationEngine:
         self,
         template_name: str,
         context: TemplateContext,
-        spec: Optional[TemplateSpec] = None,
+        spec: TemplateSpec | None = None,
     ) -> str:
         """Render a customized template."""
         customized_content = self.customize_template(template_name, context, spec)
@@ -395,7 +400,7 @@ class TemplateCustomizationEngine:
         return template.render(**render_context)
 
     def create_template_composition(
-        self, base_template: str, mixins: List[str], context: TemplateContext
+        self, base_template: str, mixins: list[str], context: TemplateContext
     ) -> str:
         """Create a composed template from base and mixins."""
         # Load base template
@@ -409,8 +414,8 @@ class TemplateCustomizationEngine:
         return base_content
 
     def validate_template_variables(
-        self, template_name: str, provided_variables: Dict[str, Any]
-    ) -> Dict[str, List[str]]:
+        self, template_name: str, provided_variables: dict[str, Any]
+    ) -> dict[str, list[str]]:
         """Validate template variables."""
         # Load template and extract variables
         try:
@@ -444,7 +449,7 @@ class TemplateCustomizationEngine:
             "provided": list(provided_variables.keys()),
         }
 
-    def generate_template_documentation(self, template_name: str) -> Dict[str, Any]:
+    def generate_template_documentation(self, template_name: str) -> dict[str, Any]:
         """Generate documentation for a template."""
         try:
             source, template_path, _ = self.template_loader.get_source(

@@ -6,6 +6,7 @@ round-robin, weighted, least-connections, consistent hashing, and adaptive strat
 """
 
 import asyncio
+import builtins
 import hashlib
 import logging
 import random
@@ -13,9 +14,9 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list, set
 
-from .core import HealthStatus, ServiceInstance
+from .core import ServiceInstance
 
 logger = logging.getLogger(__name__)
 
@@ -94,19 +95,19 @@ class LoadBalancingContext:
     """Context for load balancing decisions."""
 
     # Request information
-    client_ip: Optional[str] = None
-    session_id: Optional[str] = None
-    request_headers: Dict[str, str] = field(default_factory=dict)
-    request_path: Optional[str] = None
-    request_method: Optional[str] = None
+    client_ip: str | None = None
+    session_id: str | None = None
+    request_headers: builtins.dict[str, str] = field(default_factory=dict)
+    request_path: str | None = None
+    request_method: str | None = None
 
     # Load balancing hints
-    preferred_zone: Optional[str] = None
-    preferred_region: Optional[str] = None
-    exclude_instances: Set[str] = field(default_factory=set)
+    preferred_zone: str | None = None
+    preferred_region: str | None = None
+    exclude_instances: builtins.set[str] = field(default_factory=set)
 
     # Custom data
-    custom_data: Dict[str, Any] = field(default_factory=dict)
+    custom_data: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class LoadBalancer(ABC):
@@ -114,7 +115,7 @@ class LoadBalancer(ABC):
 
     def __init__(self, config: LoadBalancingConfig):
         self.config = config
-        self._instances: List[ServiceInstance] = []
+        self._instances: builtins.list[ServiceInstance] = []
         self._last_update = 0.0
 
         # Statistics
@@ -127,7 +128,7 @@ class LoadBalancer(ABC):
             "strategy_switches": 0,
         }
 
-    async def update_instances(self, instances: List[ServiceInstance]):
+    async def update_instances(self, instances: builtins.list[ServiceInstance]):
         """Update the list of available instances."""
         # Filter healthy instances if health checking is enabled
         if self.config.health_check_enabled:
@@ -143,14 +144,13 @@ class LoadBalancer(ABC):
 
     @abstractmethod
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select an instance using the load balancing strategy."""
-        pass
 
     async def select_with_fallback(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select instance with fallback strategy if primary fails."""
         try:
             instance = await self.select_instance(context)
@@ -195,7 +195,7 @@ class LoadBalancer(ABC):
         # Update instance statistics
         instance.record_request(response_time, success)
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get load balancer statistics."""
         avg_response_time = 0.0
         if self._stats["total_requests"] > 0:
@@ -227,8 +227,8 @@ class RoundRobinBalancer(LoadBalancer):
         self._current_index = 0
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select next instance in round-robin order."""
         if not self._instances:
             return None
@@ -247,23 +247,23 @@ class RoundRobinBalancer(LoadBalancer):
 
     async def _get_sticky_instance(
         self, context: LoadBalancingContext
-    ) -> Optional[ServiceInstance]:
+    ) -> ServiceInstance | None:
         """Get instance based on sticky session configuration."""
         if (
             self.config.sticky_sessions == StickySessionType.SOURCE_IP
             and context.client_ip
         ):
             # Hash client IP to instance
-            hash_value = hashlib.md5(context.client_ip.encode()).hexdigest()
+            hash_value = hashlib.sha256(context.client_ip.encode()).hexdigest()
             index = int(hash_value, 16) % len(self._instances)
             return self._instances[index]
 
-        elif (
+        if (
             self.config.sticky_sessions == StickySessionType.COOKIE
             and context.session_id
         ):
             # Hash session ID to instance
-            hash_value = hashlib.md5(context.session_id.encode()).hexdigest()
+            hash_value = hashlib.sha256(context.session_id.encode()).hexdigest()
             index = int(hash_value, 16) % len(self._instances)
             return self._instances[index]
 
@@ -275,11 +275,11 @@ class WeightedRoundRobinBalancer(LoadBalancer):
 
     def __init__(self, config: LoadBalancingConfig):
         super().__init__(config)
-        self._current_weights: Dict[str, float] = {}
-        self._effective_weights: Dict[str, float] = {}
+        self._current_weights: builtins.dict[str, float] = {}
+        self._effective_weights: builtins.dict[str, float] = {}
         self._total_weight = 0.0
 
-    async def update_instances(self, instances: List[ServiceInstance]):
+    async def update_instances(self, instances: builtins.list[ServiceInstance]):
         """Update instances and recalculate weights."""
         await super().update_instances(instances)
         self._calculate_weights()
@@ -297,8 +297,8 @@ class WeightedRoundRobinBalancer(LoadBalancer):
             self._total_weight += weight
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select instance using weighted round-robin algorithm."""
         if not self._instances or self._total_weight <= 0:
             return None
@@ -335,8 +335,8 @@ class LeastConnectionsBalancer(LoadBalancer):
     """Least connections load balancer."""
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select instance with least active connections."""
         if not self._instances:
             return None
@@ -357,8 +357,8 @@ class WeightedLeastConnectionsBalancer(LoadBalancer):
     """Weighted least connections load balancer."""
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select instance with best connections-to-weight ratio."""
         if not self._instances:
             return None
@@ -384,8 +384,8 @@ class RandomBalancer(LoadBalancer):
     """Random load balancer."""
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select random instance."""
         if not self._instances:
             return None
@@ -397,8 +397,8 @@ class WeightedRandomBalancer(LoadBalancer):
     """Weighted random load balancer."""
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select random instance based on weights."""
         if not self._instances:
             return None
@@ -427,10 +427,10 @@ class ConsistentHashBalancer(LoadBalancer):
 
     def __init__(self, config: LoadBalancingConfig):
         super().__init__(config)
-        self._hash_ring: Dict[int, ServiceInstance] = {}
-        self._sorted_keys: List[int] = []
+        self._hash_ring: builtins.dict[int, ServiceInstance] = {}
+        self._sorted_keys: builtins.list[int] = []
 
-    async def update_instances(self, instances: List[ServiceInstance]):
+    async def update_instances(self, instances: builtins.list[ServiceInstance]):
         """Update instances and rebuild hash ring."""
         await super().update_instances(instances)
         self._build_hash_ring()
@@ -450,18 +450,19 @@ class ConsistentHashBalancer(LoadBalancer):
     def _hash_key(self, key: str) -> int:
         """Hash a key using configured hash function."""
         if self.config.hash_function == "md5":
-            return int(hashlib.md5(key.encode()).hexdigest(), 16)
-        elif self.config.hash_function == "sha1":
-            return int(hashlib.sha1(key.encode()).hexdigest(), 16)
-        elif self.config.hash_function == "sha256":
+            # MD5 is deprecated for security, using SHA256 instead
             return int(hashlib.sha256(key.encode()).hexdigest()[:8], 16)
-        else:
-            # Default to md5
-            return int(hashlib.md5(key.encode()).hexdigest(), 16)
+        if self.config.hash_function == "sha1":
+            # SHA1 is deprecated for security, using SHA256 instead
+            return int(hashlib.sha256(key.encode()).hexdigest()[:8], 16)
+        if self.config.hash_function == "sha256":
+            return int(hashlib.sha256(key.encode()).hexdigest()[:8], 16)
+        # Default to sha256 for security
+        return int(hashlib.sha256(key.encode()).hexdigest()[:8], 16)
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select instance using consistent hashing."""
         if not self._instances or not self._sorted_keys:
             return None
@@ -478,14 +479,14 @@ class ConsistentHashBalancer(LoadBalancer):
         # Wrap around to first instance
         return self._hash_ring[self._sorted_keys[0]]
 
-    def _get_hash_key(self, context: Optional[LoadBalancingContext]) -> str:
+    def _get_hash_key(self, context: LoadBalancingContext | None) -> str:
         """Get hash key from context."""
         if context:
             if context.session_id:
                 return context.session_id
-            elif context.client_ip:
+            if context.client_ip:
                 return context.client_ip
-            elif context.request_path:
+            if context.request_path:
                 return context.request_path
 
         # Fallback to random key for even distribution
@@ -499,14 +500,14 @@ class HealthBasedBalancer(LoadBalancer):
         super().__init__(config)
         self._base_balancer = RoundRobinBalancer(config)
 
-    async def update_instances(self, instances: List[ServiceInstance]):
+    async def update_instances(self, instances: builtins.list[ServiceInstance]):
         """Update instances for both this and base balancer."""
         await super().update_instances(instances)
         await self._base_balancer.update_instances(instances)
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select instance prioritizing health and performance."""
         if not self._instances:
             return None
@@ -523,14 +524,13 @@ class HealthBasedBalancer(LoadBalancer):
             return await temp_balancer.select_instance(context)
 
         # Fallback to available instances
-        elif available_instances:
+        if available_instances:
             temp_balancer = RoundRobinBalancer(self.config)
             await temp_balancer.update_instances(available_instances)
             return await temp_balancer.select_instance(context)
 
         # Last resort: any instance
-        else:
-            return await self._base_balancer.select_instance(context)
+        return await self._base_balancer.select_instance(context)
 
 
 class AdaptiveBalancer(LoadBalancer):
@@ -544,13 +544,13 @@ class AdaptiveBalancer(LoadBalancer):
             WeightedRandomBalancer(config),
         ]
         self._current_strategy = 0
-        self._performance_history: List[float] = []
-        self._strategy_performance: Dict[int, List[float]] = {
+        self._performance_history: builtins.list[float] = []
+        self._strategy_performance: builtins.dict[int, builtins.list[float]] = {
             i: [] for i in range(len(self._strategies))
         }
         self._last_adaptation = 0.0
 
-    async def update_instances(self, instances: List[ServiceInstance]):
+    async def update_instances(self, instances: builtins.list[ServiceInstance]):
         """Update instances for all strategies."""
         await super().update_instances(instances)
 
@@ -558,8 +558,8 @@ class AdaptiveBalancer(LoadBalancer):
             await strategy.update_instances(instances)
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select instance using adaptive strategy."""
         if not self._instances:
             return None
@@ -630,15 +630,15 @@ class IPHashBalancer(LoadBalancer):
     """IP hash load balancer for session affinity."""
 
     async def select_instance(
-        self, context: Optional[LoadBalancingContext] = None
-    ) -> Optional[ServiceInstance]:
+        self, context: LoadBalancingContext | None = None
+    ) -> ServiceInstance | None:
         """Select instance based on client IP hash."""
         if not self._instances:
             return None
 
         # Use client IP if available
         if context and context.client_ip:
-            hash_value = hashlib.md5(context.client_ip.encode()).hexdigest()
+            hash_value = hashlib.sha256(context.client_ip.encode()).hexdigest()
             index = int(hash_value, 16) % len(self._instances)
             return self._instances[index]
 
@@ -679,7 +679,7 @@ class LoadBalancingMiddleware:
     async def handle_request(
         self,
         request_handler: Callable,
-        context: Optional[LoadBalancingContext] = None,
+        context: LoadBalancingContext | None = None,
         max_retries: int = 3,
     ) -> Any:
         """Handle request with load balancing and retries."""

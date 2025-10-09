@@ -2,8 +2,9 @@
 Application configuration using Pydantic settings.
 """
 
+import builtins
 from functools import lru_cache
-from typing import List, Optional
+from typing import List, Optional, list
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -25,8 +26,11 @@ class Settings(BaseSettings):
 
     # Security
     secret_key: str = Field(default="your-secret-key-change-in-production")
-    cors_origins: List[str] = ["http://localhost:3000", "http://localhost:8080"]
-    trusted_hosts: Optional[List[str]] = None
+    cors_origins: builtins.list[str] = [
+        "http://localhost:3000",
+        "http://localhost:8080",
+    ]
+    trusted_hosts: builtins.list[str] | None = None
 
     # Database
     database_url: str = Field(
@@ -65,7 +69,7 @@ class Settings(BaseSettings):
         case_sensitive = False
 
 
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     """Get cached application settings."""
     return Settings()

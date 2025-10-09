@@ -10,7 +10,7 @@ import importlib.util
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     from importlib.metadata import entry_points
@@ -30,7 +30,7 @@ class PluginDiscoverer(ABC):
         self.logger = get_logger(self.__class__.__name__)
 
     @abstractmethod
-    async def discover(self) -> List[Dict[str, Any]]:
+    async def discover(self) -> list[dict[str, Any]]:
         """
         Discover plugins.
 
@@ -47,7 +47,7 @@ class DirectoryPluginDiscoverer(PluginDiscoverer):
     that contain plugin classes.
     """
 
-    def __init__(self, directories: List[str], pattern: str = "*.py"):
+    def __init__(self, directories: list[str], pattern: str = "*.py"):
         """
         Initialize directory-based plugin discoverer.
 
@@ -59,7 +59,7 @@ class DirectoryPluginDiscoverer(PluginDiscoverer):
         self.directories = [Path(d) for d in directories]
         self.pattern = pattern
 
-    async def discover(self) -> List[Dict[str, Any]]:
+    async def discover(self) -> list[dict[str, Any]]:
         """
         Discover plugins from directories.
 
@@ -84,7 +84,7 @@ class DirectoryPluginDiscoverer(PluginDiscoverer):
         self.logger.info(f"Discovered {len(discovered)} plugins from directories")
         return discovered
 
-    async def _scan_directory(self, directory: Path) -> List[Dict[str, Any]]:
+    async def _scan_directory(self, directory: Path) -> list[dict[str, Any]]:
         """
         Scan a single directory for plugins.
 
@@ -134,7 +134,7 @@ class DirectoryPluginDiscoverer(PluginDiscoverer):
 
         return discovered
 
-    async def _analyze_plugin_file(self, plugin_file: Path) -> Optional[Dict[str, Any]]:
+    async def _analyze_plugin_file(self, plugin_file: Path) -> dict[str, Any] | None:
         """
         Analyze a Python file for plugin classes.
 
@@ -189,9 +189,7 @@ class DirectoryPluginDiscoverer(PluginDiscoverer):
 
         return None
 
-    async def _analyze_plugin_package(
-        self, plugin_dir: Path
-    ) -> Optional[Dict[str, Any]]:
+    async def _analyze_plugin_package(self, plugin_dir: Path) -> dict[str, Any] | None:
         """
         Analyze a Python package for plugin classes.
 
@@ -274,7 +272,7 @@ class EntryPointDiscoverer(PluginDiscoverer):
         super().__init__()
         self.group = group
 
-    async def discover(self) -> List[Dict[str, Any]]:
+    async def discover(self) -> list[dict[str, Any]]:
         """
         Discover plugins from entry points.
 
@@ -311,7 +309,7 @@ class EntryPointDiscoverer(PluginDiscoverer):
         self.logger.info(f"Discovered {len(discovered)} plugins from entry points")
         return discovered
 
-    async def _analyze_entry_point(self, entry_point) -> Optional[Dict[str, Any]]:
+    async def _analyze_entry_point(self, entry_point) -> dict[str, Any] | None:
         """
         Analyze an entry point for plugin information.
 
@@ -355,7 +353,7 @@ class CompositePluginDiscoverer(PluginDiscoverer):
     and merges the results.
     """
 
-    def __init__(self, discoverers: List[PluginDiscoverer]):
+    def __init__(self, discoverers: list[PluginDiscoverer]):
         """
         Initialize composite plugin discoverer.
 
@@ -365,7 +363,7 @@ class CompositePluginDiscoverer(PluginDiscoverer):
         super().__init__()
         self.discoverers = discoverers
 
-    async def discover(self) -> List[Dict[str, Any]]:
+    async def discover(self) -> list[dict[str, Any]]:
         """
         Discover plugins using all configured discoverers.
 

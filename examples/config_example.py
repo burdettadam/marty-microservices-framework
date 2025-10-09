@@ -11,20 +11,12 @@ This example shows:
 
 import logging
 import os
-from pathlib import Path
-
-from framework.config import (
-    DatabaseConfigSection,
-    Environment,
-    LoggingConfigSection,
-    MonitoringConfigSection,
-    ResilienceConfigSection,
-    SecurityConfigSection,
-    ServiceConfig,
-    create_service_config,
-)
 
 # Configure logging
+from typing import Set
+
+from framework.config import DatabaseConfigSection, Environment, create_service_config
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -232,7 +224,7 @@ def demonstrate_service_specific_config():
             service_config = config.get_service_config()
 
             if service_config:
-                print(f"Service-specific configuration found:")
+                print("Service-specific configuration found:")
                 for key, value in service_config.items():
                     if isinstance(value, dict):
                         print(f"  {key}: {list(value.keys())}")

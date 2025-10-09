@@ -6,22 +6,19 @@ message brokers, event sourcing integration, and enterprise messaging patterns.
 """
 
 import asyncio
-import hashlib
+import builtins
 import json
 import logging
 import threading
-import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list
 
 # For message broker operations
-import aiofiles
 import pika  # RabbitMQ
 
 # import aiokafka  # Kafka (would be imported in production)
@@ -74,16 +71,16 @@ class EventMessage:
     message_id: str
     event_type: str
     source: str
-    data: Dict[str, Any]
+    data: builtins.dict[str, Any]
 
     # Event metadata
-    correlation_id: Optional[str] = None
-    causation_id: Optional[str] = None
+    correlation_id: str | None = None
+    causation_id: str | None = None
     version: str = "1.0.0"
 
     # Routing
-    routing_key: Optional[str] = None
-    partition_key: Optional[str] = None
+    routing_key: str | None = None
+    partition_key: str | None = None
 
     # Delivery
     delivery_guarantee: DeliveryGuarantee = DeliveryGuarantee.AT_LEAST_ONCE
@@ -96,12 +93,12 @@ class EventMessage:
 
     # Timestamps
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    expires_at: Optional[datetime] = None
+    expires_at: datetime | None = None
 
     # Processing state
     state: EventState = EventState.PENDING
-    processed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    processed_at: datetime | None = None
+    error_message: str | None = None
 
 
 @dataclass
@@ -110,7 +107,7 @@ class EventSubscription:
 
     subscription_id: str
     consumer_group: str
-    event_types: List[str]
+    event_types: builtins.list[str]
     handler: Callable[[EventMessage], bool]
 
     # Subscription configuration
@@ -119,11 +116,11 @@ class EventSubscription:
     batch_size: int = 1
 
     # Filtering
-    filters: Dict[str, Any] = field(default_factory=dict)
+    filters: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Error handling
-    retry_policy: Dict[str, Any] = field(default_factory=dict)
-    dead_letter_queue: Optional[str] = None
+    retry_policy: builtins.dict[str, Any] = field(default_factory=dict)
+    dead_letter_queue: str | None = None
 
     # Metrics
     processed_count: int = 0
@@ -142,8 +139,8 @@ class MessageBrokerConfig:
     connection_string: str
 
     # Authentication
-    username: Optional[str] = None
-    password: Optional[str] = None
+    username: str | None = None
+    password: str | None = None
     ssl_enabled: bool = False
 
     # Connection settings
@@ -171,7 +168,7 @@ class TopicConfiguration:
     name: str
     partitions: int = 1
     replication_factor: int = 1
-    retention_ms: Optional[int] = None  # None for infinite
+    retention_ms: int | None = None  # None for infinite
 
     # Message settings
     max_message_size: int = 1024 * 1024  # 1MB
@@ -181,8 +178,8 @@ class TopicConfiguration:
     cleanup_policy: str = "delete"  # or "compact"
 
     # Access control
-    read_access: List[str] = field(default_factory=list)
-    write_access: List[str] = field(default_factory=list)
+    read_access: builtins.list[str] = field(default_factory=list)
+    write_access: builtins.list[str] = field(default_factory=list)
 
 
 class EventBus(ABC):
@@ -191,27 +188,22 @@ class EventBus(ABC):
     @abstractmethod
     async def publish(self, event: EventMessage) -> bool:
         """Publish event to the bus."""
-        pass
 
     @abstractmethod
     async def subscribe(self, subscription: EventSubscription) -> bool:
         """Subscribe to events."""
-        pass
 
     @abstractmethod
     async def unsubscribe(self, subscription_id: str) -> bool:
         """Unsubscribe from events."""
-        pass
 
     @abstractmethod
     async def start(self):
         """Start the event bus."""
-        pass
 
     @abstractmethod
     async def stop(self):
         """Stop the event bus."""
-        pass
 
 
 class InMemoryEventBus(EventBus):
@@ -220,15 +212,17 @@ class InMemoryEventBus(EventBus):
     def __init__(self):
         """Initialize in-memory event bus."""
         self.events: deque = deque(maxlen=10000)
-        self.subscriptions: Dict[str, EventSubscription] = {}
-        self.event_handlers: Dict[str, List[EventSubscription]] = defaultdict(list)
+        self.subscriptions: builtins.dict[str, EventSubscription] = {}
+        self.event_handlers: builtins.dict[
+            str, builtins.list[EventSubscription]
+        ] = defaultdict(list)
 
         # Processing
-        self.processing_tasks: Dict[str, asyncio.Task] = {}
+        self.processing_tasks: builtins.dict[str, asyncio.Task] = {}
         self.running = False
 
         # Metrics
-        self.metrics: Dict[str, int] = defaultdict(int)
+        self.metrics: builtins.dict[str, int] = defaultdict(int)
 
         # Thread safety
         self._lock = threading.RLock()
@@ -247,7 +241,7 @@ class InMemoryEventBus(EventBus):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to publish event: {e}")
+            logging.exception(f"Failed to publish event: {e}")
             return False
 
     async def subscribe(self, subscription: EventSubscription) -> bool:
@@ -266,7 +260,7 @@ class InMemoryEventBus(EventBus):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to create subscription: {e}")
+            logging.exception(f"Failed to create subscription: {e}")
             return False
 
     async def unsubscribe(self, subscription_id: str) -> bool:
@@ -289,7 +283,7 @@ class InMemoryEventBus(EventBus):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to remove subscription: {e}")
+            logging.exception(f"Failed to remove subscription: {e}")
             return False
 
     async def start(self):
@@ -326,7 +320,9 @@ class InMemoryEventBus(EventBus):
             task_id = f"{subscription.subscription_id}:{event.message_id}"
             self.processing_tasks[task_id] = task
 
-    def _matches_filters(self, event: EventMessage, filters: Dict[str, Any]) -> bool:
+    def _matches_filters(
+        self, event: EventMessage, filters: builtins.dict[str, Any]
+    ) -> bool:
         """Check if event matches subscription filters."""
         if not filters:
             return True
@@ -373,13 +369,12 @@ class InMemoryEventBus(EventBus):
         try:
             if asyncio.iscoroutinefunction(handler):
                 return await handler(event)
-            else:
-                # Run sync handler in thread pool
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(None, handler, event)
+            # Run sync handler in thread pool
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, handler, event)
 
         except Exception as e:
-            logging.error(f"Handler error: {e}")
+            logging.exception(f"Handler error: {e}")
             return False
 
     async def _handle_processing_error(
@@ -420,7 +415,7 @@ class InMemoryEventBus(EventBus):
             f"Sending event {event.message_id} to dead letter queue: {dead_letter_queue}"
         )
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> builtins.dict[str, Any]:
         """Get event bus metrics."""
         with self._lock:
             return {
@@ -439,14 +434,14 @@ class RabbitMQEventBus(EventBus):
         self.config = config
         self.connection = None
         self.channel = None
-        self.subscriptions: Dict[str, EventSubscription] = {}
+        self.subscriptions: builtins.dict[str, EventSubscription] = {}
 
         # Processing
-        self.consumer_tasks: Dict[str, asyncio.Task] = {}
+        self.consumer_tasks: builtins.dict[str, asyncio.Task] = {}
         self.running = False
 
         # Metrics
-        self.metrics: Dict[str, int] = defaultdict(int)
+        self.metrics: builtins.dict[str, int] = defaultdict(int)
 
         # Thread safety
         self._lock = threading.RLock()
@@ -470,7 +465,7 @@ class RabbitMQEventBus(EventBus):
             logging.info("Started RabbitMQ event bus")
 
         except Exception as e:
-            logging.error(f"Failed to start RabbitMQ event bus: {e}")
+            logging.exception(f"Failed to start RabbitMQ event bus: {e}")
             raise
 
     async def stop(self):
@@ -538,7 +533,7 @@ class RabbitMQEventBus(EventBus):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to publish event to RabbitMQ: {e}")
+            logging.exception(f"Failed to publish event to RabbitMQ: {e}")
             return False
 
     async def subscribe(self, subscription: EventSubscription) -> bool:
@@ -574,7 +569,7 @@ class RabbitMQEventBus(EventBus):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to create RabbitMQ subscription: {e}")
+            logging.exception(f"Failed to create RabbitMQ subscription: {e}")
             return False
 
     async def unsubscribe(self, subscription_id: str) -> bool:
@@ -601,7 +596,7 @@ class RabbitMQEventBus(EventBus):
             return True
 
         except Exception as e:
-            logging.error(f"Failed to remove RabbitMQ subscription: {e}")
+            logging.exception(f"Failed to remove RabbitMQ subscription: {e}")
             return False
 
     async def _consume_messages(self, subscription: EventSubscription, queue_name: str):
@@ -646,7 +641,7 @@ class RabbitMQEventBus(EventBus):
                         loop.close()
 
                 except Exception as e:
-                    logging.error(f"Message processing error: {e}")
+                    logging.exception(f"Message processing error: {e}")
                     ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
             # Start consuming
@@ -658,7 +653,7 @@ class RabbitMQEventBus(EventBus):
                 await asyncio.sleep(0.1)
 
         except Exception as e:
-            logging.error(f"RabbitMQ consumer error: {e}")
+            logging.exception(f"RabbitMQ consumer error: {e}")
 
     async def _process_rabbitmq_event(
         self, event: EventMessage, subscription: EventSubscription
@@ -683,7 +678,7 @@ class RabbitMQEventBus(EventBus):
         except Exception as e:
             subscription.error_count += 1
             self.metrics["events_failed"] += 1
-            logging.error(f"Event processing error: {e}")
+            logging.exception(f"Event processing error: {e}")
             return False
 
 
@@ -692,27 +687,29 @@ class MessageTransformer:
 
     def __init__(self):
         """Initialize message transformer."""
-        self.transformations: Dict[str, Callable] = {}
-        self.serializers: Dict[SerializationFormat, Callable] = {
+        self.transformations: builtins.dict[str, Callable] = {}
+        self.serializers: builtins.dict[SerializationFormat, Callable] = {
             SerializationFormat.JSON: self._serialize_json,
             SerializationFormat.XML: self._serialize_xml,
         }
 
-        self.deserializers: Dict[SerializationFormat, Callable] = {
+        self.deserializers: builtins.dict[SerializationFormat, Callable] = {
             SerializationFormat.JSON: self._deserialize_json,
             SerializationFormat.XML: self._deserialize_xml,
         }
 
     def register_transformation(
-        self, name: str, transformer: Callable[[Dict[str, Any]], Dict[str, Any]]
+        self,
+        name: str,
+        transformer: Callable[[builtins.dict[str, Any]], builtins.dict[str, Any]],
     ):
         """Register message transformation."""
         self.transformations[name] = transformer
         logging.info(f"Registered transformation: {name}")
 
     def transform_message(
-        self, message: Dict[str, Any], transformation_name: str
-    ) -> Dict[str, Any]:
+        self, message: builtins.dict[str, Any], transformation_name: str
+    ) -> builtins.dict[str, Any]:
         """Apply transformation to message."""
         if transformation_name not in self.transformations:
             raise ValueError(f"Unknown transformation: {transformation_name}")
@@ -721,7 +718,7 @@ class MessageTransformer:
         return transformer(message)
 
     def serialize_message(
-        self, message: Dict[str, Any], format: SerializationFormat
+        self, message: builtins.dict[str, Any], format: SerializationFormat
     ) -> bytes:
         """Serialize message to bytes."""
         if format not in self.serializers:
@@ -732,7 +729,7 @@ class MessageTransformer:
 
     def deserialize_message(
         self, data: bytes, format: SerializationFormat
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Deserialize message from bytes."""
         if format not in self.deserializers:
             raise ValueError(f"Unsupported deserialization format: {format}")
@@ -740,15 +737,15 @@ class MessageTransformer:
         deserializer = self.deserializers[format]
         return deserializer(data)
 
-    def _serialize_json(self, message: Dict[str, Any]) -> bytes:
+    def _serialize_json(self, message: builtins.dict[str, Any]) -> bytes:
         """Serialize to JSON."""
         return json.dumps(message, default=str).encode("utf-8")
 
-    def _deserialize_json(self, data: bytes) -> Dict[str, Any]:
+    def _deserialize_json(self, data: bytes) -> builtins.dict[str, Any]:
         """Deserialize from JSON."""
         return json.loads(data.decode("utf-8"))
 
-    def _serialize_xml(self, message: Dict[str, Any]) -> bytes:
+    def _serialize_xml(self, message: builtins.dict[str, Any]) -> bytes:
         """Serialize to XML (simplified)."""
         # This is a very basic XML serialization
         # In production, use a proper XML library like lxml
@@ -774,7 +771,7 @@ class MessageTransformer:
         xml_string = dict_to_xml(message)
         return xml_string.encode("utf-8")
 
-    def _deserialize_xml(self, data: bytes) -> Dict[str, Any]:
+    def _deserialize_xml(self, data: bytes) -> builtins.dict[str, Any]:
         """Deserialize from XML (simplified)."""
         # This is a very basic XML deserialization
         # In production, use a proper XML library like lxml
@@ -794,23 +791,25 @@ class EventOrchestrator:
     def __init__(self, event_bus: EventBus):
         """Initialize event orchestrator."""
         self.event_bus = event_bus
-        self.workflows: Dict[str, Dict[str, Any]] = {}
-        self.active_workflows: Dict[str, Dict[str, Any]] = {}
+        self.workflows: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.active_workflows: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Workflow state tracking
-        self.workflow_states: Dict[str, Dict[str, Any]] = {}
+        self.workflow_states: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Pattern matching
-        self.event_patterns: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        self.event_patterns: builtins.dict[
+            str, builtins.list[builtins.dict[str, Any]]
+        ] = defaultdict(list)
 
         # Saga support
-        self.sagas: Dict[str, Dict[str, Any]] = {}
+        self.sagas: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Thread safety
         self._lock = threading.RLock()
 
     def register_workflow(
-        self, workflow_id: str, workflow_definition: Dict[str, Any]
+        self, workflow_id: str, workflow_definition: builtins.dict[str, Any]
     ) -> bool:
         """Register event workflow."""
         try:
@@ -833,10 +832,12 @@ class EventOrchestrator:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to register workflow: {e}")
+            logging.exception(f"Failed to register workflow: {e}")
             return False
 
-    async def start_workflow(self, workflow_id: str, context: Dict[str, Any]) -> str:
+    async def start_workflow(
+        self, workflow_id: str, context: builtins.dict[str, Any]
+    ) -> str:
         """Start workflow instance."""
         try:
             workflow_instance_id = str(uuid.uuid4())
@@ -868,7 +869,7 @@ class EventOrchestrator:
             return workflow_instance_id
 
         except Exception as e:
-            logging.error(f"Failed to start workflow: {e}")
+            logging.exception(f"Failed to start workflow: {e}")
             raise
 
     async def handle_event(self, event: EventMessage) -> bool:
@@ -888,11 +889,11 @@ class EventOrchestrator:
             return True
 
         except Exception as e:
-            logging.error(f"Event handling error in orchestrator: {e}")
+            logging.exception(f"Event handling error in orchestrator: {e}")
             return False
 
     def _matches_conditions(
-        self, event: EventMessage, conditions: Dict[str, Any]
+        self, event: EventMessage, conditions: builtins.dict[str, Any]
     ) -> bool:
         """Check if event matches workflow conditions."""
         if not conditions:
@@ -906,23 +907,22 @@ class EventOrchestrator:
                 op = condition_value.get("op")
                 expected_value = condition_value.get("value")
 
-                if op == "eq" and event_value != expected_value:
+                if (op == "eq" and event_value != expected_value) or (
+                    op == "gt" and event_value <= expected_value
+                ):
                     return False
-                elif op == "gt" and event_value <= expected_value:
+                if (op == "lt" and event_value >= expected_value) or (
+                    op == "in" and event_value not in expected_value
+                ):
                     return False
-                elif op == "lt" and event_value >= expected_value:
-                    return False
-                elif op == "in" and event_value not in expected_value:
-                    return False
-            else:
-                # Simple equality check
-                if event_value != condition_value:
-                    return False
+            # Simple equality check
+            elif event_value != condition_value:
+                return False
 
         return True
 
     async def _execute_pattern_actions(
-        self, event: EventMessage, pattern: Dict[str, Any]
+        self, event: EventMessage, pattern: builtins.dict[str, Any]
     ):
         """Execute actions for matched pattern."""
         actions = pattern.get("actions", [])
@@ -1026,10 +1026,10 @@ class EventOrchestrator:
             instance["error"] = str(e)
             instance["failed_at"] = datetime.now(timezone.utc)
 
-            logging.error(f"Workflow step execution failed: {e}")
+            logging.exception(f"Workflow step execution failed: {e}")
 
     async def _execute_step_action(
-        self, instance: Dict[str, Any], action: Dict[str, Any]
+        self, instance: builtins.dict[str, Any], action: builtins.dict[str, Any]
     ):
         """Execute individual step action."""
         action_type = action.get("type")
@@ -1064,25 +1064,26 @@ class EventOrchestrator:
             if delay_seconds > 0:
                 await asyncio.sleep(delay_seconds)
 
-    def _substitute_context_variables(self, data: Any, context: Dict[str, Any]) -> Any:
+    def _substitute_context_variables(
+        self, data: Any, context: builtins.dict[str, Any]
+    ) -> Any:
         """Substitute context variables in data."""
         if isinstance(data, dict):
             return {
                 key: self._substitute_context_variables(value, context)
                 for key, value in data.items()
             }
-        elif isinstance(data, list):
+        if isinstance(data, list):
             return [self._substitute_context_variables(item, context) for item in data]
-        elif isinstance(data, str) and data.startswith("${") and data.endswith("}"):
+        if isinstance(data, str) and data.startswith("${") and data.endswith("}"):
             # Variable substitution
             var_name = data[2:-1]
             return context.get(var_name, data)
-        else:
-            return data
+        return data
 
     def get_workflow_status(
         self, workflow_instance_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> builtins.dict[str, Any] | None:
         """Get workflow instance status."""
         with self._lock:
             instance = self.active_workflows.get(workflow_instance_id)
@@ -1104,7 +1105,7 @@ class EventOrchestrator:
                 "context": instance["context"],
             }
 
-    def get_orchestrator_status(self) -> Dict[str, Any]:
+    def get_orchestrator_status(self) -> builtins.dict[str, Any]:
         """Get orchestrator status."""
         with self._lock:
             active_count = len(
@@ -1129,8 +1130,8 @@ class EventOrchestrator:
 
 
 def create_event_driven_architecture(
-    broker_config: Optional[MessageBrokerConfig] = None,
-) -> Dict[str, Any]:
+    broker_config: MessageBrokerConfig | None = None,
+) -> builtins.dict[str, Any]:
     """Create event-driven architecture components."""
 
     # Create event bus based on configuration

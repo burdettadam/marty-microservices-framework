@@ -12,6 +12,7 @@ Implements comprehensive zero-trust security including:
 
 import asyncio
 import base64
+import builtins
 import hashlib
 import json
 import secrets
@@ -20,7 +21,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, dict, list, set, tuple
 
 import jwt
 from cryptography import x509
@@ -77,10 +78,10 @@ class ServiceIdentity:
     created_at: datetime
     expires_at: datetime
     security_level: SecurityLevel = SecurityLevel.INTERNAL
-    capabilities: Set[str] = field(default_factory=set)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    capabilities: builtins.set[str] = field(default_factory=set)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "capabilities": list(self.capabilities),
@@ -105,11 +106,11 @@ class AccessRequest:
     target_service: str
     target_resource: str
     action: str
-    context: Dict[str, Any]
+    context: builtins.dict[str, Any]
     timestamp: datetime
     request_id: str = field(default_factory=lambda: secrets.token_hex(16))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "source_identity": self.source_identity.to_dict(),
@@ -124,12 +125,12 @@ class AccessPolicy:
     policy_id: str
     name: str
     description: str
-    source_selector: Dict[str, Any]  # Service/identity selector
-    target_selector: Dict[str, Any]  # Resource selector
+    source_selector: builtins.dict[str, Any]  # Service/identity selector
+    target_selector: builtins.dict[str, Any]  # Resource selector
     action: str
     decision: AccessDecision
-    conditions: List[Dict[str, Any]] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    conditions: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     priority: int = 100  # Lower number = higher priority
 
@@ -153,7 +154,9 @@ class AccessPolicy:
         # Check conditions
         return self._evaluate_conditions(request)
 
-    def _matches_selector(self, data: Dict[str, Any], selector: Dict[str, Any]) -> bool:
+    def _matches_selector(
+        self, data: builtins.dict[str, Any], selector: builtins.dict[str, Any]
+    ) -> bool:
         """Check if data matches selector"""
         for key, expected in selector.items():
             if key not in data:
@@ -171,9 +174,8 @@ class AccessPolicy:
                 elif "in" in expected:
                     if data[key] not in expected["in"]:
                         return False
-            else:
-                if data[key] != expected:
-                    return False
+            elif data[key] != expected:
+                return False
 
         return True
 
@@ -195,7 +197,7 @@ class AccessPolicy:
 
         return True
 
-    def _check_time_window(self, condition: Dict[str, Any]) -> bool:
+    def _check_time_window(self, condition: builtins.dict[str, Any]) -> bool:
         """Check if current time is within allowed window"""
         now = datetime.now()
         start_time = condition.get("start_time", "00:00")
@@ -206,7 +208,7 @@ class AccessPolicy:
         return start_time <= current_time <= end_time
 
     def _check_rate_limit(
-        self, request: AccessRequest, condition: Dict[str, Any]
+        self, request: AccessRequest, condition: builtins.dict[str, Any]
     ) -> bool:
         """Check rate limiting conditions"""
         # This would typically integrate with a rate limiting service
@@ -228,7 +230,7 @@ class CertificateManager:
     def __init__(self, ca_cert_path: str, ca_key_path: str):
         self.ca_cert_path = ca_cert_path
         self.ca_key_path = ca_key_path
-        self.certificates: Dict[str, Dict[str, Any]] = {}
+        self.certificates: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Metrics
         if EXTERNAL_DEPS_AVAILABLE:
@@ -243,7 +245,9 @@ class CertificateManager:
                 ["service", "type"],
             )
 
-    def generate_root_ca(self, ca_name: str = "Marty Root CA") -> Tuple[bytes, bytes]:
+    def generate_root_ca(
+        self, ca_name: str = "Marty Root CA"
+    ) -> builtins.tuple[bytes, bytes]:
         """Generate root CA certificate and private key"""
         # Generate private key
         private_key = rsa.generate_private_key(
@@ -315,9 +319,9 @@ class CertificateManager:
         self,
         service_name: str,
         namespace: str = "default",
-        dns_names: Optional[List[str]] = None,
+        dns_names: builtins.list[str] | None = None,
         validity_days: int = 90,
-    ) -> Tuple[bytes, bytes]:
+    ) -> builtins.tuple[bytes, bytes]:
         """Generate service certificate signed by CA"""
 
         # Load CA certificate and key
@@ -429,7 +433,7 @@ class CertificateManager:
         fingerprint = cert.fingerprint(hashes.SHA256())
         return fingerprint.hex()
 
-    def validate_certificate(self, cert_pem: bytes) -> Dict[str, Any]:
+    def validate_certificate(self, cert_pem: bytes) -> builtins.dict[str, Any]:
         """Validate certificate against CA"""
         try:
             cert = x509.load_pem_x509_certificate(cert_pem)
@@ -460,7 +464,7 @@ class CertificateManager:
 
     def rotate_certificate(
         self, service_name: str, namespace: str = "default"
-    ) -> Tuple[bytes, bytes]:
+    ) -> builtins.tuple[bytes, bytes]:
         """Rotate service certificate"""
         cert_id = f"{service_name}.{namespace}"
 
@@ -481,12 +485,12 @@ class CertificateManager:
 
     def get_certificate_info(
         self, service_name: str, namespace: str = "default"
-    ) -> Optional[Dict[str, Any]]:
+    ) -> builtins.dict[str, Any] | None:
         """Get certificate information"""
         cert_id = f"{service_name}.{namespace}"
         return self.certificates.get(cert_id)
 
-    def list_certificates(self) -> Dict[str, Dict[str, Any]]:
+    def list_certificates(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """List all managed certificates"""
         return self.certificates.copy()
 
@@ -503,9 +507,9 @@ class ZeroTrustPolicyEngine:
     """
 
     def __init__(self):
-        self.policies: List[AccessPolicy] = []
-        self.identity_store: Dict[str, ServiceIdentity] = {}
-        self.access_log: List[Dict[str, Any]] = []
+        self.policies: builtins.list[AccessPolicy] = []
+        self.identity_store: builtins.dict[str, ServiceIdentity] = {}
+        self.access_log: builtins.list[builtins.dict[str, Any]] = []
 
         # Metrics
         if EXTERNAL_DEPS_AVAILABLE:
@@ -588,7 +592,7 @@ class ZeroTrustPolicyEngine:
 
     def evaluate_access_request(
         self, request: AccessRequest
-    ) -> Tuple[AccessDecision, Optional[AccessPolicy]]:
+    ) -> builtins.tuple[AccessDecision, AccessPolicy | None]:
         """Evaluate access request against policies"""
         start_time = time.time()
 
@@ -636,7 +640,7 @@ class ZeroTrustPolicyEngine:
         self,
         request: AccessRequest,
         decision: AccessDecision,
-        policy: Optional[AccessPolicy],
+        policy: AccessPolicy | None,
     ):
         """Log access control decision"""
         log_entry = {
@@ -685,10 +689,10 @@ class ZeroTrustPolicyEngine:
 
     def get_access_log(
         self,
-        service_name: Optional[str] = None,
-        decision: Optional[AccessDecision] = None,
+        service_name: str | None = None,
+        decision: AccessDecision | None = None,
         limit: int = 100,
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Get access log with optional filtering"""
         filtered_log = self.access_log
 
@@ -707,7 +711,7 @@ class ZeroTrustPolicyEngine:
         # Return most recent entries
         return filtered_log[-limit:]
 
-    def get_policy_statistics(self) -> Dict[str, Any]:
+    def get_policy_statistics(self) -> builtins.dict[str, Any]:
         """Get policy usage statistics"""
         policy_usage = {}
         decision_counts = {d.value: 0 for d in AccessDecision}
@@ -760,7 +764,7 @@ class ZeroTrustManager:
                 ["event_type", "severity"],
             )
 
-    async def initialize_ca(self) -> Tuple[bytes, bytes]:
+    async def initialize_ca(self) -> builtins.tuple[bytes, bytes]:
         """Initialize root CA if not exists"""
         try:
             with open(self.cert_manager.ca_cert_path, "rb") as f:
@@ -788,7 +792,7 @@ class ZeroTrustManager:
         service_name: str,
         namespace: str = "default",
         security_level: SecurityLevel = SecurityLevel.INTERNAL,
-        capabilities: Optional[Set[str]] = None,
+        capabilities: builtins.set[str] | None = None,
     ) -> ServiceIdentity:
         """Onboard new service to zero-trust architecture"""
 
@@ -827,8 +831,8 @@ class ZeroTrustManager:
         target_service: str,
         target_resource: str,
         action: str,
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[bool, AccessDecision, Optional[AccessPolicy]]:
+        context: builtins.dict[str, Any] | None = None,
+    ) -> builtins.tuple[bool, AccessDecision, AccessPolicy | None]:
         """Verify identity and authorize access"""
 
         # Validate certificate
@@ -924,7 +928,7 @@ class ZeroTrustManager:
         """Stop certificate rotation"""
         self.running = False
 
-    def get_security_status(self) -> Dict[str, Any]:
+    def get_security_status(self) -> builtins.dict[str, Any]:
         """Get overall security status"""
         policy_stats = self.policy_engine.get_policy_statistics()
         cert_count = len(self.cert_manager.list_certificates())
@@ -1028,7 +1032,7 @@ async def main():
 
     # Show security status
     status = zt_manager.get_security_status()
-    print(f"\n=== SECURITY STATUS ===")
+    print("\n=== SECURITY STATUS ===")
     print(f"Zero-trust enabled: {status['zero_trust_enabled']}")
     print(f"Active certificates: {status['total_certificates']}")
     print(f"Active identities: {status['active_identities']}")
@@ -1038,7 +1042,7 @@ async def main():
 
     # Show access log
     access_log = zt_manager.policy_engine.get_access_log(limit=5)
-    print(f"\n=== RECENT ACCESS LOG ===")
+    print("\n=== RECENT ACCESS LOG ===")
     for entry in access_log[-3:]:
         print(
             f"{entry['timestamp']}: {entry['source_service']} -> {entry['target_service']} = {entry['decision']}"

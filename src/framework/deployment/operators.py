@@ -7,28 +7,17 @@ automated operations, and cloud-native application lifecycle management.
 """
 
 import asyncio
-import base64
-import json
+import builtins
 import logging
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, dict, list, tuple
 
-import kubernetes
-import yaml
 from kubernetes import client, config, watch
 from kubernetes.client.rest import ApiException
 
-from .core import (
-    DeploymentConfig,
-    DeploymentStatus,
-    DeploymentStrategy,
-    DeploymentTarget,
-    EnvironmentType,
-)
+from .core import DeploymentConfig
 
 logger = logging.getLogger(__name__)
 
@@ -64,9 +53,11 @@ class CustomResourceDefinition:
     kind: str
     plural: str
     scope: str = "Namespaced"
-    schema: Dict[str, Any] = field(default_factory=dict)
-    additional_printer_columns: List[Dict[str, Any]] = field(default_factory=list)
-    subresources: Dict[str, Any] = field(default_factory=dict)
+    schema: builtins.dict[str, Any] = field(default_factory=dict)
+    additional_printer_columns: builtins.list[builtins.dict[str, Any]] = field(
+        default_factory=list
+    )
+    subresources: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -78,9 +69,9 @@ class OperatorConfig:
     image: str
     replicas: int = 1
     service_account: str = "default"
-    cluster_role: Optional[str] = None
-    resources: Dict[str, Any] = field(default_factory=dict)
-    environment_variables: Dict[str, str] = field(default_factory=dict)
+    cluster_role: str | None = None
+    resources: builtins.dict[str, Any] = field(default_factory=dict)
+    environment_variables: builtins.dict[str, str] = field(default_factory=dict)
     reconcile_interval: int = 30  # seconds
 
 
@@ -93,14 +84,14 @@ class ReconciliationEvent:
     action: ReconciliationAction
     timestamp: datetime
     status: str
-    message: Optional[str] = None
-    error: Optional[str] = None
+    message: str | None = None
+    error: str | None = None
 
 
 class CustomResourceManager:
     """Manages Custom Resource Definitions."""
 
-    def __init__(self, kubeconfig_path: Optional[str] = None):
+    def __init__(self, kubeconfig_path: str | None = None):
         if kubeconfig_path:
             config.load_kube_config(config_file=kubeconfig_path)
         else:
@@ -172,7 +163,7 @@ class CustomResourceManager:
         plural: str,
         namespace: str,
         name: str,
-        spec: Dict[str, Any],
+        spec: builtins.dict[str, Any],
     ) -> bool:
         """Create custom resource instance."""
         try:
@@ -200,7 +191,7 @@ class CustomResourceManager:
 
     async def get_custom_resource(
         self, group: str, version: str, plural: str, namespace: str, name: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> builtins.dict[str, Any] | None:
         """Get custom resource instance."""
         try:
             resource = self.custom_objects_api.get_namespaced_custom_object(
@@ -224,7 +215,7 @@ class CustomResourceManager:
         plural: str,
         namespace: str,
         name: str,
-        spec: Dict[str, Any],
+        spec: builtins.dict[str, Any],
     ) -> bool:
         """Update custom resource instance."""
         try:
@@ -276,8 +267,8 @@ class CustomResourceManager:
             return False
 
     async def list_custom_resources(
-        self, group: str, version: str, plural: str, namespace: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, group: str, version: str, plural: str, namespace: str | None = None
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """List custom resource instances."""
         try:
             if namespace:
@@ -299,12 +290,10 @@ class CustomResourceManager:
 class MicroserviceOperator:
     """Kubernetes operator for microservice management."""
 
-    def __init__(
-        self, namespace: str = "default", kubeconfig_path: Optional[str] = None
-    ):
+    def __init__(self, namespace: str = "default", kubeconfig_path: str | None = None):
         self.namespace = namespace
         self.resource_manager = CustomResourceManager(kubeconfig_path)
-        self.reconciliation_events: List[ReconciliationEvent] = []
+        self.reconciliation_events: builtins.list[ReconciliationEvent] = []
         self.running = False
 
     async def setup(self) -> bool:
@@ -501,7 +490,7 @@ class MicroserviceOperator:
                 await asyncio.sleep(5)
 
     async def _reconcile_microservice(
-        self, microservice: Dict[str, Any], event_type: str
+        self, microservice: builtins.dict[str, Any], event_type: str
     ) -> None:
         """Reconcile a single microservice."""
         try:
@@ -552,7 +541,7 @@ class MicroserviceOperator:
             self.reconciliation_events.append(event)
 
     async def _ensure_deployment(
-        self, name: str, namespace: str, spec: Dict[str, Any]
+        self, name: str, namespace: str, spec: builtins.dict[str, Any]
     ) -> None:
         """Ensure deployment exists and is up to date."""
         try:
@@ -600,7 +589,7 @@ class MicroserviceOperator:
             raise
 
     def _build_deployment(
-        self, name: str, namespace: str, spec: Dict[str, Any]
+        self, name: str, namespace: str, spec: builtins.dict[str, Any]
     ) -> client.V1Deployment:
         """Build Kubernetes deployment manifest."""
         container = client.V1Container(
@@ -662,7 +651,7 @@ class MicroserviceOperator:
         )
 
     async def _ensure_service(
-        self, name: str, namespace: str, spec: Dict[str, Any]
+        self, name: str, namespace: str, spec: builtins.dict[str, Any]
     ) -> None:
         """Ensure service exists."""
         try:
@@ -707,7 +696,7 @@ class MicroserviceOperator:
             raise
 
     async def _ensure_hpa(
-        self, name: str, namespace: str, spec: Dict[str, Any]
+        self, name: str, namespace: str, spec: builtins.dict[str, Any]
     ) -> None:
         """Ensure HorizontalPodAutoscaler exists if autoscaling is enabled."""
         try:
@@ -915,7 +904,7 @@ class MicroserviceOperator:
             logger.error(f"Failed to create microservice {name}: {e}")
             return False
 
-    async def get_microservice(self, name: str) -> Optional[Dict[str, Any]]:
+    async def get_microservice(self, name: str) -> builtins.dict[str, Any] | None:
         """Get microservice custom resource."""
         return await self.resource_manager.get_custom_resource(
             group="marty.framework",
@@ -925,7 +914,7 @@ class MicroserviceOperator:
             name=name,
         )
 
-    async def list_microservices(self) -> List[Dict[str, Any]]:
+    async def list_microservices(self) -> builtins.list[builtins.dict[str, Any]]:
         """List all microservice custom resources."""
         return await self.resource_manager.list_custom_resources(
             group="marty.framework",
@@ -944,7 +933,9 @@ class MicroserviceOperator:
             name=name,
         )
 
-    def get_reconciliation_events(self, limit: int = 100) -> List[ReconciliationEvent]:
+    def get_reconciliation_events(
+        self, limit: int = 100
+    ) -> builtins.list[ReconciliationEvent]:
         """Get recent reconciliation events."""
         return sorted(
             self.reconciliation_events[-limit:], key=lambda x: x.timestamp, reverse=True
@@ -954,9 +945,9 @@ class MicroserviceOperator:
 class OperatorManager:
     """Manages multiple operators."""
 
-    def __init__(self, kubeconfig_path: Optional[str] = None):
+    def __init__(self, kubeconfig_path: str | None = None):
         self.kubeconfig_path = kubeconfig_path
-        self.operators: Dict[str, Any] = {}
+        self.operators: builtins.dict[str, Any] = {}
         self.running = False
 
     async def deploy_operator(self, config: OperatorConfig) -> bool:
@@ -1163,7 +1154,7 @@ class OperatorManager:
 
     def get_operator(
         self, operator_type: OperatorType, namespace: str = "default"
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """Get operator instance."""
         operator_key = f"{operator_type.value}-{namespace}"
         return self.operators.get(operator_key)
@@ -1172,7 +1163,7 @@ class OperatorManager:
 # Utility functions
 async def deploy_microservice_with_operator(
     operator: MicroserviceOperator, name: str, config: DeploymentConfig
-) -> Tuple[bool, Optional[str]]:
+) -> builtins.tuple[bool, str | None]:
     """Deploy microservice using operator."""
     try:
         success = await operator.create_microservice(name, config)
@@ -1194,11 +1185,10 @@ async def deploy_microservice_with_operator(
                 await asyncio.sleep(10)
 
             return False, f"Microservice {name} deployment timed out"
-        else:
-            return False, f"Failed to create microservice {name}"
+        return False, f"Failed to create microservice {name}"
 
     except Exception as e:
-        return False, f"Operator deployment error: {str(e)}"
+        return False, f"Operator deployment error: {e!s}"
 
 
 def create_operator_config(

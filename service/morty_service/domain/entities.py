@@ -5,9 +5,10 @@ Entities represent business objects with identity that persists through their li
 They encapsulate business logic and maintain their invariants.
 """
 
-from abc import ABC, abstractmethod
+import builtins
+from abc import ABC
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, list
 from uuid import UUID, uuid4
 
 from .value_objects import Email, PersonName, PhoneNumber
@@ -16,7 +17,7 @@ from .value_objects import Email, PersonName, PhoneNumber
 class DomainEntity(ABC):
     """Base class for all domain entities."""
 
-    def __init__(self, entity_id: Optional[UUID] = None):
+    def __init__(self, entity_id: UUID | None = None):
         self._id = entity_id or uuid4()
         self._created_at = datetime.utcnow()
         self._updated_at = datetime.utcnow()
@@ -56,7 +57,7 @@ class Task(DomainEntity):
         description: str,
         assignee: Optional["User"] = None,
         priority: str = "medium",
-        entity_id: Optional[UUID] = None,
+        entity_id: UUID | None = None,
     ):
         super().__init__(entity_id)
         self._title = title
@@ -64,7 +65,7 @@ class Task(DomainEntity):
         self._assignee = assignee
         self._priority = priority
         self._status = "pending"
-        self._completed_at: Optional[datetime] = None
+        self._completed_at: datetime | None = None
 
         self._validate()
 
@@ -89,7 +90,7 @@ class Task(DomainEntity):
         return self._status
 
     @property
-    def completed_at(self) -> Optional[datetime]:
+    def completed_at(self) -> datetime | None:
         return self._completed_at
 
     def assign_to(self, user: "User") -> None:
@@ -150,15 +151,15 @@ class User(DomainEntity):
         self,
         name: PersonName,
         email: Email,
-        phone: Optional[PhoneNumber] = None,
-        entity_id: Optional[UUID] = None,
+        phone: PhoneNumber | None = None,
+        entity_id: UUID | None = None,
     ):
         super().__init__(entity_id)
         self._name = name
         self._email = email
         self._phone = phone
         self._active = True
-        self._assigned_tasks: List[Task] = []
+        self._assigned_tasks: builtins.list[Task] = []
 
     @property
     def name(self) -> PersonName:
@@ -169,7 +170,7 @@ class User(DomainEntity):
         return self._email
 
     @property
-    def phone(self) -> Optional[PhoneNumber]:
+    def phone(self) -> PhoneNumber | None:
         return self._phone
 
     @property
@@ -177,7 +178,7 @@ class User(DomainEntity):
         return self._active
 
     @property
-    def assigned_tasks(self) -> List[Task]:
+    def assigned_tasks(self) -> builtins.list[Task]:
         return self._assigned_tasks.copy()
 
     def deactivate(self) -> None:
@@ -215,10 +216,10 @@ class User(DomainEntity):
             self._updated_at = datetime.utcnow()
             self._version += 1
 
-    def get_pending_tasks(self) -> List[Task]:
+    def get_pending_tasks(self) -> builtins.list[Task]:
         """Get all pending tasks assigned to this user."""
         return [task for task in self._assigned_tasks if task.status == "pending"]
 
-    def get_completed_tasks(self) -> List[Task]:
+    def get_completed_tasks(self) -> builtins.list[Task]:
         """Get all completed tasks assigned to this user."""
         return [task for task in self._assigned_tasks if task.status == "completed"]

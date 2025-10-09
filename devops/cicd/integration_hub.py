@@ -10,25 +10,22 @@ Provides integration capabilities for CI/CD pipelines with external systems:
 """
 
 import asyncio
-import base64
+import builtins
 import hashlib
 import hmac
 import json
-import os
 import smtplib
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from email.mime.multipart import MimeMultipart
 from email.mime.text import MimeText
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, Generic, List, Optional, Set, dict, list
 
 import requests
-import yaml
 
 # Local imports
-from . import PipelineExecution, PipelineMetrics, PipelineStatus
-from .pipeline_orchestration import PipelineOrchestrator
+from . import PipelineExecution, PipelineStatus
 
 try:
     from slack_sdk import WebClient
@@ -112,14 +109,14 @@ class IntegrationConfiguration:
     timeout: int = 30
 
     # Filters
-    pipeline_filters: List[str] = field(default_factory=list)
-    status_filters: List[PipelineStatus] = field(default_factory=list)
-    notification_levels: List[NotificationLevel] = field(default_factory=list)
+    pipeline_filters: builtins.list[str] = field(default_factory=list)
+    status_filters: builtins.list[PipelineStatus] = field(default_factory=list)
+    notification_levels: builtins.list[NotificationLevel] = field(default_factory=list)
 
     # Custom configuration
-    custom_config: Dict[str, Any] = field(default_factory=dict)
+    custom_config: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "integration_type": self.integration_type.value,
@@ -144,13 +141,13 @@ class NotificationMessage:
 
     # Formatting
     markdown: bool = True
-    attachments: List[Dict[str, Any]] = field(default_factory=list)
+    attachments: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Metadata
     timestamp: datetime = field(default_factory=datetime.now)
-    tags: Dict[str, str] = field(default_factory=dict)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "level": self.level.value,
@@ -173,8 +170,8 @@ class IntegrationClient:
         raise NotImplementedError
 
     async def create_issue(
-        self, title: str, description: str, metadata: Dict[str, Any]
-    ) -> Optional[str]:
+        self, title: str, description: str, metadata: builtins.dict[str, Any]
+    ) -> str | None:
         """Create issue/ticket in external system"""
         raise NotImplementedError
 
@@ -292,7 +289,7 @@ class SlackIntegration(IntegrationClient):
             print(f"❌ Failed to update Slack status: {e}")
             return False
 
-    async def _send_slack_message(self, **kwargs) -> Dict[str, Any]:
+    async def _send_slack_message(self, **kwargs) -> builtins.dict[str, Any]:
         """Send Slack message with async wrapper"""
 
         loop = asyncio.get_event_loop()
@@ -607,7 +604,7 @@ class WebhookIntegration(IntegrationClient):
             print(f"❌ Failed to update status via webhook: {e}")
             return False
 
-    async def _send_webhook(self, payload: Dict[str, Any]) -> bool:
+    async def _send_webhook(self, payload: builtins.dict[str, Any]) -> bool:
         """Send webhook request"""
 
         try:
@@ -753,8 +750,8 @@ class PipelineIntegrationHub:
     """
 
     def __init__(self):
-        self.integrations: Dict[str, IntegrationClient] = {}
-        self.notification_rules: List[Dict[str, Any]] = []
+        self.integrations: builtins.dict[str, IntegrationClient] = {}
+        self.notification_rules: builtins.list[builtins.dict[str, Any]] = []
 
         # Default notification templates
         self.notification_templates = {
@@ -813,9 +810,9 @@ class PipelineIntegrationHub:
     def add_notification_rule(
         self,
         name: str,
-        pipeline_filters: List[str] = None,
-        status_filters: List[PipelineStatus] = None,
-        integrations: List[str] = None,
+        pipeline_filters: builtins.list[str] = None,
+        status_filters: builtins.list[PipelineStatus] = None,
+        integrations: builtins.list[str] = None,
         notification_level: NotificationLevel = NotificationLevel.INFO,
         template: str = "default",
     ):
@@ -837,7 +834,7 @@ class PipelineIntegrationHub:
         self,
         event_type: str,
         execution: PipelineExecution,
-        additional_context: Optional[Dict[str, Any]] = None,
+        additional_context: builtins.dict[str, Any] | None = None,
     ):
         """Send notifications for pipeline event"""
 
@@ -885,7 +882,7 @@ class PipelineIntegrationHub:
 
     def _find_applicable_rules(
         self, execution: PipelineExecution
-    ) -> List[Dict[str, Any]]:
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Find notification rules applicable to execution"""
 
         applicable_rules = []
@@ -909,7 +906,10 @@ class PipelineIntegrationHub:
         return applicable_rules
 
     async def _build_notification_message(
-        self, event_type: str, execution: PipelineExecution, context: Dict[str, Any]
+        self,
+        event_type: str,
+        execution: PipelineExecution,
+        context: builtins.dict[str, Any],
     ) -> NotificationMessage:
         """Build notification message from template"""
 
@@ -960,7 +960,7 @@ class PipelineIntegrationHub:
             branch=execution.branch,
         )
 
-    def get_integration_status(self) -> Dict[str, Any]:
+    def get_integration_status(self) -> builtins.dict[str, Any]:
         """Get status of all integrations"""
 
         status = {

@@ -6,28 +6,17 @@ event sourcing, and stream processing capabilities.
 """
 
 import asyncio
+import builtins
 import json
 import logging
-import threading
-import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    Iterator,
-    List,
-    Optional,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Dict, Generic, List, Optional, TypeVar, dict, list
 
 logger = logging.getLogger(__name__)
 
@@ -52,26 +41,26 @@ class EventMetadata:
 
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     correlation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    causation_id: Optional[str] = None
+    causation_id: str | None = None
     timestamp: datetime = field(default_factory=datetime.utcnow)
     version: int = 1
 
     # Source information
-    source_service: Optional[str] = None
-    source_user: Optional[str] = None
-    source_system: Optional[str] = None
+    source_service: str | None = None
+    source_user: str | None = None
+    source_system: str | None = None
 
     # Context
-    tenant_id: Optional[str] = None
-    trace_id: Optional[str] = None
-    span_id: Optional[str] = None
+    tenant_id: str | None = None
+    trace_id: str | None = None
+    span_id: str | None = None
 
     # Routing
-    topic: Optional[str] = None
-    partition_key: Optional[str] = None
+    topic: str | None = None
+    partition_key: str | None = None
 
     # Additional metadata
-    properties: Dict[str, Any] = field(default_factory=dict)
+    properties: builtins.dict[str, Any] = field(default_factory=dict)
 
     def with_causation(self, causation_id: str) -> "EventMetadata":
         """Create new metadata with causation relationship."""
@@ -100,12 +89,12 @@ class Event:
     # Event identification
     aggregate_id: str
     event_type: str
-    event_data: Dict[str, Any]
+    event_data: builtins.dict[str, Any]
     metadata: EventMetadata = field(default_factory=EventMetadata)
 
     # Event categorization
     event_category: EventType = EventType.DOMAIN
-    aggregate_type: Optional[str] = None
+    aggregate_type: str | None = None
     event_version: int = 1
 
     @property
@@ -123,7 +112,7 @@ class Event:
         """Get event timestamp."""
         return self.metadata.timestamp
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert event to dictionary for serialization."""
         return {
             "event_id": self.metadata.event_id,
@@ -151,7 +140,7 @@ class Event:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Event":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "Event":
         """Create event from dictionary."""
         metadata_data = data.get("metadata", {})
 
@@ -233,16 +222,16 @@ class EventStore(ABC):
     async def append_events(
         self,
         stream_id: str,
-        events: List[Event],
-        expected_version: Optional[int] = None,
+        events: builtins.list[Event],
+        expected_version: int | None = None,
     ) -> None:
         """Append events to a stream."""
         raise NotImplementedError
 
     @abstractmethod
     async def get_events(
-        self, stream_id: str, from_version: int = 0, to_version: Optional[int] = None
-    ) -> List[Event]:
+        self, stream_id: str, from_version: int = 0, to_version: int | None = None
+    ) -> builtins.list[Event]:
         """Get events from a stream."""
         raise NotImplementedError
 
@@ -266,14 +255,14 @@ class InMemoryEventStore(EventStore):
     """In-memory event store implementation for testing."""
 
     def __init__(self):
-        self._streams: Dict[str, List[Event]] = defaultdict(list)
+        self._streams: builtins.dict[str, builtins.list[Event]] = defaultdict(list)
         self._lock = asyncio.Lock()
 
     async def append_events(
         self,
         stream_id: str,
-        events: List[Event],
-        expected_version: Optional[int] = None,
+        events: builtins.list[Event],
+        expected_version: int | None = None,
     ) -> None:
         """Append events to stream."""
         async with self._lock:
@@ -287,16 +276,15 @@ class InMemoryEventStore(EventStore):
             self._streams[stream_id].extend(events)
 
     async def get_events(
-        self, stream_id: str, from_version: int = 0, to_version: Optional[int] = None
-    ) -> List[Event]:
+        self, stream_id: str, from_version: int = 0, to_version: int | None = None
+    ) -> builtins.list[Event]:
         """Get events from stream."""
         async with self._lock:
             events = self._streams[stream_id]
 
             if to_version is None:
                 return events[from_version:]
-            else:
-                return events[from_version : to_version + 1]
+            return events[from_version : to_version + 1]
 
     async def get_stream_version(self, stream_id: str) -> int:
         """Get current stream version."""
@@ -318,7 +306,7 @@ class InMemoryEventStore(EventStore):
 class EventStream:
     """Event stream for reading events."""
 
-    def __init__(self, stream_id: str, events: List[Event]):
+    def __init__(self, stream_id: str, events: builtins.list[Event]):
         self.stream_id = stream_id
         self.events = events
         self.version = len(events)
@@ -336,7 +324,7 @@ class EventStream:
         return self.events[index]
 
     def slice(
-        self, from_version: int = 0, to_version: Optional[int] = None
+        self, from_version: int = 0, to_version: int | None = None
     ) -> "EventStream":
         """Get slice of events."""
         if to_version is None:
@@ -356,7 +344,7 @@ class EventBus(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def publish_batch(self, events: List[Event]) -> None:
+    async def publish_batch(self, events: builtins.list[Event]) -> None:
         """Publish multiple events."""
         raise NotImplementedError
 
@@ -375,15 +363,17 @@ class InMemoryEventBus(EventBus):
     """In-memory event bus implementation."""
 
     def __init__(self):
-        self._handlers: Dict[str, List[EventHandler]] = defaultdict(list)
-        self._global_handlers: List[EventHandler] = []
+        self._handlers: builtins.dict[str, builtins.list[EventHandler]] = defaultdict(
+            list
+        )
+        self._global_handlers: builtins.list[EventHandler] = []
         self._lock = asyncio.Lock()
 
     async def publish(self, event: Event) -> None:
         """Publish single event."""
         await self.publish_batch([event])
 
-    async def publish_batch(self, events: List[Event]) -> None:
+    async def publish_batch(self, events: builtins.list[Event]) -> None:
         """Publish multiple events."""
         for event in events:
             await self._dispatch_event(event)
@@ -417,9 +407,8 @@ class InMemoryEventBus(EventBus):
         if event_type == "*":
             if handler in self._global_handlers:
                 self._global_handlers.remove(handler)
-        else:
-            if handler in self._handlers[event_type]:
-                self._handlers[event_type].remove(handler)
+        elif handler in self._handlers[event_type]:
+            self._handlers[event_type].remove(handler)
 
 
 class EventDispatcher:
@@ -432,8 +421,8 @@ class EventDispatcher:
     async def dispatch_events(
         self,
         stream_id: str,
-        events: List[Event],
-        expected_version: Optional[int] = None,
+        events: builtins.list[Event],
+        expected_version: int | None = None,
     ) -> None:
         """Store events and publish to bus."""
         # Store events first
@@ -464,7 +453,7 @@ class EventSubscription:
         self,
         event_type: str,
         handler: EventHandler,
-        group_id: Optional[str] = None,
+        group_id: str | None = None,
         auto_ack: bool = True,
         max_retries: int = 3,
         backoff_multiplier: float = 2.0,
@@ -485,7 +474,7 @@ class DomainEvent(Event):
         self,
         aggregate_id: str,
         event_type: str,
-        event_data: Dict[str, Any],
+        event_data: builtins.dict[str, Any],
         metadata: EventMetadata = None,
     ):
         super().__init__(
@@ -504,7 +493,7 @@ class IntegrationEvent(Event):
         self,
         aggregate_id: str,
         event_type: str,
-        event_data: Dict[str, Any],
+        event_data: builtins.dict[str, Any],
         metadata: EventMetadata = None,
     ):
         super().__init__(
@@ -518,7 +507,10 @@ class IntegrationEvent(Event):
 
 # Event factory functions
 def create_domain_event(
-    aggregate_id: str, event_type: str, event_data: Dict[str, Any], **metadata_kwargs
+    aggregate_id: str,
+    event_type: str,
+    event_data: builtins.dict[str, Any],
+    **metadata_kwargs,
 ) -> DomainEvent:
     """Create a domain event with metadata."""
     metadata = EventMetadata(**metadata_kwargs)
@@ -526,7 +518,10 @@ def create_domain_event(
 
 
 def create_integration_event(
-    aggregate_id: str, event_type: str, event_data: Dict[str, Any], **metadata_kwargs
+    aggregate_id: str,
+    event_type: str,
+    event_data: builtins.dict[str, Any],
+    **metadata_kwargs,
 ) -> IntegrationEvent:
     """Create an integration event with metadata."""
     metadata = EventMetadata(**metadata_kwargs)
@@ -537,7 +532,7 @@ def create_integration_event(
 def create_test_event(
     aggregate_id: str = None,
     event_type: str = "TestEvent",
-    event_data: Dict[str, Any] = None,
+    event_data: builtins.dict[str, Any] = None,
 ) -> Event:
     """Create a test event."""
     return Event(

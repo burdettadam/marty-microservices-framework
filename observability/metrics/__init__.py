@@ -12,6 +12,6 @@ from .collector import (
 __all__ = [
     "MetricsCollector",
     "MetricsConfig",
-    "grpc_metrics_decorator",
     "business_metrics_decorator",
+    "grpc_metrics_decorator",
 ]

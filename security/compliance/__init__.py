@@ -11,6 +11,7 @@ Provides comprehensive compliance monitoring and automation including:
 """
 
 import asyncio
+import builtins
 import hashlib
 import json
 import re
@@ -20,7 +21,7 @@ from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, set, tuple
 
 # External dependencies
 try:
@@ -90,13 +91,13 @@ class ComplianceRule:
     severity: RiskLevel
 
     # Rule logic
-    conditions: Dict[str, Any]
-    remediation_steps: List[str]
+    conditions: builtins.dict[str, Any]
+    remediation_steps: builtins.list[str]
 
     # Metadata
     control_id: str
-    references: List[str] = field(default_factory=list)
-    tags: Set[str] = field(default_factory=set)
+    references: builtins.list[str] = field(default_factory=list)
+    tags: builtins.set[str] = field(default_factory=set)
 
     # Status
     is_active: bool = True
@@ -117,19 +118,19 @@ class ComplianceViolation:
     description: str
     detected_at: datetime
     source_system: str
-    affected_resources: List[str] = field(default_factory=list)
+    affected_resources: builtins.list[str] = field(default_factory=list)
 
     # Context
-    evidence: Dict[str, Any] = field(default_factory=dict)
+    evidence: builtins.dict[str, Any] = field(default_factory=dict)
     impact_assessment: str = ""
 
     # Remediation
     status: ComplianceStatus = ComplianceStatus.NON_COMPLIANT
-    remediation_actions: List[str] = field(default_factory=list)
-    remediated_at: Optional[datetime] = None
-    assigned_to: Optional[str] = None
+    remediation_actions: builtins.list[str] = field(default_factory=list)
+    remediated_at: datetime | None = None
+    assigned_to: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "detected_at": self.detected_at.isoformat(),
@@ -151,25 +152,27 @@ class AuditEvent:
     timestamp: datetime
 
     # Event details
-    user_id: Optional[str]
-    session_id: Optional[str]
+    user_id: str | None
+    session_id: str | None
     source_ip: str
     user_agent: str
 
     # Action details
     action: str
     resource: str
-    resource_id: Optional[str]
+    resource_id: str | None
 
     # Context
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: builtins.dict[str, Any] = field(default_factory=dict)
     outcome: str = "success"  # success, failure, error
 
     # Compliance relevance
-    compliance_frameworks: Set[ComplianceFramework] = field(default_factory=set)
+    compliance_frameworks: builtins.set[ComplianceFramework] = field(
+        default_factory=set
+    )
     sensitive_data_involved: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "timestamp": self.timestamp.isoformat(),
@@ -197,19 +200,19 @@ class ComplianceReport:
     not_assessed_rules: int
 
     # Violations
-    violations: List[ComplianceViolation] = field(default_factory=list)
+    violations: builtins.list[ComplianceViolation] = field(default_factory=list)
     critical_violations: int = 0
     high_violations: int = 0
     medium_violations: int = 0
     low_violations: int = 0
 
     # Recommendations
-    remediation_recommendations: List[str] = field(default_factory=list)
+    remediation_recommendations: builtins.list[str] = field(default_factory=list)
     next_assessment_date: datetime = field(
         default_factory=lambda: datetime.now() + timedelta(days=30)
     )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "generated_at": self.generated_at.isoformat(),
@@ -232,8 +235,8 @@ class ComplianceRuleEngine:
     """
 
     def __init__(self):
-        self.rules: Dict[str, ComplianceRule] = {}
-        self.violations: Dict[str, ComplianceViolation] = {}
+        self.rules: builtins.dict[str, ComplianceRule] = {}
+        self.violations: builtins.dict[str, ComplianceViolation] = {}
 
         # Initialize framework-specific rules
         self._initialize_compliance_rules()
@@ -474,8 +477,8 @@ class ComplianceRuleEngine:
         print(f"Added compliance rule: {rule.name} ({rule.framework.value})")
 
     async def evaluate_rule(
-        self, rule_id: str, context: Dict[str, Any]
-    ) -> Tuple[bool, Optional[ComplianceViolation]]:
+        self, rule_id: str, context: builtins.dict[str, Any]
+    ) -> builtins.tuple[bool, ComplianceViolation | None]:
         """Evaluate single compliance rule"""
 
         if rule_id not in self.rules:
@@ -525,7 +528,7 @@ class ComplianceRuleEngine:
         return True, None
 
     async def _evaluate_conditions(
-        self, conditions: Dict[str, Any], context: Dict[str, Any]
+        self, conditions: builtins.dict[str, Any], context: builtins.dict[str, Any]
     ) -> bool:
         """Evaluate rule conditions against context"""
 
@@ -553,15 +556,14 @@ class ComplianceRuleEngine:
                 if not self._evaluate_numeric_condition(expected_value, context_value):
                     return False
 
-            else:
-                # String or exact match
-                if context_value != expected_value:
-                    return False
+            # String or exact match
+            elif context_value != expected_value:
+                return False
 
         return True
 
     async def _evaluate_complex_condition(
-        self, condition: Dict[str, Any], value: Any
+        self, condition: builtins.dict[str, Any], value: Any
     ) -> bool:
         """Evaluate complex conditions with operators"""
 
@@ -570,21 +572,21 @@ class ComplianceRuleEngine:
 
         if operator == "equals":
             return value == expected
-        elif operator == "not_equals":
+        if operator == "not_equals":
             return value != expected
-        elif operator == "in":
+        if operator == "in":
             return value in expected
-        elif operator == "not_in":
+        if operator == "not_in":
             return value not in expected
-        elif operator == "contains":
+        if operator == "contains":
             return expected in str(value)
-        elif operator == "regex":
+        if operator == "regex":
             return bool(re.search(expected, str(value)))
-        elif operator == "greater_than":
+        if operator == "greater_than":
             return float(value) > float(expected)
-        elif operator == "less_than":
+        if operator == "less_than":
             return float(value) < float(expected)
-        elif operator == "exists":
+        if operator == "exists":
             return value is not None
 
         return False
@@ -596,7 +598,9 @@ class ComplianceRuleEngine:
         except (ValueError, TypeError):
             return False
 
-    def _assess_impact(self, rule: ComplianceRule, context: Dict[str, Any]) -> str:
+    def _assess_impact(
+        self, rule: ComplianceRule, context: builtins.dict[str, Any]
+    ) -> str:
         """Assess impact of compliance violation"""
 
         impact_factors = []
@@ -636,8 +640,8 @@ class ComplianceRuleEngine:
         )
 
     async def evaluate_all_rules(
-        self, framework: ComplianceFramework, context: Dict[str, Any]
-    ) -> List[ComplianceViolation]:
+        self, framework: ComplianceFramework, context: builtins.dict[str, Any]
+    ) -> builtins.list[ComplianceViolation]:
         """Evaluate all rules for a specific framework"""
 
         violations = []
@@ -654,11 +658,11 @@ class ComplianceRuleEngine:
 
     def get_rules_by_framework(
         self, framework: ComplianceFramework
-    ) -> List[ComplianceRule]:
+    ) -> builtins.list[ComplianceRule]:
         """Get all rules for specific framework"""
         return [rule for rule in self.rules.values() if rule.framework == framework]
 
-    def get_violation_summary(self) -> Dict[str, Any]:
+    def get_violation_summary(self) -> builtins.dict[str, Any]:
         """Get summary of all violations"""
         if not self.violations:
             return {"total": 0, "by_severity": {}, "by_framework": {}}
@@ -691,7 +695,7 @@ class AuditTrailManager:
     def __init__(self, retention_years: int = 7):
         self.retention_years = retention_years
         self.audit_events: deque = deque(maxlen=1000000)  # In-memory for demo
-        self.archived_events: Dict[str, List[AuditEvent]] = {}
+        self.archived_events: builtins.dict[str, builtins.list[AuditEvent]] = {}
 
         # Event classification
         self.sensitive_actions = {
@@ -744,14 +748,14 @@ class AuditTrailManager:
     async def log_event(
         self,
         event_type: AuditEventType,
-        user_id: Optional[str],
+        user_id: str | None,
         action: str,
         resource: str,
         source_ip: str = "",
         user_agent: str = "",
-        session_id: Optional[str] = None,
-        resource_id: Optional[str] = None,
-        details: Optional[Dict[str, Any]] = None,
+        session_id: str | None = None,
+        resource_id: str | None = None,
+        details: builtins.dict[str, Any] | None = None,
         outcome: str = "success",
     ) -> AuditEvent:
         """Log audit event"""
@@ -796,7 +800,7 @@ class AuditTrailManager:
 
     def _determine_compliance_frameworks(
         self, event: AuditEvent
-    ) -> Set[ComplianceFramework]:
+    ) -> builtins.set[ComplianceFramework]:
         """Determine which compliance frameworks apply to event"""
         applicable_frameworks = set()
 
@@ -823,7 +827,7 @@ class AuditTrailManager:
         """Check if action is considered sensitive"""
         return action.lower() in self.sensitive_actions
 
-    def _contains_sensitive_data(self, details: Dict[str, Any]) -> bool:
+    def _contains_sensitive_data(self, details: builtins.dict[str, Any]) -> bool:
         """Check if event details contain sensitive data"""
         sensitive_patterns = [
             r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",  # Credit card
@@ -847,16 +851,16 @@ class AuditTrailManager:
 
     async def search_events(
         self,
-        start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None,
-        user_id: Optional[str] = None,
-        event_type: Optional[AuditEventType] = None,
-        action: Optional[str] = None,
-        resource: Optional[str] = None,
-        compliance_framework: Optional[ComplianceFramework] = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        user_id: str | None = None,
+        event_type: AuditEventType | None = None,
+        action: str | None = None,
+        resource: str | None = None,
+        compliance_framework: ComplianceFramework | None = None,
         sensitive_only: bool = False,
         limit: int = 1000,
-    ) -> List[AuditEvent]:
+    ) -> builtins.list[AuditEvent]:
         """Search audit events with filters"""
 
         results = []
@@ -892,7 +896,7 @@ class AuditTrailManager:
 
     def get_compliance_audit_trail(
         self, framework: ComplianceFramework, days: int = 30
-    ) -> List[AuditEvent]:
+    ) -> builtins.list[AuditEvent]:
         """Get audit trail for specific compliance framework"""
 
         cutoff_date = datetime.now() - timedelta(days=days)
@@ -906,7 +910,7 @@ class AuditTrailManager:
             )
         ]
 
-    def get_audit_statistics(self) -> Dict[str, Any]:
+    def get_audit_statistics(self) -> builtins.dict[str, Any]:
         """Get audit trail statistics"""
 
         if not self.audit_events:
@@ -955,7 +959,9 @@ class ComplianceReportGenerator:
         self.audit_manager = audit_manager
 
     async def generate_compliance_report(
-        self, framework: ComplianceFramework, assessment_context: Dict[str, Any]
+        self,
+        framework: ComplianceFramework,
+        assessment_context: builtins.dict[str, Any],
     ) -> ComplianceReport:
         """Generate comprehensive compliance report"""
 
@@ -1021,8 +1027,8 @@ class ComplianceReportGenerator:
         return report
 
     def _generate_remediation_recommendations(
-        self, violations: List[ComplianceViolation]
-    ) -> List[str]:
+        self, violations: builtins.list[ComplianceViolation]
+    ) -> builtins.list[str]:
         """Generate prioritized remediation recommendations"""
 
         recommendations = []
@@ -1078,8 +1084,8 @@ class ComplianceReportGenerator:
         return recommendations[:10]  # Limit to top 10 recommendations
 
     async def generate_executive_summary(
-        self, reports: List[ComplianceReport]
-    ) -> Dict[str, Any]:
+        self, reports: builtins.list[ComplianceReport]
+    ) -> builtins.dict[str, Any]:
         """Generate executive summary across multiple frameworks"""
 
         if not reports:
@@ -1163,10 +1169,10 @@ class ComplianceManager:
         self.last_assessment = {}
 
         # Real-time violation tracking
-        self.active_violations: Dict[str, ComplianceViolation] = {}
+        self.active_violations: builtins.dict[str, ComplianceViolation] = {}
 
     async def assess_compliance(
-        self, framework: ComplianceFramework, system_context: Dict[str, Any]
+        self, framework: ComplianceFramework, system_context: builtins.dict[str, Any]
     ) -> ComplianceReport:
         """Perform comprehensive compliance assessment"""
 
@@ -1237,7 +1243,7 @@ class ComplianceManager:
                 print(f"Error in compliance monitoring: {e}")
                 await asyncio.sleep(60)  # Wait 1 minute before retry
 
-    async def _collect_system_context(self) -> Dict[str, Any]:
+    async def _collect_system_context(self) -> builtins.dict[str, Any]:
         """Collect current system context for compliance evaluation"""
 
         # In a real implementation, this would collect actual system state
@@ -1311,7 +1317,7 @@ class ComplianceManager:
         print(f"Remediated violation {violation_id}")
         return True
 
-    def get_compliance_dashboard(self) -> Dict[str, Any]:
+    def get_compliance_dashboard(self) -> builtins.dict[str, Any]:
         """Get compliance dashboard data"""
 
         # Framework status
@@ -1380,7 +1386,7 @@ async def main():
     executive_summary = (
         await compliance_manager.report_generator.generate_executive_summary(reports)
     )
-    print(f"\nExecutive Summary:")
+    print("\nExecutive Summary:")
     print(
         f"Overall Compliance Score: {executive_summary['overall_compliance_score']:.1%}"
     )
@@ -1389,7 +1395,7 @@ async def main():
 
     # Show compliance dashboard
     dashboard = compliance_manager.get_compliance_dashboard()
-    print(f"\nCompliance Dashboard:")
+    print("\nCompliance Dashboard:")
     print(f"Active Violations: {dashboard['total_active_violations']}")
     print(f"Audit Events: {dashboard['audit_trail']['total_events']}")
 

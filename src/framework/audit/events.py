@@ -1,6 +1,5 @@
 """
 Audit logging framework for enterprise microservices.
-
 This module provides comprehensive audit logging capabilities including:
 - Structured audit event logging
 - Encryption for sensitive data
@@ -10,19 +9,19 @@ This module provides comprehensive audit logging capabilities including:
 - Security event detection
 """
 
-import asyncio
 import base64
+import builtins
 import hashlib
 import json
 import logging
 import os
 import uuid
 from abc import ABC, abstractmethod
+from collections.abc import AsyncGenerator
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from pathlib import Path
-from typing import Any, AsyncGenerator, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, dict
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -42,23 +41,19 @@ class AuditEventType(Enum):
     AUTH_TOKEN_REFRESHED = "auth_token_refreshed"
     AUTH_TOKEN_REVOKED = "auth_token_revoked"
     AUTH_SESSION_EXPIRED = "auth_session_expired"
-
     AUTHZ_ACCESS_GRANTED = "authz_access_granted"
     AUTHZ_ACCESS_DENIED = "authz_access_denied"
     AUTHZ_PERMISSION_CHANGED = "authz_permission_changed"
     AUTHZ_ROLE_ASSIGNED = "authz_role_assigned"
     AUTHZ_ROLE_REMOVED = "authz_role_removed"
-
     # API and Service Operations
     API_REQUEST = "api_request"
     API_RESPONSE = "api_response"
     API_ERROR = "api_error"
     API_RATE_LIMITED = "api_rate_limited"
-
     SERVICE_CALL = "service_call"
     SERVICE_ERROR = "service_error"
     SERVICE_TIMEOUT = "service_timeout"
-
     # Data Operations
     DATA_CREATE = "data_create"
     DATA_READ = "data_read"
@@ -68,33 +63,28 @@ class AuditEventType(Enum):
     DATA_IMPORT = "data_import"
     DATA_BACKUP = "data_backup"
     DATA_RESTORE = "data_restore"
-
     # Database Operations
     DB_CONNECTION = "db_connection"
     DB_QUERY = "db_query"
     DB_TRANSACTION = "db_transaction"
     DB_MIGRATION = "db_migration"
-
     # Security Events
     SECURITY_INTRUSION_ATTEMPT = "security_intrusion_attempt"
     SECURITY_MALICIOUS_REQUEST = "security_malicious_request"
     SECURITY_VULNERABILITY_DETECTED = "security_vulnerability_detected"
     SECURITY_POLICY_VIOLATION = "security_policy_violation"
     SECURITY_ENCRYPTION_FAILURE = "security_encryption_failure"
-
     # System Events
     SYSTEM_STARTUP = "system_startup"
     SYSTEM_SHUTDOWN = "system_shutdown"
     SYSTEM_CONFIG_CHANGE = "system_config_change"
     SYSTEM_ERROR = "system_error"
     SYSTEM_HEALTH_CHECK = "system_health_check"
-
     # Admin Operations
     ADMIN_USER_CREATED = "admin_user_created"
     ADMIN_USER_DELETED = "admin_user_deleted"
     ADMIN_CONFIG_UPDATED = "admin_config_updated"
     ADMIN_SYSTEM_MAINTENANCE = "admin_system_maintenance"
-
     # Compliance Events
     COMPLIANCE_DATA_ACCESS = "compliance_data_access"
     COMPLIANCE_DATA_RETENTION = "compliance_data_retention"
@@ -130,11 +120,11 @@ class AuditContext:
     environment: str
     version: str
     instance_id: str
-    correlation_id: Optional[str] = None
-    trace_id: Optional[str] = None
-    span_id: Optional[str] = None
+    correlation_id: str | None = None
+    trace_id: str | None = None
+    span_id: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -148,43 +138,36 @@ class AuditEvent:
     severity: AuditSeverity = AuditSeverity.INFO
     outcome: AuditOutcome = AuditOutcome.SUCCESS
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-
     # Actor information
-    user_id: Optional[str] = None
-    username: Optional[str] = None
-    session_id: Optional[str] = None
-    api_key_id: Optional[str] = None
-    client_id: Optional[str] = None
-
+    user_id: str | None = None
+    username: str | None = None
+    session_id: str | None = None
+    api_key_id: str | None = None
+    client_id: str | None = None
     # Request information
-    source_ip: Optional[str] = None
-    user_agent: Optional[str] = None
-    request_id: Optional[str] = None
-    method: Optional[str] = None
-    endpoint: Optional[str] = None
-
+    source_ip: str | None = None
+    user_agent: str | None = None
+    request_id: str | None = None
+    method: str | None = None
+    endpoint: str | None = None
     # Resource and action
-    resource_type: Optional[str] = None
-    resource_id: Optional[str] = None
+    resource_type: str | None = None
+    resource_id: str | None = None
     action: str = ""
-
     # Event details
     message: str = ""
-    details: Dict[str, Any] = field(default_factory=dict)
-
+    details: builtins.dict[str, Any] = field(default_factory=dict)
     # Context and tracing
-    context: Optional[AuditContext] = None
-
+    context: AuditContext | None = None
     # Performance metrics
-    duration_ms: Optional[float] = None
-    response_size: Optional[int] = None
-
+    duration_ms: float | None = None
+    response_size: int | None = None
     # Error information
-    error_code: Optional[str] = None
-    error_message: Optional[str] = None
-    stack_trace: Optional[str] = None
+    error_code: str | None = None
+    error_message: str | None = None
+    stack_trace: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert audit event to dictionary."""
         data = {}
         for key, value in asdict(self).items():
@@ -210,7 +193,7 @@ class AuditEvent:
 class AuditEventBuilder:
     """Builder pattern for creating audit events."""
 
-    def __init__(self, context: Optional[AuditContext] = None):
+    def __init__(self, context: AuditContext | None = None):
         self._event = AuditEvent()
         if context:
             self._event.context = context
@@ -227,7 +210,7 @@ class AuditEventBuilder:
         self._event.outcome = outcome
         return self
 
-    def user(self, user_id: str, username: Optional[str] = None) -> "AuditEventBuilder":
+    def user(self, user_id: str, username: str | None = None) -> "AuditEventBuilder":
         self._event.user_id = user_id
         self._event.username = username
         return self
@@ -246,11 +229,11 @@ class AuditEventBuilder:
 
     def request(
         self,
-        source_ip: Optional[str] = None,
-        user_agent: Optional[str] = None,
-        request_id: Optional[str] = None,
-        method: Optional[str] = None,
-        endpoint: Optional[str] = None,
+        source_ip: str | None = None,
+        user_agent: str | None = None,
+        request_id: str | None = None,
+        method: str | None = None,
+        endpoint: str | None = None,
     ) -> "AuditEventBuilder":
         if source_ip:
             self._event.source_ip = source_ip
@@ -265,7 +248,7 @@ class AuditEventBuilder:
         return self
 
     def resource(
-        self, resource_type: str, resource_id: Optional[str] = None
+        self, resource_type: str, resource_id: str | None = None
     ) -> "AuditEventBuilder":
         self._event.resource_type = resource_type
         self._event.resource_id = resource_id
@@ -283,12 +266,12 @@ class AuditEventBuilder:
         self._event.details[key] = value
         return self
 
-    def details(self, details: Dict[str, Any]) -> "AuditEventBuilder":
+    def details(self, details: builtins.dict[str, Any]) -> "AuditEventBuilder":
         self._event.details.update(details)
         return self
 
     def performance(
-        self, duration_ms: float, response_size: Optional[int] = None
+        self, duration_ms: float, response_size: int | None = None
     ) -> "AuditEventBuilder":
         self._event.duration_ms = duration_ms
         self._event.response_size = response_size
@@ -296,9 +279,9 @@ class AuditEventBuilder:
 
     def error(
         self,
-        error_code: Optional[str] = None,
-        error_message: Optional[str] = None,
-        stack_trace: Optional[str] = None,
+        error_code: str | None = None,
+        error_message: str | None = None,
+        stack_trace: str | None = None,
     ) -> "AuditEventBuilder":
         if error_code:
             self._event.error_code = error_code
@@ -328,7 +311,7 @@ class AuditEventBuilder:
 class AuditEncryption:
     """Handles encryption/decryption of sensitive audit data."""
 
-    def __init__(self, encryption_key: Optional[bytes] = None):
+    def __init__(self, encryption_key: bytes | None = None):
         self.encryption_key = encryption_key or self._derive_key()
         self.sensitive_fields = {
             "password",
@@ -349,44 +332,40 @@ class AuditEncryption:
             "AUDIT_ENCRYPTION_KEY", "default-audit-key-change-in-production"
         )
         salt = os.environ.get("AUDIT_SALT", "audit-salt-12345").encode()
-
         kdf = Scrypt(
             algorithm=hashes.SHA256(),
             length=32,
             salt=salt,
             iterations=100000,
         )
-
         return kdf.derive(key_material.encode())
 
-    def encrypt_sensitive_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def encrypt_sensitive_data(
+        self, data: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Encrypt sensitive fields in audit data."""
         if not data:
             return data
-
         encrypted_data = data.copy()
-
         for key, value in data.items():
             if self._is_sensitive_field(key) and isinstance(value, str):
                 encrypted_data[key] = self._encrypt_value(value)
                 encrypted_data[f"{key}_encrypted"] = True
-
         return encrypted_data
 
-    def decrypt_sensitive_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def decrypt_sensitive_data(
+        self, data: builtins.dict[str, Any]
+    ) -> builtins.dict[str, Any]:
         """Decrypt sensitive fields in audit data."""
         if not data:
             return data
-
         decrypted_data = data.copy()
-
         for key, value in data.items():
             if key.endswith("_encrypted"):
                 field_name = key.replace("_encrypted", "")
                 if field_name in data and isinstance(data[field_name], str):
                     decrypted_data[field_name] = self._decrypt_value(data[field_name])
                     del decrypted_data[key]
-
         return decrypted_data
 
     def _is_sensitive_field(self, field_name: str) -> bool:
@@ -399,22 +378,17 @@ class AuditEncryption:
         try:
             # Generate random IV
             iv = os.urandom(16)
-
             # Create cipher
             cipher = Cipher(algorithms.AES(self.encryption_key), modes.CBC(iv))
             encryptor = cipher.encryptor()
-
             # Pad data to block size
             padded_data = value.encode("utf-8")
             padding_length = 16 - (len(padded_data) % 16)
             padded_data += bytes([padding_length]) * padding_length
-
             # Encrypt
             encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
-
             # Return base64 encoded IV + encrypted data
             return base64.b64encode(iv + encrypted_data).decode("utf-8")
-
         except Exception as e:
             logger.error(f"Failed to encrypt audit data: {e}")
             return f"[ENCRYPTION_FAILED:{value[:10]}...]"
@@ -424,24 +398,18 @@ class AuditEncryption:
         try:
             # Decode base64
             raw_data = base64.b64decode(encrypted_value.encode("utf-8"))
-
             # Extract IV and encrypted data
             iv = raw_data[:16]
             encrypted = raw_data[16:]
-
             # Create cipher
             cipher = Cipher(algorithms.AES(self.encryption_key), modes.CBC(iv))
             decryptor = cipher.decryptor()
-
             # Decrypt
             padded_data = decryptor.update(encrypted) + decryptor.finalize()
-
             # Remove padding
             padding_length = padded_data[-1]
             data = padded_data[:-padding_length]
-
             return data.decode("utf-8")
-
         except Exception as e:
             logger.error(f"Failed to decrypt audit data: {e}")
             return "[DECRYPTION_FAILED]"
@@ -453,16 +421,13 @@ class AuditDestination(ABC):
     @abstractmethod
     async def log_event(self, event: AuditEvent) -> None:
         """Log audit event to destination."""
-        pass
 
     @abstractmethod
     async def search_events(
-        self, criteria: Dict[str, Any], limit: int = 100
+        self, criteria: builtins.dict[str, Any], limit: int = 100
     ) -> AsyncGenerator[AuditEvent, None]:
         """Search audit events."""
-        pass
 
     @abstractmethod
     async def close(self) -> None:
         """Close destination connection."""
-        pass

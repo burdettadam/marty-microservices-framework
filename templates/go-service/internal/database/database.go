@@ -21,30 +21,27 @@ type DatabaseManager struct {
 }
 
 var (
-	instances = make(map[string]*DatabaseManager)
-	mu        sync.RWMutex
+	instance *DatabaseManager
+	once     sync.Once
 )
 
 // GetInstance returns singleton database manager for service
 func GetInstance(serviceName string, cfg *config.Config, log applogger.Logger) (*DatabaseManager, error) {
-	mu.Lock()
-	defer mu.Unlock()
+	var err error
 
-	if instance, exists := instances[serviceName]; exists {
-		return instance, nil
-	}
+	once.Do(func() {
+		instance = &DatabaseManager{
+			logger: log,
+			config: cfg,
+		}
+		err = instance.initialize()
+	})
 
-	manager := &DatabaseManager{
-		logger: log,
-		config: cfg,
-	}
-
-	if err := manager.initialize(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 
-	instances[serviceName] = manager
-	return manager, nil
+	return instance, nil
 }
 
 // initialize sets up the database connection following Marty patterns

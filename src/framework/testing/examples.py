@@ -5,8 +5,6 @@ These examples show how to use the testing framework infrastructure
 for different types of tests (unit, integration, performance).
 """
 
-from unittest.mock import AsyncMock, Mock
-
 import pytest
 from src.framework.events import BaseEvent
 from src.framework.testing.patterns import (

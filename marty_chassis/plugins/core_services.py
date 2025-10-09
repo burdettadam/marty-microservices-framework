@@ -6,8 +6,9 @@ including configuration, logging, metrics, and event bus functionality.
 """
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from ..config import ChassisConfig
 from ..logger import get_logger
@@ -18,10 +19,10 @@ class EventBusMessage:
     """Event bus message structure."""
 
     event_type: str
-    event_data: Dict[str, Any]
+    event_data: dict[str, Any]
     source: str
     timestamp: float = field(default_factory=lambda: asyncio.get_event_loop().time())
-    correlation_id: Optional[str] = None
+    correlation_id: str | None = None
 
 
 class EventBus:
@@ -33,7 +34,7 @@ class EventBus:
     """
 
     def __init__(self):
-        self.subscribers: Dict[str, List[Callable]] = {}
+        self.subscribers: dict[str, list[Callable]] = {}
         self.logger = get_logger(self.__class__.__name__)
 
     def subscribe(self, event_type: str, handler: Callable) -> None:
@@ -62,7 +63,7 @@ class EventBus:
             self.logger.debug(f"Unsubscribed from event: {event_type}")
 
     async def publish(
-        self, event_type: str, event_data: Dict[str, Any], source: str = "unknown"
+        self, event_type: str, event_data: dict[str, Any], source: str = "unknown"
     ) -> None:
         """
         Publish an event to all subscribers.
@@ -109,10 +110,10 @@ class ServiceRegistry:
     """
 
     def __init__(self):
-        self.services: Dict[str, Dict[str, Any]] = {}
+        self.services: dict[str, dict[str, Any]] = {}
         self.logger = get_logger(self.__class__.__name__)
 
-    def register_service(self, name: str, service_info: Dict[str, Any]) -> None:
+    def register_service(self, name: str, service_info: dict[str, Any]) -> None:
         """
         Register a service.
 
@@ -137,7 +138,7 @@ class ServiceRegistry:
             del self.services[name]
             self.logger.info(f"Unregistered service: {name}")
 
-    def discover_service(self, name: str) -> Optional[Dict[str, Any]]:
+    def discover_service(self, name: str) -> dict[str, Any] | None:
         """
         Discover a service by name.
 
@@ -149,7 +150,7 @@ class ServiceRegistry:
         """
         return self.services.get(name)
 
-    def discover_services(self, tag: Optional[str] = None) -> List[Dict[str, Any]]:
+    def discover_services(self, tag: str | None = None) -> list[dict[str, Any]]:
         """
         Discover services by tag.
 
@@ -168,7 +169,7 @@ class ServiceRegistry:
             if tag in service.get("tags", [])
         ]
 
-    def list_services(self) -> Dict[str, Dict[str, Any]]:
+    def list_services(self) -> dict[str, dict[str, Any]]:
         """List all registered services."""
         return self.services.copy()
 
@@ -198,7 +199,7 @@ class CoreServices:
         self.metrics_collector = metrics_collector
 
         # Extension points registry
-        self.extension_points: Dict[str, List[Callable]] = {}
+        self.extension_points: dict[str, list[Callable]] = {}
 
         self.logger.info("Core services initialized")
 
@@ -227,7 +228,7 @@ class CoreServices:
             self.extension_points[name].remove(handler)
             self.logger.debug(f"Unregistered extension point: {name}")
 
-    async def call_extension_point(self, name: str, *args, **kwargs) -> List[Any]:
+    async def call_extension_point(self, name: str, *args, **kwargs) -> list[Any]:
         """
         Call all handlers for an extension point.
 

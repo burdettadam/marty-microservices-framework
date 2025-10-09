@@ -9,20 +9,33 @@ This script provides comprehensive testing of the templates framework:
 4. Framework feature testing
 """
 
-import os
+import builtins
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Final, List, Optional
 
 
-def run_command(cmd: str, cwd: Optional[str] = None) -> Dict[str, Any]:
+def run_command(cmd: str, cwd: str | None = None) -> builtins.dict[str, Any]:
     """Run a command and return result."""
     print(f"🔧 Running: {cmd}")
     try:
+        # Convert string command to list for security
+        if isinstance(cmd, str):
+            # Simple command splitting - for production use shlex.split()
+            cmd_list = cmd.split()
+        else:
+            cmd_list = cmd
+
         result = subprocess.run(
-            cmd, shell=True, cwd=cwd, capture_output=True, text=True, timeout=60
+            cmd_list,
+            shell=False,  # Security: Disable shell execution
+            cwd=cwd,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
         )
         return {
             "success": result.returncode == 0,
@@ -60,10 +73,9 @@ def test_template_validation() -> bool:
         print("✅ Template validation: PASSED")
         print(f"📊 Output:\n{result['stdout']}")
         return True
-    else:
-        print("❌ Template validation: FAILED")
-        print(f"📊 Error:\n{result['stderr']}")
-        return False
+    print("❌ Template validation: FAILED")
+    print(f"📊 Error:\n{result['stderr']}")
+    return False
 
 
 def test_service_generation() -> bool:
@@ -151,11 +163,10 @@ def test_framework_structure() -> bool:
     if not missing_paths:
         print("✅ Framework structure: All required files present")
         return True
-    else:
-        print("❌ Framework structure: Missing files:")
-        for path in missing_paths:
-            print(f"   - {path}")
-        return False
+    print("❌ Framework structure: Missing files:")
+    for path in missing_paths:
+        print(f"   - {path}")
+    return False
 
 
 def test_template_features() -> bool:
@@ -201,9 +212,7 @@ def test_template_features() -> bool:
         "hybrid_service",
         "auth_service",
     ]
-    found_templates = [
-        name for name in feature_summary.keys() if name in expected_templates
-    ]
+    found_templates = [name for name in feature_summary if name in expected_templates]
 
     print(
         f"\n📊 Core service templates found: {len(found_templates)}/{len(expected_templates)}"
@@ -257,7 +266,7 @@ def main() -> int:
     print("=" * 60)
 
     # Define test suite
-    tests: List[tuple[str, Callable[[], bool]]] = [
+    tests: builtins.list[tuple[str, Callable[[], bool]]] = [
         ("Template Validation", test_template_validation),
         ("Service Generation", test_service_generation),
         ("Framework Structure", test_framework_structure),
@@ -299,10 +308,9 @@ def main() -> int:
         print(f"\n⚠️ {len(failed_tests)} test(s) failed")
         print("🔧 Please review and fix issues before using the framework")
         return 1
-    else:
-        print("\n🎉 ALL TESTS PASSED!")
-        print("✨ Framework is ready for use")
-        return 0
+    print("\n🎉 ALL TESTS PASSED!")
+    print("✨ Framework is ready for use")
+    return 0
 
 
 if __name__ == "__main__":

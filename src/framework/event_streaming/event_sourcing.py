@@ -6,16 +6,27 @@ for event sourcing pattern implementation.
 """
 
 import asyncio
-import json
+import builtins
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Set,
+    Type,
+    TypeVar,
+    dict,
+    list,
+    type,
+)
 
-from .core import DomainEvent, Event, EventBus, EventMetadata, EventStore
+from .core import DomainEvent, EventMetadata, EventStore
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +41,9 @@ class Snapshot:
     aggregate_type: str
     version: int
     timestamp: datetime
-    data: Dict[str, Any]
+    data: builtins.dict[str, Any]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert snapshot to dictionary."""
         return {
             "aggregate_id": self.aggregate_id,
@@ -43,7 +54,7 @@ class Snapshot:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Snapshot":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "Snapshot":
         """Create snapshot from dictionary."""
         return cls(
             aggregate_id=data["aggregate_id"],
@@ -63,7 +74,7 @@ class SnapshotStore(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_snapshot(self, aggregate_id: str) -> Optional[Snapshot]:
+    async def get_snapshot(self, aggregate_id: str) -> Snapshot | None:
         """Get latest snapshot for aggregate."""
         raise NotImplementedError
 
@@ -77,7 +88,7 @@ class InMemorySnapshotStore(SnapshotStore):
     """In-memory snapshot store implementation."""
 
     def __init__(self):
-        self._snapshots: Dict[str, Snapshot] = {}
+        self._snapshots: builtins.dict[str, Snapshot] = {}
         self._lock = asyncio.Lock()
 
     async def save_snapshot(self, snapshot: Snapshot) -> None:
@@ -85,7 +96,7 @@ class InMemorySnapshotStore(SnapshotStore):
         async with self._lock:
             self._snapshots[snapshot.aggregate_id] = snapshot
 
-    async def get_snapshot(self, aggregate_id: str) -> Optional[Snapshot]:
+    async def get_snapshot(self, aggregate_id: str) -> Snapshot | None:
         """Get snapshot."""
         async with self._lock:
             return self._snapshots.get(aggregate_id)
@@ -103,7 +114,7 @@ class AggregateRoot(ABC):
     def __init__(self, aggregate_id: str = None):
         self._aggregate_id = aggregate_id or str(uuid.uuid4())
         self._version = 0
-        self._uncommitted_events: List[DomainEvent] = []
+        self._uncommitted_events: builtins.list[DomainEvent] = []
         self._created_at = datetime.utcnow()
         self._updated_at = datetime.utcnow()
 
@@ -118,7 +129,7 @@ class AggregateRoot(ABC):
         return self._version
 
     @property
-    def uncommitted_events(self) -> List[DomainEvent]:
+    def uncommitted_events(self) -> builtins.list[DomainEvent]:
         """Get uncommitted events."""
         return self._uncommitted_events.copy()
 
@@ -141,7 +152,7 @@ class AggregateRoot(ABC):
         """Mark all uncommitted events as committed."""
         self._uncommitted_events.clear()
 
-    def replay_events(self, events: List[DomainEvent]) -> None:
+    def replay_events(self, events: builtins.list[DomainEvent]) -> None:
         """Replay events to rebuild aggregate state."""
         for event in events:
             self._apply_event(event, is_new=False)
@@ -168,7 +179,7 @@ class AggregateRoot(ABC):
     def _raise_event(
         self,
         event_type: str,
-        event_data: Dict[str, Any],
+        event_data: builtins.dict[str, Any],
         metadata: EventMetadata = None,
     ) -> None:
         """Raise a new domain event."""
@@ -187,12 +198,12 @@ class AggregateRoot(ABC):
         self._version += 1
 
     @abstractmethod
-    def to_snapshot(self) -> Dict[str, Any]:
+    def to_snapshot(self) -> builtins.dict[str, Any]:
         """Create snapshot data from current state."""
         raise NotImplementedError
 
     @abstractmethod
-    def from_snapshot(self, snapshot_data: Dict[str, Any]) -> None:
+    def from_snapshot(self, snapshot_data: builtins.dict[str, Any]) -> None:
         """Restore state from snapshot data."""
         raise NotImplementedError
 
@@ -218,7 +229,7 @@ class Aggregate(AggregateRoot):
 
     def __init__(self, aggregate_id: str = None):
         super().__init__(aggregate_id)
-        self._state_data: Dict[str, Any] = {}
+        self._state_data: builtins.dict[str, Any] = {}
 
     def _when(self, event: DomainEvent) -> None:
         """Default event handler - stores event data in state."""
@@ -229,7 +240,7 @@ class Aggregate(AggregateRoot):
             # Default behavior: merge event data into state
             self._state_data.update(event.event_data)
 
-    def to_snapshot(self) -> Dict[str, Any]:
+    def to_snapshot(self) -> builtins.dict[str, Any]:
         """Create snapshot from state data."""
         return {
             "state_data": self._state_data,
@@ -237,7 +248,7 @@ class Aggregate(AggregateRoot):
             "updated_at": self._updated_at.isoformat(),
         }
 
-    def from_snapshot(self, snapshot_data: Dict[str, Any]) -> None:
+    def from_snapshot(self, snapshot_data: builtins.dict[str, Any]) -> None:
         """Restore from snapshot data."""
         self._state_data = snapshot_data.get("state_data", {})
         if "created_at" in snapshot_data:
@@ -260,7 +271,7 @@ class EventSourcedRepository(ABC, Generic[T]):
     def __init__(
         self,
         event_store: EventStore,
-        snapshot_store: Optional[SnapshotStore] = None,
+        snapshot_store: SnapshotStore | None = None,
         snapshot_frequency: int = 10,
     ):
         self.event_store = event_store
@@ -277,7 +288,7 @@ class EventSourcedRepository(ABC, Generic[T]):
         """Get aggregate type name."""
         raise NotImplementedError
 
-    async def get_by_id(self, aggregate_id: str) -> Optional[T]:
+    async def get_by_id(self, aggregate_id: str) -> T | None:
         """Get aggregate by ID."""
         try:
             aggregate = self._create_aggregate()
@@ -351,9 +362,9 @@ class AggregateRepository(EventSourcedRepository[T]):
 
     def __init__(
         self,
-        aggregate_class: Type[T],
+        aggregate_class: builtins.type[T],
         event_store: EventStore,
-        snapshot_store: Optional[SnapshotStore] = None,
+        snapshot_store: SnapshotStore | None = None,
         snapshot_frequency: int = 10,
     ):
         super().__init__(event_store, snapshot_store, snapshot_frequency)
@@ -370,8 +381,6 @@ class AggregateRepository(EventSourcedRepository[T]):
 
 class EventSourcingError(Exception):
     """Event sourcing specific error."""
-
-    pass
 
 
 class ConcurrencyError(EventSourcingError):
@@ -425,10 +434,10 @@ class AggregateFactory:
     """Factory for creating aggregate instances."""
 
     def __init__(self):
-        self._aggregate_types: Dict[str, Type[AggregateRoot]] = {}
+        self._aggregate_types: builtins.dict[str, builtins.type[AggregateRoot]] = {}
 
     def register_aggregate(
-        self, aggregate_type: str, aggregate_class: Type[AggregateRoot]
+        self, aggregate_type: str, aggregate_class: builtins.type[AggregateRoot]
     ) -> None:
         """Register aggregate type."""
         self._aggregate_types[aggregate_type] = aggregate_class
@@ -443,7 +452,7 @@ class AggregateFactory:
         aggregate_class = self._aggregate_types[aggregate_type]
         return aggregate_class(aggregate_id)
 
-    def get_registered_types(self) -> List[str]:
+    def get_registered_types(self) -> builtins.list[str]:
         """Get list of registered aggregate types."""
         return list(self._aggregate_types.keys())
 
@@ -452,9 +461,9 @@ class AggregateFactory:
 
 
 def create_repository(
-    aggregate_class: Type[T],
+    aggregate_class: builtins.type[T],
     event_store: EventStore,
-    snapshot_store: Optional[SnapshotStore] = None,
+    snapshot_store: SnapshotStore | None = None,
     snapshot_frequency: int = 10,
 ) -> AggregateRepository[T]:
     """Create repository for aggregate class."""

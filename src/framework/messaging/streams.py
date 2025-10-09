@@ -15,16 +15,26 @@ Features:
 """
 
 import asyncio
-import json
+import builtins
 import logging
 import time
 import uuid
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, Iterator, List, Optional, Type, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Set,
+    TypeVar,
+    dict,
+    list,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,21 +60,21 @@ class Event:
     event_type: str = ""
     version: int = 1
     timestamp: float = field(default_factory=time.time)
-    data: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    correlation_id: Optional[str] = None
-    causation_id: Optional[str] = None
+    data: builtins.dict[str, Any] = field(default_factory=dict)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
+    correlation_id: str | None = None
+    causation_id: str | None = None
 
     def __post_init__(self):
         if not self.event_type:
             self.event_type = self.__class__.__name__
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert event to dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Event":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "Event":
         """Create event from dictionary."""
         return cls(**data)
 
@@ -97,55 +107,50 @@ class EventStore(ABC):
     async def append_events(
         self,
         stream_id: str,
-        events: List[Event],
-        expected_version: Optional[int] = None,
+        events: builtins.list[Event],
+        expected_version: int | None = None,
     ) -> bool:
         """Append events to stream."""
-        pass
 
     @abstractmethod
     async def read_events(
         self,
         stream_id: str,
         from_position: int = 0,
-        max_count: Optional[int] = None,
-    ) -> List[EventStoreRecord]:
+        max_count: int | None = None,
+    ) -> builtins.list[EventStoreRecord]:
         """Read events from stream."""
-        pass
 
     @abstractmethod
     async def read_all_events(
         self,
         from_position: int = 0,
-        max_count: Optional[int] = None,
-    ) -> List[EventStoreRecord]:
+        max_count: int | None = None,
+    ) -> builtins.list[EventStoreRecord]:
         """Read all events across streams."""
-        pass
 
     @abstractmethod
     async def get_stream_version(self, stream_id: str) -> int:
         """Get current stream version."""
-        pass
 
     @abstractmethod
     async def delete_stream(self, stream_id: str) -> bool:
         """Delete event stream."""
-        pass
 
 
 class InMemoryEventStore(EventStore):
     """In-memory event store for development and testing."""
 
     def __init__(self):
-        self.streams: Dict[str, EventStream] = {}
-        self.events: Dict[str, List[EventStoreRecord]] = {}
+        self.streams: builtins.dict[str, EventStream] = {}
+        self.events: builtins.dict[str, builtins.list[EventStoreRecord]] = {}
         self.global_position = 0
 
     async def append_events(
         self,
         stream_id: str,
-        events: List[Event],
-        expected_version: Optional[int] = None,
+        events: builtins.list[Event],
+        expected_version: int | None = None,
     ) -> bool:
         """Append events to stream."""
         try:
@@ -187,8 +192,8 @@ class InMemoryEventStore(EventStore):
         self,
         stream_id: str,
         from_position: int = 0,
-        max_count: Optional[int] = None,
-    ) -> List[EventStoreRecord]:
+        max_count: int | None = None,
+    ) -> builtins.list[EventStoreRecord]:
         """Read events from stream."""
         if stream_id not in self.events:
             return []
@@ -207,8 +212,8 @@ class InMemoryEventStore(EventStore):
     async def read_all_events(
         self,
         from_position: int = 0,
-        max_count: Optional[int] = None,
-    ) -> List[EventStoreRecord]:
+        max_count: int | None = None,
+    ) -> builtins.list[EventStoreRecord]:
         """Read all events across streams."""
         all_events = []
 
@@ -248,12 +253,10 @@ class EventHandler(ABC):
     @abstractmethod
     async def handle(self, event: Event) -> bool:
         """Handle event. Return True if successful."""
-        pass
 
     @abstractmethod
     def can_handle(self, event: Event) -> bool:
         """Check if handler can process this event."""
-        pass
 
 
 class EventProcessor:
@@ -261,12 +264,12 @@ class EventProcessor:
 
     def __init__(self, event_store: EventStore):
         self.event_store = event_store
-        self.handlers: List[EventHandler] = []
+        self.handlers: builtins.list[EventHandler] = []
         self.position = 0
         self.batch_size = 100
         self.processing_delay = 0.1
         self._running = False
-        self._processor_task: Optional[asyncio.Task] = None
+        self._processor_task: asyncio.Task | None = None
 
     def add_handler(self, handler: EventHandler) -> None:
         """Add event handler."""
@@ -331,7 +334,7 @@ class EventProcessor:
         self,
         stream_id: str,
         from_position: int = 0,
-        handler: Optional[EventHandler] = None,
+        handler: EventHandler | None = None,
     ) -> None:
         """Replay events from stream."""
         events = await self.event_store.read_events(stream_id, from_position)
@@ -352,7 +355,7 @@ class Aggregate(ABC, Generic[E]):
     def __init__(self, aggregate_id: str):
         self.aggregate_id = aggregate_id
         self.version = 0
-        self.uncommitted_events: List[E] = []
+        self.uncommitted_events: builtins.list[E] = []
 
     def apply_event(self, event: E) -> None:
         """Apply event to aggregate."""
@@ -369,7 +372,7 @@ class Aggregate(ABC, Generic[E]):
         """Mark events as committed."""
         self.uncommitted_events.clear()
 
-    def load_from_history(self, events: List[E]) -> None:
+    def load_from_history(self, events: builtins.list[E]) -> None:
         """Load aggregate from event history."""
         for event in events:
             self.apply_event(event)
@@ -378,21 +381,18 @@ class Aggregate(ABC, Generic[E]):
     @abstractmethod
     def _apply(self, event: E) -> None:
         """Apply event to aggregate state."""
-        pass
 
 
 class Repository(ABC, Generic[T]):
     """Abstract repository interface."""
 
     @abstractmethod
-    async def get(self, aggregate_id: str) -> Optional[T]:
+    async def get(self, aggregate_id: str) -> T | None:
         """Get aggregate by ID."""
-        pass
 
     @abstractmethod
     async def save(self, aggregate: T) -> bool:
         """Save aggregate."""
-        pass
 
 
 class EventSourcedRepository(Repository[T]):
@@ -406,7 +406,7 @@ class EventSourcedRepository(Repository[T]):
         self.event_store = event_store
         self.aggregate_factory = aggregate_factory
 
-    async def get(self, aggregate_id: str) -> Optional[T]:
+    async def get(self, aggregate_id: str) -> T | None:
         """Get aggregate by ID."""
         try:
             # Read events for aggregate
@@ -459,8 +459,8 @@ class EventBus:
     """Event bus for publish/subscribe messaging."""
 
     def __init__(self):
-        self.handlers: Dict[str, List[EventHandler]] = {}
-        self.middleware: List[Callable[[Event], Event]] = []
+        self.handlers: builtins.dict[str, builtins.list[EventHandler]] = {}
+        self.middleware: builtins.list[Callable[[Event], Event]] = []
 
     def subscribe(self, event_type: str, handler: EventHandler) -> None:
         """Subscribe handler to event type."""
@@ -509,12 +509,10 @@ class StreamProjection(ABC):
     @abstractmethod
     async def project(self, event: Event) -> None:
         """Project event to read model."""
-        pass
 
     @abstractmethod
     def can_handle(self, event: Event) -> bool:
         """Check if projection handles this event."""
-        pass
 
     async def reset(self) -> None:
         """Reset projection to initial state."""
@@ -524,11 +522,11 @@ class StreamProjection(ABC):
 class EventStreamManager:
     """High-level event streaming manager."""
 
-    def __init__(self, event_store: Optional[EventStore] = None):
+    def __init__(self, event_store: EventStore | None = None):
         self.event_store = event_store or InMemoryEventStore()
         self.event_bus = EventBus()
         self.processor = EventProcessor(self.event_store)
-        self.projections: List[StreamProjection] = []
+        self.projections: builtins.list[StreamProjection] = []
 
     async def start(self) -> None:
         """Start event streaming."""
@@ -543,8 +541,8 @@ class EventStreamManager:
     async def append_events(
         self,
         stream_id: str,
-        events: List[Event],
-        expected_version: Optional[int] = None,
+        events: builtins.list[Event],
+        expected_version: int | None = None,
     ) -> bool:
         """Append events to stream."""
         success = await self.event_store.append_events(
@@ -585,7 +583,7 @@ class EventStreamManager:
         self,
         stream_id: str,
         from_position: int = 0,
-        projection: Optional[StreamProjection] = None,
+        projection: StreamProjection | None = None,
     ) -> None:
         """Replay events for projection rebuilding."""
         events = await self.event_store.read_events(stream_id, from_position)
@@ -605,16 +603,16 @@ class EventStreamManager:
 
 
 # Global event stream manager
-_event_manager: Optional[EventStreamManager] = None
+_event_manager: EventStreamManager | None = None
 
 
-def get_event_manager() -> Optional[EventStreamManager]:
+def get_event_manager() -> EventStreamManager | None:
     """Get global event manager."""
     return _event_manager
 
 
 def create_event_manager(
-    event_store: Optional[EventStore] = None,
+    event_store: EventStore | None = None,
 ) -> EventStreamManager:
     """Create and set global event manager."""
     global _event_manager
@@ -623,7 +621,7 @@ def create_event_manager(
 
 
 @asynccontextmanager
-async def event_streaming_context(event_store: Optional[EventStore] = None):
+async def event_streaming_context(event_store: EventStore | None = None):
     """Context manager for event streaming lifecycle."""
     manager = create_event_manager(event_store)
     await manager.start()
@@ -635,7 +633,7 @@ async def event_streaming_context(event_store: Optional[EventStore] = None):
 
 
 # Decorators for event handling
-def event_handler(event_types: List[str]):
+def event_handler(event_types: builtins.list[str]):
     """Decorator for event handlers."""
 
     def decorator(cls):

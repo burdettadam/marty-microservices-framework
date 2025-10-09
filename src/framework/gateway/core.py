@@ -6,13 +6,14 @@ framework including request/response handling, routing, middleware, and plugins.
 """
 
 import asyncio
+import builtins
 import logging
 import time
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list, set
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,10 @@ class GatewayError(Exception):
     """Base exception for gateway errors."""
 
     def __init__(
-        self, message: str, status_code: int = 500, details: Dict[str, Any] = None
+        self,
+        message: str,
+        status_code: int = 500,
+        details: builtins.dict[str, Any] = None,
     ):
         super().__init__(message)
         self.message = message
@@ -89,39 +93,39 @@ class GatewayRequest:
     # Basic request information
     method: HTTPMethod
     path: str
-    query_params: Dict[str, List[str]] = field(default_factory=dict)
-    headers: Dict[str, str] = field(default_factory=dict)
-    body: Optional[bytes] = None
+    query_params: builtins.dict[str, builtins.list[str]] = field(default_factory=dict)
+    headers: builtins.dict[str, str] = field(default_factory=dict)
+    body: bytes | None = None
 
     # Client information
-    client_ip: Optional[str] = None
-    user_agent: Optional[str] = None
+    client_ip: str | None = None
+    user_agent: str | None = None
 
     # Request metadata
     request_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: float = field(default_factory=time.time)
 
     # Processing context
-    route_params: Dict[str, str] = field(default_factory=dict)
-    context: Dict[str, Any] = field(default_factory=dict)
+    route_params: builtins.dict[str, str] = field(default_factory=dict)
+    context: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def get_header(self, name: str, default: str = None) -> Optional[str]:
+    def get_header(self, name: str, default: str = None) -> str | None:
         """Get header value (case-insensitive)."""
         for key, value in self.headers.items():
             if key.lower() == name.lower():
                 return value
         return default
 
-    def get_query_param(self, name: str, default: str = None) -> Optional[str]:
+    def get_query_param(self, name: str, default: str = None) -> str | None:
         """Get first query parameter value."""
         values = self.query_params.get(name, [])
         return values[0] if values else default
 
-    def get_query_params(self, name: str) -> List[str]:
+    def get_query_params(self, name: str) -> builtins.list[str]:
         """Get all query parameter values."""
         return self.query_params.get(name, [])
 
-    def get_content_type(self) -> Optional[str]:
+    def get_content_type(self) -> str | None:
         """Get content type header."""
         return self.get_header("Content-Type")
 
@@ -154,12 +158,12 @@ class GatewayResponse:
 
     # Response data
     status_code: int = 200
-    headers: Dict[str, str] = field(default_factory=dict)
-    body: Optional[bytes] = None
+    headers: builtins.dict[str, str] = field(default_factory=dict)
+    body: bytes | None = None
 
     # Response metadata
-    response_time: Optional[float] = None
-    upstream_service: Optional[str] = None
+    response_time: float | None = None
+    upstream_service: str | None = None
 
     def set_header(self, name: str, value: str):
         """Set response header."""
@@ -199,26 +203,26 @@ class RequestContext:
     """Context for processing a request through the gateway."""
 
     request: GatewayRequest
-    response: Optional[GatewayResponse] = None
+    response: GatewayResponse | None = None
 
     # Processing state
     route: Optional["Route"] = None
-    upstream_url: Optional[str] = None
+    upstream_url: str | None = None
 
     # Authentication/authorization
-    user: Optional[Dict[str, Any]] = None
-    permissions: Set[str] = field(default_factory=set)
+    user: builtins.dict[str, Any] | None = None
+    permissions: builtins.set[str] = field(default_factory=set)
 
     # Rate limiting
-    rate_limit_key: Optional[str] = None
-    rate_limit_remaining: Optional[int] = None
+    rate_limit_key: str | None = None
+    rate_limit_remaining: int | None = None
 
     # Timing information
     start_time: float = field(default_factory=time.time)
-    processing_time: Optional[float] = None
+    processing_time: float | None = None
 
     # Custom data for middleware/plugins
-    data: Dict[str, Any] = field(default_factory=dict)
+    data: builtins.dict[str, Any] = field(default_factory=dict)
 
     def set_response(self, response: GatewayResponse):
         """Set response and calculate processing time."""
@@ -234,28 +238,28 @@ class RouteConfig:
 
     # Route matching
     path: str
-    methods: List[HTTPMethod] = field(default_factory=lambda: [HTTPMethod.GET])
-    host: Optional[str] = None
-    headers: Dict[str, str] = field(default_factory=dict)
+    methods: builtins.list[HTTPMethod] = field(default_factory=lambda: [HTTPMethod.GET])
+    host: str | None = None
+    headers: builtins.dict[str, str] = field(default_factory=dict)
 
     # Upstream configuration
     upstream: str
-    rewrite_path: Optional[str] = None
+    rewrite_path: str | None = None
 
     # Route-specific settings
     timeout: float = 30.0
     retries: int = 3
-    rate_limit: Optional[Dict[str, Any]] = None
+    rate_limit: builtins.dict[str, Any] | None = None
     auth_required: bool = True
 
     # Transformation rules
-    request_transformers: List[str] = field(default_factory=list)
-    response_transformers: List[str] = field(default_factory=list)
+    request_transformers: builtins.list[str] = field(default_factory=list)
+    response_transformers: builtins.list[str] = field(default_factory=list)
 
     # Metadata
-    name: Optional[str] = None
-    description: Optional[str] = None
-    tags: List[str] = field(default_factory=list)
+    name: str | None = None
+    description: str | None = None
+    tags: builtins.list[str] = field(default_factory=list)
 
 
 class Route:
@@ -263,9 +267,9 @@ class Route:
 
     def __init__(self, config: RouteConfig):
         self.config = config
-        self._middleware: List["Middleware"] = []
-        self._pre_handlers: List[Callable] = []
-        self._post_handlers: List[Callable] = []
+        self._middleware: builtins.list[Middleware] = []
+        self._pre_handlers: builtins.list[Callable] = []
+        self._post_handlers: builtins.list[Callable] = []
 
     def add_middleware(self, middleware: "Middleware"):
         """Add middleware to this route."""
@@ -362,8 +366,8 @@ class RouteGroup:
     def __init__(self, prefix: str = "", name: str = ""):
         self.prefix = prefix
         self.name = name
-        self.routes: List[Route] = []
-        self._middleware: List["Middleware"] = []
+        self.routes: builtins.list[Route] = []
+        self._middleware: builtins.list[Middleware] = []
 
     def add_route(self, route: Route):
         """Add route to group."""
@@ -404,18 +408,16 @@ class Middleware(ABC):
         Returns:
             True to continue processing, False to stop
         """
-        pass
 
     async def process_response(self, context: RequestContext):
         """Process outgoing response."""
-        pass
 
 
 class MiddlewareChain:
     """Chain of middleware for processing requests."""
 
     def __init__(self):
-        self.middleware: List[Middleware] = []
+        self.middleware: builtins.list[Middleware] = []
 
     def add(self, middleware: Middleware):
         """Add middleware to chain."""
@@ -456,8 +458,8 @@ class MiddlewareRegistry:
     """Registry for managing middleware instances."""
 
     def __init__(self):
-        self._middleware: Dict[str, Middleware] = {}
-        self._factories: Dict[str, Callable[[], Middleware]] = {}
+        self._middleware: builtins.dict[str, Middleware] = {}
+        self._factories: builtins.dict[str, Callable[[], Middleware]] = {}
 
     def register(self, name: str, middleware: Middleware):
         """Register middleware instance."""
@@ -467,7 +469,7 @@ class MiddlewareRegistry:
         """Register middleware factory."""
         self._factories[name] = factory
 
-    def get(self, name: str) -> Optional[Middleware]:
+    def get(self, name: str) -> Middleware | None:
         """Get middleware by name."""
         middleware = self._middleware.get(name)
         if middleware:
@@ -482,7 +484,7 @@ class MiddlewareRegistry:
 
         return None
 
-    def create_chain(self, names: List[str]) -> MiddlewareChain:
+    def create_chain(self, names: builtins.list[str]) -> MiddlewareChain:
         """Create middleware chain from names."""
         chain = MiddlewareChain()
 
@@ -503,7 +505,7 @@ class PluginConfig:
     name: str
     enabled: bool = True
     priority: int = 100
-    config: Dict[str, Any] = field(default_factory=dict)
+    config: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class Plugin(ABC):
@@ -518,35 +520,29 @@ class Plugin(ABC):
     @abstractmethod
     async def initialize(self, gateway: "APIGateway"):
         """Initialize plugin with gateway instance."""
-        pass
 
     async def startup(self):
         """Called when gateway starts up."""
-        pass
 
     async def shutdown(self):
         """Called when gateway shuts down."""
-        pass
 
     async def on_request(self, context: RequestContext):
         """Called for each request."""
-        pass
 
     async def on_response(self, context: RequestContext):
         """Called for each response."""
-        pass
 
     async def on_error(self, context: RequestContext, error: Exception):
         """Called when an error occurs."""
-        pass
 
 
 class PluginManager:
     """Manager for gateway plugins."""
 
     def __init__(self):
-        self.plugins: List[Plugin] = []
-        self._registry: Dict[str, Plugin] = {}
+        self.plugins: builtins.list[Plugin] = []
+        self._registry: builtins.dict[str, Plugin] = {}
 
     def add_plugin(self, plugin: Plugin):
         """Add plugin to manager."""
@@ -563,7 +559,7 @@ class PluginManager:
         if plugin and plugin in self.plugins:
             self.plugins.remove(plugin)
 
-    def get_plugin(self, name: str) -> Optional[Plugin]:
+    def get_plugin(self, name: str) -> Plugin | None:
         """Get plugin by name."""
         return self._registry.get(name)
 
@@ -637,10 +633,10 @@ class GatewayConfig:
     default_upstream_retries: int = 3
 
     # Middleware configuration
-    middleware: List[str] = field(default_factory=list)
+    middleware: builtins.list[str] = field(default_factory=list)
 
     # Plugin configuration
-    plugins: List[PluginConfig] = field(default_factory=list)
+    plugins: builtins.list[PluginConfig] = field(default_factory=list)
 
     # Feature flags
     enable_cors: bool = True
@@ -662,7 +658,7 @@ class GatewayContext:
         self.config = config
         self.middleware_registry = MiddlewareRegistry()
         self.plugin_manager = PluginManager()
-        self.route_groups: List[RouteGroup] = []
+        self.route_groups: builtins.list[RouteGroup] = []
         self._stats = {
             "requests_total": 0,
             "requests_successful": 0,
@@ -675,7 +671,7 @@ class GatewayContext:
         """Add route group to gateway."""
         self.route_groups.append(group)
 
-    def get_all_routes(self) -> List[Route]:
+    def get_all_routes(self) -> builtins.list[Route]:
         """Get all routes from all groups."""
         routes = []
         for group in self.route_groups:
@@ -692,7 +688,7 @@ class GatewayContext:
 
         self._stats["uptime"] = time.time() - self._stats["start_time"]
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> builtins.dict[str, Any]:
         """Get gateway statistics."""
         return self._stats.copy()
 
@@ -809,7 +805,7 @@ class APIGateway:
             context.set_response(response)
             return response
 
-    def _find_route(self, request: GatewayRequest) -> Optional[Route]:
+    def _find_route(self, request: GatewayRequest) -> Route | None:
         """Find route matching the request."""
         for route in self.context.get_all_routes():
             if route.matches(request):
@@ -836,7 +832,7 @@ class APIGateway:
         """Add plugin to gateway."""
         self.context.plugin_manager.add_plugin(plugin)
 
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> builtins.dict[str, Any]:
         """Get gateway health status."""
         return {
             "status": "healthy" if self._running else "stopped",

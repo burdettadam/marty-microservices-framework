@@ -6,9 +6,10 @@ extension points throughout the framework.
 """
 
 import asyncio
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any
 
 from ..logger import get_logger
 
@@ -29,8 +30,8 @@ class ExtensionPoint:
     name: str
     type: ExtensionPointType
     description: str
-    parameters: Dict[str, str]
-    return_type: Optional[str] = None
+    parameters: dict[str, str]
+    return_type: str | None = None
     required: bool = False
 
     def __post_init__(self):
@@ -50,8 +51,8 @@ class ExtensionPointManager:
     """
 
     def __init__(self):
-        self.extension_points: Dict[str, ExtensionPoint] = {}
-        self.handlers: Dict[str, List[Callable]] = {}
+        self.extension_points: dict[str, ExtensionPoint] = {}
+        self.handlers: dict[str, list[Callable]] = {}
         self.logger = get_logger(self.__class__.__name__)
 
     def register_extension_point(self, extension_point: ExtensionPoint) -> None:
@@ -110,7 +111,7 @@ class ExtensionPointManager:
 
     async def call_extension_point(
         self, name: str, data: Any = None, **kwargs
-    ) -> Union[Any, List[Any]]:
+    ) -> Any | list[Any]:
         """
         Call all handlers for an extension point.
 
@@ -153,7 +154,7 @@ class ExtensionPointManager:
             return data if data is not None else []
 
     async def _call_filter_handlers(
-        self, name: str, handlers: List[Callable], data: Any, **kwargs
+        self, name: str, handlers: list[Callable], data: Any, **kwargs
     ) -> Any:
         """
         Call filter handlers sequentially, passing data through the chain.
@@ -183,8 +184,8 @@ class ExtensionPointManager:
         return result
 
     async def _call_action_handlers(
-        self, name: str, handlers: List[Callable], data: Any, **kwargs
-    ) -> List[Any]:
+        self, name: str, handlers: list[Callable], data: Any, **kwargs
+    ) -> list[Any]:
         """
         Call action handlers in parallel and collect results.
 
@@ -218,7 +219,7 @@ class ExtensionPointManager:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             # Filter out exceptions and log them
             valid_results = []
-            for i, result in enumerate(results):
+            for _i, result in enumerate(results):
                 if isinstance(result, Exception):
                     self.logger.error(f"Error in action handler for {name}: {result}")
                 else:
@@ -228,7 +229,7 @@ class ExtensionPointManager:
         return []
 
     async def _call_hook_handlers(
-        self, name: str, handlers: List[Callable], data: Any, **kwargs
+        self, name: str, handlers: list[Callable], data: Any, **kwargs
     ) -> None:
         """
         Call hook handlers to notify of events.
@@ -261,8 +262,8 @@ class ExtensionPointManager:
             await asyncio.gather(*tasks, return_exceptions=True)
 
     async def _call_provider_handlers(
-        self, name: str, handlers: List[Callable], data: Any, **kwargs
-    ) -> List[Any]:
+        self, name: str, handlers: list[Callable], data: Any, **kwargs
+    ) -> list[Any]:
         """
         Call provider handlers to collect provided values.
 
@@ -305,11 +306,11 @@ class ExtensionPointManager:
 
         return []
 
-    def get_extension_point(self, name: str) -> Optional[ExtensionPoint]:
+    def get_extension_point(self, name: str) -> ExtensionPoint | None:
         """Get extension point definition by name."""
         return self.extension_points.get(name)
 
-    def list_extension_points(self) -> Dict[str, ExtensionPoint]:
+    def list_extension_points(self) -> dict[str, ExtensionPoint]:
         """List all registered extension points."""
         return self.extension_points.copy()
 

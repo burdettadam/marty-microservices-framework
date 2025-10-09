@@ -11,6 +11,7 @@ Provides comprehensive threat detection including:
 """
 
 import asyncio
+import builtins
 import hashlib
 import json
 import math
@@ -21,7 +22,7 @@ from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, set, tuple
 
 # External dependencies (optional)
 try:
@@ -78,17 +79,17 @@ class SecurityEvent:
     event_id: str
     timestamp: datetime
     source_ip: str
-    user_id: Optional[str]
+    user_id: str | None
     service_name: str
     event_type: str
     description: str
     severity: ThreatLevel
     category: ThreatCategory
-    raw_data: Dict[str, Any]
-    correlation_id: Optional[str] = None
-    threat_indicators: List[str] = field(default_factory=list)
+    raw_data: builtins.dict[str, Any]
+    correlation_id: str | None = None
+    threat_indicators: builtins.list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "timestamp": self.timestamp.isoformat(),
@@ -108,7 +109,7 @@ class ThreatIntelligence:
     source: str
     description: str
     created_at: datetime
-    expires_at: Optional[datetime] = None
+    expires_at: datetime | None = None
 
     def is_valid(self) -> bool:
         """Check if threat intel is still valid"""
@@ -129,12 +130,12 @@ class SecurityIncident:
     status: IncidentStatus
     created_at: datetime
     updated_at: datetime
-    events: List[SecurityEvent] = field(default_factory=list)
-    affected_services: Set[str] = field(default_factory=set)
-    response_actions: List[str] = field(default_factory=list)
-    assigned_to: Optional[str] = None
+    events: builtins.list[SecurityEvent] = field(default_factory=list)
+    affected_services: builtins.set[str] = field(default_factory=set)
+    response_actions: builtins.list[str] = field(default_factory=list)
+    assigned_to: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             **asdict(self),
             "created_at": self.created_at.isoformat(),
@@ -160,8 +161,8 @@ class AnomalyDetector:
 
     def __init__(self, window_size: int = 1000):
         self.window_size = window_size
-        self.baselines: Dict[str, Dict[str, Any]] = {}
-        self.event_history: Dict[str, deque] = defaultdict(
+        self.baselines: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.event_history: builtins.dict[str, deque] = defaultdict(
             lambda: deque(maxlen=window_size)
         )
 
@@ -177,7 +178,7 @@ class AnomalyDetector:
             )
 
     def establish_baseline(
-        self, service_name: str, metric_name: str, values: List[float]
+        self, service_name: str, metric_name: str, values: builtins.list[float]
     ):
         """Establish behavioral baseline for a service metric"""
         if len(values) < 10:
@@ -208,7 +209,7 @@ class AnomalyDetector:
         metric_name: str,
         value: float,
         threshold_std: float = 3.0,
-    ) -> Tuple[bool, float]:
+    ) -> builtins.tuple[bool, float]:
         """Detect statistical anomalies using Z-score"""
 
         # Store value in history
@@ -252,8 +253,8 @@ class AnomalyDetector:
         return is_anomaly, z_score
 
     def detect_behavioral_anomaly(
-        self, service_name: str, user_actions: List[Dict[str, Any]]
-    ) -> Tuple[bool, float, List[str]]:
+        self, service_name: str, user_actions: builtins.list[builtins.dict[str, Any]]
+    ) -> builtins.tuple[bool, float, builtins.list[str]]:
         """Detect behavioral anomalies in user actions"""
 
         if not user_actions:
@@ -350,7 +351,7 @@ class AnomalyDetector:
 
         return False
 
-    def get_baseline_summary(self) -> Dict[str, Any]:
+    def get_baseline_summary(self) -> builtins.dict[str, Any]:
         """Get summary of established baselines"""
         summary = {
             "total_services": len(self.baselines),
@@ -382,8 +383,8 @@ class ThreatIntelligenceEngine:
     """
 
     def __init__(self):
-        self.threat_indicators: Dict[str, ThreatIntelligence] = {}
-        self.threat_feeds: List[str] = []
+        self.threat_indicators: builtins.dict[str, ThreatIntelligence] = {}
+        self.threat_feeds: builtins.list[str] = []
 
         # Load default threat indicators
         self._load_default_indicators()
@@ -456,7 +457,9 @@ class ThreatIntelligenceEngine:
             f"Added threat indicator: {threat_intel.indicator} ({threat_intel.threat_type.value})"
         )
 
-    def check_threat_indicators(self, data: Dict[str, Any]) -> List[ThreatIntelligence]:
+    def check_threat_indicators(
+        self, data: builtins.dict[str, Any]
+    ) -> builtins.list[ThreatIntelligence]:
         """Check data against threat indicators"""
         matches = []
 
@@ -520,7 +523,7 @@ class ThreatIntelligenceEngine:
             del self.threat_indicators[key]
             print(f"Removed expired threat indicator: {key}")
 
-    def get_threat_summary(self) -> Dict[str, Any]:
+    def get_threat_summary(self) -> builtins.dict[str, Any]:
         """Get threat intelligence summary"""
         active_indicators = [
             intel for intel in self.threat_indicators.values() if intel.is_valid()
@@ -553,8 +556,8 @@ class IncidentResponseEngine:
     """
 
     def __init__(self):
-        self.incidents: Dict[str, SecurityIncident] = {}
-        self.response_playbooks: Dict[ThreatCategory, List[str]] = {}
+        self.incidents: builtins.dict[str, SecurityIncident] = {}
+        self.response_playbooks: builtins.dict[ThreatCategory, builtins.list[str]] = {}
         self.incident_counter = 0
 
         # Initialize default playbooks
@@ -620,7 +623,7 @@ class IncidentResponseEngine:
         description: str,
         threat_level: ThreatLevel,
         category: ThreatCategory,
-        events: List[SecurityEvent],
+        events: builtins.list[SecurityEvent],
     ) -> SecurityIncident:
         """Create new security incident"""
 
@@ -727,9 +730,9 @@ class IncidentResponseEngine:
     def update_incident(
         self,
         incident_id: str,
-        status: Optional[IncidentStatus] = None,
-        assigned_to: Optional[str] = None,
-        notes: Optional[str] = None,
+        status: IncidentStatus | None = None,
+        assigned_to: str | None = None,
+        notes: str | None = None,
     ) -> bool:
         """Update incident details"""
 
@@ -750,7 +753,7 @@ class IncidentResponseEngine:
         print(f"Updated incident {incident_id}")
         return True
 
-    def get_active_incidents(self) -> List[SecurityIncident]:
+    def get_active_incidents(self) -> builtins.list[SecurityIncident]:
         """Get all active incidents"""
         return [
             incident
@@ -759,7 +762,7 @@ class IncidentResponseEngine:
             not in [IncidentStatus.RESOLVED, IncidentStatus.FALSE_POSITIVE]
         ]
 
-    def get_incident_summary(self) -> Dict[str, Any]:
+    def get_incident_summary(self) -> builtins.dict[str, Any]:
         """Get incident summary statistics"""
         incidents = list(self.incidents.values())
 
@@ -809,8 +812,8 @@ class ThreatDetectionManager:
             )
 
     async def process_security_event(
-        self, event_data: Dict[str, Any]
-    ) -> Optional[SecurityEvent]:
+        self, event_data: builtins.dict[str, Any]
+    ) -> SecurityEvent | None:
         """Process incoming security event"""
 
         # Create security event
@@ -868,7 +871,7 @@ class ThreatDetectionManager:
             if is_anomaly:
                 await self._create_anomaly_incident(
                     event,
-                    f"Response time anomaly detected",
+                    "Response time anomaly detected",
                     f"Response time {response_time}ms is {score:.2f} standard deviations from normal",
                     ThreatLevel.MEDIUM if score > 4.0 else ThreatLevel.LOW,
                 )
@@ -883,7 +886,7 @@ class ThreatDetectionManager:
             if is_anomaly:
                 await self._create_anomaly_incident(
                     event,
-                    f"Error rate anomaly detected",
+                    "Error rate anomaly detected",
                     f"Error rate {error_rate}% is {score:.2f} standard deviations from normal",
                     ThreatLevel.HIGH if score > 4.0 else ThreatLevel.MEDIUM,
                 )
@@ -963,7 +966,7 @@ class ThreatDetectionManager:
 
     async def _create_correlation_incident(
         self,
-        events: List[SecurityEvent],
+        events: builtins.list[SecurityEvent],
         title: str,
         description: str,
         severity: ThreatLevel,
@@ -994,7 +997,7 @@ class ThreatDetectionManager:
                 print(f"Error updating threat feeds: {e}")
                 await asyncio.sleep(300)  # Retry in 5 minutes
 
-    def get_security_status(self) -> Dict[str, Any]:
+    def get_security_status(self) -> builtins.dict[str, Any]:
         """Get overall security status"""
         return {
             "threat_detection_active": True,

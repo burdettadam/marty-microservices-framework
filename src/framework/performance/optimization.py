@@ -6,25 +6,21 @@ automated profiling, resource optimization, intelligent caching, and performance
 """
 
 import asyncio
+import builtins
 import cProfile
-import gc
 import io
 import json
-import math
 import pstats
 import threading
 import time
-from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
-from weakref import WeakSet
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list, set
 
 import aioredis
-import memcache
 import psutil
 from cachetools import LRUCache, TTLCache
 
@@ -65,10 +61,10 @@ class PerformanceProfile:
 
     profiler_type: ProfilerType
     duration: float
-    function_stats: Dict[str, Dict[str, float]]
-    hotspots: List[str]
-    memory_usage: Dict[str, float]
-    recommendations: List[str]
+    function_stats: builtins.dict[str, builtins.dict[str, float]]
+    hotspots: builtins.list[str]
+    memory_usage: builtins.dict[str, float]
+    recommendations: builtins.list[str]
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -82,9 +78,9 @@ class OptimizationRecommendation:
     priority: int  # 1-10, higher is more important
     estimated_impact: float  # 0-1, percentage improvement expected
     implementation_effort: str  # "low", "medium", "high"
-    code_location: Optional[str] = None
-    specific_actions: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    code_location: str | None = None
+    specific_actions: builtins.list[str] = field(default_factory=list)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -110,23 +106,25 @@ class PerformanceProfiler:
         """Initialize performance profiler."""
         self.service_name = service_name
         self.profiles: deque = deque(maxlen=100)
-        self.active_profilers: Dict[str, Any] = {}
+        self.active_profilers: builtins.dict[str, Any] = {}
         self.profiling_enabled = True
 
         # Resource monitoring
         self.resource_history: deque = deque(
             maxlen=1440
         )  # 24 hours at 1-minute intervals
-        self.monitoring_thread: Optional[threading.Thread] = None
+        self.monitoring_thread: threading.Thread | None = None
         self._stop_monitoring = threading.Event()
 
         # Function call tracking
-        self.function_calls: Dict[str, List[float]] = defaultdict(list)
-        self.slow_functions: Set[str] = set()
+        self.function_calls: builtins.dict[str, builtins.list[float]] = defaultdict(
+            list
+        )
+        self.slow_functions: builtins.set[str] = set()
 
         # Memory tracking
         self.memory_snapshots: deque = deque(maxlen=50)
-        self.memory_leaks: List[Dict[str, Any]] = []
+        self.memory_leaks: builtins.list[builtins.dict[str, Any]] = []
 
     def start_resource_monitoring(self):
         """Start resource monitoring in background."""
@@ -287,8 +285,8 @@ class PerformanceProfiler:
 
     def _analyze_memory_profile(
         self,
-        initial_memory: Dict[str, int],
-        final_memory: Dict[str, int],
+        initial_memory: builtins.dict[str, int],
+        final_memory: builtins.dict[str, int],
         duration: float,
         function_name: str,
     ) -> PerformanceProfile:
@@ -310,7 +308,7 @@ class PerformanceProfiler:
             recommendations=recommendations,
         )
 
-    def _get_memory_usage(self) -> Dict[str, int]:
+    def _get_memory_usage(self) -> builtins.dict[str, int]:
         """Get current memory usage statistics."""
         process = psutil.Process()
         memory_info = process.memory_info()
@@ -334,10 +332,10 @@ class PerformanceProfiler:
 
     def _generate_cpu_recommendations(
         self,
-        function_stats: Dict[str, Dict[str, float]],
-        hotspots: List[str],
+        function_stats: builtins.dict[str, builtins.dict[str, float]],
+        hotspots: builtins.list[str],
         duration: float,
-    ) -> List[str]:
+    ) -> builtins.list[str]:
         """Generate CPU optimization recommendations."""
         recommendations = []
 
@@ -371,8 +369,8 @@ class PerformanceProfiler:
         return recommendations
 
     def _generate_memory_recommendations(
-        self, memory_diff: Dict[str, int], duration: float
-    ) -> List[str]:
+        self, memory_diff: builtins.dict[str, int], duration: float
+    ) -> builtins.list[str]:
         """Generate memory optimization recommendations."""
         recommendations = []
 
@@ -392,7 +390,7 @@ class PerformanceProfiler:
 
         return recommendations
 
-    def get_performance_summary(self) -> Dict[str, Any]:
+    def get_performance_summary(self) -> builtins.dict[str, Any]:
         """Get performance profiling summary."""
         recent_profiles = list(self.profiles)[-10:]  # Last 10 profiles
 
@@ -444,7 +442,7 @@ class PerformanceProfiler:
             "recommendations": self._generate_overall_recommendations(),
         }
 
-    def _generate_overall_recommendations(self) -> List[str]:
+    def _generate_overall_recommendations(self) -> builtins.list[str]:
         """Generate overall performance recommendations."""
         recommendations = []
 
@@ -484,7 +482,7 @@ class IntelligentCaching:
         # Multiple cache layers
         self.l1_cache = LRUCache(maxsize=1000)  # Fast in-memory cache
         self.l2_cache = TTLCache(maxsize=10000, ttl=3600)  # Larger TTL cache
-        self.distributed_cache: Optional[aioredis.Redis] = None
+        self.distributed_cache: aioredis.Redis | None = None
 
         # Cache analytics
         self.cache_stats = defaultdict(lambda: {"hits": 0, "misses": 0, "evictions": 0})
@@ -492,9 +490,9 @@ class IntelligentCaching:
         self.cache_performance = deque(maxlen=1000)
 
         # Adaptive configuration
-        self.cache_strategies: Dict[str, CacheStrategy] = {}
-        self.ttl_values: Dict[str, int] = {}
-        self.cache_sizes: Dict[str, int] = {}
+        self.cache_strategies: builtins.dict[str, CacheStrategy] = {}
+        self.ttl_values: builtins.dict[str, int] = {}
+        self.cache_sizes: builtins.dict[str, int] = {}
 
         # Machine learning for cache optimization
         self.access_predictor = None
@@ -509,7 +507,7 @@ class IntelligentCaching:
         except Exception as e:
             print(f"Failed to initialize distributed cache: {e}")
 
-    async def get(self, key: str, namespace: str = "default") -> Optional[Any]:
+    async def get(self, key: str, namespace: str = "default") -> Any | None:
         """Get value from cache with intelligent fallback."""
         start_time = time.time()
         cache_key = f"{namespace}:{key}"
@@ -556,8 +554,8 @@ class IntelligentCaching:
         key: str,
         value: Any,
         namespace: str = "default",
-        ttl: Optional[int] = None,
-        strategy: Optional[CacheStrategy] = None,
+        ttl: int | None = None,
+        strategy: CacheStrategy | None = None,
     ) -> bool:
         """Set value in cache with intelligent placement."""
         cache_key = f"{namespace}:{key}"
@@ -631,10 +629,9 @@ class IntelligentCaching:
         # Strategy selection logic
         if access_frequency > 10 and value_size < 1024:  # Frequent small objects
             return CacheStrategy.LRU
-        elif value_size > 10240:  # Large objects
+        if value_size > 10240:  # Large objects
             return CacheStrategy.WRITE_AROUND
-        else:
-            return CacheStrategy.TTL
+        return CacheStrategy.TTL
 
     def _determine_optimal_ttl(self, cache_key: str) -> int:
         """Determine optimal TTL for a cache key."""
@@ -686,7 +683,7 @@ class IntelligentCaching:
             }
         )
 
-    def get_cache_analytics(self) -> Dict[str, Any]:
+    def get_cache_analytics(self) -> builtins.dict[str, Any]:
         """Get comprehensive cache analytics."""
         # Calculate hit rates
         hit_rates = {}
@@ -753,7 +750,7 @@ class IntelligentCaching:
             "recommendations": self._generate_cache_recommendations(),
         }
 
-    def _generate_cache_recommendations(self) -> List[str]:
+    def _generate_cache_recommendations(self) -> builtins.list[str]:
         """Generate cache optimization recommendations."""
         recommendations = []
 
@@ -796,7 +793,7 @@ class IntelligentCaching:
 
         return total_hits / total_requests if total_requests > 0 else 0
 
-    def _get_strategy_efficiency(self) -> Dict[str, float]:
+    def _get_strategy_efficiency(self) -> builtins.dict[str, float]:
         """Get efficiency by caching strategy."""
         strategy_performance = defaultdict(list)
 
@@ -820,7 +817,7 @@ class ResourceOptimizer:
         """Initialize resource optimizer."""
         self.service_name = service_name
         self.optimization_history: deque = deque(maxlen=100)
-        self.resource_targets: Dict[str, float] = {
+        self.resource_targets: builtins.dict[str, float] = {
             "cpu_utilization": 0.7,  # Target 70% CPU utilization
             "memory_utilization": 0.8,  # Target 80% memory utilization
             "response_time": 200,  # Target 200ms response time
@@ -828,7 +825,7 @@ class ResourceOptimizer:
         }
 
         # Optimization strategies
-        self.optimization_strategies: Dict[OptimizationType, Callable] = {
+        self.optimization_strategies: builtins.dict[OptimizationType, Callable] = {
             OptimizationType.CPU_OPTIMIZATION: self._optimize_cpu,
             OptimizationType.MEMORY_OPTIMIZATION: self._optimize_memory,
             OptimizationType.IO_OPTIMIZATION: self._optimize_io,
@@ -836,8 +833,10 @@ class ResourceOptimizer:
         }
 
     def analyze_and_optimize(
-        self, resource_metrics: ResourceMetrics, performance_data: Dict[str, Any]
-    ) -> List[OptimizationRecommendation]:
+        self,
+        resource_metrics: ResourceMetrics,
+        performance_data: builtins.dict[str, Any],
+    ) -> builtins.list[OptimizationRecommendation]:
         """Analyze current state and generate optimization recommendations."""
         recommendations = []
 
@@ -876,8 +875,10 @@ class ResourceOptimizer:
         return recommendations
 
     def _optimize_cpu(
-        self, resource_metrics: ResourceMetrics, performance_data: Dict[str, Any]
-    ) -> List[OptimizationRecommendation]:
+        self,
+        resource_metrics: ResourceMetrics,
+        performance_data: builtins.dict[str, Any],
+    ) -> builtins.list[OptimizationRecommendation]:
         """Generate CPU optimization recommendations."""
         recommendations = []
 
@@ -921,8 +922,10 @@ class ResourceOptimizer:
         return recommendations
 
     def _optimize_memory(
-        self, resource_metrics: ResourceMetrics, performance_data: Dict[str, Any]
-    ) -> List[OptimizationRecommendation]:
+        self,
+        resource_metrics: ResourceMetrics,
+        performance_data: builtins.dict[str, Any],
+    ) -> builtins.list[OptimizationRecommendation]:
         """Generate memory optimization recommendations."""
         recommendations = []
 
@@ -968,8 +971,10 @@ class ResourceOptimizer:
         return recommendations
 
     def _optimize_io(
-        self, resource_metrics: ResourceMetrics, performance_data: Dict[str, Any]
-    ) -> List[OptimizationRecommendation]:
+        self,
+        resource_metrics: ResourceMetrics,
+        performance_data: builtins.dict[str, Any],
+    ) -> builtins.list[OptimizationRecommendation]:
         """Generate I/O optimization recommendations."""
         recommendations = []
 
@@ -1001,8 +1006,10 @@ class ResourceOptimizer:
         return recommendations
 
     def _optimize_cache(
-        self, resource_metrics: ResourceMetrics, performance_data: Dict[str, Any]
-    ) -> List[OptimizationRecommendation]:
+        self,
+        resource_metrics: ResourceMetrics,
+        performance_data: builtins.dict[str, Any],
+    ) -> builtins.list[OptimizationRecommendation]:
         """Generate cache optimization recommendations."""
         recommendations = []
 
@@ -1042,7 +1049,7 @@ class ResourceOptimizer:
 
     def apply_optimization(
         self, recommendation: OptimizationRecommendation
-    ) -> Dict[str, Any]:
+    ) -> builtins.dict[str, Any]:
         """Apply an optimization recommendation."""
         result = {
             "recommendation_id": recommendation.title,
@@ -1097,8 +1104,8 @@ class PerformanceOptimizationEngine:
         self.optimization_results: deque = deque(maxlen=100)
 
         # Performance monitoring
-        self.performance_baseline: Dict[str, float] = {}
-        self.performance_trends: Dict[str, deque] = defaultdict(
+        self.performance_baseline: builtins.dict[str, float] = {}
+        self.performance_trends: builtins.dict[str, deque] = defaultdict(
             lambda: deque(maxlen=100)
         )
 
@@ -1145,7 +1152,7 @@ class PerformanceOptimizationEngine:
                 print(f"Error in optimization loop: {e}")
                 await asyncio.sleep(60)
 
-    async def _collect_performance_data(self) -> Dict[str, Any]:
+    async def _collect_performance_data(self) -> builtins.dict[str, Any]:
         """Collect comprehensive performance data."""
         # Get profiler data
         profiler_summary = self.profiler.get_performance_summary()
@@ -1166,8 +1173,8 @@ class PerformanceOptimizationEngine:
         }
 
     async def _generate_recommendations(
-        self, performance_data: Dict[str, Any]
-    ) -> List[OptimizationRecommendation]:
+        self, performance_data: builtins.dict[str, Any]
+    ) -> builtins.list[OptimizationRecommendation]:
         """Generate comprehensive optimization recommendations."""
         recommendations = []
 
@@ -1212,7 +1219,7 @@ class PerformanceOptimizationEngine:
 
         return recommendations
 
-    def get_optimization_status(self) -> Dict[str, Any]:
+    def get_optimization_status(self) -> builtins.dict[str, Any]:
         """Get comprehensive optimization status."""
         return {
             "service": self.service_name,

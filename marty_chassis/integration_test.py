@@ -4,8 +4,6 @@ Integration test to verify marty_chassis functionality.
 Tests key components to ensure the package meets requirements.
 """
 
-import os
-import shutil
 import sys
 import tempfile
 from pathlib import Path

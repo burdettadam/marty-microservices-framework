@@ -13,7 +13,7 @@ import os
 import re
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Optional, Set, TypeVar, Union, dict, list, type
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError, validator
@@ -53,7 +53,7 @@ class SecurityConfig(BaseModel):
     )
     api_key_header: str = Field(default="X-API-Key", description="API key header name")
     enable_cors: bool = Field(default=True, description="Enable CORS")
-    cors_origins: List[str] = Field(default=["*"], description="CORS allowed origins")
+    cors_origins: list[str] = Field(default=["*"], description="CORS allowed origins")
     rate_limit_requests: int = Field(
         default=100, description="Rate limit requests per minute"
     )
@@ -80,7 +80,7 @@ class ObservabilityConfig(BaseModel):
     enable_metrics: bool = Field(default=True, description="Enable Prometheus metrics")
     metrics_port: int = Field(default=8000, description="Metrics server port")
     enable_tracing: bool = Field(default=True, description="Enable distributed tracing")
-    jaeger_endpoint: Optional[str] = Field(default=None, description="Jaeger endpoint")
+    jaeger_endpoint: str | None = Field(default=None, description="Jaeger endpoint")
 
 
 class ResilienceConfig(BaseModel):
@@ -124,7 +124,7 @@ class ChassisConfig(BaseSettings):
     security: SecurityConfig = Field(default_factory=SecurityConfig)
 
     # Database configuration (optional)
-    database: Optional[DatabaseConfig] = None
+    database: DatabaseConfig | None = None
 
     # Observability configuration
     observability: ObservabilityConfig = Field(default_factory=ObservabilityConfig)
@@ -147,10 +147,10 @@ class ChassisConfig(BaseSettings):
         return v
 
     @classmethod
-    def from_yaml(cls, file_path: Union[str, Path]) -> "ChassisConfig":
+    def from_yaml(cls, file_path: str | Path) -> "ChassisConfig":
         """Load configuration from YAML file."""
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = yaml.safe_load(f)
             return cls(**data)
         except FileNotFoundError:
@@ -170,7 +170,7 @@ class ChassisConfig(BaseSettings):
                 f"Environment configuration validation failed: {e}"
             )
 
-    def to_yaml(self, file_path: Union[str, Path]) -> None:
+    def to_yaml(self, file_path: str | Path) -> None:
         """Save configuration to YAML file."""
         try:
             with open(file_path, "w") as f:
@@ -182,16 +182,16 @@ class ChassisConfig(BaseSettings):
 class ConfigManager:
     """Configuration manager for handling multiple configurations."""
 
-    def __init__(self, config: Optional[ChassisConfig] = None):
+    def __init__(self, config: ChassisConfig | None = None):
         self._config = config or ChassisConfig()
-        self._overrides: Dict[str, Any] = {}
+        self._overrides: dict[str, Any] = {}
 
     @property
     def config(self) -> ChassisConfig:
         """Get the current configuration."""
         return self._config
 
-    def load_from_yaml(self, file_path: Union[str, Path]) -> None:
+    def load_from_yaml(self, file_path: str | Path) -> None:
         """Load configuration from YAML file."""
         self._config = ChassisConfig.from_yaml(file_path)
 
@@ -231,9 +231,9 @@ class ConfigManager:
 
 
 def load_config(
-    yaml_file: Optional[Union[str, Path]] = None,
+    yaml_file: str | Path | None = None,
     env_prefix: str = "CHASSIS",
-    environment: Optional[Environment] = None,
+    environment: Environment | None = None,
 ) -> ChassisConfig:
     """
     Load configuration with automatic environment detection.
@@ -260,7 +260,7 @@ def load_config(
 
 
 # Global configuration instance
-_global_config: Optional[ConfigManager] = None
+_global_config: ConfigManager | None = None
 
 
 def get_config() -> ConfigManager:

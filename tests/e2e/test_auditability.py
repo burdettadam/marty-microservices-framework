@@ -9,14 +9,14 @@ This test demonstrates:
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, dict, list
 
-import pytest
 import pytest_asyncio
 from tests.e2e.conftest import AuditEvent, PerformanceAnalyzer
 
@@ -25,12 +25,14 @@ class AuditTrailCollector:
     """Collects and analyzes audit trail data for compliance and debugging."""
 
     def __init__(self):
-        self.audit_events: List[AuditEvent] = []
-        self.error_events: List[Dict] = []
-        self.business_events: List[Dict] = []
-        self.security_events: List[Dict] = []
-        self.performance_events: List[Dict] = []
-        self.correlation_map: Dict[str, List[str]] = {}  # request_id -> event_ids
+        self.audit_events: builtins.list[AuditEvent] = []
+        self.error_events: builtins.list[builtins.dict] = []
+        self.business_events: builtins.list[builtins.dict] = []
+        self.security_events: builtins.list[builtins.dict] = []
+        self.performance_events: builtins.list[builtins.dict] = []
+        self.correlation_map: builtins.dict[
+            str, builtins.list[str]
+        ] = {}  # request_id -> event_ids
 
         # Setup structured logging
         self.logger = self._setup_structured_logger()
@@ -61,7 +63,7 @@ class AuditTrailCollector:
         service: str,
         correlation_id: str = None,
         user_id: str = None,
-        metadata: Dict = None,
+        metadata: builtins.dict = None,
     ) -> str:
         """Record an audit event with full traceability."""
 
@@ -111,7 +113,7 @@ class AuditTrailCollector:
 
         return event_id
 
-    def _event_to_dict(self, event: AuditEvent, event_id: str) -> Dict:
+    def _event_to_dict(self, event: AuditEvent, event_id: str) -> builtins.dict:
         """Convert audit event to dictionary."""
         return {
             "id": event_id,
@@ -125,7 +127,9 @@ class AuditTrailCollector:
             "request_id": event.request_id,
         }
 
-    def get_events_by_correlation(self, correlation_id: str) -> List[Dict]:
+    def get_events_by_correlation(
+        self, correlation_id: str
+    ) -> builtins.list[builtins.dict]:
         """Get all events for a specific correlation ID."""
         if correlation_id not in self.correlation_map:
             return []
@@ -140,7 +144,7 @@ class AuditTrailCollector:
 
         return [event for event in all_events if event["id"] in event_ids]
 
-    def analyze_error_patterns(self) -> Dict:
+    def analyze_error_patterns(self) -> builtins.dict:
         """Analyze error patterns for insights."""
         if not self.error_events:
             return {"patterns": [], "insights": []}
@@ -202,7 +206,7 @@ class AuditTrailCollector:
 
         return {"patterns": patterns, "insights": insights}
 
-    def generate_compliance_report(self) -> Dict:
+    def generate_compliance_report(self) -> builtins.dict:
         """Generate compliance audit report."""
         now = datetime.now()
 
@@ -242,7 +246,7 @@ class AuditTrailCollector:
             "error_analysis": self.analyze_error_patterns(),
         }
 
-    def _run_compliance_checks(self) -> List[Dict]:
+    def _run_compliance_checks(self) -> builtins.list[builtins.dict]:
         """Run compliance checks on audit data."""
         checks = []
 
@@ -563,7 +567,7 @@ class TestAuditability:
                 audit_collector.record_event(
                     event_type="error",
                     severity="error",
-                    message=f"Monitoring error: {str(e)}",
+                    message=f"Monitoring error: {e!s}",
                     service="monitoring_service",
                     user_id="system",
                     metadata={
@@ -611,7 +615,7 @@ class TestAuditability:
                 audit_collector.record_event(
                     event_type="business",
                     severity="info",
-                    message=f"Simulation operation completed successfully",
+                    message="Simulation operation completed successfully",
                     service="simulation_service",
                     correlation_id=correlation_id,
                     user_id=scenario["user_context"],
@@ -628,7 +632,7 @@ class TestAuditability:
                 audit_collector.record_event(
                     event_type="error",
                     severity="error",
-                    message=f"Simulation operation failed: {str(e)}",
+                    message=f"Simulation operation failed: {e!s}",
                     service="simulation_service",
                     correlation_id=correlation_id,
                     user_id=scenario["user_context"],
@@ -697,7 +701,7 @@ class TestAuditability:
                 audit_collector.record_event(
                     event_type="error",
                     severity="error",
-                    message=f"Pipeline job failed: {str(e)}",
+                    message=f"Pipeline job failed: {e!s}",
                     service="pipeline_service",
                     correlation_id=correlation_id,
                     user_id=scenario["user_context"],
@@ -753,7 +757,7 @@ class TestAuditability:
             await asyncio.sleep(random.uniform(1, 3))
 
     async def _analyze_audit_completeness(
-        self, audit_collector: AuditTrailCollector, results: Dict
+        self, audit_collector: AuditTrailCollector, results: builtins.dict
     ):
         """Analyze completeness and quality of audit trails."""
         analysis = {
@@ -948,13 +952,13 @@ class TestAuditability:
 
         gaps = report["gaps_and_recommendations"]["gaps_identified"]
         if gaps:
-            print(f"\\n⚠️  GAPS IDENTIFIED:")
+            print("\\n⚠️  GAPS IDENTIFIED:")
             for gap in gaps[:3]:
                 print(f"   • {gap}")
 
         recommendations = report["gaps_and_recommendations"]["recommendations"]
         if recommendations:
-            print(f"\\n💡 RECOMMENDATIONS:")
+            print("\\n💡 RECOMMENDATIONS:")
             for rec in recommendations[:2]:
                 print(f"   🎯 {rec['category']} ({rec['priority']} priority)")
                 for action in rec["actions"][:2]:

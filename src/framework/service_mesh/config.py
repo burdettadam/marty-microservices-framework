@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Set
 
 import yaml
 
@@ -39,9 +39,9 @@ class ValidationResult:
     """Configuration validation result."""
 
     valid: bool
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-    suggestions: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    suggestions: list[str] = field(default_factory=list)
 
     def add_error(self, message: str) -> None:
         """Add validation error."""
@@ -56,7 +56,7 @@ class ValidationResult:
         """Add validation suggestion."""
         self.suggestions.append(message)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "valid": self.valid,
@@ -108,14 +108,14 @@ class ServiceMeshConfiguration:
     proxy_memory_request: str = "64Mi"
 
     # Custom configuration
-    custom_config: Dict[str, Any] = field(default_factory=dict)
+    custom_config: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ServiceMeshConfiguration":
+    def from_dict(cls, data: dict[str, Any]) -> "ServiceMeshConfiguration":
         """Create from dictionary."""
         return cls(**data)
 
@@ -124,21 +124,21 @@ class ServiceMeshConfiguration:
 class PolicyConfiguration:
     """Policy configuration container."""
 
-    authentication_policies: List[Dict[str, Any]] = field(default_factory=list)
-    authorization_policies: List[Dict[str, Any]] = field(default_factory=list)
-    peer_authentications: List[Dict[str, Any]] = field(default_factory=list)
-    request_authentications: List[Dict[str, Any]] = field(default_factory=list)
-    rbac_policies: List[Dict[str, Any]] = field(default_factory=list)
+    authentication_policies: list[dict[str, Any]] = field(default_factory=list)
+    authorization_policies: list[dict[str, Any]] = field(default_factory=list)
+    peer_authentications: list[dict[str, Any]] = field(default_factory=list)
+    request_authentications: list[dict[str, Any]] = field(default_factory=list)
+    rbac_policies: list[dict[str, Any]] = field(default_factory=list)
 
-    def add_authentication_policy(self, policy: Dict[str, Any]) -> None:
+    def add_authentication_policy(self, policy: dict[str, Any]) -> None:
         """Add authentication policy."""
         self.authentication_policies.append(policy)
 
-    def add_authorization_policy(self, policy: Dict[str, Any]) -> None:
+    def add_authorization_policy(self, policy: dict[str, Any]) -> None:
         """Add authorization policy."""
         self.authorization_policies.append(policy)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
@@ -149,23 +149,23 @@ class SecurityConfiguration:
 
     # mTLS settings
     mtls_mode: str = "STRICT"
-    mtls_permissive_services: List[str] = field(default_factory=list)
+    mtls_permissive_services: list[str] = field(default_factory=list)
 
     # Certificate settings
-    root_ca_certificate: Optional[str] = None
-    certificate_chain: Optional[str] = None
+    root_ca_certificate: str | None = None
+    certificate_chain: str | None = None
     trust_domain: str = "cluster.local"
 
     # JWT settings
-    jwt_issuers: List[str] = field(default_factory=list)
-    jwt_audiences: List[str] = field(default_factory=list)
-    jwks_uri: Optional[str] = None
+    jwt_issuers: list[str] = field(default_factory=list)
+    jwt_audiences: list[str] = field(default_factory=list)
+    jwks_uri: str | None = None
 
     # RBAC settings
-    rbac_inclusion_services: List[str] = field(default_factory=list)
-    rbac_exclusion_services: List[str] = field(default_factory=list)
+    rbac_inclusion_services: list[str] = field(default_factory=list)
+    rbac_exclusion_services: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
@@ -181,8 +181,8 @@ class ObservabilityConfiguration:
 
     # Tracing settings
     tracing_sampling_rate: float = 0.1
-    jaeger_endpoint: Optional[str] = None
-    zipkin_endpoint: Optional[str] = None
+    jaeger_endpoint: str | None = None
+    zipkin_endpoint: str | None = None
 
     # Logging settings
     access_log_format: str = "json"
@@ -190,12 +190,12 @@ class ObservabilityConfiguration:
     log_level: str = "info"
 
     # Telemetry settings
-    telemetry_filters: List[str] = field(default_factory=list)
-    telemetry_providers: List[str] = field(
+    telemetry_filters: list[str] = field(default_factory=list)
+    telemetry_providers: list[str] = field(
         default_factory=lambda: ["prometheus", "jaeger"]
     )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
@@ -227,7 +227,7 @@ class TrafficConfiguration:
     max_pending_requests: int = 100
     max_requests_per_connection: int = 10
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
@@ -236,7 +236,7 @@ class ConfigValidator(ABC):
     """Abstract configuration validator."""
 
     @abstractmethod
-    def validate(self, config: Dict[str, Any]) -> ValidationResult:
+    def validate(self, config: dict[str, Any]) -> ValidationResult:
         """Validate configuration."""
         raise NotImplementedError
 
@@ -246,7 +246,7 @@ class MeshConfigValidator(ConfigValidator):
 
     def __init__(self, validation_level: ValidationLevel = ValidationLevel.STRICT):
         self.validation_level = validation_level
-        self._rules: List[Callable[[Dict[str, Any]], ValidationResult]] = []
+        self._rules: list[Callable[[dict[str, Any]], ValidationResult]] = []
         self._setup_default_rules()
 
     def _setup_default_rules(self) -> None:
@@ -262,11 +262,11 @@ class MeshConfigValidator(ConfigValidator):
             ]
         )
 
-    def add_rule(self, rule: Callable[[Dict[str, Any]], ValidationResult]) -> None:
+    def add_rule(self, rule: Callable[[dict[str, Any]], ValidationResult]) -> None:
         """Add custom validation rule."""
         self._rules.append(rule)
 
-    def validate(self, config: Dict[str, Any]) -> ValidationResult:
+    def validate(self, config: dict[str, Any]) -> ValidationResult:
         """Validate mesh configuration."""
         result = ValidationResult(valid=True)
 
@@ -283,18 +283,18 @@ class MeshConfigValidator(ConfigValidator):
 
         return result
 
-    def _validate_required_fields(self, config: Dict[str, Any]) -> ValidationResult:
+    def _validate_required_fields(self, config: dict[str, Any]) -> ValidationResult:
         """Validate required fields."""
         result = ValidationResult(valid=True)
 
         required_fields = ["mesh_id", "provider"]
-        for field in required_fields:
-            if field not in config:
-                result.add_error(f"Required field '{field}' is missing")
+        for field_name in required_fields:
+            if field_name not in config:
+                result.add_error(f"Required field '{field_name}' is missing")
 
         return result
 
-    def _validate_provider(self, config: Dict[str, Any]) -> ValidationResult:
+    def _validate_provider(self, config: dict[str, Any]) -> ValidationResult:
         """Validate provider configuration."""
         result = ValidationResult(valid=True)
 
@@ -308,7 +308,7 @@ class MeshConfigValidator(ConfigValidator):
 
         return result
 
-    def _validate_namespace(self, config: Dict[str, Any]) -> ValidationResult:
+    def _validate_namespace(self, config: dict[str, Any]) -> ValidationResult:
         """Validate namespace configuration."""
         result = ValidationResult(valid=True)
 
@@ -318,35 +318,35 @@ class MeshConfigValidator(ConfigValidator):
 
         return result
 
-    def _validate_timeouts(self, config: Dict[str, Any]) -> ValidationResult:
+    def _validate_timeouts(self, config: dict[str, Any]) -> ValidationResult:
         """Validate timeout settings."""
         result = ValidationResult(valid=True)
 
         timeout_fields = ["default_timeout_seconds"]
-        for field in timeout_fields:
-            if field in config:
-                value = config[field]
+        for timeout_field in timeout_fields:
+            if timeout_field in config:
+                value = config[timeout_field]
                 if not isinstance(value, int) or value <= 0:
-                    result.add_error(f"'{field}' must be a positive integer")
+                    result.add_error(f"'{timeout_field}' must be a positive integer")
                 elif value > 3600:  # 1 hour
-                    result.add_warning(f"'{field}' value {value} is very high")
+                    result.add_warning(f"'{timeout_field}' value {value} is very high")
 
         return result
 
-    def _validate_resource_limits(self, config: Dict[str, Any]) -> ValidationResult:
+    def _validate_resource_limits(self, config: dict[str, Any]) -> ValidationResult:
         """Validate resource limits."""
         result = ValidationResult(valid=True)
 
         resource_fields = ["proxy_cpu_limit", "proxy_memory_limit"]
-        for field in resource_fields:
-            if field in config:
-                value = config[field]
+        for resource_field in resource_fields:
+            if resource_field in config:
+                value = config[resource_field]
                 if not isinstance(value, str):
-                    result.add_error(f"'{field}' must be a string")
+                    result.add_error(f"'{resource_field}' must be a string")
 
         return result
 
-    def _validate_security_settings(self, config: Dict[str, Any]) -> ValidationResult:
+    def _validate_security_settings(self, config: dict[str, Any]) -> ValidationResult:
         """Validate security settings."""
         result = ValidationResult(valid=True)
 
@@ -363,16 +363,16 @@ class ConfigSynchronizer:
     """Configuration synchronization manager."""
 
     def __init__(self):
-        self._configurations: Dict[str, Dict[str, Any]] = {}
-        self._watchers: List[Callable[[str, Dict[str, Any]], None]] = []
-        self._last_sync: Optional[datetime] = None
+        self._configurations: dict[str, dict[str, Any]] = {}
+        self._watchers: list[Callable[[str, dict[str, Any]], None]] = []
+        self._last_sync: datetime | None = None
 
-    def register_configuration(self, name: str, config: Dict[str, Any]) -> None:
+    def register_configuration(self, name: str, config: dict[str, Any]) -> None:
         """Register configuration."""
         self._configurations[name] = config.copy()
         self._notify_watchers(name, config)
 
-    def update_configuration(self, name: str, updates: Dict[str, Any]) -> None:
+    def update_configuration(self, name: str, updates: dict[str, Any]) -> None:
         """Update configuration."""
         if name in self._configurations:
             self._configurations[name].update(updates)
@@ -380,19 +380,19 @@ class ConfigSynchronizer:
         else:
             raise ValueError(f"Configuration '{name}' not found")
 
-    def get_configuration(self, name: str) -> Optional[Dict[str, Any]]:
+    def get_configuration(self, name: str) -> dict[str, Any] | None:
         """Get configuration."""
         return self._configurations.get(name)
 
-    def list_configurations(self) -> List[str]:
+    def list_configurations(self) -> list[str]:
         """List configuration names."""
         return list(self._configurations.keys())
 
-    def add_watcher(self, watcher: Callable[[str, Dict[str, Any]], None]) -> None:
+    def add_watcher(self, watcher: Callable[[str, dict[str, Any]], None]) -> None:
         """Add configuration watcher."""
         self._watchers.append(watcher)
 
-    def _notify_watchers(self, name: str, config: Dict[str, Any]) -> None:
+    def _notify_watchers(self, name: str, config: dict[str, Any]) -> None:
         """Notify configuration watchers."""
         for watcher in self._watchers:
             try:
@@ -400,7 +400,7 @@ class ConfigSynchronizer:
             except Exception as e:
                 logger.error(f"Configuration watcher error: {e}")
 
-    def sync_configurations(self) -> Dict[str, Any]:
+    def sync_configurations(self) -> dict[str, Any]:
         """Synchronize configurations."""
         self._last_sync = datetime.utcnow()
 
@@ -417,10 +417,9 @@ class ConfigSynchronizer:
         """Export configurations."""
         if format == ConfigFormat.JSON:
             return json.dumps(self._configurations, indent=2)
-        elif format == ConfigFormat.YAML:
+        if format == ConfigFormat.YAML:
             return yaml.dump(self._configurations, default_flow_style=False)
-        else:
-            raise ValueError(f"Unsupported format: {format}")
+        raise ValueError(f"Unsupported format: {format}")
 
     def import_configurations(
         self, data: str, format: ConfigFormat = ConfigFormat.YAML
@@ -441,7 +440,7 @@ class ConfigurationManager:
     """Comprehensive configuration management."""
 
     def __init__(self):
-        self.mesh_config: Optional[ServiceMeshConfiguration] = None
+        self.mesh_config: ServiceMeshConfiguration | None = None
         self.policy_config = PolicyConfiguration()
         self.security_config = SecurityConfiguration()
         self.observability_config = ObservabilityConfiguration()
@@ -466,7 +465,7 @@ class ConfigurationManager:
 
         return validation_result
 
-    def update_mesh_configuration(self, updates: Dict[str, Any]) -> ValidationResult:
+    def update_mesh_configuration(self, updates: dict[str, Any]) -> ValidationResult:
         """Update mesh configuration."""
         if not self.mesh_config:
             raise ValueError("Mesh configuration not initialized")
@@ -491,7 +490,7 @@ class ConfigurationManager:
 
         return validation_result
 
-    def get_complete_configuration(self) -> Dict[str, Any]:
+    def get_complete_configuration(self) -> dict[str, Any]:
         """Get complete configuration."""
         return {
             "mesh": self.mesh_config.to_dict() if self.mesh_config else {},
@@ -531,7 +530,7 @@ class ConfigurationManager:
         if "traffic" in template:
             self.traffic_config = TrafficConfiguration(**template["traffic"])
 
-    def _get_production_template(self) -> Dict[str, Any]:
+    def _get_production_template(self) -> dict[str, Any]:
         """Get production configuration template."""
         return {
             "mesh": {
@@ -551,7 +550,7 @@ class ConfigurationManager:
             "traffic": {"circuit_breaker_enabled": True, "default_retry_attempts": 3},
         }
 
-    def _get_development_template(self) -> Dict[str, Any]:
+    def _get_development_template(self) -> dict[str, Any]:
         """Get development configuration template."""
         return {
             "mesh": {
@@ -571,7 +570,7 @@ class ConfigurationManager:
             "traffic": {"circuit_breaker_enabled": False, "default_retry_attempts": 1},
         }
 
-    def _get_testing_template(self) -> Dict[str, Any]:
+    def _get_testing_template(self) -> dict[str, Any]:
         """Get testing configuration template."""
         return {
             "mesh": {
@@ -607,7 +606,7 @@ def create_mesh_configuration(
 
 
 def validate_configuration(
-    config: Dict[str, Any], validation_level: ValidationLevel = ValidationLevel.STRICT
+    config: dict[str, Any], validation_level: ValidationLevel = ValidationLevel.STRICT
 ) -> ValidationResult:
     """Validate configuration."""
     validator = MeshConfigValidator(validation_level)

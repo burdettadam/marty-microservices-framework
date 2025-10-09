@@ -7,9 +7,9 @@ functionality using the middleware plugin interface.
 
 import time
 import uuid
-from typing import Any, Dict
+from typing import Any
 
-from ..decorators import middleware, plugin
+from ..decorators import plugin
 from ..interfaces import IMiddlewarePlugin, PluginContext, PluginMetadata
 
 
@@ -149,7 +149,7 @@ class RequestTracingPlugin(IMiddlewarePlugin):
         """
         return 10  # Run early in the middleware chain
 
-    async def get_metrics(self) -> Dict[str, Any]:
+    async def get_metrics(self) -> dict[str, Any]:
         """Get tracing metrics."""
         avg_time = (
             self.total_time / self.total_requests if self.total_requests > 0 else 0
@@ -164,7 +164,7 @@ class RequestTracingPlugin(IMiddlewarePlugin):
             else 0,
         }
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform health check."""
         health = await super().health_check()
 

@@ -13,9 +13,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, List, Optional, Type, TypeVar, Union
+from typing import Callable, Optional, TypeVar
 
-from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError
+from .circuit_breaker import CircuitBreakerConfig, CircuitBreakerError
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -71,10 +71,10 @@ class RetryConfig:
     non_retryable_exceptions: tuple = ()
 
     # Custom delay calculation function
-    custom_delay_func: Optional[Callable[[int, float], float]] = None
+    custom_delay_func: Callable[[int, float], float] | None = None
 
     # Retry only on specific conditions
-    retry_condition: Optional[Callable[[Exception], bool]] = None
+    retry_condition: Callable[[Exception], bool] | None = None
 
 
 class BackoffStrategy(ABC):
@@ -85,7 +85,6 @@ class BackoffStrategy(ABC):
         self, attempt: int, base_delay: float, max_delay: float
     ) -> float:
         """Calculate delay for given attempt number."""
-        pass
 
 
 class ExponentialBackoff(BackoffStrategy):
@@ -174,19 +173,18 @@ class RetryManager:
                 jitter=self.config.jitter,
                 jitter_factor=self.config.jitter_factor,
             )
-        elif self.config.strategy == RetryStrategy.LINEAR:
+        if self.config.strategy == RetryStrategy.LINEAR:
             return LinearBackoff(
                 increment=self.config.base_delay,
                 jitter=self.config.jitter,
                 jitter_factor=self.config.jitter_factor,
             )
-        elif self.config.strategy == RetryStrategy.CONSTANT:
+        if self.config.strategy == RetryStrategy.CONSTANT:
             return ConstantBackoff(
                 jitter=self.config.jitter, jitter_factor=self.config.jitter_factor
             )
-        else:
-            # Default to exponential
-            return ExponentialBackoff()
+        # Default to exponential
+        return ExponentialBackoff()
 
     def _should_retry(self, exception: Exception, attempt: int) -> bool:
         """Check if exception should trigger a retry."""
@@ -233,7 +231,7 @@ class RetryManager:
 
             except Exception as e:
                 last_exception = e
-                logger.warning(f"Attempt {attempt} failed: {str(e)}")
+                logger.warning(f"Attempt {attempt} failed: {e!s}")
 
                 if not self._should_retry(e, attempt):
                     break
@@ -266,7 +264,7 @@ class RetryManager:
 
             except Exception as e:
                 last_exception = e
-                logger.warning(f"Attempt {attempt} failed: {str(e)}")
+                logger.warning(f"Attempt {attempt} failed: {e!s}")
 
                 if not self._should_retry(e, attempt):
                     break
@@ -285,7 +283,7 @@ class RetryManager:
 
 
 async def retry_async(
-    func: Callable[..., T], config: Optional[RetryConfig] = None, *args, **kwargs
+    func: Callable[..., T], config: RetryConfig | None = None, *args, **kwargs
 ) -> T:
     """
     Execute async function with retry logic.
@@ -308,7 +306,7 @@ async def retry_async(
 
 
 def retry_sync(
-    func: Callable[..., T], config: Optional[RetryConfig] = None, *args, **kwargs
+    func: Callable[..., T], config: RetryConfig | None = None, *args, **kwargs
 ) -> T:
     """
     Execute sync function with retry logic.
@@ -330,7 +328,7 @@ def retry_sync(
     return manager.execute_sync(func, *args, **kwargs)
 
 
-def retry_decorator(config: Optional[RetryConfig] = None):
+def retry_decorator(config: RetryConfig | None = None):
     """
     Decorator to add retry logic to functions.
 
@@ -350,21 +348,20 @@ def retry_decorator(config: Optional[RetryConfig] = None):
                 return await retry_async(func, retry_config, *args, **kwargs)
 
             return async_wrapper
-        else:
 
-            @wraps(func)
-            def sync_wrapper(*args, **kwargs) -> T:
-                return retry_sync(func, retry_config, *args, **kwargs)
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs) -> T:
+            return retry_sync(func, retry_config, *args, **kwargs)
 
-            return sync_wrapper
+        return sync_wrapper
 
     return decorator
 
 
 async def retry_with_circuit_breaker(
     func: Callable[..., T],
-    retry_config: Optional[RetryConfig] = None,
-    circuit_breaker_config: Optional[CircuitBreakerConfig] = None,
+    retry_config: RetryConfig | None = None,
+    circuit_breaker_config: CircuitBreakerConfig | None = None,
     circuit_breaker_name: str = "default",
     *args,
     **kwargs,

@@ -5,19 +5,63 @@ Advanced rate limiting implementation with multiple algorithms, storage backends
 and sophisticated quota management for API traffic control.
 """
 
+import builtins
 import hashlib
+import io
 import logging
 import math
+import pickle
 import threading
 import time
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, dict, list, tuple
 
 from .core import GatewayRequest, GatewayResponse
 
 logger = logging.getLogger(__name__)
+
+
+class RestrictedUnpickler(pickle.Unpickler):
+    """Restricted unpickler that only allows safe types to prevent code execution."""
+
+    SAFE_BUILTINS = {
+        "str",
+        "int",
+        "float",
+        "bool",
+        "list",
+        "tuple",
+        "dict",
+        "set",
+        "frozenset",
+        "bytes",
+        "bytearray",
+        "complex",
+        "type",
+        "slice",
+        "range",
+    }
+
+    def find_class(self, module, name):
+        # Only allow safe built-in types and specific allowed modules
+        if module == "builtins" and name in self.SAFE_BUILTINS:
+            return getattr(builtins, name)
+        # Allow datetime objects which are commonly used in rate limiting
+        if module == "datetime" and name in {"datetime", "date", "time", "timedelta"}:
+            import datetime
+
+            return getattr(datetime, name)
+        # Allow rate limiting state classes
+        if module.endswith("rate_limiting") and name in {"RateLimitState"}:
+            # Allow our own rate limiting classes
+            import sys
+
+            return getattr(sys.modules[module], name)
+        # Block everything else
+        raise pickle.UnpicklingError(f"Forbidden class {module}.{name}")
 
 
 class RateLimitAlgorithm(Enum):
@@ -54,7 +98,7 @@ class RateLimitConfig:
     throttle_factor: float = 0.5
 
     # Key generation
-    key_function: Optional[Callable[[GatewayRequest], str]] = None
+    key_function: Callable[[GatewayRequest], str] | None = None
     include_ip: bool = True
     include_user_id: bool = True
     include_api_key: bool = True
@@ -83,9 +127,9 @@ class RateLimitResult:
     limit: int
     remaining: int
     reset_time: float
-    retry_after: Optional[float] = None
-    delay_seconds: Optional[float] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    retry_after: float | None = None
+    delay_seconds: float | None = None
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -96,20 +140,20 @@ class RateLimitState:
     tokens: float = 0.0
     last_request_time: float = 0.0
     window_start: float = 0.0
-    request_times: List[float] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    request_times: builtins.list[float] = field(default_factory=list)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 class RateLimitStorage(ABC):
     """Abstract storage backend for rate limiting."""
 
     @abstractmethod
-    def get_state(self, key: str) -> Optional[RateLimitState]:
+    def get_state(self, key: str) -> RateLimitState | None:
         """Get rate limit state for key."""
         raise NotImplementedError
 
     @abstractmethod
-    def set_state(self, key: str, state: RateLimitState, ttl: Optional[int] = None):
+    def set_state(self, key: str, state: RateLimitState, ttl: int | None = None):
         """Set rate limit state for key."""
         raise NotImplementedError
 
@@ -128,10 +172,10 @@ class MemoryRateLimitStorage(RateLimitStorage):
     """In-memory storage for rate limiting (single instance only)."""
 
     def __init__(self):
-        self._storage: Dict[str, Tuple[RateLimitState, float]] = {}
+        self._storage: builtins.dict[str, builtins.tuple[RateLimitState, float]] = {}
         self._lock = threading.RLock()
 
-    def get_state(self, key: str) -> Optional[RateLimitState]:
+    def get_state(self, key: str) -> RateLimitState | None:
         """Get state from memory."""
         with self._lock:
             entry = self._storage.get(key)
@@ -139,12 +183,11 @@ class MemoryRateLimitStorage(RateLimitStorage):
                 state, expires_at = entry
                 if time.time() < expires_at:
                     return state
-                else:
-                    # Expired, remove it
-                    del self._storage[key]
+                # Expired, remove it
+                del self._storage[key]
         return None
 
-    def set_state(self, key: str, state: RateLimitState, ttl: Optional[int] = None):
+    def set_state(self, key: str, state: RateLimitState, ttl: int | None = None):
         """Set state in memory."""
         expires_at = time.time() + (ttl or 3600)  # Default 1 hour TTL
         with self._lock:
@@ -179,19 +222,23 @@ class RedisRateLimitStorage(RateLimitStorage):
         """Create Redis key."""
         return f"{self.key_prefix}:{key}"
 
-    def get_state(self, key: str) -> Optional[RateLimitState]:
+    def get_state(self, key: str) -> RateLimitState | None:
         """Get state from Redis."""
         try:
-            import pickle
-
             data = self.redis.get(self._make_key(key))
             if data:
-                return pickle.loads(data)
+                # Security: Use restricted unpickler to prevent arbitrary code execution
+                warnings.warn(
+                    "Pickle deserialization is potentially unsafe. Consider using JSON for better security.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                return RestrictedUnpickler(io.BytesIO(data)).load()
         except Exception as e:
             logger.error(f"Error getting rate limit state: {e}")
         return None
 
-    def set_state(self, key: str, state: RateLimitState, ttl: Optional[int] = None):
+    def set_state(self, key: str, state: RateLimitState, ttl: int | None = None):
         """Set state in Redis."""
         try:
             import pickle
@@ -214,7 +261,6 @@ class RedisRateLimitStorage(RateLimitStorage):
 
     def cleanup_expired(self):
         """Redis handles expiration automatically."""
-        pass
 
 
 class RateLimiter(ABC):
@@ -593,7 +639,7 @@ class RateLimitMiddleware:
         if self.config.cleanup_interval > 0:
             cleanup()
 
-    def process_request(self, request: GatewayRequest) -> Optional[GatewayResponse]:
+    def process_request(self, request: GatewayRequest) -> GatewayResponse | None:
         """Process request for rate limiting."""
         try:
             # Generate rate limiting key
@@ -623,9 +669,9 @@ class RateLimitMiddleware:
                 # Take action based on configuration
                 if self.config.action == RateLimitAction.REJECT:
                     return self._create_rate_limit_response(result)
-                elif self.config.action == RateLimitAction.DELAY:
+                if self.config.action == RateLimitAction.DELAY:
                     return self._handle_delay(request, result)
-                elif self.config.action == RateLimitAction.THROTTLE:
+                if self.config.action == RateLimitAction.THROTTLE:
                     return self._handle_throttle(request, result)
                 # LOG_ONLY: just log and continue
 
@@ -658,7 +704,7 @@ class RateLimitMiddleware:
 
     def _handle_delay(
         self, request: GatewayRequest, result: RateLimitResult
-    ) -> Optional[GatewayResponse]:
+    ) -> GatewayResponse | None:
         """Handle delay action."""
         delay = min(self.config.delay_seconds, self.config.max_delay)
 
@@ -670,7 +716,7 @@ class RateLimitMiddleware:
 
     def _handle_throttle(
         self, request: GatewayRequest, result: RateLimitResult
-    ) -> Optional[GatewayResponse]:
+    ) -> GatewayResponse | None:
         """Handle throttle action."""
         # Store throttle factor in request context
         request.context.metadata["rate_limit_throttle"] = self.config.throttle_factor
@@ -688,8 +734,10 @@ class RateLimitManager:
     """Manager for multiple rate limiters with different policies."""
 
     def __init__(self):
-        self.limiters: Dict[str, RateLimitMiddleware] = {}
-        self.rules: List[Tuple[Callable[[GatewayRequest], bool], str]] = []
+        self.limiters: builtins.dict[str, RateLimitMiddleware] = {}
+        self.rules: builtins.list[
+            builtins.tuple[Callable[[GatewayRequest], bool], str]
+        ] = []
 
     def add_limiter(
         self, name: str, config: RateLimitConfig, storage: RateLimitStorage = None
@@ -701,7 +749,7 @@ class RateLimitManager:
         """Add rule for selecting rate limiter."""
         self.rules.append((predicate, limiter_name))
 
-    def process_request(self, request: GatewayRequest) -> Optional[GatewayResponse]:
+    def process_request(self, request: GatewayRequest) -> GatewayResponse | None:
         """Process request with appropriate rate limiter."""
         # Find matching rule
         for predicate, limiter_name in self.rules:

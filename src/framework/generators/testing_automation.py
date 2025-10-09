@@ -7,19 +7,17 @@ and validation tools for generated microservices.
 
 import ast
 import asyncio
+import builtins
 import json
 import subprocess
-import tempfile
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, dict, list
 
 import pytest
 from coverage import Coverage
 from mypy import api as mypy_api
-from pylint import lint
-from ruff.__main__ import main as ruff_main
 
 
 class TestType(Enum):
@@ -54,9 +52,9 @@ class TestResult:
     failed_tests: int
     skipped_tests: int
     duration: float
-    coverage: Optional[float] = None
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    coverage: float | None = None
+    errors: builtins.list[str] = field(default_factory=list)
+    warnings: builtins.list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -66,9 +64,9 @@ class QualityReport:
     metric: QualityMetric
     score: float
     max_score: float
-    details: Dict[str, Any] = field(default_factory=dict)
-    recommendations: List[str] = field(default_factory=list)
-    issues: List[Dict[str, Any]] = field(default_factory=list)
+    details: builtins.dict[str, Any] = field(default_factory=dict)
+    recommendations: builtins.list[str] = field(default_factory=list)
+    issues: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -77,11 +75,11 @@ class ServiceValidationResult:
 
     service_name: str
     passed: bool
-    test_results: List[TestResult] = field(default_factory=list)
-    quality_reports: List[QualityReport] = field(default_factory=list)
+    test_results: builtins.list[TestResult] = field(default_factory=list)
+    quality_reports: builtins.list[QualityReport] = field(default_factory=list)
     overall_score: float = 0.0
-    recommendations: List[str] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
+    recommendations: builtins.list[str] = field(default_factory=list)
+    errors: builtins.list[str] = field(default_factory=list)
 
 
 class TestGenerator:
@@ -94,8 +92,8 @@ class TestGenerator:
         self.test_templates_dir.mkdir(exist_ok=True)
 
     def generate_unit_tests(
-        self, service_dir: Path, service_config: Dict[str, Any]
-    ) -> List[Path]:
+        self, service_dir: Path, service_config: builtins.dict[str, Any]
+    ) -> builtins.list[Path]:
         """Generate unit tests for a service."""
         test_files = []
         tests_dir = service_dir / "tests" / "unit"
@@ -122,8 +120,8 @@ class TestGenerator:
         return test_files
 
     def generate_integration_tests(
-        self, service_dir: Path, service_config: Dict[str, Any]
-    ) -> List[Path]:
+        self, service_dir: Path, service_config: builtins.dict[str, Any]
+    ) -> builtins.list[Path]:
         """Generate integration tests for a service."""
         test_files = []
         tests_dir = service_dir / "tests" / "integration"
@@ -151,8 +149,8 @@ class TestGenerator:
         return test_files
 
     def generate_contract_tests(
-        self, service_dir: Path, service_config: Dict[str, Any]
-    ) -> List[Path]:
+        self, service_dir: Path, service_config: builtins.dict[str, Any]
+    ) -> builtins.list[Path]:
         """Generate contract tests for API interfaces."""
         test_files = []
         tests_dir = service_dir / "tests" / "contract"
@@ -173,8 +171,8 @@ class TestGenerator:
         return test_files
 
     def generate_performance_tests(
-        self, service_dir: Path, service_config: Dict[str, Any]
-    ) -> List[Path]:
+        self, service_dir: Path, service_config: builtins.dict[str, Any]
+    ) -> builtins.list[Path]:
         """Generate performance tests."""
         test_files = []
         tests_dir = service_dir / "tests" / "performance"
@@ -187,7 +185,7 @@ class TestGenerator:
 
         return test_files
 
-    def _generate_service_unit_test(self, config: Dict[str, Any]) -> str:
+    def _generate_service_unit_test(self, config: builtins.dict[str, Any]) -> str:
         """Generate unit test for the main service."""
         return f'''"""
 Unit tests for {config["service_name"]} service.
@@ -235,7 +233,7 @@ class Test{config["service_class"]}Service:
         # Add assertions based on your service logic
 '''
 
-    def _generate_config_unit_test(self, config: Dict[str, Any]) -> str:
+    def _generate_config_unit_test(self, config: builtins.dict[str, Any]) -> str:
         """Generate unit test for configuration."""
         return f'''"""
 Unit tests for {config["service_name"]} configuration.
@@ -278,8 +276,25 @@ class Test{config["service_class"]}Config:
             {config["service_class"]}Config(host="")
 '''
 
-    def _generate_conftest(self, config: Dict[str, Any]) -> str:
+    def _generate_conftest(self, config: builtins.dict[str, Any]) -> str:
         """Generate pytest configuration and fixtures."""
+        triple_quote = '"""'
+        docstring_database = (
+            f"    {triple_quote}Mock database connection.{triple_quote}"
+            if config.get("use_database")
+            else ""
+        )
+        docstring_cache = (
+            f"    {triple_quote}Mock cache connection.{triple_quote}"
+            if config.get("use_cache")
+            else ""
+        )
+        docstring_messaging = (
+            f"    {triple_quote}Mock message queue.{triple_quote}"
+            if config.get("use_messaging")
+            else ""
+        )
+
         return f'''"""
 Pytest configuration and shared fixtures for {config["service_name"]}.
 """
@@ -312,23 +327,25 @@ def mock_config():
 
 {"@pytest.fixture" if config.get("use_database") else "# Database fixture disabled"}
 {"def mock_database():" if config.get("use_database") else "# def mock_database():"}
-{"    \"\"\"Mock database connection.\"\"\"" if config.get("use_database") else ""}
+{docstring_database}
 {"    return AsyncMock()" if config.get("use_database") else ""}
 
 
 {"@pytest.fixture" if config.get("use_cache") else "# Cache fixture disabled"}
 {"def mock_cache():" if config.get("use_cache") else "# def mock_cache():"}
-{"    \"\"\"Mock cache connection.\"\"\"" if config.get("use_cache") else ""}
+{docstring_cache}
 {"    return AsyncMock()" if config.get("use_cache") else ""}
 
 
 {"@pytest.fixture" if config.get("use_messaging") else "# Messaging fixture disabled"}
 {"def mock_message_queue():" if config.get("use_messaging") else "# def mock_message_queue():"}
-{"    \"\"\"Mock message queue.\"\"\"" if config.get("use_messaging") else ""}
+{docstring_messaging}
 {"    return AsyncMock()" if config.get("use_messaging") else ""}
 '''
 
-    def _generate_database_integration_test(self, config: Dict[str, Any]) -> str:
+    def _generate_database_integration_test(
+        self, config: builtins.dict[str, Any]
+    ) -> str:
         """Generate database integration test."""
         return f'''"""
 Database integration tests for {config["service_name"]}.
@@ -365,7 +382,7 @@ class TestDatabaseIntegration:
         pass
 '''
 
-    def _generate_cache_integration_test(self, config: Dict[str, Any]) -> str:
+    def _generate_cache_integration_test(self, config: builtins.dict[str, Any]) -> str:
         """Generate cache integration test."""
         return f'''"""
 Cache integration tests for {config["service_name"]}.
@@ -408,7 +425,9 @@ class TestCacheIntegration:
         assert value is None
 '''
 
-    def _generate_messaging_integration_test(self, config: Dict[str, Any]) -> str:
+    def _generate_messaging_integration_test(
+        self, config: builtins.dict[str, Any]
+    ) -> str:
         """Generate messaging integration test."""
         return f'''"""
 Messaging integration tests for {config["service_name"]}.
@@ -445,7 +464,7 @@ class TestMessagingIntegration:
         assert message == "test_message"
 '''
 
-    def _generate_grpc_contract_test(self, config: Dict[str, Any]) -> str:
+    def _generate_grpc_contract_test(self, config: builtins.dict[str, Any]) -> str:
         """Generate gRPC contract test."""
         return f'''"""
 gRPC contract tests for {config["service_name"]}.
@@ -475,7 +494,7 @@ class TestGRPCContract:
         pass
 '''
 
-    def _generate_rest_contract_test(self, config: Dict[str, Any]) -> str:
+    def _generate_rest_contract_test(self, config: builtins.dict[str, Any]) -> str:
         """Generate REST contract test."""
         return f'''"""
 REST API contract tests for {config["service_name"]}.
@@ -507,7 +526,7 @@ class TestRESTContract:
         pass
 '''
 
-    def _generate_performance_test(self, config: Dict[str, Any]) -> str:
+    def _generate_performance_test(self, config: builtins.dict[str, Any]) -> str:
         """Generate performance test."""
         return f'''"""
 Performance tests for {config["service_name"]}.
@@ -616,6 +635,7 @@ class QualityAnalyzer:
                 ["ruff", "check", str(service_dir / "app"), "--output-format=json"],
                 capture_output=True,
                 text=True,
+                check=False,
             )
 
             if result.stdout:
@@ -697,7 +717,7 @@ class QualityAnalyzer:
         # Analyze Python files
         for py_file in (service_dir / "app").rglob("*.py"):
             try:
-                with open(py_file, "r", encoding="utf-8") as f:
+                with open(py_file, encoding="utf-8") as f:
                     tree = ast.parse(f.read())
 
                 for node in ast.walk(tree):
@@ -748,11 +768,11 @@ class QualityAnalyzer:
         complexity = 1  # Base complexity
 
         for child in ast.walk(node):
-            if isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor)):
-                complexity += 1
-            elif isinstance(child, ast.ExceptHandler):
-                complexity += 1
-            elif isinstance(child, ast.With, ast.AsyncWith):
+            if (
+                isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor))
+                or isinstance(child, ast.ExceptHandler)
+                or isinstance(child, ast.With, ast.AsyncWith)
+            ):
                 complexity += 1
             elif isinstance(child, ast.BoolOp):
                 complexity += len(child.values) - 1
@@ -770,7 +790,7 @@ class ServiceTestRunner:
         self.quality_analyzer = QualityAnalyzer(framework_root)
 
     async def validate_service(
-        self, service_dir: Path, service_config: Dict[str, Any]
+        self, service_dir: Path, service_config: builtins.dict[str, Any]
     ) -> ServiceValidationResult:
         """Complete service validation."""
         service_name = service_config["service_name"]
@@ -810,7 +830,7 @@ class ServiceTestRunner:
         return result
 
     async def _ensure_tests_exist(
-        self, service_dir: Path, service_config: Dict[str, Any]
+        self, service_dir: Path, service_config: builtins.dict[str, Any]
     ) -> None:
         """Ensure test files exist for the service."""
         tests_dir = service_dir / "tests"
@@ -822,7 +842,7 @@ class ServiceTestRunner:
             self.test_generator.generate_contract_tests(service_dir, service_config)
             self.test_generator.generate_performance_tests(service_dir, service_config)
 
-    async def _run_all_tests(self, service_dir: Path) -> List[TestResult]:
+    async def _run_all_tests(self, service_dir: Path) -> builtins.list[TestResult]:
         """Run all test types."""
         test_results = []
 
@@ -885,7 +905,7 @@ class ServiceTestRunner:
         report_file = service_dir / f"{test_type.value}_report.json"
         if report_file.exists():
             try:
-                with open(report_file, "r", encoding="utf-8") as f:
+                with open(report_file, encoding="utf-8") as f:
                     report = json.load(f)
 
                 return TestResult(
@@ -917,7 +937,7 @@ class ServiceTestRunner:
             duration=duration,
         )
 
-    async def _analyze_quality(self, service_dir: Path) -> List[QualityReport]:
+    async def _analyze_quality(self, service_dir: Path) -> builtins.list[QualityReport]:
         """Analyze code quality."""
         reports = []
 
@@ -940,7 +960,9 @@ class ServiceTestRunner:
         return reports
 
     def _calculate_overall_score(
-        self, test_results: List[TestResult], quality_reports: List[QualityReport]
+        self,
+        test_results: builtins.list[TestResult],
+        quality_reports: builtins.list[QualityReport],
     ) -> float:
         """Calculate overall quality score."""
         # Test score (40% weight)
@@ -958,8 +980,10 @@ class ServiceTestRunner:
         return (test_score * 0.4) + (quality_score * 0.6)
 
     def _generate_recommendations(
-        self, test_results: List[TestResult], quality_reports: List[QualityReport]
-    ) -> List[str]:
+        self,
+        test_results: builtins.list[TestResult],
+        quality_reports: builtins.list[QualityReport],
+    ) -> builtins.list[str]:
         """Generate improvement recommendations."""
         recommendations = []
 

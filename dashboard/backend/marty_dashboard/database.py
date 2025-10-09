@@ -2,7 +2,7 @@
 Database models and connection management.
 """
 
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -22,7 +22,6 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False,
 )
-
 Base = declarative_base()
 
 
@@ -30,7 +29,6 @@ class Service(Base):
     """Service model for tracking registered services."""
 
     __tablename__ = "services"
-
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
     address = Column(String, nullable=False)
@@ -48,7 +46,6 @@ class ServiceMetrics(Base):
     """Service metrics model."""
 
     __tablename__ = "service_metrics"
-
     id = Column(Integer, primary_key=True, index=True)
     service_name = Column(String, index=True, nullable=False)
     metric_name = Column(String, nullable=False)
@@ -62,7 +59,6 @@ class Configuration(Base):
     """Configuration model for storing service configurations."""
 
     __tablename__ = "configurations"
-
     id = Column(Integer, primary_key=True, index=True)
     service_name = Column(String, index=True, nullable=False)
     config_key = Column(String, nullable=False)
@@ -77,7 +73,6 @@ class Alert(Base):
     """Alert model for system alerts."""
 
     __tablename__ = "alerts"
-
     id = Column(Integer, primary_key=True, index=True)
     service_name = Column(String, index=True)
     alert_type = Column(String, nullable=False)

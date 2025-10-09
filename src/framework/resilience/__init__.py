@@ -59,46 +59,46 @@ from .timeout import (
 )
 
 __all__ = [
-    # Circuit Breaker
-    "CircuitBreaker",
-    "CircuitBreakerState",
-    "CircuitBreakerConfig",
-    "CircuitBreakerError",
-    "circuit_breaker",
-    # Retry
-    "RetryConfig",
-    "RetryStrategy",
-    "RetryError",
-    "ExponentialBackoff",
-    "LinearBackoff",
-    "ConstantBackoff",
-    "retry_async",
-    "retry_with_circuit_breaker",
     # Bulkhead
     "BulkheadConfig",
-    "BulkheadPool",
     "BulkheadError",
-    "ThreadPoolBulkhead",
-    "SemaphoreBulkhead",
-    "bulkhead_isolate",
-    # Timeout
-    "TimeoutConfig",
-    "ResilienceTimeoutError",
-    "TimeoutManager",
-    "with_timeout",
-    "timeout_async",
-    # Fallback
-    "FallbackStrategy",
+    "BulkheadPool",
+    "CacheFallback",
+    # Circuit Breaker
+    "CircuitBreaker",
+    "CircuitBreakerConfig",
+    "CircuitBreakerError",
+    "CircuitBreakerState",
+    "ConstantBackoff",
+    "ExponentialBackoff",
     "FallbackConfig",
     "FallbackError",
-    "StaticFallback",
+    # Fallback
+    "FallbackStrategy",
     "FunctionFallback",
-    "CacheFallback",
-    "with_fallback",
+    "LinearBackoff",
+    "ResilienceConfig",
     # Patterns
     "ResilienceManager",
-    "ResilienceConfig",
     "ResiliencePattern",
-    "resilience_pattern",
+    "ResilienceTimeoutError",
+    # Retry
+    "RetryConfig",
+    "RetryError",
+    "RetryStrategy",
+    "SemaphoreBulkhead",
+    "StaticFallback",
+    "ThreadPoolBulkhead",
+    # Timeout
+    "TimeoutConfig",
+    "TimeoutManager",
+    "bulkhead_isolate",
+    "circuit_breaker",
     "initialize_resilience",
+    "resilience_pattern",
+    "retry_async",
+    "retry_with_circuit_breaker",
+    "timeout_async",
+    "with_fallback",
+    "with_timeout",
 ]

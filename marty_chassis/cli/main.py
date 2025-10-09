@@ -5,15 +5,13 @@ This module provides the command-line interface for scaffolding new services,
 generating configurations, and managing chassis-based projects.
 """
 
-import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import click
 from marty_chassis.config import ChassisConfig, Environment
 from marty_chassis.service_mesh import ManifestGenerator
-from marty_chassis.templates import ServiceTemplate, TemplateGenerator
+from marty_chassis.templates import TemplateGenerator
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
@@ -55,7 +53,7 @@ def new_service(
     service_name: str,
     service_type: str,
     output_dir: str,
-    template: Optional[str],
+    template: str | None,
     no_docker: bool,
     no_k8s: bool,
     service_mesh: str,
@@ -165,11 +163,11 @@ def new_service(
     help="Log level",
 )
 def run(
-    config_file: Optional[str],
+    config_file: str | None,
     host: str,
-    port: Optional[int],
+    port: int | None,
     reload: bool,
-    log_level: Optional[str],
+    log_level: str | None,
 ):
     """Run a chassis-based service."""
     try:

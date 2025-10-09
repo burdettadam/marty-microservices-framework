@@ -5,7 +5,7 @@ This factory creates services using hexagonal (ports & adapters) architecture,
 providing dependency injection and proper separation of concerns.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import FastAPI
 from marty_chassis.config import ChassisConfig
@@ -25,7 +25,7 @@ class HexagonalServiceFactory:
         self._session_factory = None
 
     async def create_service(
-        self, service_module: str, service_config: Optional[Dict[str, Any]] = None
+        self, service_module: str, service_config: dict[str, Any] | None = None
     ) -> FastAPI:
         """
         Create a service using hexagonal architecture.
@@ -80,8 +80,8 @@ class HexagonalServiceFactory:
             logger.info("Database infrastructure initialized")
 
     async def _create_output_adapters(
-        self, service_config: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, service_config: dict[str, Any]
+    ) -> dict[str, Any]:
         """Create output adapter implementations."""
         adapters = {}
 
@@ -129,8 +129,8 @@ class HexagonalServiceFactory:
         return adapters
 
     async def _create_use_cases(
-        self, service_module: Any, output_adapters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, service_module: Any, output_adapters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Create use case implementations with injected dependencies."""
         use_cases = {}
 
@@ -166,8 +166,8 @@ class HexagonalServiceFactory:
         return use_cases
 
     async def _create_input_adapters(
-        self, service_module: Any, use_cases: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, service_module: Any, use_cases: dict[str, Any]
+    ) -> dict[str, Any]:
         """Create input adapter implementations."""
         adapters = {}
 
@@ -192,7 +192,7 @@ class HexagonalServiceFactory:
         logger.info("Input adapters created")
         return adapters
 
-    async def _create_fastapi_app(self, input_adapters: Dict[str, Any]) -> FastAPI:
+    async def _create_fastapi_app(self, input_adapters: dict[str, Any]) -> FastAPI:
         """Create and configure the FastAPI application."""
         app = FastAPI(
             title=self.config.service.name,
@@ -222,8 +222,8 @@ class HexagonalServiceFactory:
 
 def create_hexagonal_service(
     service_module: str,
-    config: Optional[ChassisConfig] = None,
-    service_config: Optional[Dict[str, Any]] = None,
+    config: ChassisConfig | None = None,
+    service_config: dict[str, Any] | None = None,
 ) -> FastAPI:
     """
     Create a service using hexagonal architecture.

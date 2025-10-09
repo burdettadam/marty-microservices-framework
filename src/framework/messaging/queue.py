@@ -15,15 +15,19 @@ Features:
 """
 
 import asyncio
+import builtins
+import io
 import json
 import logging
+import pickle
 import time
 import uuid
+import warnings
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Awaitable, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Dict, List, Optional, Set, TypeVar
 
 # Optional imports for different brokers
 try:
@@ -49,9 +53,87 @@ try:
 except ImportError:
     KAFKA_AVAILABLE = False
 
+import asyncio
+import json
+import logging
+import time
+import uuid
+from abc import ABC, abstractmethod
+from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional, Set, TypeVar
+
+# Optional imports for different brokers
+try:
+    import aio_pika
+    from aio_pika import DeliveryMode, ExchangeType, Message
+    from aio_pika.abc import (
+        AbstractChannel,
+        AbstractConnection,
+        AbstractExchange,
+        AbstractQueue,
+    )
+
+    RABBITMQ_AVAILABLE = True
+except ImportError:
+    RABBITMQ_AVAILABLE = False
+
+try:
+    import aiokafka
+    from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+    from aiokafka.errors import KafkaError
+
+    KAFKA_AVAILABLE = True
+except ImportError:
+    KAFKA_AVAILABLE = False
+
+try:
+    import aiokafka
+    from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+    from aiokafka.errors import KafkaError
+
+    KAFKA_AVAILABLE = True
+except ImportError:
+    KAFKA_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+class RestrictedUnpickler(pickle.Unpickler):
+    """Restricted unpickler that only allows safe types to prevent code execution."""
+
+    SAFE_BUILTINS = {
+        "str",
+        "int",
+        "float",
+        "bool",
+        "list",
+        "tuple",
+        "dict",
+        "set",
+        "frozenset",
+        "bytes",
+        "bytearray",
+        "complex",
+        "type",
+        "slice",
+        "range",
+    }
+
+    def find_class(self, module, name):
+        # Only allow safe built-in types and specific allowed modules
+        if module == "builtins" and name in self.SAFE_BUILTINS:
+            return getattr(builtins, name)
+        # Allow datetime objects which are commonly used in messages
+        if module == "datetime" and name in {"datetime", "date", "time", "timedelta"}:
+            import datetime
+
+            return getattr(datetime, name)
+        # Block everything else
+        raise pickle.UnpicklingError(f"Forbidden class {module}.{name}")
 
 
 class MessageBroker(Enum):
@@ -112,12 +194,12 @@ class Message:
     topic: str = ""
     routing_key: str = ""
     payload: Any = None
-    headers: Dict[str, Any] = field(default_factory=dict)
+    headers: dict[str, Any] = field(default_factory=dict)
     priority: MessagePriority = MessagePriority.NORMAL
     timestamp: float = field(default_factory=time.time)
-    correlation_id: Optional[str] = None
-    reply_to: Optional[str] = None
-    expiration: Optional[float] = None
+    correlation_id: str | None = None
+    reply_to: str | None = None
+    expiration: float | None = None
     retry_count: int = 0
 
     def is_expired(self) -> bool:
@@ -156,12 +238,11 @@ class MessageSerializer:
         try:
             if self.format == "json":
                 return json.dumps(payload).encode("utf-8")
-            elif self.format == "pickle":
+            if self.format == "pickle":
                 import pickle
 
                 return pickle.dumps(payload)
-            else:
-                return str(payload).encode("utf-8")
+            return str(payload).encode("utf-8")
         except Exception as e:
             logger.error(f"Serialization failed: {e}")
             raise
@@ -171,12 +252,15 @@ class MessageSerializer:
         try:
             if self.format == "json":
                 return json.loads(data.decode("utf-8"))
-            elif self.format == "pickle":
-                import pickle
-
-                return pickle.loads(data)
-            else:
-                return data.decode("utf-8")
+            if self.format == "pickle":
+                # Security: Use restricted unpickler to prevent arbitrary code execution
+                warnings.warn(
+                    "Pickle deserialization is potentially unsafe. Consider using JSON for better security.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                return RestrictedUnpickler(io.BytesIO(data)).load()
+            return data.decode("utf-8")
         except Exception as e:
             logger.error(f"Deserialization failed: {e}")
             raise
@@ -188,12 +272,10 @@ class MessageHandler(ABC):
     @abstractmethod
     async def handle(self, message: Message) -> bool:
         """Handle incoming message. Return True if successful."""
-        pass
 
     @abstractmethod
-    def get_topics(self) -> List[str]:
+    def get_topics(self) -> list[str]:
         """Get list of topics this handler processes."""
-        pass
 
 
 class MessageBrokerInterface(ABC):
@@ -202,32 +284,26 @@ class MessageBrokerInterface(ABC):
     @abstractmethod
     async def connect(self) -> None:
         """Connect to message broker."""
-        pass
 
     @abstractmethod
     async def disconnect(self) -> None:
         """Disconnect from message broker."""
-        pass
 
     @abstractmethod
     async def publish(self, message: Message) -> bool:
         """Publish message to broker."""
-        pass
 
     @abstractmethod
-    async def subscribe(self, topics: List[str], handler: MessageHandler) -> None:
+    async def subscribe(self, topics: list[str], handler: MessageHandler) -> None:
         """Subscribe to topics with handler."""
-        pass
 
     @abstractmethod
-    async def unsubscribe(self, topics: List[str]) -> None:
+    async def unsubscribe(self, topics: list[str]) -> None:
         """Unsubscribe from topics."""
-        pass
 
     @abstractmethod
     async def get_stats(self) -> MessageStats:
         """Get broker statistics."""
-        pass
 
 
 class InMemoryBroker(MessageBrokerInterface):
@@ -235,11 +311,11 @@ class InMemoryBroker(MessageBrokerInterface):
 
     def __init__(self, config: MessageConfig):
         self.config = config
-        self.topics: Dict[str, List[Message]] = {}
-        self.handlers: Dict[str, List[MessageHandler]] = {}
+        self.topics: dict[str, list[Message]] = {}
+        self.handlers: dict[str, list[MessageHandler]] = {}
         self.stats = MessageStats()
         self._running = False
-        self._consumer_task: Optional[asyncio.Task] = None
+        self._consumer_task: asyncio.Task | None = None
 
     async def connect(self) -> None:
         """Connect to in-memory broker."""
@@ -275,7 +351,7 @@ class InMemoryBroker(MessageBrokerInterface):
             self.stats.messages_failed += 1
             return False
 
-    async def subscribe(self, topics: List[str], handler: MessageHandler) -> None:
+    async def subscribe(self, topics: list[str], handler: MessageHandler) -> None:
         """Subscribe to topics with handler."""
         for topic in topics:
             if topic not in self.handlers:
@@ -284,7 +360,7 @@ class InMemoryBroker(MessageBrokerInterface):
 
         logger.info(f"Subscribed to topics {topics}")
 
-    async def unsubscribe(self, topics: List[str]) -> None:
+    async def unsubscribe(self, topics: list[str]) -> None:
         """Unsubscribe from topics."""
         for topic in topics:
             if topic in self.handlers:
@@ -351,9 +427,9 @@ class RabbitMQBroker(MessageBrokerInterface):
             )
 
         self.config = config
-        self.connection: Optional[AbstractConnection] = None
-        self.channel: Optional[AbstractChannel] = None
-        self.exchange: Optional[AbstractExchange] = None
+        self.connection: AbstractConnection | None = None
+        self.channel: AbstractChannel | None = None
+        self.exchange: AbstractExchange | None = None
         self.stats = MessageStats()
         self.serializer = MessageSerializer(config.serialization_format)
 
@@ -425,7 +501,7 @@ class RabbitMQBroker(MessageBrokerInterface):
             self.stats.messages_failed += 1
             return False
 
-    async def subscribe(self, topics: List[str], handler: MessageHandler) -> None:
+    async def subscribe(self, topics: list[str], handler: MessageHandler) -> None:
         """Subscribe to topics with handler."""
         if not self.channel:
             await self.connect()
@@ -443,45 +519,48 @@ class RabbitMQBroker(MessageBrokerInterface):
                 # Bind queue to exchange
                 await queue.bind(self.exchange, routing_key=topic)  # type: ignore
 
-                # Setup consumer
-                async def message_callback(aio_message):
-                    async with aio_message.process():
-                        try:
-                            # Deserialize message
-                            payload = self.serializer.deserialize(aio_message.body)
+                # Setup consumer with captured topic
+                def create_message_callback(topic_name):
+                    async def message_callback(aio_message):
+                        async with aio_message.process():
+                            try:
+                                # Deserialize message
+                                payload = self.serializer.deserialize(aio_message.body)
 
-                            # Create our message object
-                            msg = Message(
-                                id=aio_message.message_id or str(uuid.uuid4()),
-                                topic=topic,
-                                routing_key=aio_message.routing_key or "",
-                                payload=payload,
-                                headers=aio_message.headers or {},
-                                correlation_id=aio_message.correlation_id,
-                                reply_to=aio_message.reply_to,
-                                timestamp=aio_message.timestamp or time.time(),
-                            )
+                                # Create our message object
+                                msg = Message(
+                                    id=aio_message.message_id or str(uuid.uuid4()),
+                                    topic=topic_name,
+                                    routing_key=aio_message.routing_key or "",
+                                    payload=payload,
+                                    headers=aio_message.headers or {},
+                                    correlation_id=aio_message.correlation_id,
+                                    reply_to=aio_message.reply_to,
+                                    timestamp=aio_message.timestamp or time.time(),
+                                )
 
-                            # Handle message
-                            start_time = time.time()
-                            success = await handler.handle(msg)
-                            processing_time = time.time() - start_time
+                                # Handle message
+                                start_time = time.time()
+                                success = await handler.handle(msg)
+                                processing_time = time.time() - start_time
 
-                            self.stats.total_processing_time += processing_time
+                                self.stats.total_processing_time += processing_time
 
-                            if success:
-                                self.stats.messages_received += 1
-                            else:
+                                if success:
+                                    self.stats.messages_received += 1
+                                else:
+                                    self.stats.messages_failed += 1
+                                    # Let RabbitMQ handle retries via nack
+                                    raise Exception("Handler returned False")
+
+                            except Exception as e:
+                                logger.error(f"Message processing error: {e}")
                                 self.stats.messages_failed += 1
-                                # Let RabbitMQ handle retries via nack
-                                raise Exception("Handler returned False")
+                                raise
 
-                        except Exception as e:
-                            logger.error(f"Message processing error: {e}")
-                            self.stats.messages_failed += 1
-                            raise
+                    return message_callback
 
-                await queue.consume(message_callback)
+                await queue.consume(create_message_callback(topic))
 
             logger.info(f"Subscribed to RabbitMQ topics: {topics}")
 
@@ -489,7 +568,7 @@ class RabbitMQBroker(MessageBrokerInterface):
             logger.error(f"Failed to subscribe to RabbitMQ topics: {e}")
             raise
 
-    async def unsubscribe(self, topics: List[str]) -> None:
+    async def unsubscribe(self, topics: list[str]) -> None:
         """Unsubscribe from topics."""
         # In RabbitMQ, this would involve canceling consumers
         # Simplified implementation
@@ -511,16 +590,15 @@ class MessageQueue:
         self.config = config
         self.pattern = pattern
         self.broker = self._create_broker()
-        self.handlers: Dict[str, List[MessageHandler]] = {}
+        self.handlers: dict[str, list[MessageHandler]] = {}
 
     def _create_broker(self) -> MessageBrokerInterface:
         """Create appropriate broker based on configuration."""
         if self.config.broker == MessageBroker.IN_MEMORY:
             return InMemoryBroker(self.config)
-        elif self.config.broker == MessageBroker.RABBITMQ:
+        if self.config.broker == MessageBroker.RABBITMQ:
             return RabbitMQBroker(self.config)
-        else:
-            raise ValueError(f"Unsupported broker: {self.config.broker}")
+        raise ValueError(f"Unsupported broker: {self.config.broker}")
 
     async def start(self) -> None:
         """Start message queue."""
@@ -533,7 +611,7 @@ class MessageQueue:
         logger.info("Message queue stopped")
 
     async def publish(
-        self, topic: str, payload: Any, routing_key: Optional[str] = None, **kwargs
+        self, topic: str, payload: Any, routing_key: str | None = None, **kwargs
     ) -> bool:
         """Publish message to topic."""
         message = Message(
@@ -550,7 +628,7 @@ class MessageQueue:
         await self.broker.subscribe([topic], handler)
 
     async def unsubscribe(
-        self, topic: str, handler: Optional[MessageHandler] = None
+        self, topic: str, handler: MessageHandler | None = None
     ) -> None:
         """Unsubscribe from topic."""
         if topic in self.handlers:
@@ -566,7 +644,7 @@ class MessageQueue:
         topic: str,
         payload: Any,
         timeout: float = 30.0,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """Send request and wait for reply (RPC pattern)."""
         reply_topic = f"reply_{uuid.uuid4()}"
         correlation_id = str(uuid.uuid4())
@@ -576,7 +654,7 @@ class MessageQueue:
         reply_payload = None
 
         class ReplyHandler(MessageHandler):
-            def get_topics(self) -> List[str]:
+            def get_topics(self) -> list[str]:
                 return [reply_topic]
 
             async def handle(self, message: Message) -> bool:
@@ -616,10 +694,10 @@ class MessageQueue:
 
 
 # Global message queue instances
-_message_queues: Dict[str, MessageQueue] = {}
+_message_queues: dict[str, MessageQueue] = {}
 
 
-def get_message_queue(name: str = "default") -> Optional[MessageQueue]:
+def get_message_queue(name: str = "default") -> MessageQueue | None:
     """Get global message queue."""
     return _message_queues.get(name)
 
@@ -652,7 +730,7 @@ async def message_queue_context(
 
 
 # Decorators for message handling
-def message_handler(topics: List[str], queue_name: str = "default"):
+def message_handler(topics: list[str], queue_name: str = "default"):
     """Decorator for message handlers."""
 
     def decorator(cls):
@@ -680,7 +758,7 @@ def message_handler(topics: List[str], queue_name: str = "default"):
 def publish_message(
     topic: str,
     queue_name: str = "default",
-    routing_key: Optional[str] = None,
+    routing_key: str | None = None,
 ):
     """Decorator for automatic message publishing after function execution."""
 

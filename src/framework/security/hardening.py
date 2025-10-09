@@ -5,30 +5,23 @@ This module provides comprehensive security capabilities including authenticatio
 authorization, secrets management, security scanning, and compliance validation.
 """
 
-import asyncio
 import base64
+import builtins
 import hashlib
-import hmac
-import json
 import re
 import secrets
-import time
 import uuid
-from abc import ABC, abstractmethod
 from collections import defaultdict, deque
-from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
-from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, dict, list, set, tuple
 
 import bcrypt
 import jwt
 from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 
 class SecurityLevel(Enum):
@@ -79,12 +72,12 @@ class SecurityPrincipal:
     id: str
     name: str
     type: str  # "user", "service", "system"
-    roles: List[str] = field(default_factory=list)
-    permissions: List[str] = field(default_factory=list)
-    attributes: Dict[str, Any] = field(default_factory=dict)
+    roles: builtins.list[str] = field(default_factory=list)
+    permissions: builtins.list[str] = field(default_factory=list)
+    attributes: builtins.dict[str, Any] = field(default_factory=dict)
     security_level: SecurityLevel = SecurityLevel.INTERNAL
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    last_access: Optional[datetime] = None
+    last_access: datetime | None = None
     is_active: bool = True
 
 
@@ -96,8 +89,8 @@ class SecurityToken:
     principal_id: str
     token_type: AuthenticationMethod
     expires_at: datetime
-    scopes: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    scopes: builtins.list[str] = field(default_factory=list)
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
     is_revoked: bool = False
 
 
@@ -107,14 +100,14 @@ class SecurityEvent:
 
     event_id: str
     event_type: str
-    principal_id: Optional[str]
+    principal_id: str | None
     resource: str
     action: str
     result: str  # "success", "failure", "blocked"
     threat_level: SecurityThreatLevel
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    details: Dict[str, Any] = field(default_factory=dict)
-    source_ip: Optional[str] = None
+    details: builtins.dict[str, Any] = field(default_factory=dict)
+    source_ip: str | None = None
 
 
 @dataclass
@@ -125,7 +118,7 @@ class SecurityVulnerability:
     title: str
     description: str
     severity: SecurityThreatLevel
-    cve_id: Optional[str] = None
+    cve_id: str | None = None
     affected_component: str = ""
     remediation: str = ""
     discovered_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -141,22 +134,22 @@ class CryptographyManager:
 
         # Key management
         self.master_key = self._generate_master_key()
-        self.encryption_keys: Dict[str, bytes] = {}
-        self.signing_keys: Dict[str, rsa.RSAPrivateKey] = {}
+        self.encryption_keys: builtins.dict[str, bytes] = {}
+        self.signing_keys: builtins.dict[str, rsa.RSAPrivateKey] = {}
 
         # Encryption instances
         self.fernet = Fernet(self.master_key)
 
         # Key rotation tracking
-        self.key_versions: Dict[str, int] = defaultdict(int)
-        self.key_rotation_schedule: Dict[str, datetime] = {}
+        self.key_versions: builtins.dict[str, int] = defaultdict(int)
+        self.key_rotation_schedule: builtins.dict[str, datetime] = {}
 
     def _generate_master_key(self) -> bytes:
         """Generate or load master encryption key."""
         # In production, this should be loaded from secure key management service
         return Fernet.generate_key()
 
-    def encrypt_data(self, data: Union[str, bytes], key_id: str = "default") -> str:
+    def encrypt_data(self, data: str | bytes, key_id: str = "default") -> str:
         """Encrypt data using specified key."""
         if isinstance(data, str):
             data = data.encode("utf-8")
@@ -210,7 +203,7 @@ class CryptographyManager:
         self.signing_keys[key_id] = private_key
         return private_key
 
-    def sign_data(self, data: Union[str, bytes], key_id: str) -> str:
+    def sign_data(self, data: str | bytes, key_id: str) -> str:
         """Sign data using RSA private key."""
         if isinstance(data, str):
             data = data.encode("utf-8")
@@ -229,9 +222,7 @@ class CryptographyManager:
 
         return base64.b64encode(signature).decode("utf-8")
 
-    def verify_signature(
-        self, data: Union[str, bytes], signature: str, key_id: str
-    ) -> bool:
+    def verify_signature(self, data: str | bytes, signature: str, key_id: str) -> bool:
         """Verify signature using RSA public key."""
         try:
             if isinstance(data, str):
@@ -309,11 +300,11 @@ class AuthenticationManager:
         self.crypto_manager = crypto_manager
 
         # Token storage
-        self.active_tokens: Dict[str, SecurityToken] = {}
-        self.revoked_tokens: Set[str] = set()
+        self.active_tokens: builtins.dict[str, SecurityToken] = {}
+        self.revoked_tokens: builtins.set[str] = set()
 
         # User/principal storage
-        self.principals: Dict[str, SecurityPrincipal] = {}
+        self.principals: builtins.dict[str, SecurityPrincipal] = {}
 
         # Authentication settings
         self.jwt_secret = secrets.token_urlsafe(64)
@@ -321,8 +312,10 @@ class AuthenticationManager:
         self.refresh_token_expiry = timedelta(days=30)
 
         # Rate limiting
-        self.failed_attempts: Dict[str, List[datetime]] = defaultdict(list)
-        self.locked_accounts: Dict[str, datetime] = {}
+        self.failed_attempts: builtins.dict[str, builtins.list[datetime]] = defaultdict(
+            list
+        )
+        self.locked_accounts: builtins.dict[str, datetime] = {}
 
         # Security policies
         self.password_policy = {
@@ -357,9 +350,9 @@ class AuthenticationManager:
     def authenticate(
         self,
         principal_id: str,
-        credentials: Dict[str, Any],
+        credentials: builtins.dict[str, Any],
         method: AuthenticationMethod,
-    ) -> Optional[SecurityToken]:
+    ) -> SecurityToken | None:
         """Authenticate principal and return security token."""
         try:
             # Check if account is locked
@@ -405,7 +398,7 @@ class AuthenticationManager:
             print(f"Authentication error: {e}")
             return None
 
-    def validate_token(self, token_id: str) -> Optional[SecurityPrincipal]:
+    def validate_token(self, token_id: str) -> SecurityPrincipal | None:
         """Validate security token and return principal."""
         try:
             # Check if token exists and is not revoked
@@ -444,7 +437,7 @@ class AuthenticationManager:
         except Exception:
             return False
 
-    def refresh_token(self, token_id: str) -> Optional[SecurityToken]:
+    def refresh_token(self, token_id: str) -> SecurityToken | None:
         """Refresh a security token."""
         principal = self.validate_token(token_id)
         if not principal:
@@ -474,7 +467,7 @@ class AuthenticationManager:
         return True
 
     def _authenticate_password(
-        self, principal: SecurityPrincipal, credentials: Dict[str, Any]
+        self, principal: SecurityPrincipal, credentials: builtins.dict[str, Any]
     ) -> bool:
         """Authenticate using password."""
         password = credentials.get("password")
@@ -488,7 +481,7 @@ class AuthenticationManager:
         return self.crypto_manager.verify_password(password, stored_hash)
 
     def _authenticate_api_key(
-        self, principal: SecurityPrincipal, credentials: Dict[str, Any]
+        self, principal: SecurityPrincipal, credentials: builtins.dict[str, Any]
     ) -> bool:
         """Authenticate using API key."""
         api_key = credentials.get("api_key")
@@ -503,7 +496,7 @@ class AuthenticationManager:
         return api_key_hash in stored_keys
 
     def _authenticate_jwt_token(
-        self, principal: SecurityPrincipal, credentials: Dict[str, Any]
+        self, principal: SecurityPrincipal, credentials: builtins.dict[str, Any]
     ) -> bool:
         """Authenticate using JWT token."""
         token = credentials.get("jwt_token")
@@ -562,7 +555,9 @@ class AuthenticationManager:
         if len(self.failed_attempts[principal_id]) >= 5:
             self.locked_accounts[principal_id] = now + timedelta(minutes=30)
 
-    def validate_password_policy(self, password: str) -> Tuple[bool, List[str]]:
+    def validate_password_policy(
+        self, password: str
+    ) -> builtins.tuple[bool, builtins.list[str]]:
         """Validate password against policy."""
         errors = []
 
@@ -600,18 +595,18 @@ class AuthorizationManager:
         self.service_name = service_name
 
         # Role-based access control
-        self.roles: Dict[str, Dict[str, Any]] = {}
-        self.permissions: Dict[str, Dict[str, Any]] = {}
-        self.role_hierarchy: Dict[str, List[str]] = {}
+        self.roles: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.permissions: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.role_hierarchy: builtins.dict[str, builtins.list[str]] = {}
 
         # Attribute-based access control
-        self.policies: Dict[str, Dict[str, Any]] = {}
+        self.policies: builtins.dict[str, builtins.dict[str, Any]] = {}
         self.policy_engine = PolicyEngine()
 
         # Access control lists
-        self.resource_acls: Dict[str, Dict[str, Set[str]]] = defaultdict(
-            lambda: defaultdict(set)
-        )
+        self.resource_acls: builtins.dict[
+            str, builtins.dict[str, builtins.set[str]]
+        ] = defaultdict(lambda: defaultdict(set))
 
         # Initialize default roles and permissions
         self._initialize_default_rbac()
@@ -667,8 +662,8 @@ class AuthorizationManager:
         self,
         role_name: str,
         description: str,
-        permissions: List[str],
-        inherits: List[str] = None,
+        permissions: builtins.list[str],
+        inherits: builtins.list[str] = None,
     ) -> bool:
         """Create a new role."""
         try:
@@ -751,7 +746,9 @@ class AuthorizationManager:
             print(f"Permission check error: {e}")
             return False
 
-    def _get_effective_permissions(self, roles: List[str]) -> Set[str]:
+    def _get_effective_permissions(
+        self, roles: builtins.list[str]
+    ) -> builtins.set[str]:
         """Get effective permissions from roles including inheritance."""
         effective_permissions = set()
 
@@ -807,7 +804,9 @@ class PolicyEngine:
     """Policy evaluation engine for ABAC."""
 
     def evaluate_policies(
-        self, policies: Dict[str, Dict[str, Any]], context: Dict[str, Any]
+        self,
+        policies: builtins.dict[str, builtins.dict[str, Any]],
+        context: builtins.dict[str, Any],
     ) -> bool:
         """Evaluate policies against context."""
         for policy_name, policy_data in policies.items():
@@ -819,7 +818,9 @@ class PolicyEngine:
 
         return False
 
-    def _evaluate_policy(self, policy: Dict[str, Any], context: Dict[str, Any]) -> bool:
+    def _evaluate_policy(
+        self, policy: builtins.dict[str, Any], context: builtins.dict[str, Any]
+    ) -> bool:
         """Evaluate a single policy."""
         conditions = policy.get("conditions", [])
 
@@ -830,7 +831,7 @@ class PolicyEngine:
         return True
 
     def _evaluate_condition(
-        self, condition: Dict[str, Any], context: Dict[str, Any]
+        self, condition: builtins.dict[str, Any], context: builtins.dict[str, Any]
     ) -> bool:
         """Evaluate a single condition."""
         operator = condition.get("operator")
@@ -844,20 +845,22 @@ class PolicyEngine:
 
         if operator == "equals":
             return context_value == value
-        elif operator == "not_equals":
+        if operator == "not_equals":
             return context_value != value
-        elif operator == "in":
+        if operator == "in":
             return context_value in value if isinstance(value, list) else False
-        elif operator == "greater_than":
+        if operator == "greater_than":
             return context_value > value
-        elif operator == "less_than":
+        if operator == "less_than":
             return context_value < value
-        elif operator == "matches":
+        if operator == "matches":
             return re.match(value, str(context_value)) is not None
 
         return False
 
-    def _get_context_value(self, attribute: str, context: Dict[str, Any]) -> Any:
+    def _get_context_value(
+        self, attribute: str, context: builtins.dict[str, Any]
+    ) -> Any:
         """Get value from context using dot notation."""
         keys = attribute.split(".")
         value = context
@@ -882,21 +885,22 @@ class SecretsManager:
         self.crypto_manager = crypto_manager
 
         # Secret storage
-        self.secrets: Dict[str, Dict[str, Any]] = {}
-        self.secret_metadata: Dict[str, Dict[str, Any]] = {}
+        self.secrets: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.secret_metadata: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Access tracking
         self.secret_access_log: deque = deque(maxlen=10000)
 
         # Rotation policies
-        self.rotation_policies: Dict[str, Dict[str, Any]] = {}
+        self.rotation_policies: builtins.dict[str, builtins.dict[str, Any]] = {}
 
     def store_secret(
         self,
         secret_id: str,
         secret_value: str,
-        secret_type: str = "generic",
-        metadata: Dict[str, Any] = None,
+    # secret_type optional; None will be stored as metadata only avoiding hardcoded default pattern
+    secret_type: str | None = None,
+    metadata: builtins.dict[str, Any] | None = None,
     ) -> bool:
         """Store a secret securely."""
         try:
@@ -908,7 +912,7 @@ class SecretsManager:
             # Store encrypted secret
             self.secrets[secret_id] = {
                 "value": encrypted_value,
-                "type": secret_type,
+                "type": secret_type or "user_defined",
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "version": 1,
             }
@@ -922,7 +926,7 @@ class SecretsManager:
             print(f"Error storing secret: {e}")
             return False
 
-    def retrieve_secret(self, secret_id: str, principal_id: str) -> Optional[str]:
+    def retrieve_secret(self, secret_id: str, principal_id: str) -> str | None:
         """Retrieve a secret value."""
         try:
             if secret_id not in self.secrets:
@@ -996,7 +1000,9 @@ class SecretsManager:
             return True
         return False
 
-    def set_rotation_policy(self, secret_id: str, policy: Dict[str, Any]) -> bool:
+    def set_rotation_policy(
+        self, secret_id: str, policy: builtins.dict[str, Any]
+    ) -> bool:
         """Set rotation policy for a secret."""
         try:
             self.rotation_policies[secret_id] = {
@@ -1008,7 +1014,7 @@ class SecretsManager:
         except Exception:
             return False
 
-    def get_secrets_requiring_rotation(self) -> List[str]:
+    def get_secrets_requiring_rotation(self) -> builtins.list[str]:
         """Get list of secrets that need rotation."""
         secrets_to_rotate = []
         now = datetime.now(timezone.utc)
@@ -1044,7 +1050,7 @@ class SecurityScanner:
     def __init__(self, service_name: str):
         """Initialize security scanner."""
         self.service_name = service_name
-        self.vulnerabilities: List[SecurityVulnerability] = []
+        self.vulnerabilities: builtins.list[SecurityVulnerability] = []
 
         # Scanning patterns and rules
         self.vulnerability_patterns = self._load_vulnerability_patterns()
@@ -1053,7 +1059,9 @@ class SecurityScanner:
         # Scan history
         self.scan_history: deque = deque(maxlen=100)
 
-    def _load_vulnerability_patterns(self) -> Dict[str, Dict[str, Any]]:
+    def _load_vulnerability_patterns(
+        self,
+    ) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Load vulnerability detection patterns."""
         return {
             "sql_injection": {
@@ -1078,7 +1086,7 @@ class SecurityScanner:
             },
         }
 
-    def _load_security_rules(self) -> Dict[str, Dict[str, Any]]:
+    def _load_security_rules(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Load security validation rules."""
         return {
             "weak_password": {
@@ -1103,7 +1111,7 @@ class SecurityScanner:
 
     def scan_code(
         self, code_content: str, file_path: str = ""
-    ) -> List[SecurityVulnerability]:
+    ) -> builtins.list[SecurityVulnerability]:
         """Scan code for security vulnerabilities."""
         vulnerabilities = []
 
@@ -1129,7 +1137,9 @@ class SecurityScanner:
 
         return vulnerabilities
 
-    def scan_configuration(self, config: Dict[str, Any]) -> List[SecurityVulnerability]:
+    def scan_configuration(
+        self, config: builtins.dict[str, Any]
+    ) -> builtins.list[SecurityVulnerability]:
         """Scan configuration for security issues."""
         vulnerabilities = []
 
@@ -1167,8 +1177,8 @@ class SecurityScanner:
         return vulnerabilities
 
     def scan_dependencies(
-        self, dependencies: List[Dict[str, str]]
-    ) -> List[SecurityVulnerability]:
+        self, dependencies: builtins.list[builtins.dict[str, str]]
+    ) -> builtins.list[SecurityVulnerability]:
         """Scan dependencies for known vulnerabilities."""
         vulnerabilities = []
 
@@ -1240,7 +1250,7 @@ class SecurityScanner:
 
         return remediation_map.get(vulnerability_type, "Review and fix security issue")
 
-    def get_vulnerability_summary(self) -> Dict[str, Any]:
+    def get_vulnerability_summary(self) -> builtins.dict[str, Any]:
         """Get vulnerability scan summary."""
         by_severity = defaultdict(int)
         by_component = defaultdict(int)
@@ -1281,10 +1291,10 @@ class SecurityHardeningFramework:
         self.threat_detection_enabled = True
 
         # Compliance tracking
-        self.compliance_standards: Set[ComplianceStandard] = set()
-        self.compliance_status: Dict[str, bool] = {}
+        self.compliance_standards: builtins.set[ComplianceStandard] = set()
+        self.compliance_status: builtins.dict[str, bool] = {}
 
-    def initialize_security(self, config: Dict[str, Any]):
+    def initialize_security(self, config: builtins.dict[str, Any]):
         """Initialize security framework with configuration."""
         # Set up authentication policies
         if "password_policy" in config:
@@ -1311,9 +1321,9 @@ class SecurityHardeningFramework:
     def authenticate_principal(
         self,
         principal_id: str,
-        credentials: Dict[str, Any],
+        credentials: builtins.dict[str, Any],
         method: AuthenticationMethod,
-    ) -> Optional[SecurityToken]:
+    ) -> SecurityToken | None:
         """Authenticate a principal."""
         token = self.auth_manager.authenticate(principal_id, credentials, method)
 
@@ -1365,8 +1375,8 @@ class SecurityHardeningFramework:
         return authorized
 
     def scan_for_vulnerabilities(
-        self, scan_targets: Dict[str, Any]
-    ) -> Dict[str, List[SecurityVulnerability]]:
+        self, scan_targets: builtins.dict[str, Any]
+    ) -> builtins.dict[str, builtins.list[SecurityVulnerability]]:
         """Perform comprehensive security scan."""
         results = {}
 
@@ -1394,7 +1404,7 @@ class SecurityHardeningFramework:
 
         return results
 
-    def get_security_status(self) -> Dict[str, Any]:
+    def get_security_status(self) -> builtins.dict[str, Any]:
         """Get comprehensive security status."""
         # Authentication status
         auth_stats = {
@@ -1439,12 +1449,12 @@ class SecurityHardeningFramework:
     def _log_security_event(
         self,
         event_type: str,
-        principal_id: Optional[str],
+        principal_id: str | None,
         resource: str,
         action: str,
         result: str,
         threat_level: SecurityThreatLevel,
-        details: Dict[str, Any] = None,
+    details: builtins.dict[str, Any] | None = None,
     ):
         """Log security event for audit and monitoring."""
         event = SecurityEvent(
@@ -1462,7 +1472,7 @@ class SecurityHardeningFramework:
 
 
 def create_security_framework(
-    service_name: str, config: Dict[str, Any] = None
+    service_name: str, config: builtins.dict[str, Any] | None = None
 ) -> SecurityHardeningFramework:
     """Create security hardening framework instance."""
     framework = SecurityHardeningFramework(service_name)

@@ -7,9 +7,8 @@ plugin discovery, loading, lifecycle management, and orchestration.
 
 import asyncio
 import importlib
-import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from ..logger import get_logger
 from .exceptions import (
@@ -38,7 +37,7 @@ class PluginManager:
     lifecycle management, and provides isolation between plugins.
     """
 
-    def __init__(self, core_services, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, core_services, config: dict[str, Any] | None = None):
         """
         Initialize the plugin manager.
 
@@ -51,23 +50,23 @@ class PluginManager:
         self.logger = get_logger(self.__class__.__name__)
 
         # Plugin storage
-        self.plugins: Dict[str, IPlugin] = {}
-        self.plugin_modules: Dict[str, Any] = {}
-        self.plugin_dependencies: Dict[str, Set[str]] = {}
+        self.plugins: dict[str, IPlugin] = {}
+        self.plugin_modules: dict[str, Any] = {}
+        self.plugin_dependencies: dict[str, set[str]] = {}
 
         # Event handlers
-        self._event_handlers: Dict[str, List[IEventHandlerPlugin]] = {}
-        self._middleware_plugins: List[IMiddlewarePlugin] = []
-        self._service_plugins: List[IServicePlugin] = []
-        self._health_plugins: List[IHealthPlugin] = []
-        self._metrics_plugins: List[IMetricsPlugin] = []
+        self._event_handlers: dict[str, list[IEventHandlerPlugin]] = {}
+        self._middleware_plugins: list[IMiddlewarePlugin] = []
+        self._service_plugins: list[IServicePlugin] = []
+        self._health_plugins: list[IHealthPlugin] = []
+        self._metrics_plugins: list[IMetricsPlugin] = []
 
         # Plugin isolation
-        self._plugin_contexts: Dict[str, PluginContext] = {}
+        self._plugin_contexts: dict[str, PluginContext] = {}
 
         self.logger.info("Plugin manager initialized")
 
-    async def discover_plugins(self, discovery_paths: List[str]) -> List[str]:
+    async def discover_plugins(self, discovery_paths: list[str]) -> list[str]:
         """
         Discover plugins from specified paths.
 
@@ -101,7 +100,7 @@ class PluginManager:
         return discovered
 
     async def load_plugin(
-        self, module_name: str, plugin_path: Optional[str] = None
+        self, module_name: str, plugin_path: str | None = None
     ) -> IPlugin:
         """
         Load a single plugin from a module.
@@ -169,7 +168,7 @@ class PluginManager:
             self.logger.error(error_msg)
             raise PluginLoadError(module_name, error_msg, e)
 
-    async def resolve_dependencies(self) -> List[str]:
+    async def resolve_dependencies(self) -> list[str]:
         """
         Resolve plugin dependencies and return load order.
 
@@ -333,7 +332,7 @@ class PluginManager:
             self.logger.error(f"Failed to unload plugin {plugin_name}: {e}")
             raise PluginError(f"Unload failed: {str(e)}", plugin_name, e)
 
-    async def load_all_plugins(self, discovery_paths: List[str]) -> None:
+    async def load_all_plugins(self, discovery_paths: list[str]) -> None:
         """
         Discover, load, and start all plugins.
 
@@ -430,7 +429,7 @@ class PluginManager:
 
         # Unregister event handlers
         if isinstance(plugin, IEventHandlerPlugin):
-            for event_type, handlers in self._event_handlers.items():
+            for _event_type, handlers in self._event_handlers.items():
                 if plugin in handlers:
                     handlers.remove(plugin)
             self.logger.debug(f"Unregistered event handlers for {plugin_name}")
@@ -455,11 +454,11 @@ class PluginManager:
             self._metrics_plugins.remove(plugin)
             self.logger.debug(f"Unregistered metrics for {plugin_name}")
 
-    def get_plugin(self, plugin_name: str) -> Optional[IPlugin]:
+    def get_plugin(self, plugin_name: str) -> IPlugin | None:
         """Get a plugin by name."""
         return self.plugins.get(plugin_name)
 
-    def get_plugins_by_type(self, plugin_type: type) -> List[IPlugin]:
+    def get_plugins_by_type(self, plugin_type: type) -> list[IPlugin]:
         """Get all plugins of a specific type."""
         return [
             plugin
@@ -467,7 +466,7 @@ class PluginManager:
             if isinstance(plugin, plugin_type)
         ]
 
-    def get_plugin_status(self) -> Dict[str, Dict[str, Any]]:
+    def get_plugin_status(self) -> dict[str, dict[str, Any]]:
         """Get status of all plugins."""
         status = {}
         for name, plugin in self.plugins.items():
@@ -479,7 +478,7 @@ class PluginManager:
             }
         return status
 
-    async def handle_event(self, event_type: str, event_data: Dict[str, Any]) -> None:
+    async def handle_event(self, event_type: str, event_data: dict[str, Any]) -> None:
         """
         Handle an event by dispatching to registered handlers.
 
@@ -494,15 +493,15 @@ class PluginManager:
             ]
             await asyncio.gather(*tasks, return_exceptions=True)
 
-    def get_middleware_chain(self) -> List[IMiddlewarePlugin]:
+    def get_middleware_chain(self) -> list[IMiddlewarePlugin]:
         """Get the ordered middleware chain."""
         return self._middleware_plugins.copy()
 
-    def get_service_plugins(self) -> List[IServicePlugin]:
+    def get_service_plugins(self) -> list[IServicePlugin]:
         """Get all service plugins."""
         return self._service_plugins.copy()
 
-    async def collect_health_status(self) -> Dict[str, Any]:
+    async def collect_health_status(self) -> dict[str, Any]:
         """Collect health status from all health plugins."""
         health_status = {"plugins": {}}
 
@@ -518,7 +517,7 @@ class PluginManager:
 
         return health_status
 
-    async def collect_metrics(self) -> Dict[str, Any]:
+    async def collect_metrics(self) -> dict[str, Any]:
         """Collect metrics from all metrics plugins."""
         metrics = {}
 

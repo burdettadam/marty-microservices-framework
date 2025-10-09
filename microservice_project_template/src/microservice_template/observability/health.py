@@ -1,5 +1,4 @@
 """Health check service for Kubernetes probes."""
-
 from __future__ import annotations
 
 import json
@@ -8,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Event, Thread
-from typing import Any
+from typing import Any, Set
 
 import structlog
 
@@ -98,7 +97,6 @@ class HealthCheckHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
-
         response_json = json.dumps(data, indent=2)
         self.wfile.write(response_json.encode("utf-8"))
 
@@ -130,11 +128,9 @@ class HealthService:
         self.version = version
         self._start_time = time.monotonic()
         self._logger = structlog.get_logger(__name__)
-
         self._server: HTTPServer | None = None
         self._thread: Thread | None = None
         self._stop_event = Event()
-
         # Health state
         self._is_alive = True
         self._is_ready = False
@@ -145,7 +141,6 @@ class HealthService:
         if self._thread and self._thread.is_alive():
             self._logger.warning("health.server.already_running")
             return
-
         self._stop_event.clear()
         self._thread = Thread(target=self._run_server, daemon=True)
         self._thread.start()
@@ -156,14 +151,11 @@ class HealthService:
         self._is_alive = False
         self._is_ready = False
         self._stop_event.set()
-
         if self._server:
             self._server.shutdown()
             self._server.server_close()
-
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=5.0)
-
         self._logger.info("health.server.stopped")
 
     def set_ready(self, ready: bool = True) -> None:
@@ -188,10 +180,8 @@ class HealthService:
         """Get comprehensive health status."""
         uptime = time.monotonic() - self._start_time
         checks = {}
-
         # Run custom health checks
         overall_healthy = self._is_alive and self._is_ready
-
         for name, check_func in self._custom_checks.items():
             try:
                 result = check_func()
@@ -204,7 +194,6 @@ class HealthService:
             except Exception as e:
                 checks[name] = {"status": "error", "error": str(e)}
                 overall_healthy = False
-
         # Determine overall status
         if not self._is_alive:
             status = "unhealthy"
@@ -214,7 +203,6 @@ class HealthService:
             status = "healthy"
         else:
             status = "degraded"
-
         return HealthStatus(
             status=status, uptime_seconds=uptime, version=self.version, checks=checks
         )
@@ -228,10 +216,8 @@ class HealthService:
 
             self._server = HTTPServer((self.host, self.port), handler_factory)
             self._server.timeout = 1.0  # Allow periodic shutdown checks
-
             while not self._stop_event.is_set():
                 self._server.handle_request()
-
         except Exception as e:
             self._logger.error("health.server.error", error=str(e))
         finally:

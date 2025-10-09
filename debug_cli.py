@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 
 # Set up debug logging
+from typing import Set
+
 logging.basicConfig(level=logging.DEBUG)
 
 from marty_cli import MartyTemplateManager, ProjectConfig

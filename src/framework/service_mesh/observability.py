@@ -6,6 +6,7 @@ distributed tracing, logging, and telemetry for service mesh monitoring.
 """
 
 import asyncio
+import builtins
 import json
 import logging
 import time
@@ -15,18 +16,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list
 
 logger = logging.getLogger(__name__)
 
@@ -79,14 +69,14 @@ class MetricData:
     value: float
     metric_type: MetricType
     timestamp: datetime = field(default_factory=datetime.utcnow)
-    labels: Dict[str, str] = field(default_factory=dict)
-    help_text: Optional[str] = None
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    help_text: str | None = None
 
     # Histogram/Summary specific
-    buckets: Optional[List[float]] = None
-    quantiles: Optional[List[float]] = None
+    buckets: builtins.list[float] | None = None
+    quantiles: builtins.list[float] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -106,14 +96,14 @@ class TraceSpan:
 
     span_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     trace_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    parent_span_id: Optional[str] = None
+    parent_span_id: str | None = None
     operation_name: str = ""
     service_name: str = ""
 
     # Timing
     start_time: datetime = field(default_factory=datetime.utcnow)
-    end_time: Optional[datetime] = None
-    duration_ms: Optional[float] = None
+    end_time: datetime | None = None
+    duration_ms: float | None = None
 
     # Span properties
     span_kind: TraceSpanKind = TraceSpanKind.INTERNAL
@@ -121,9 +111,9 @@ class TraceSpan:
     error: bool = False
 
     # Context
-    tags: Dict[str, str] = field(default_factory=dict)
-    logs: List[Dict[str, Any]] = field(default_factory=list)
-    baggage: Dict[str, str] = field(default_factory=dict)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
+    logs: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
+    baggage: builtins.dict[str, str] = field(default_factory=dict)
 
     def finish(self) -> None:
         """Finish the span."""
@@ -153,7 +143,7 @@ class TraceSpan:
         self.set_tag("error.message", str(error))
         self.set_tag("error.type", type(error).__name__)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "span_id": self.span_id,
@@ -183,16 +173,16 @@ class LogEntry:
     service_name: str = ""
 
     # Context
-    trace_id: Optional[str] = None
-    span_id: Optional[str] = None
-    user_id: Optional[str] = None
-    request_id: Optional[str] = None
+    trace_id: str | None = None
+    span_id: str | None = None
+    user_id: str | None = None
+    request_id: str | None = None
 
     # Metadata
-    labels: Dict[str, str] = field(default_factory=dict)
-    fields: Dict[str, Any] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    fields: builtins.dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "timestamp": self.timestamp.isoformat(),
@@ -220,10 +210,10 @@ class Alert:
 
     # Alert settings
     for_duration: timedelta = field(default_factory=lambda: timedelta(minutes=5))
-    labels: Dict[str, str] = field(default_factory=dict)
-    annotations: Dict[str, str] = field(default_factory=dict)
+    labels: builtins.dict[str, str] = field(default_factory=dict)
+    annotations: builtins.dict[str, str] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary."""
         return {
             "name": self.name,
@@ -247,8 +237,8 @@ class MetricsCollector(ABC):
 
     @abstractmethod
     async def get_metrics(
-        self, name_pattern: str = None, labels: Dict[str, str] = None
-    ) -> List[MetricData]:
+        self, name_pattern: str = None, labels: builtins.dict[str, str] = None
+    ) -> builtins.list[MetricData]:
         """Get collected metrics."""
         raise NotImplementedError
 
@@ -264,9 +254,9 @@ class InMemoryMetricsCollector(MetricsCollector):
     def __init__(self, max_metrics: int = 10000):
         self.max_metrics = max_metrics
         self._metrics: deque = deque(maxlen=max_metrics)
-        self._counters: Dict[str, float] = defaultdict(float)
-        self._gauges: Dict[str, float] = {}
-        self._histograms: Dict[str, List[float]] = defaultdict(list)
+        self._counters: builtins.dict[str, float] = defaultdict(float)
+        self._gauges: builtins.dict[str, float] = {}
+        self._histograms: builtins.dict[str, builtins.list[float]] = defaultdict(list)
         self._lock = asyncio.Lock()
 
     async def collect_metric(self, metric: MetricData) -> None:
@@ -285,8 +275,8 @@ class InMemoryMetricsCollector(MetricsCollector):
                 self._histograms[metric_key].append(metric.value)
 
     async def get_metrics(
-        self, name_pattern: str = None, labels: Dict[str, str] = None
-    ) -> List[MetricData]:
+        self, name_pattern: str = None, labels: builtins.dict[str, str] = None
+    ) -> builtins.list[MetricData]:
         """Get metrics."""
         async with self._lock:
             filtered_metrics = []
@@ -338,8 +328,8 @@ class TracingManager:
     """Distributed tracing management."""
 
     def __init__(self):
-        self._traces: Dict[str, List[TraceSpan]] = defaultdict(list)
-        self._active_spans: Dict[str, TraceSpan] = {}
+        self._traces: builtins.dict[str, builtins.list[TraceSpan]] = defaultdict(list)
+        self._active_spans: builtins.dict[str, TraceSpan] = {}
         self._lock = asyncio.Lock()
 
     async def start_span(
@@ -372,25 +362,26 @@ class TracingManager:
             if span.span_id in self._active_spans:
                 del self._active_spans[span.span_id]
 
-    async def get_trace(self, trace_id: str) -> List[TraceSpan]:
+    async def get_trace(self, trace_id: str) -> builtins.list[TraceSpan]:
         """Get trace by ID."""
         async with self._lock:
             return self._traces.get(trace_id, [])
 
-    async def get_active_spans(self) -> List[TraceSpan]:
+    async def get_active_spans(self) -> builtins.list[TraceSpan]:
         """Get active spans."""
         async with self._lock:
             return list(self._active_spans.values())
 
-    async def export_traces(self, format: str = "jaeger") -> List[Dict[str, Any]]:
+    async def export_traces(
+        self, format: str = "jaeger"
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Export traces."""
         async with self._lock:
             if format == "jaeger":
                 return [
                     span.to_dict() for spans in self._traces.values() for span in spans
                 ]
-            else:
-                raise ValueError(f"Unsupported format: {format}")
+            raise ValueError(f"Unsupported format: {format}")
 
 
 class LoggingManager:
@@ -429,7 +420,7 @@ class LoggingManager:
         level: LogLevel = None,
         trace_id: str = None,
         limit: int = 1000,
-    ) -> List[LogEntry]:
+    ) -> builtins.list[LogEntry]:
         """Get log entries."""
         async with self._lock:
             filtered_logs = []
@@ -458,16 +449,15 @@ class LoggingManager:
         async with self._lock:
             if format == "json":
                 return "\n".join(json.dumps(log.to_dict()) for log in self._logs)
-            else:
-                raise ValueError(f"Unsupported format: {format}")
+            raise ValueError(f"Unsupported format: {format}")
 
 
 class ServiceMonitor:
     """Service monitoring and health checking."""
 
     def __init__(self):
-        self._service_health: Dict[str, Dict[str, Any]] = {}
-        self._health_checks: Dict[str, Callable] = {}
+        self._service_health: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self._health_checks: builtins.dict[str, Callable] = {}
         self._lock = asyncio.Lock()
 
     def register_health_check(
@@ -476,7 +466,7 @@ class ServiceMonitor:
         """Register health check for service."""
         self._health_checks[service_name] = health_check
 
-    async def check_service_health(self, service_name: str) -> Dict[str, Any]:
+    async def check_service_health(self, service_name: str) -> builtins.dict[str, Any]:
         """Check service health."""
         health_check = self._health_checks.get(service_name)
 
@@ -495,7 +485,7 @@ class ServiceMonitor:
                 else health_check()
             )
             status = "healthy" if is_healthy else "unhealthy"
-        except Exception as e:
+        except Exception:
             status = "error"
             is_healthy = False
 
@@ -512,7 +502,9 @@ class ServiceMonitor:
 
         return health_info
 
-    async def get_all_service_health(self) -> Dict[str, Dict[str, Any]]:
+    async def get_all_service_health(
+        self,
+    ) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Get health status for all services."""
         health_results = {}
 
@@ -527,7 +519,7 @@ class DistributedTracing:
 
     def __init__(self, tracing_manager: TracingManager):
         self.tracing_manager = tracing_manager
-        self._current_span: Optional[TraceSpan] = None
+        self._current_span: TraceSpan | None = None
 
     async def __aenter__(self) -> TraceSpan:
         """Enter tracing context."""
@@ -563,7 +555,7 @@ class Telemetry:
         self.tracing_manager = TracingManager()
         self.logging_manager = LoggingManager()
         self.service_monitor = ServiceMonitor()
-        self._exporters: Dict[TelemetryProtocol, Callable] = {}
+        self._exporters: builtins.dict[TelemetryProtocol, Callable] = {}
 
     def add_exporter(self, protocol: TelemetryProtocol, exporter: Callable) -> None:
         """Add telemetry exporter."""
@@ -577,7 +569,7 @@ class Telemetry:
 
         return await exporter()
 
-    async def get_telemetry_summary(self) -> Dict[str, Any]:
+    async def get_telemetry_summary(self) -> builtins.dict[str, Any]:
         """Get telemetry summary."""
         metrics = await self.metrics_collector.get_metrics()
         traces = await self.tracing_manager.export_traces()
@@ -618,11 +610,11 @@ class TraceExporter:
     def __init__(self, tracing_manager: TracingManager):
         self.tracing_manager = tracing_manager
 
-    async def export_to_jaeger(self) -> List[Dict[str, Any]]:
+    async def export_to_jaeger(self) -> builtins.list[builtins.dict[str, Any]]:
         """Export traces to Jaeger format."""
         return await self.tracing_manager.export_traces("jaeger")
 
-    async def export_to_zipkin(self) -> List[Dict[str, Any]]:
+    async def export_to_zipkin(self) -> builtins.list[builtins.dict[str, Any]]:
         """Export traces to Zipkin format."""
         traces = await self.tracing_manager.export_traces("jaeger")
         # Convert to Zipkin format (simplified)
@@ -652,21 +644,23 @@ class AlertManager:
     """Alert management and notification."""
 
     def __init__(self):
-        self._alerts: Dict[str, Alert] = {}
-        self._alert_handlers: List[Callable] = []
-        self._active_alerts: Dict[str, datetime] = {}
+        self._alerts: builtins.dict[str, Alert] = {}
+        self._alert_handlers: builtins.list[Callable] = []
+        self._active_alerts: builtins.dict[str, datetime] = {}
 
     def register_alert(self, alert: Alert) -> None:
         """Register alert rule."""
         self._alerts[alert.name] = alert
 
     def add_alert_handler(
-        self, handler: Callable[[Alert, Dict[str, Any]], None]
+        self, handler: Callable[[Alert, builtins.dict[str, Any]], None]
     ) -> None:
         """Add alert handler."""
         self._alert_handlers.append(handler)
 
-    async def check_alerts(self, metrics: List[MetricData]) -> List[Dict[str, Any]]:
+    async def check_alerts(
+        self, metrics: builtins.list[MetricData]
+    ) -> builtins.list[builtins.dict[str, Any]]:
         """Check alert conditions."""
         triggered_alerts = []
 
@@ -710,7 +704,7 @@ class ObservabilityManager:
         logger.info("Observability manager initialized")
 
     async def collect_service_metrics(
-        self, service_name: str, metrics: Dict[str, float]
+        self, service_name: str, metrics: builtins.dict[str, float]
     ) -> None:
         """Collect metrics for a service."""
         for metric_name, value in metrics.items():
@@ -723,7 +717,10 @@ class ObservabilityManager:
             await self.telemetry.metrics_collector.collect_metric(metric)
 
     async def trace_request(
-        self, service_name: str, operation: str, request_data: Dict[str, Any] = None
+        self,
+        service_name: str,
+        operation: str,
+        request_data: builtins.dict[str, Any] = None,
     ) -> DistributedTracing:
         """Start request tracing."""
         context = DistributedTracing(self.telemetry.tracing_manager)
@@ -743,7 +740,7 @@ class ObservabilityManager:
         """Log service event."""
         await self.telemetry.logging_manager.log(level, message, service_name, **kwargs)
 
-    async def get_observability_dashboard(self) -> Dict[str, Any]:
+    async def get_observability_dashboard(self) -> builtins.dict[str, Any]:
         """Get observability dashboard data."""
         summary = await self.telemetry.get_telemetry_summary()
         metrics = await self.telemetry.metrics_collector.get_metrics()
@@ -761,7 +758,10 @@ class ObservabilityManager:
 
 
 def create_metric(
-    name: str, value: float, metric_type: MetricType, labels: Dict[str, str] = None
+    name: str,
+    value: float,
+    metric_type: MetricType,
+    labels: builtins.dict[str, str] = None,
 ) -> MetricData:
     """Create metric data."""
     return MetricData(

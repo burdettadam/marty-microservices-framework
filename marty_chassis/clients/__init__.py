@@ -10,7 +10,7 @@ This module provides HTTP and gRPC client libraries with built-in:
 """
 
 import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union, dict
 
 import grpc
 import httpx
@@ -30,12 +30,12 @@ class HTTPClient:
     def __init__(
         self,
         base_url: str,
-        config: Optional[ChassisConfig] = None,
+        config: ChassisConfig | None = None,
         timeout: float = 30.0,
         enable_retry: bool = True,
         enable_circuit_breaker: bool = True,
-        auth_token: Optional[str] = None,
-        api_key: Optional[str] = None,
+        auth_token: str | None = None,
+        api_key: str | None = None,
     ):
         self.base_url = base_url.rstrip("/")
         self.config = config or ChassisConfig.from_env()
@@ -73,8 +73,8 @@ class HTTPClient:
         logger.info("HTTP client initialized", base_url=base_url)
 
     def _get_headers(
-        self, additional_headers: Optional[Dict[str, str]] = None
-    ) -> Dict[str, str]:
+        self, additional_headers: dict[str, str] | None = None
+    ) -> dict[str, str]:
         """Get request headers with authentication."""
         headers = {
             "User-Agent": f"marty-chassis/{self.config.service.version}",
@@ -97,9 +97,9 @@ class HTTPClient:
         self,
         method: str,
         path: str,
-        data: Optional[Union[Dict[str, Any], str]] = None,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        data: dict[str, Any] | str | None = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         """Make HTTP request with resilience patterns."""
         url = f"{self.base_url}/{path.lstrip('/')}"
@@ -158,8 +158,8 @@ class HTTPClient:
     async def get(
         self,
         path: str,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         """Make GET request."""
         return await self._make_request("GET", path, params=params, headers=headers)
@@ -167,9 +167,9 @@ class HTTPClient:
     async def post(
         self,
         path: str,
-        data: Optional[Union[Dict[str, Any], str]] = None,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        data: dict[str, Any] | str | None = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         """Make POST request."""
         return await self._make_request(
@@ -179,9 +179,9 @@ class HTTPClient:
     async def put(
         self,
         path: str,
-        data: Optional[Union[Dict[str, Any], str]] = None,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        data: dict[str, Any] | str | None = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         """Make PUT request."""
         return await self._make_request(
@@ -191,8 +191,8 @@ class HTTPClient:
     async def delete(
         self,
         path: str,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         """Make DELETE request."""
         return await self._make_request("DELETE", path, params=params, headers=headers)
@@ -200,9 +200,9 @@ class HTTPClient:
     async def patch(
         self,
         path: str,
-        data: Optional[Union[Dict[str, Any], str]] = None,
-        params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        data: dict[str, Any] | str | None = None,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> httpx.Response:
         """Make PATCH request."""
         return await self._make_request(
@@ -227,13 +227,13 @@ class GRPCClient:
     def __init__(
         self,
         server_address: str,
-        config: Optional[ChassisConfig] = None,
+        config: ChassisConfig | None = None,
         timeout: float = 30.0,
         enable_retry: bool = True,
         enable_circuit_breaker: bool = True,
-        auth_token: Optional[str] = None,
+        auth_token: str | None = None,
         use_tls: bool = False,
-        tls_cert_path: Optional[str] = None,
+        tls_cert_path: str | None = None,
     ):
         self.server_address = server_address
         self.config = config or ChassisConfig.from_env()
@@ -293,7 +293,7 @@ class GRPCClient:
         request_serializer,
         response_deserializer,
         request,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ):
         """Make unary-unary gRPC call."""
 
@@ -352,7 +352,7 @@ class GRPCClient:
         request_serializer,
         response_deserializer,
         request,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ):
         """Make unary-stream gRPC call."""
 
@@ -412,17 +412,17 @@ class GRPCClient:
 class ClientFactory:
     """Factory for creating configured clients."""
 
-    def __init__(self, config: Optional[ChassisConfig] = None):
+    def __init__(self, config: ChassisConfig | None = None):
         self.config = config or ChassisConfig.from_env()
 
     def create_http_client(
         self,
         base_url: str,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         enable_retry: bool = True,
         enable_circuit_breaker: bool = True,
-        auth_token: Optional[str] = None,
-        api_key: Optional[str] = None,
+        auth_token: str | None = None,
+        api_key: str | None = None,
     ) -> HTTPClient:
         """Create an HTTP client with default configuration."""
         return HTTPClient(
@@ -438,12 +438,12 @@ class ClientFactory:
     def create_grpc_client(
         self,
         server_address: str,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
         enable_retry: bool = True,
         enable_circuit_breaker: bool = True,
-        auth_token: Optional[str] = None,
+        auth_token: str | None = None,
         use_tls: bool = False,
-        tls_cert_path: Optional[str] = None,
+        tls_cert_path: str | None = None,
     ) -> GRPCClient:
         """Create a gRPC client with default configuration."""
         return GRPCClient(

@@ -6,20 +6,17 @@ CQRS, distributed transactions, saga patterns, and data consistency strategies.
 """
 
 import asyncio
-import copy
-import hashlib
+import builtins
 import json
 import logging
 
 # For database operations
-import sqlite3
 import threading
-import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
 from typing import (
     Any,
@@ -29,13 +26,10 @@ from typing import (
     List,
     Optional,
     Set,
-    Tuple,
     TypeVar,
-    Union,
+    dict,
+    list,
 )
-
-import redis
-from pymongo import MongoClient
 
 
 class EventType(Enum):
@@ -95,20 +89,20 @@ class DomainEvent:
     aggregate_id: str
     aggregate_type: str
     version: int
-    data: Dict[str, Any]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    data: builtins.dict[str, Any]
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    correlation_id: Optional[str] = None
-    causation_id: Optional[str] = None
+    correlation_id: str | None = None
+    causation_id: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert event to dictionary."""
         result = asdict(self)
         result["timestamp"] = self.timestamp.isoformat()
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DomainEvent":
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "DomainEvent":
         """Create event from dictionary."""
         data = data.copy()
         if "timestamp" in data and isinstance(data["timestamp"], str):
@@ -122,7 +116,7 @@ class EventStream:
 
     aggregate_id: str
     aggregate_type: str
-    events: List[DomainEvent] = field(default_factory=list)
+    events: builtins.list[DomainEvent] = field(default_factory=list)
     version: int = 0
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -136,7 +130,7 @@ class Snapshot:
     aggregate_id: str
     aggregate_type: str
     version: int
-    data: Dict[str, Any]
+    data: builtins.dict[str, Any]
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -147,10 +141,10 @@ class Command:
     command_id: str
     command_type: str
     aggregate_id: str
-    data: Dict[str, Any]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    data: builtins.dict[str, Any]
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    expected_version: Optional[int] = None
+    expected_version: int | None = None
 
 
 @dataclass
@@ -159,8 +153,8 @@ class Query:
 
     query_id: str
     query_type: str
-    parameters: Dict[str, Any]
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    parameters: builtins.dict[str, Any]
+    metadata: builtins.dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -170,7 +164,7 @@ class ReadModel:
 
     model_id: str
     model_type: str
-    data: Dict[str, Any]
+    data: builtins.dict[str, Any]
     version: int
     last_updated: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -193,12 +187,12 @@ class DistributedTransaction:
 
     transaction_id: str
     coordinator: str
-    participants: List[TransactionParticipant]
+    participants: builtins.list[TransactionParticipant]
     state: TransactionState = TransactionState.STARTED
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     timeout: int = 300  # seconds
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -212,7 +206,7 @@ class SagaStep:
     compensation: str  # compensation action
     timeout: int = 30
     retries: int = 3
-    parameters: Dict[str, Any] = field(default_factory=dict)
+    parameters: builtins.dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -221,12 +215,12 @@ class SagaTransaction:
 
     saga_id: str
     saga_type: str
-    steps: List[SagaStep]
+    steps: builtins.list[SagaStep]
     state: SagaState = SagaState.CREATED
     current_step: int = 0
-    completed_steps: List[str] = field(default_factory=list)
-    compensated_steps: List[str] = field(default_factory=list)
-    context: Dict[str, Any] = field(default_factory=dict)
+    completed_steps: builtins.list[str] = field(default_factory=list)
+    compensated_steps: builtins.list[str] = field(default_factory=list)
+    context: builtins.dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -236,34 +230,32 @@ class EventStore(ABC):
 
     @abstractmethod
     async def append_events(
-        self, aggregate_id: str, events: List[DomainEvent], expected_version: int
+        self,
+        aggregate_id: str,
+        events: builtins.list[DomainEvent],
+        expected_version: int,
     ) -> bool:
         """Append events to aggregate stream."""
-        pass
 
     @abstractmethod
     async def get_events(
         self, aggregate_id: str, from_version: int = 0
-    ) -> List[DomainEvent]:
+    ) -> builtins.list[DomainEvent]:
         """Get events for aggregate."""
-        pass
 
     @abstractmethod
     async def get_events_by_type(
-        self, event_type: str, from_timestamp: Optional[datetime] = None
-    ) -> List[DomainEvent]:
+        self, event_type: str, from_timestamp: datetime | None = None
+    ) -> builtins.list[DomainEvent]:
         """Get events by type."""
-        pass
 
     @abstractmethod
     async def save_snapshot(self, snapshot: Snapshot) -> bool:
         """Save aggregate snapshot."""
-        pass
 
     @abstractmethod
-    async def get_snapshot(self, aggregate_id: str) -> Optional[Snapshot]:
+    async def get_snapshot(self, aggregate_id: str) -> Snapshot | None:
         """Get latest snapshot for aggregate."""
-        pass
 
 
 class InMemoryEventStore(EventStore):
@@ -271,13 +263,18 @@ class InMemoryEventStore(EventStore):
 
     def __init__(self):
         """Initialize in-memory event store."""
-        self.event_streams: Dict[str, EventStream] = {}
-        self.snapshots: Dict[str, Snapshot] = {}
-        self.event_index: Dict[str, List[DomainEvent]] = defaultdict(list)
+        self.event_streams: builtins.dict[str, EventStream] = {}
+        self.snapshots: builtins.dict[str, Snapshot] = {}
+        self.event_index: builtins.dict[str, builtins.list[DomainEvent]] = defaultdict(
+            list
+        )
         self._lock = threading.RLock()
 
     async def append_events(
-        self, aggregate_id: str, events: List[DomainEvent], expected_version: int
+        self,
+        aggregate_id: str,
+        events: builtins.list[DomainEvent],
+        expected_version: int,
     ) -> bool:
         """Append events to aggregate stream."""
         with self._lock:
@@ -307,7 +304,7 @@ class InMemoryEventStore(EventStore):
 
     async def get_events(
         self, aggregate_id: str, from_version: int = 0
-    ) -> List[DomainEvent]:
+    ) -> builtins.list[DomainEvent]:
         """Get events for aggregate."""
         with self._lock:
             if aggregate_id not in self.event_streams:
@@ -317,8 +314,8 @@ class InMemoryEventStore(EventStore):
             return [event for event in stream.events if event.version > from_version]
 
     async def get_events_by_type(
-        self, event_type: str, from_timestamp: Optional[datetime] = None
-    ) -> List[DomainEvent]:
+        self, event_type: str, from_timestamp: datetime | None = None
+    ) -> builtins.list[DomainEvent]:
         """Get events by type."""
         with self._lock:
             events = self.event_index.get(event_type, [])
@@ -336,7 +333,7 @@ class InMemoryEventStore(EventStore):
             self.snapshots[snapshot.aggregate_id] = snapshot
             return True
 
-    async def get_snapshot(self, aggregate_id: str) -> Optional[Snapshot]:
+    async def get_snapshot(self, aggregate_id: str) -> Snapshot | None:
         """Get latest snapshot for aggregate."""
         with self._lock:
             return self.snapshots.get(aggregate_id)
@@ -349,7 +346,7 @@ class AggregateRoot(ABC):
         """Initialize aggregate root."""
         self.aggregate_id = aggregate_id
         self.version = 0
-        self.uncommitted_events: List[DomainEvent] = []
+        self.uncommitted_events: builtins.list[DomainEvent] = []
 
     def apply_event(self, event: DomainEvent):
         """Apply event to aggregate."""
@@ -357,7 +354,10 @@ class AggregateRoot(ABC):
         self.version = event.version
 
     def raise_event(
-        self, event_type: str, data: Dict[str, Any], metadata: Dict[str, Any] = None
+        self,
+        event_type: str,
+        data: builtins.dict[str, Any],
+        metadata: builtins.dict[str, Any] = None,
     ):
         """Raise new domain event."""
         event = DomainEvent(
@@ -373,7 +373,7 @@ class AggregateRoot(ABC):
         self.uncommitted_events.append(event)
         self.apply_event(event)
 
-    def get_uncommitted_events(self) -> List[DomainEvent]:
+    def get_uncommitted_events(self) -> builtins.list[DomainEvent]:
         """Get uncommitted events."""
         return self.uncommitted_events.copy()
 
@@ -384,36 +384,30 @@ class AggregateRoot(ABC):
     @abstractmethod
     def _apply_event(self, event: DomainEvent):
         """Apply specific event to aggregate state."""
-        pass
 
     @abstractmethod
-    def create_snapshot(self) -> Dict[str, Any]:
+    def create_snapshot(self) -> builtins.dict[str, Any]:
         """Create snapshot of aggregate state."""
-        pass
 
     @abstractmethod
-    def restore_from_snapshot(self, snapshot_data: Dict[str, Any]):
+    def restore_from_snapshot(self, snapshot_data: builtins.dict[str, Any]):
         """Restore aggregate from snapshot."""
-        pass
 
 
 class Repository(ABC, Generic[T]):
     """Abstract repository interface."""
 
     @abstractmethod
-    async def get_by_id(self, aggregate_id: str) -> Optional[T]:
+    async def get_by_id(self, aggregate_id: str) -> T | None:
         """Get aggregate by ID."""
-        pass
 
     @abstractmethod
     async def save(self, aggregate: T) -> bool:
         """Save aggregate."""
-        pass
 
     @abstractmethod
     async def delete(self, aggregate_id: str) -> bool:
         """Delete aggregate."""
-        pass
 
 
 class EventSourcingRepository(Repository[T]):
@@ -430,7 +424,7 @@ class EventSourcingRepository(Repository[T]):
         self.aggregate_class = aggregate_class
         self.snapshot_frequency = snapshot_frequency
 
-    async def get_by_id(self, aggregate_id: str) -> Optional[T]:
+    async def get_by_id(self, aggregate_id: str) -> T | None:
         """Get aggregate by ID using event sourcing."""
         # Try to get snapshot first
         snapshot = await self.event_store.get_snapshot(aggregate_id)
@@ -499,7 +493,6 @@ class CommandHandler(ABC):
     @abstractmethod
     async def handle(self, command: Command) -> bool:
         """Handle command."""
-        pass
 
 
 class QueryHandler(ABC):
@@ -508,7 +501,6 @@ class QueryHandler(ABC):
     @abstractmethod
     async def handle(self, query: Query) -> Any:
         """Handle query."""
-        pass
 
 
 class EventHandler(ABC):
@@ -517,7 +509,6 @@ class EventHandler(ABC):
     @abstractmethod
     async def handle(self, event: DomainEvent) -> bool:
         """Handle event."""
-        pass
 
 
 class ProjectionManager:
@@ -526,18 +517,20 @@ class ProjectionManager:
     def __init__(self, event_store: EventStore):
         """Initialize projection manager."""
         self.event_store = event_store
-        self.projections: Dict[str, Dict[str, Any]] = {}
-        self.projection_handlers: Dict[str, List[Callable]] = defaultdict(list)
-        self.projection_checkpoints: Dict[str, datetime] = {}
+        self.projections: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.projection_handlers: builtins.dict[
+            str, builtins.list[Callable]
+        ] = defaultdict(list)
+        self.projection_checkpoints: builtins.dict[str, datetime] = {}
 
         # Projection tasks
-        self.projection_tasks: Dict[str, asyncio.Task] = {}
+        self.projection_tasks: builtins.dict[str, asyncio.Task] = {}
 
     def register_projection_handler(
         self,
         event_type: str,
         projection_name: str,
-        handler: Callable[[DomainEvent], Dict[str, Any]],
+        handler: Callable[[DomainEvent], builtins.dict[str, Any]],
     ):
         """Register projection handler for event type."""
         handler_info = {"projection_name": projection_name, "handler": handler}
@@ -571,7 +564,7 @@ class ProjectionManager:
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                logging.error(f"Projection error for {projection_name}: {e}")
+                logging.exception(f"Projection error for {projection_name}: {e}")
                 await asyncio.sleep(10)
 
     async def _process_projection(self, projection_name: str):
@@ -612,9 +605,9 @@ class ProjectionManager:
                     self.projections[projection_name].update(projection_data)
 
                 except Exception as e:
-                    logging.error(f"Projection handler error: {e}")
+                    logging.exception(f"Projection handler error: {e}")
 
-    def get_projection(self, projection_name: str) -> Dict[str, Any]:
+    def get_projection(self, projection_name: str) -> builtins.dict[str, Any]:
         """Get projection data."""
         return self.projections.get(projection_name, {})
 
@@ -624,11 +617,11 @@ class DistributedTransactionCoordinator:
 
     def __init__(self):
         """Initialize transaction coordinator."""
-        self.transactions: Dict[str, DistributedTransaction] = {}
-        self.transaction_locks: Dict[str, asyncio.Lock] = {}
+        self.transactions: builtins.dict[str, DistributedTransaction] = {}
+        self.transaction_locks: builtins.dict[str, asyncio.Lock] = {}
 
         # Transaction timeouts
-        self.timeout_tasks: Dict[str, asyncio.Task] = {}
+        self.timeout_tasks: builtins.dict[str, asyncio.Task] = {}
 
     async def begin_transaction(self, transaction: DistributedTransaction) -> bool:
         """Begin distributed transaction."""
@@ -651,7 +644,7 @@ class DistributedTransactionCoordinator:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to begin transaction: {e}")
+            logging.exception(f"Failed to begin transaction: {e}")
             return False
 
     async def commit_transaction(self, transaction_id: str) -> bool:
@@ -694,7 +687,7 @@ class DistributedTransactionCoordinator:
                 return commit_success
 
             except Exception as e:
-                logging.error(f"Transaction commit error: {e}")
+                logging.exception(f"Transaction commit error: {e}")
                 await self._abort_transaction(transaction)
                 return False
 
@@ -725,7 +718,7 @@ class DistributedTransactionCoordinator:
                     )
 
             except Exception as e:
-                logging.error(
+                logging.exception(
                     f"Prepare error for participant {participant.participant_id}: {e}"
                 )
                 prepare_results.append(False)
@@ -748,7 +741,7 @@ class DistributedTransactionCoordinator:
                     )
 
             except Exception as e:
-                logging.error(
+                logging.exception(
                     f"Commit error for participant {participant.participant_id}: {e}"
                 )
                 commit_results.append(False)
@@ -763,7 +756,7 @@ class DistributedTransactionCoordinator:
             try:
                 await self._send_abort_request(participant, transaction)
             except Exception as e:
-                logging.error(
+                logging.exception(
                     f"Abort error for participant {participant.participant_id}: {e}"
                 )
 
@@ -833,7 +826,9 @@ class DistributedTransactionCoordinator:
             self.timeout_tasks[transaction_id].cancel()
             del self.timeout_tasks[transaction_id]
 
-    def get_transaction_status(self, transaction_id: str) -> Optional[Dict[str, Any]]:
+    def get_transaction_status(
+        self, transaction_id: str
+    ) -> builtins.dict[str, Any] | None:
         """Get transaction status."""
         transaction = self.transactions.get(transaction_id)
 
@@ -855,11 +850,11 @@ class SagaOrchestrator:
 
     def __init__(self):
         """Initialize saga orchestrator."""
-        self.sagas: Dict[str, SagaTransaction] = {}
-        self.saga_locks: Dict[str, asyncio.Lock] = {}
+        self.sagas: builtins.dict[str, SagaTransaction] = {}
+        self.saga_locks: builtins.dict[str, asyncio.Lock] = {}
 
         # Saga execution tasks
-        self.saga_tasks: Dict[str, asyncio.Task] = {}
+        self.saga_tasks: builtins.dict[str, asyncio.Task] = {}
 
     async def start_saga(self, saga: SagaTransaction) -> bool:
         """Start saga execution."""
@@ -878,7 +873,7 @@ class SagaOrchestrator:
             return True
 
         except Exception as e:
-            logging.error(f"Failed to start saga: {e}")
+            logging.exception(f"Failed to start saga: {e}")
             return False
 
     async def _execute_saga(self, saga_id: str):
@@ -910,7 +905,7 @@ class SagaOrchestrator:
                 logging.info(f"Saga completed successfully: {saga_id}")
 
             except Exception as e:
-                logging.error(f"Saga execution error: {e}")
+                logging.exception(f"Saga execution error: {e}")
                 saga.state = SagaState.FAILED
                 await self._compensate_saga(saga)
 
@@ -918,7 +913,9 @@ class SagaOrchestrator:
                 # Clean up
                 self._cleanup_saga(saga_id)
 
-    async def _execute_step(self, step: SagaStep, context: Dict[str, Any]) -> bool:
+    async def _execute_step(
+        self, step: SagaStep, context: builtins.dict[str, Any]
+    ) -> bool:
         """Execute individual saga step."""
         try:
             # Simulate step execution
@@ -937,7 +934,7 @@ class SagaOrchestrator:
             return random.random() < 0.85
 
         except Exception as e:
-            logging.error(f"Step execution error: {e}")
+            logging.exception(f"Step execution error: {e}")
             return False
 
     async def _compensate_saga(self, saga: SagaTransaction):
@@ -962,7 +959,9 @@ class SagaOrchestrator:
 
         logging.info(f"Saga compensated: {saga.saga_id}")
 
-    async def _compensate_step(self, step: SagaStep, context: Dict[str, Any]) -> bool:
+    async def _compensate_step(
+        self, step: SagaStep, context: builtins.dict[str, Any]
+    ) -> bool:
         """Compensate individual saga step."""
         try:
             # Simulate compensation
@@ -980,7 +979,7 @@ class SagaOrchestrator:
             return random.random() < 0.95
 
         except Exception as e:
-            logging.error(f"Step compensation error: {e}")
+            logging.exception(f"Step compensation error: {e}")
             return False
 
     def _cleanup_saga(self, saga_id: str):
@@ -991,7 +990,7 @@ class SagaOrchestrator:
         # Keep saga record for audit trail
         # In production, might move to completed sagas storage
 
-    def get_saga_status(self, saga_id: str) -> Optional[Dict[str, Any]]:
+    def get_saga_status(self, saga_id: str) -> builtins.dict[str, Any] | None:
         """Get saga status."""
         saga = self.sagas.get(saga_id)
 
@@ -1017,16 +1016,16 @@ class DistributedCache:
     def __init__(self, redis_client=None):
         """Initialize distributed cache."""
         self.redis_client = redis_client
-        self.local_cache: Dict[str, Dict[str, Any]] = {}
-        self.cache_timestamps: Dict[str, datetime] = {}
-        self.cache_locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        self.local_cache: builtins.dict[str, builtins.dict[str, Any]] = {}
+        self.cache_timestamps: builtins.dict[str, datetime] = {}
+        self.cache_locks: builtins.dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
 
         # Cache statistics
         self.cache_stats = {"hits": 0, "misses": 0, "invalidations": 0, "evictions": 0}
 
     async def get(
         self, key: str, consistency_level: ConsistencyLevel = ConsistencyLevel.EVENTUAL
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """Get value from cache with consistency level."""
         async with self.cache_locks[key]:
             # Check local cache first
@@ -1037,10 +1036,9 @@ class DistributedCache:
                 if self._is_cache_entry_valid(key, consistency_level):
                     self.cache_stats["hits"] += 1
                     return cache_entry["value"]
-                else:
-                    # Remove stale entry
-                    del self.local_cache[key]
-                    self.cache_timestamps.pop(key, None)
+                # Remove stale entry
+                del self.local_cache[key]
+                self.cache_timestamps.pop(key, None)
 
             # Try distributed cache (Redis)
             if self.redis_client:
@@ -1055,7 +1053,7 @@ class DistributedCache:
                         self.cache_stats["hits"] += 1
                         return value
                 except Exception as e:
-                    logging.error(f"Redis cache error: {e}")
+                    logging.exception(f"Redis cache error: {e}")
 
             self.cache_stats["misses"] += 1
             return None
@@ -1070,7 +1068,7 @@ class DistributedCache:
                         serialized_value = json.dumps(value)
                         self.redis_client.setex(key, ttl, serialized_value)
                     except Exception as e:
-                        logging.error(f"Redis cache set error: {e}")
+                        logging.exception(f"Redis cache set error: {e}")
 
                 # Set in local cache
                 self._set_local_cache(key, value)
@@ -1078,7 +1076,7 @@ class DistributedCache:
                 return True
 
             except Exception as e:
-                logging.error(f"Cache set error: {e}")
+                logging.exception(f"Cache set error: {e}")
                 return False
 
     async def invalidate(self, key: str) -> bool:
@@ -1090,7 +1088,7 @@ class DistributedCache:
                     try:
                         self.redis_client.delete(key)
                     except Exception as e:
-                        logging.error(f"Redis cache delete error: {e}")
+                        logging.exception(f"Redis cache delete error: {e}")
 
                 # Remove from local cache
                 self.local_cache.pop(key, None)
@@ -1100,7 +1098,7 @@ class DistributedCache:
                 return True
 
             except Exception as e:
-                logging.error(f"Cache invalidation error: {e}")
+                logging.exception(f"Cache invalidation error: {e}")
                 return False
 
     async def invalidate_pattern(self, pattern: str) -> int:
@@ -1126,7 +1124,7 @@ class DistributedCache:
                     self.redis_client.delete(*redis_keys)
                     invalidated_count += len(redis_keys)
             except Exception as e:
-                logging.error(f"Redis pattern invalidation error: {e}")
+                logging.exception(f"Redis pattern invalidation error: {e}")
 
         return invalidated_count
 
@@ -1166,7 +1164,7 @@ class DistributedCache:
         # Simple pattern matching (could be enhanced with regex)
         return pattern.replace("*", "") in key
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> builtins.dict[str, Any]:
         """Get cache statistics."""
         total_requests = self.cache_stats["hits"] + self.cache_stats["misses"]
         hit_rate = (
@@ -1185,9 +1183,9 @@ class DataConsistencyManager:
 
     def __init__(self):
         """Initialize consistency manager."""
-        self.consistency_policies: Dict[str, ConsistencyLevel] = {}
-        self.conflict_resolution_strategies: Dict[str, Callable] = {}
-        self.consistency_monitors: Dict[str, asyncio.Task] = {}
+        self.consistency_policies: builtins.dict[str, ConsistencyLevel] = {}
+        self.conflict_resolution_strategies: builtins.dict[str, Callable] = {}
+        self.consistency_monitors: builtins.dict[str, asyncio.Task] = {}
 
         # Consistency events
         self.consistency_events: deque = deque(maxlen=1000)
@@ -1198,15 +1196,15 @@ class DataConsistencyManager:
         logging.info(f"Set consistency policy for {resource}: {level.value}")
 
     def register_conflict_resolution(
-        self, resource: str, strategy: Callable[[List[Any]], Any]
+        self, resource: str, strategy: Callable[[builtins.list[Any]], Any]
     ):
         """Register conflict resolution strategy."""
         self.conflict_resolution_strategies[resource] = strategy
         logging.info(f"Registered conflict resolution for {resource}")
 
     async def check_consistency(
-        self, resource: str, replicas: List[Any]
-    ) -> Dict[str, Any]:
+        self, resource: str, replicas: builtins.list[Any]
+    ) -> builtins.dict[str, Any]:
         """Check consistency across replicas."""
         if not replicas:
             return {"consistent": True, "conflicts": []}
@@ -1242,7 +1240,7 @@ class DataConsistencyManager:
         return result
 
     async def resolve_conflicts(
-        self, resource: str, conflicts: List[Dict[str, Any]]
+        self, resource: str, conflicts: builtins.list[builtins.dict[str, Any]]
     ) -> Any:
         """Resolve conflicts using registered strategy."""
         if not conflicts:
@@ -1265,7 +1263,7 @@ class DataConsistencyManager:
             return resolved_value
 
         except Exception as e:
-            logging.error(f"Conflict resolution error for {resource}: {e}")
+            logging.exception(f"Conflict resolution error for {resource}: {e}")
             return None
 
     def _are_replicas_consistent(self, replica1: Any, replica2: Any) -> bool:
@@ -1273,10 +1271,11 @@ class DataConsistencyManager:
         # Simple equality check (could be enhanced for complex objects)
         if isinstance(replica1, dict) and isinstance(replica2, dict):
             return self._deep_dict_compare(replica1, replica2)
-        else:
-            return replica1 == replica2
+        return replica1 == replica2
 
-    def _deep_dict_compare(self, dict1: Dict[str, Any], dict2: Dict[str, Any]) -> bool:
+    def _deep_dict_compare(
+        self, dict1: builtins.dict[str, Any], dict2: builtins.dict[str, Any]
+    ) -> bool:
         """Deep comparison of dictionaries."""
         if set(dict1.keys()) != set(dict2.keys()):
             return False
@@ -1290,16 +1289,18 @@ class DataConsistencyManager:
 
         return True
 
-    def _last_writer_wins_strategy(self, values: List[Any]) -> Any:
+    def _last_writer_wins_strategy(self, values: builtins.list[Any]) -> Any:
         """Last writer wins conflict resolution."""
         # Assume values have timestamps
         if all(isinstance(v, dict) and "timestamp" in v for v in values):
             return max(values, key=lambda v: v["timestamp"])
-        else:
-            return values[-1]  # Return last value
+        return values[-1]  # Return last value
 
     def _record_consistency_event(
-        self, resource: str, consistent: bool, conflicts: List[Dict[str, Any]]
+        self,
+        resource: str,
+        consistent: bool,
+        conflicts: builtins.list[builtins.dict[str, Any]],
     ):
         """Record consistency event."""
         event = {
@@ -1312,7 +1313,7 @@ class DataConsistencyManager:
 
         self.consistency_events.append(event)
 
-    def get_consistency_report(self, resource: str = None) -> Dict[str, Any]:
+    def get_consistency_report(self, resource: str = None) -> builtins.dict[str, Any]:
         """Get consistency report."""
         if resource:
             events = [e for e in self.consistency_events if e["resource"] == resource]
@@ -1334,7 +1335,7 @@ class DataConsistencyManager:
         }
 
 
-def create_advanced_data_management() -> Dict[str, Any]:
+def create_advanced_data_management() -> builtins.dict[str, Any]:
     """Create advanced data management components."""
     event_store = InMemoryEventStore()
     projection_manager = ProjectionManager(event_store)

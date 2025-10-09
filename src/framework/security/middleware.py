@@ -2,9 +2,9 @@
 Security middleware for FastAPI and gRPC services.
 """
 
-import asyncio
+import builtins
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Optional, dict
 
 import grpc
 from fastapi import HTTPException, Request, Response
@@ -15,18 +15,12 @@ from starlette.responses import JSONResponse
 from .auth import (
     APIKeyAuthenticator,
     AuthenticatedUser,
-    AuthenticationResult,
     JWTAuthenticator,
     MTLSAuthenticator,
 )
 from .authorization import get_rbac
 from .config import SecurityConfig
-from .errors import (
-    AuthenticationError,
-    AuthorizationError,
-    RateLimitExceededError,
-    SecurityError,
-)
+from .errors import AuthenticationError, AuthorizationError, SecurityError
 from .rate_limiting import get_rate_limiter
 
 logger = logging.getLogger(__name__)
@@ -53,8 +47,8 @@ class SecurityMiddleware:
         self.rate_limiter = get_rate_limiter()
 
     async def authenticate_request(
-        self, request_info: Dict[str, Any]
-    ) -> Optional[AuthenticatedUser]:
+        self, request_info: builtins.dict[str, Any]
+    ) -> AuthenticatedUser | None:
         """Authenticate a request using available authenticators."""
 
         # Try JWT authentication first
@@ -91,8 +85,8 @@ class SecurityMiddleware:
         return None
 
     async def check_rate_limit(
-        self, request_info: Dict[str, Any], user: Optional[AuthenticatedUser]
-    ) -> tuple[bool, Dict[str, Any]]:
+        self, request_info: builtins.dict[str, Any], user: AuthenticatedUser | None
+    ) -> tuple[bool, builtins.dict[str, Any]]:
         """Check rate limits for the request."""
         if not self.rate_limiter or not self.rate_limiter.enabled:
             return True, {}
@@ -284,9 +278,7 @@ class HTTPBearerOptional(HTTPBearer):
     def __init__(self, auto_error: bool = False):
         super().__init__(auto_error=auto_error)
 
-    async def __call__(
-        self, request: Request
-    ) -> Optional[HTTPAuthorizationCredentials]:
+    async def __call__(self, request: Request) -> HTTPAuthorizationCredentials | None:
         try:
             return await super().__call__(request)
         except HTTPException:
@@ -294,7 +286,7 @@ class HTTPBearerOptional(HTTPBearer):
 
 
 # Dependency functions for FastAPI
-async def get_current_user(request: Request) -> Optional[AuthenticatedUser]:
+async def get_current_user(request: Request) -> AuthenticatedUser | None:
     """FastAPI dependency to get the current authenticated user."""
     return getattr(request.state, "user", None)
 

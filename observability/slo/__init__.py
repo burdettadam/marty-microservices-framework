@@ -12,6 +12,7 @@ Provides comprehensive SLO/SLI management including:
 """
 
 import asyncio
+import builtins
 import json
 import math
 import statistics
@@ -19,7 +20,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union, dict, list, tuple
 
 # External dependencies (optional)
 try:
@@ -69,11 +70,11 @@ class SLISpecification:
     description: str
     query: str  # Prometheus query or calculation method
     unit: str = ""
-    good_threshold: Optional[float] = None  # For binary SLIs
-    target_threshold: Optional[float] = None  # For latency SLIs
+    good_threshold: float | None = None  # For binary SLIs
+    target_threshold: float | None = None  # For latency SLIs
     window: str = "5m"  # Time window for calculation
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -85,7 +86,7 @@ class SLOTarget:
     window: str  # Time window (e.g., "30d", "7d", "1h")
     priority: SLOPriority = SLOPriority.MEDIUM
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -98,10 +99,10 @@ class SLODefinition:
     sli: SLISpecification
     target: SLOTarget
     description: str = ""
-    tags: Dict[str, str] = field(default_factory=dict)
+    tags: builtins.dict[str, str] = field(default_factory=dict)
     enabled: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -111,10 +112,10 @@ class SLIMeasurement:
 
     timestamp: datetime
     value: float
-    good_events: Optional[int] = None
-    total_events: Optional[int] = None
+    good_events: int | None = None
+    total_events: int | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             "timestamp": self.timestamp.isoformat(),
             "value": self.value,
@@ -135,9 +136,9 @@ class ErrorBudget:
     total_budget: float
     last_updated: datetime
     burn_rate: float = 0.0
-    projected_exhaustion: Optional[datetime] = None
+    projected_exhaustion: datetime | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return {
             "slo_name": self.slo_name,
             "target_percentage": self.target_percentage,
@@ -164,9 +165,9 @@ class SLOAlert:
     window: str
     severity: str
     enabled: bool = True
-    last_triggered: Optional[datetime] = None
+    last_triggered: datetime | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         return asdict(self)
 
 
@@ -192,7 +193,7 @@ class SLICollector:
         self.redis_port = redis_port
 
         # SLI measurement cache
-        self.measurements: Dict[str, List[SLIMeasurement]] = {}
+        self.measurements: builtins.dict[str, builtins.list[SLIMeasurement]] = {}
 
         # Metrics for tracking SLI collection
         if MONITORING_AVAILABLE:
@@ -210,7 +211,7 @@ class SLICollector:
                 registry=self.registry,
             )
 
-    async def collect_sli(self, slo: SLODefinition) -> Optional[SLIMeasurement]:
+    async def collect_sli(self, slo: SLODefinition) -> SLIMeasurement | None:
         """Collect SLI measurement for a given SLO"""
         try:
             measurement = None
@@ -254,7 +255,7 @@ class SLICollector:
 
     async def _collect_availability_sli(
         self, slo: SLODefinition
-    ) -> Optional[SLIMeasurement]:
+    ) -> SLIMeasurement | None:
         """Collect availability SLI"""
         # Example: Calculate uptime from successful vs failed requests
         query = (
@@ -271,9 +272,7 @@ class SLICollector:
             return SLIMeasurement(timestamp=datetime.now(), value=value)
         return None
 
-    async def _collect_latency_sli(
-        self, slo: SLODefinition
-    ) -> Optional[SLIMeasurement]:
+    async def _collect_latency_sli(self, slo: SLODefinition) -> SLIMeasurement | None:
         """Collect latency SLI"""
         # Example: Calculate percentage of requests under threshold
         threshold = slo.sli.target_threshold or 500  # 500ms default
@@ -297,7 +296,7 @@ class SLICollector:
 
     async def _collect_error_rate_sli(
         self, slo: SLODefinition
-    ) -> Optional[SLIMeasurement]:
+    ) -> SLIMeasurement | None:
         """Collect error rate SLI"""
         query = (
             slo.sli.query
@@ -319,7 +318,7 @@ class SLICollector:
 
     async def _collect_throughput_sli(
         self, slo: SLODefinition
-    ) -> Optional[SLIMeasurement]:
+    ) -> SLIMeasurement | None:
         """Collect throughput SLI"""
         query = (
             slo.sli.query
@@ -334,7 +333,7 @@ class SLICollector:
             return SLIMeasurement(timestamp=datetime.now(), value=value)
         return None
 
-    async def _collect_custom_sli(self, slo: SLODefinition) -> Optional[SLIMeasurement]:
+    async def _collect_custom_sli(self, slo: SLODefinition) -> SLIMeasurement | None:
         """Collect custom SLI using provided query"""
         if not slo.sli.query:
             return None
@@ -345,7 +344,9 @@ class SLICollector:
             return SLIMeasurement(timestamp=datetime.now(), value=value)
         return None
 
-    async def _query_prometheus(self, query: str) -> Optional[List[Dict[str, Any]]]:
+    async def _query_prometheus(
+        self, query: str
+    ) -> builtins.list[builtins.dict[str, Any]] | None:
         """Query Prometheus and return results"""
         if not MONITORING_AVAILABLE:
             # Simulate data for testing
@@ -377,9 +378,9 @@ class SLOTracker:
 
     def __init__(self, collector: SLICollector):
         self.collector = collector
-        self.slos: Dict[str, SLODefinition] = {}
-        self.error_budgets: Dict[str, ErrorBudget] = {}
-        self.alerts: Dict[str, List[SLOAlert]] = {}
+        self.slos: builtins.dict[str, SLODefinition] = {}
+        self.error_budgets: builtins.dict[str, ErrorBudget] = {}
+        self.alerts: builtins.dict[str, builtins.list[SLOAlert]] = {}
 
         # Metrics
         if MONITORING_AVAILABLE:
@@ -423,7 +424,7 @@ class SLOTracker:
 
         print(f"Registered SLO: {slo.name} for service {slo.service_name}")
 
-    def _create_default_alerts(self, slo: SLODefinition) -> List[SLOAlert]:
+    def _create_default_alerts(self, slo: SLODefinition) -> builtins.list[SLOAlert]:
         """Create default alerts for an SLO"""
         alerts = []
 
@@ -465,7 +466,7 @@ class SLOTracker:
 
         return alerts
 
-    async def track_slo(self, slo_name: str) -> Optional[Dict[str, Any]]:
+    async def track_slo(self, slo_name: str) -> builtins.dict[str, Any] | None:
         """Track a specific SLO"""
         if slo_name not in self.slos:
             return None
@@ -628,7 +629,7 @@ class SLOTracker:
         # Send alert to monitoring system
         # In production, integrate with PagerDuty, Slack, etc.
 
-    def get_slo_status(self, slo_name: str) -> Optional[Dict[str, Any]]:
+    def get_slo_status(self, slo_name: str) -> builtins.dict[str, Any] | None:
         """Get current status of an SLO"""
         if slo_name not in self.slos:
             return None
@@ -645,7 +646,7 @@ class SLOTracker:
             ],
         }
 
-    def list_slos(self) -> Dict[str, Dict[str, Any]]:
+    def list_slos(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """List all registered SLOs with their current status"""
         return {name: self.get_slo_status(name) for name in self.slos.keys()}
 
@@ -755,7 +756,7 @@ class SLOManager:
         self.running = False
         print("Stopped SLO monitoring")
 
-    def generate_slo_report(self) -> Dict[str, Any]:
+    def generate_slo_report(self) -> builtins.dict[str, Any]:
         """Generate comprehensive SLO report"""
         slos = self.tracker.list_slos()
 

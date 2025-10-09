@@ -2,10 +2,11 @@
 Database configuration for the enterprise database framework.
 """
 
+import builtins
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, dict
 
 
 class DatabaseType(Enum):
@@ -50,22 +51,22 @@ class DatabaseConfig:
     pool_config: ConnectionPoolConfig = field(default_factory=ConnectionPoolConfig)
 
     # SSL configuration
-    ssl_mode: Optional[str] = None
-    ssl_cert: Optional[str] = None
-    ssl_key: Optional[str] = None
-    ssl_ca: Optional[str] = None
+    ssl_mode: str | None = None
+    ssl_cert: str | None = None
+    ssl_key: str | None = None
+    ssl_ca: str | None = None
 
     # Service identification
     service_name: str = "unknown"
 
     # Additional options
     timezone: str = "UTC"
-    schema: Optional[str] = None
-    options: Dict[str, Any] = field(default_factory=dict)
+    schema: str | None = None
+    options: builtins.dict[str, Any] = field(default_factory=dict)
 
     # Migration settings
     migration_table: str = "alembic_version"
-    migration_directory: Optional[str] = None
+    migration_directory: str | None = None
 
     @property
     def connection_url(self) -> str:
@@ -295,7 +296,7 @@ class DatabaseConfig:
         if self.pool_config.max_size < self.pool_config.min_size:
             raise ValueError("pool max_size must be >= min_size")
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> builtins.dict[str, Any]:
         """Convert to dictionary (excluding sensitive information)."""
         return {
             "service_name": self.service_name,

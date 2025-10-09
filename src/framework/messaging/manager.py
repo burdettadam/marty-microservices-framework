@@ -6,11 +6,12 @@ backends, producers, consumers, routing, middleware, DLQ, and monitoring.
 """
 
 import asyncio
+import builtins
 import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, dict, list
 
 from .backends import BackendConfig, BackendFactory, BackendType, MessageBackend
 from .core import (
@@ -82,7 +83,7 @@ class MessagingConfig:
     enable_health_checks: bool = True
 
     # Error handling
-    global_error_handler: Optional[Callable[[Exception], None]] = None
+    global_error_handler: Callable[[Exception], None] | None = None
     shutdown_timeout: float = 30.0
 
 
@@ -94,28 +95,28 @@ class MessagingManager:
         self.state = MessagingState.INITIALIZING
 
         # Core components
-        self.backend: Optional[MessageBackend] = None
+        self.backend: MessageBackend | None = None
         self.router = MessageRouter()
         self.middleware_chain = MiddlewareChain()
-        self.dlq_manager: Optional[DLQManager] = None
+        self.dlq_manager: DLQManager | None = None
 
         # Collections
-        self.producers: Dict[str, Producer] = {}
-        self.consumers: Dict[str, Consumer] = {}
-        self.queues: Dict[str, MessageQueue] = {}
-        self.exchanges: Dict[str, MessageExchange] = {}
+        self.producers: builtins.dict[str, Producer] = {}
+        self.consumers: builtins.dict[str, Consumer] = {}
+        self.queues: builtins.dict[str, MessageQueue] = {}
+        self.exchanges: builtins.dict[str, MessageExchange] = {}
 
         # Patterns
-        self.request_reply_patterns: Dict[str, RequestReplyPattern] = {}
-        self.pubsub_patterns: Dict[str, PublishSubscribePattern] = {}
-        self.work_queue_patterns: Dict[str, WorkQueuePattern] = {}
-        self.routing_patterns: Dict[str, RoutingPattern] = {}
+        self.request_reply_patterns: builtins.dict[str, RequestReplyPattern] = {}
+        self.pubsub_patterns: builtins.dict[str, PublishSubscribePattern] = {}
+        self.work_queue_patterns: builtins.dict[str, WorkQueuePattern] = {}
+        self.routing_patterns: builtins.dict[str, RoutingPattern] = {}
 
         # Monitoring and management
-        self._health_check_task: Optional[asyncio.Task] = None
-        self._metrics_task: Optional[asyncio.Task] = None
-        self._message_buffer: List[Message] = []
-        self._processing_semaphore: Optional[asyncio.Semaphore] = None
+        self._health_check_task: asyncio.Task | None = None
+        self._metrics_task: asyncio.Task | None = None
+        self._message_buffer: builtins.list[Message] = []
+        self._processing_semaphore: asyncio.Semaphore | None = None
 
         # Statistics
         self._stats = {
@@ -303,7 +304,7 @@ class MessagingManager:
         logger.info("Created producer: %s", config.name)
         return producer
 
-    async def get_producer(self, name: str) -> Optional[Producer]:
+    async def get_producer(self, name: str) -> Producer | None:
         """Get producer by name."""
         return self.producers.get(name)
 
@@ -392,7 +393,7 @@ class MessagingManager:
 
         return MiddlewareWrappedHandler(handler, self.middleware_chain)
 
-    async def get_consumer(self, name: str) -> Optional[Consumer]:
+    async def get_consumer(self, name: str) -> Consumer | None:
         """Get consumer by name."""
         return self.consumers.get(name)
 
@@ -413,9 +414,9 @@ class MessagingManager:
         self,
         body: Any,
         routing_key: str = "",
-        exchange: Optional[str] = None,
-        producer_name: Optional[str] = None,
-        headers: Optional[Dict[str, Any]] = None,
+        exchange: str | None = None,
+        producer_name: str | None = None,
+        headers: builtins.dict[str, Any] | None = None,
         priority: MessagePriority = MessagePriority.NORMAL,
     ) -> str:
         """Publish a message."""
@@ -424,16 +425,15 @@ class MessagingManager:
             producer = self.producers.get(producer_name)
             if not producer:
                 raise ValueError(f"Producer {producer_name} not found")
+        # Use first available producer or create default
+        elif self.producers:
+            producer = next(iter(self.producers.values()))
         else:
-            # Use first available producer or create default
-            if self.producers:
-                producer = next(iter(self.producers.values()))
-            else:
-                # Create default producer
-                config = ProducerConfig(
-                    name="default", routing_key=routing_key, exchange=exchange
-                )
-                producer = await self.create_producer(config)
+            # Create default producer
+            config = ProducerConfig(
+                name="default", routing_key=routing_key, exchange=exchange
+            )
+            producer = await self.create_producer(config)
 
         # Create message
         message = Message(body=body)
@@ -577,7 +577,7 @@ class MessagingManager:
 
     # Statistics and Monitoring
 
-    def get_comprehensive_stats(self) -> Dict[str, Any]:
+    def get_comprehensive_stats(self) -> builtins.dict[str, Any]:
         """Get comprehensive system statistics."""
         uptime = time.time() - self._stats["start_time"]
 
@@ -621,7 +621,7 @@ class MessagingManager:
             },
         }
 
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> builtins.dict[str, Any]:
         """Get health status."""
         healthy = True
         issues = []
@@ -664,7 +664,7 @@ class MessagingContext:
 
     def __init__(self, config: MessagingConfig):
         self.config = config
-        self.manager: Optional[MessagingManager] = None
+        self.manager: MessagingManager | None = None
 
     async def __aenter__(self) -> MessagingManager:
         """Enter context and initialize manager."""
@@ -695,7 +695,9 @@ async def create_simple_messaging_manager(
     return manager
 
 
-def create_messaging_config_from_dict(config_dict: Dict[str, Any]) -> MessagingConfig:
+def create_messaging_config_from_dict(
+    config_dict: builtins.dict[str, Any]
+) -> MessagingConfig:
     """Create messaging config from dictionary."""
     backend_config = BackendConfig(**config_dict.get("backend", {}))
 
