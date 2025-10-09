@@ -11,13 +11,19 @@ description = "Enterprise-grade microservices framework"
 requires-python = ">=3.10"
 dependencies = [
     "jinja2>=3.1.6",
-    "astroid>=2.15.0",   # For additional code analysis
-    "mypy>=1.0.0",       # For static type checking
-    "prometheus-client>=0.17.0",  # For metrics collection
-    "aiokafka>=0.8.0",           # For Kafka event streaming
-    "aiohttp>=3.8.0",            # For HTTP load testing
-    "grpcio>=1.50.0",            # For gRPC load testing
-    "pydantic>=2.0.0",           # For data validation
+    "astroid>=2.15.0", # For additional code analysis
+    "mypy>=1.0.0", # For static type checking
+    "prometheus-client>=0.17.0", # For metrics collection
+    "aiokafka>=0.8.0", # For Kafka event streaming
+    "aiohttp>=3.8.0", # For HTTP load testing
+    "grpcio>=1.50.0", # For gRPC load testing
+    "pydantic>=2.0.0", # For data validation
+    "httpx>=0.28.1",
+    "grpcio-tools>=1.75.1",
+    "protobuf>=6.32.1",
+    "aiofiles>=24.1.0",
+    "pydantic-settings>=2.11.0",
+    "structlog>=25.4.0",
 ]
 
 [project.optional-dependencies]
