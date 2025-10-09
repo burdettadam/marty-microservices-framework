@@ -16,7 +16,6 @@ from typing import Dict, List
 
 import pytest
 import pytest_asyncio
-
 from tests.e2e.conftest import PerformanceAnalyzer, TimeoutMonitor
 
 

@@ -15,7 +15,6 @@ from typing import Any, Dict, Optional, Union
 import grpc
 import httpx
 from grpc import aio
-
 from marty_chassis.config import ChassisConfig
 from marty_chassis.exceptions import ClientError
 from marty_chassis.logger import get_logger

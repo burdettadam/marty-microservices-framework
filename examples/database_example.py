@@ -14,8 +14,6 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import Boolean, Column, Integer, String, Text
-
 from framework.database import (
     AuditMixin,
     BaseModel,
@@ -30,6 +28,7 @@ from framework.database import (
     TransactionConfig,
     transactional,
 )
+from sqlalchemy import Boolean, Column, Integer, String, Text
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

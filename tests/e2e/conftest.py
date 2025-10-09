@@ -18,7 +18,6 @@ from typing import Any, Dict, List, Optional, Tuple
 import psutil
 import pytest
 import pytest_asyncio
-
 from marty_chassis.plugins.examples import (
     CircuitBreakerPlugin,
     DataProcessingPipelinePlugin,

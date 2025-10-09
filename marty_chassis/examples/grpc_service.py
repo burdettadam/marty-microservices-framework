@@ -9,7 +9,6 @@ from typing import AsyncGenerator
 
 import grpc
 from grpc import aio
-
 from marty_chassis import (
     ChassisConfig,
     HealthCheck,

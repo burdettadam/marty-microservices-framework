@@ -18,7 +18,6 @@ from typing import Dict, Optional
 
 import pytest
 import pytest_asyncio
-
 from tests.e2e.conftest import PerformanceAnalyzer, TimeoutMonitor
 from tests.e2e.performance_reporting import generate_comprehensive_performance_report
 from tests.e2e.test_auditability import TestAuditability

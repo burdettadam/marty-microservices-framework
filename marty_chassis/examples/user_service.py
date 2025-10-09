@@ -11,8 +11,6 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from fastapi import Depends, HTTPException
-from pydantic import BaseModel
-
 from marty_chassis import (
     ChassisConfig,
     CircuitBreaker,
@@ -25,6 +23,7 @@ from marty_chassis import (
     create_fastapi_service,
     get_logger,
 )
+from pydantic import BaseModel
 
 # Configure logging
 logger = get_logger(__name__)

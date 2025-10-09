@@ -12,7 +12,6 @@ from typing import Any, List, Optional, Type
 import grpc
 from grpc import aio
 from grpc_reflection.v1alpha import reflection
-
 from marty_chassis.config import ChassisConfig
 from marty_chassis.logger import LogConfig, get_logger, init_global_logger
 from marty_chassis.metrics import init_metrics
