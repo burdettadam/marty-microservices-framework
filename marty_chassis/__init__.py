@@ -55,6 +55,29 @@ from .health import HealthCheck, HealthStatus
 from .logger import LogConfig, get_logger, setup_logging
 from .metrics import MetricsCollector, prometheus_middleware
 
+# Plugin system
+from .plugins import (
+    CoreServices,
+    ExtensionPoint,
+    ExtensionPointManager,
+    IEventHandlerPlugin,
+    IHealthPlugin,
+    IMetricsPlugin,
+    IMiddlewarePlugin,
+    IPlugin,
+    IServicePlugin,
+    PluginContext,
+    PluginEnabledServiceFactory,
+    PluginManager,
+    PluginMetadata,
+    PluginState,
+    create_plugin_enabled_fastapi_service,
+    event_handler,
+    middleware,
+    plugin,
+    service_hook,
+)
+
 # Resilience patterns
 from .resilience import BulkheadPattern, CircuitBreaker, RetryPolicy
 
@@ -118,4 +141,22 @@ __all__ = [
     "ConfigurationError",
     "ServiceError",
     "ValidationError",
+    # Plugin system
+    "IPlugin",
+    "IServicePlugin",
+    "IMiddlewarePlugin",
+    "IEventHandlerPlugin",
+    "IHealthPlugin",
+    "IMetricsPlugin",
+    "PluginManager",
+    "PluginContext",
+    "PluginMetadata",
+    "PluginState",
+    "CoreServices",
+    "ExtensionPointManager",
+    "ExtensionPoint",
+    "plugin",
+    "service_hook",
+    "middleware",
+    "event_handler",
 ]
