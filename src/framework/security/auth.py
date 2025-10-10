@@ -8,7 +8,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, Dict, List, Optional
 
 import jwt
 from cryptography import x509

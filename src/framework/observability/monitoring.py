@@ -17,9 +17,23 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, dict, list
+from typing import Any, Callable, Dict, List, Optional, Set
 
 import psutil
+
+try:
+    from prometheus_client import (
+        CONTENT_TYPE_LATEST,
+        CollectorRegistry,
+        Counter,
+        Gauge,
+        Histogram,
+        Info,
+        generate_latest,
+    )
+    PROMETHEUS_AVAILABLE = True
+except ImportError:
+    PROMETHEUS_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -92,20 +106,62 @@ class Alert:
 
 
 class MetricsCollector:
-    """Collects and manages metrics."""
+    """Collects and manages metrics using Prometheus."""
 
-    def __init__(self):
-        self._metrics: builtins.dict[str, Metric] = {}
-        self._counters: builtins.dict[str, float] = defaultdict(float)
-        self._gauges: builtins.dict[str, float] = {}
-        self._histograms: builtins.dict[str, builtins.list[float]] = defaultdict(list)
-        self._lock = threading.Lock()
+    def __init__(self, service_name: str = "microservice", registry=None):
+        self.service_name = service_name
+
+        if PROMETHEUS_AVAILABLE:
+            self.registry = registry or CollectorRegistry()
+        else:
+            self.registry = None
+
+        if PROMETHEUS_AVAILABLE:
+            # Service info metric
+            self.service_info = Info(
+                "mmf_service_info",
+                "Service information",
+                registry=self.registry
+            )
+            self.service_info.info({"service": service_name, "version": "1.0.0"})
+
+            # Request metrics
+            self.requests_total = Counter(
+                "mmf_requests_total",
+                "Total requests",
+                ["service", "method", "status"],
+                registry=self.registry,
+            )
+
+            self.request_duration = Histogram(
+                "mmf_request_duration_seconds",
+                "Request duration in seconds",
+                ["service", "method"],
+                buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
+                registry=self.registry,
+            )
+
+            # Error metrics
+            self.errors_total = Counter(
+                "mmf_errors_total",
+                "Total errors",
+                ["service", "method", "error_type"],
+                registry=self.registry,
+            )
+
+            # Custom metrics registry
+            self._custom_counters: dict[str, Counter] = {}
+            self._custom_gauges: dict[str, Gauge] = {}
+            self._custom_histograms: dict[str, Histogram] = {}
+        else:
+            logger.warning("Prometheus not available, metrics will not be collected")
+            self._fallback_metrics: dict[str, float] = defaultdict(float)
 
     def counter(
         self,
         name: str,
         value: float = 1.0,
-        labels: builtins.dict[str, str] | None = None,
+        labels: dict[str, str] | None = None,
     ) -> None:
         """Increment a counter metric.
 
@@ -114,20 +170,28 @@ class MetricsCollector:
             value: Value to add (default 1.0)
             labels: Optional labels
         """
-        labels = labels or {}
-        key = f"{name}:{self._serialize_labels(labels)}"
+        if not PROMETHEUS_AVAILABLE:
+            key = f"{name}:{labels or {}}"
+            self._fallback_metrics[key] += value
+            return
 
-        with self._lock:
-            self._counters[key] += value
-            self._metrics[key] = Metric(
-                name=name,
-                value=self._counters[key],
-                type=MetricType.COUNTER,
-                labels=labels,
+        labels = labels or {}
+        labels["service"] = self.service_name
+
+        # Get or create counter
+        counter_key = name
+        if counter_key not in self._custom_counters:
+            self._custom_counters[counter_key] = Counter(
+                f"mmf_{name}",
+                f"Custom counter: {name}",
+                list(labels.keys()),
+                registry=self.registry,
             )
 
+        self._custom_counters[counter_key].labels(**labels).inc(value)
+
     def gauge(
-        self, name: str, value: float, labels: builtins.dict[str, str] | None = None
+        self, name: str, value: float, labels: dict[str, str] | None = None
     ) -> None:
         """Set a gauge metric.
 
@@ -136,20 +200,28 @@ class MetricsCollector:
             value: Current value
             labels: Optional labels
         """
-        labels = labels or {}
-        key = f"{name}:{self._serialize_labels(labels)}"
+        if not PROMETHEUS_AVAILABLE:
+            key = f"{name}:{labels or {}}"
+            self._fallback_metrics[key] = value
+            return
 
-        with self._lock:
-            self._gauges[key] = value
-            self._metrics[key] = Metric(
-                name=name,
-                value=value,
-                type=MetricType.GAUGE,
-                labels=labels,
+        labels = labels or {}
+        labels["service"] = self.service_name
+
+        # Get or create gauge
+        gauge_key = name
+        if gauge_key not in self._custom_gauges:
+            self._custom_gauges[gauge_key] = Gauge(
+                f"mmf_{name}",
+                f"Custom gauge: {name}",
+                list(labels.keys()),
+                registry=self.registry,
             )
 
+        self._custom_gauges[gauge_key].labels(**labels).set(value)
+
     def histogram(
-        self, name: str, value: float, labels: builtins.dict[str, str] | None = None
+        self, name: str, value: float, labels: dict[str, str] | None = None
     ) -> None:
         """Add a value to a histogram metric.
 
@@ -158,65 +230,89 @@ class MetricsCollector:
             value: Value to add
             labels: Optional labels
         """
+        if not PROMETHEUS_AVAILABLE:
+            # Fallback: just store the value
+            key = f"{name}:{labels or {}}"
+            self._fallback_metrics[key] = value
+            return
+
         labels = labels or {}
-        key = f"{name}:{self._serialize_labels(labels)}"
+        labels["service"] = self.service_name
 
-        with self._lock:
-            self._histograms[key].append(value)
-            # Keep last 1000 values
-            if len(self._histograms[key]) > 1000:
-                self._histograms[key] = self._histograms[key][-1000:]
-
-            # Create metric with summary stats
-            values = self._histograms[key]
-            self._metrics[key] = Metric(
-                name=name,
-                value=sum(values) / len(values),  # Average
-                type=MetricType.HISTOGRAM,
-                labels={**labels, "count": str(len(values))},
+        # Get or create histogram
+        hist_key = name
+        if hist_key not in self._custom_histograms:
+            self._custom_histograms[hist_key] = Histogram(
+                f"mmf_{name}",
+                f"Custom histogram: {name}",
+                list(labels.keys()),
+                registry=self.registry,
             )
 
-    def get_metrics(self) -> builtins.list[Metric]:
-        """Get all current metrics.
+        self._custom_histograms[hist_key].labels(**labels).observe(value)
 
-        Returns:
-            List of current metrics
-        """
-        with self._lock:
-            return list(self._metrics.values())
-
-    def get_metric(
-        self, name: str, labels: builtins.dict[str, str] | None = None
-    ) -> Metric | None:
-        """Get a specific metric.
+    def record_request(self, method: str, status: str, duration: float) -> None:
+        """Record an HTTP/gRPC request.
 
         Args:
-            name: Metric name
-            labels: Optional labels
+            method: Request method/endpoint
+            status: Response status
+            duration: Request duration in seconds
+        """
+        if not PROMETHEUS_AVAILABLE:
+            return
+
+        self.requests_total.labels(
+            service=self.service_name, method=method, status=status
+        ).inc()
+
+        self.request_duration.labels(
+            service=self.service_name, method=method
+        ).observe(duration)
+
+    def record_error(self, method: str, error_type: str) -> None:
+        """Record an error.
+
+        Args:
+            method: Request method/endpoint
+            error_type: Type of error
+        """
+        if not PROMETHEUS_AVAILABLE:
+            return
+
+        self.errors_total.labels(
+            service=self.service_name, method=method, error_type=error_type
+        ).inc()
+
+    def get_prometheus_metrics(self) -> str:
+        """Get metrics in Prometheus text format.
 
         Returns:
-            Metric if found, None otherwise
+            Metrics in Prometheus format
         """
-        labels = labels or {}
-        key = f"{name}:{self._serialize_labels(labels)}"
+        if not PROMETHEUS_AVAILABLE or self.registry is None:
+            return "# Prometheus not available\n"
 
-        with self._lock:
-            return self._metrics.get(key)
+        return generate_latest(self.registry).decode('utf-8')
 
-    def clear_metrics(self) -> None:
-        """Clear all metrics."""
-        with self._lock:
-            self._metrics.clear()
-            self._counters.clear()
-            self._gauges.clear()
-            self._histograms.clear()
+    def get_metrics_summary(self) -> dict[str, Any]:
+        """Get metrics summary for compatibility.
 
-    @staticmethod
-    def _serialize_labels(labels: builtins.dict[str, str]) -> str:
-        """Serialize labels to a string key."""
-        if not labels:
-            return ""
-        return ",".join(f"{k}={v}" for k, v in sorted(labels.items()))
+        Returns:
+            Metrics summary dictionary
+        """
+        if not PROMETHEUS_AVAILABLE:
+            return {
+                "service": self.service_name,
+                "prometheus_available": False,
+                "fallback_metrics_count": len(self._fallback_metrics),
+            }
+
+        return {
+            "service": self.service_name,
+            "prometheus_available": True,
+            "registry": str(self.registry),
+        }
 
 
 class HealthChecker:
@@ -482,7 +578,7 @@ class ServiceMonitor:
 
     def __init__(self, service_name: str):
         self.service_name = service_name
-        self.metrics = MetricsCollector()
+        self.metrics = MetricsCollector(service_name)
         self.health_checker = HealthChecker()
         self.system_metrics = SystemMetrics(self.metrics)
         self.alerts: builtins.list[Alert] = []
@@ -567,23 +663,7 @@ class ServiceMonitor:
         # Collect current system metrics
         self.system_metrics.collect_all_metrics()
 
-        metrics = self.metrics.get_metrics()
-
-        return {
-            "service": self.service_name,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "metrics_count": len(metrics),
-            "metrics": [
-                {
-                    "name": m.name,
-                    "value": m.value,
-                    "type": m.type.value,
-                    "labels": m.labels,
-                    "timestamp": m.timestamp.isoformat(),
-                }
-                for m in metrics
-            ],
-        }
+        return self.metrics.get_metrics_summary()
 
 
 # Timing context manager
