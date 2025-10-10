@@ -267,10 +267,11 @@ repos:
           - |
             echo "🔍 Validating template syntax..."
 
-            # Check for proper Jinja2 syntax in .j2 files
+            # Activate virtual environment and check for proper Jinja2 syntax in .j2 files
+            source ../../../.venv/bin/activate
             for file in $(find templates -name "*.j2" 2>/dev/null); do
               echo "  Checking $file..."
-              if python3 -c "
+              if python -c "
             import jinja2
             try:
                 with open('$file', 'r') as f:
