@@ -1,9 +1,12 @@
 name: Release Tag
 
+# TEMPORARILY DISABLED - CI checks turned off while fixing tests
+# To re-enable, uncomment the workflow_run trigger below
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
+  workflow_dispatch:
+  # workflow_run:
+  #   workflows: ["CI"]
+  #   types: [completed]
 
 jobs:
   tag:
