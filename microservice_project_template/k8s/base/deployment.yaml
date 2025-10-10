@@ -29,10 +29,27 @@ spec:
         config.linkerd.io/skip-inbound-ports: "9000"  # Skip metrics port
         traffic.sidecar.istio.io/includeInboundPorts: "50051,8080"  # Include only app ports
     spec:
+      serviceAccountName: microservice-template
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: microservice-template
           image: microservice-template:latest
           imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: grpc
               containerPort: 50051
@@ -50,11 +67,27 @@ spec:
               value: "50051"
             - name: APP_METRICS_PORT
               value: "9000"
+            - name: APP_HEALTH_PORT
+              value: "8080"
             - name: APP_TRACING_ENDPOINT
               valueFrom:
                 configMapKeyRef:
                   name: microservice-template-config
                   key: otlp_endpoint
+                  optional: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: var-run
+              mountPath: /var/run
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /health/ready
@@ -75,14 +108,13 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
+              ephemeral-storage: 100Mi
             limits:
               cpu: 500m
               memory: 512Mi
-      serviceAccountName: microservice-template
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: microservice-template
-  labels:
-    app.kubernetes.io/name: microservice-template
+              ephemeral-storage: 1Gi
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: var-run
+          emptyDir: {}

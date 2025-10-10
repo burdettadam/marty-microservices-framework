@@ -1,0 +1,151 @@
+name: Reusable Build
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: 'Name of the service being built'
+        required: true
+        type: string
+      dockerfile:
+        description: 'Path to Dockerfile'
+        required: true
+        type: string
+      context:
+        description: 'Build context path'
+        required: false
+        type: string
+        default: '.'
+      platforms:
+        description: 'Target platforms for build'
+        required: false
+        type: string
+        default: 'linux/amd64,linux/arm64'
+      registry:
+        description: 'Container registry'
+        required: false
+        type: string
+        default: 'ghcr.io'
+      push:
+        description: 'Whether to push the image'
+        required: false
+        type: boolean
+        default: true
+      sign-image:
+        description: 'Whether to sign the image with Cosign'
+        required: false
+        type: boolean
+        default: true
+      scan-image:
+        description: 'Whether to scan image for vulnerabilities'
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      image-digest:
+        description: 'Digest of the built image'
+        value: ${{ jobs.build.outputs.digest }}
+      image-tags:
+        description: 'Tags of the built image'
+        value: ${{ jobs.build.outputs.tags }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write  # Required for Cosign keyless signing
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+      tags: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: ${{ inputs.push }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ inputs.registry }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.registry }}/${{ github.repository_owner }}/${{ inputs.service-name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=${{ inputs.service-name }}
+            org.opencontainers.image.description=Marty microservice: ${{ inputs.service-name }}
+
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.context }}
+          file: ${{ inputs.dockerfile }}
+          platforms: ${{ inputs.platforms }}
+          push: ${{ inputs.push }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=${{ inputs.service-name }}
+
+      - name: Install Cosign
+        if: ${{ inputs.sign-image && inputs.push }}
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign container image
+        if: ${{ inputs.sign-image && inputs.push }}
+        run: |
+          cosign sign --yes ${{ inputs.registry }}/${{ github.repository_owner }}/${{ inputs.service-name }}@${{ steps.build.outputs.digest }}
+
+      - name: Install Trivy
+        if: ${{ inputs.scan-image }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+
+      - name: Scan image for vulnerabilities
+        if: ${{ inputs.scan-image }}
+        run: |
+          trivy image --format sarif --output trivy-results.sarif ${{ inputs.registry }}/${{ github.repository_owner }}/${{ inputs.service-name }}:${{ github.sha }}
+
+      - name: Upload Trivy scan results
+        if: ${{ inputs.scan-image && always() }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: container-scan-${{ inputs.service-name }}
+
+      - name: Generate SBOM
+        if: ${{ inputs.push }}
+        run: |
+          # Generate Software Bill of Materials
+          trivy image --format spdx-json --output sbom.spdx.json ${{ inputs.registry }}/${{ github.repository_owner }}/${{ inputs.service-name }}:${{ github.sha }}
+
+      - name: Upload SBOM
+        if: ${{ inputs.push }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ inputs.service-name }}
+          path: sbom.spdx.json
