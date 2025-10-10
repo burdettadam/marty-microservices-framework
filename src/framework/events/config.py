@@ -23,7 +23,7 @@ class EventConfig:
     kafka_sasl_password: str | None = None
 
     # Topic configuration
-    topic_prefix: str = "marty"
+    topic_prefix: str = "mmf"
     audit_topic: str = "audit.events"
     notification_topic: str = "notification.events"
     domain_topic_pattern: str = "{service}.{aggregate}.{event_type}"
@@ -63,7 +63,7 @@ class EventConfig:
             kafka_sasl_mechanism=os.getenv("KAFKA_SASL_MECHANISM"),
             kafka_sasl_username=os.getenv("KAFKA_SASL_USERNAME"),
             kafka_sasl_password=os.getenv("KAFKA_SASL_PASSWORD"),
-            topic_prefix=os.getenv("EVENT_TOPIC_PREFIX", "marty"),
+            topic_prefix=os.getenv("EVENT_TOPIC_PREFIX", "mmf"),
             service_name=os.getenv("SERVICE_NAME", "unknown"),
             service_version=os.getenv("SERVICE_VERSION", "1.0.0"),
             use_outbox_pattern=os.getenv("USE_OUTBOX_PATTERN", "true").lower() == "true",
@@ -81,7 +81,7 @@ class EventPublisherConfig(BaseModel):
     kafka_sasl_username: str | None = None
     kafka_sasl_password: str | None = None
 
-    topic_prefix: str = "marty"
+    topic_prefix: str = "mmf"
     service_name: str = "unknown"
     service_version: str = "1.0.0"
 

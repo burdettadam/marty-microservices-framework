@@ -1,0 +1,121 @@
+# Marty Trust PKI Plugin Configuration
+# This file contains configuration for the Marty Trust PKI plugin when running within MMF
+
+default:
+  # Plugin metadata
+  enabled: true
+  version: "1.0.0"
+  description: "Marty Trust and PKI services integrated with MMF infrastructure"
+  dependencies:
+    - "security"
+    - "database"
+    - "observability"
+    - "cache"
+
+  # Trust anchor settings
+  trust_anchor_url: "https://trust-anchor.marty.internal:8443"
+  trust_anchor_timeout: 30
+
+  # PKD (Public Key Directory) settings
+  pkd_url: "https://pkd.marty.internal:8443"
+  pkd_cache_ttl: 3600  # 1 hour
+
+  # Document signer settings
+  document_signer_url: "https://doc-signer.marty.internal:8443"
+  signing_algorithms:
+    - "RSA-SHA256"
+    - "RSA-SHA384"
+    - "RSA-SHA512"
+    - "ECDSA-SHA256"
+    - "ECDSA-SHA384"
+
+  # Certificate management
+  certificate_validation_enabled: true
+  certificate_cache_size: 1000
+
+  # Security settings
+  require_mutual_tls: true
+  allowed_cipher_suites:
+    - "TLS_AES_256_GCM_SHA384"
+    - "TLS_CHACHA20_POLY1305_SHA256"
+    - "TLS_AES_128_GCM_SHA256"
+    - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+    - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+
+  # MMF Integration settings
+  database:
+    # Use MMF database instead of custom Marty database
+    use_mmf_database: true
+    schema_prefix: "marty_"
+
+  security:
+    # Use MMF security services for key management
+    use_mmf_security: true
+    key_store_type: "hsm"  # or "software", "vault"
+
+  observability:
+    # Use MMF observability for metrics and tracing
+    enable_metrics: true
+    enable_tracing: true
+    metric_prefix: "marty_pki_"
+
+  messaging:
+    # Use MMF message bus for events
+    enable_events: true
+    event_prefix: "marty.pki."
+
+# Development environment overrides
+development:
+  enabled: true
+
+  # Development-specific URLs (local services)
+  trust_anchor_url: "http://localhost:8080"
+  pkd_url: "http://localhost:8081"
+  document_signer_url: "http://localhost:8082"
+
+  # Relaxed security for development
+  require_mutual_tls: false
+  certificate_validation_enabled: false
+
+  # Shorter cache times for development
+  pkd_cache_ttl: 300  # 5 minutes
+  certificate_cache_size: 100
+
+# Testing environment configuration
+testing:
+  enabled: true
+
+  # Test service URLs
+  trust_anchor_url: "http://test-trust-anchor:8080"
+  pkd_url: "http://test-pkd:8081"
+  document_signer_url: "http://test-doc-signer:8082"
+
+  # Test-specific settings
+  certificate_validation_enabled: true
+  require_mutual_tls: false
+
+  # Fast cache expiry for testing
+  pkd_cache_ttl: 60
+  certificate_cache_size: 50
+
+# Production environment configuration
+production:
+  enabled: true
+
+  # Production service URLs with proper load balancing
+  trust_anchor_url: "https://trust-anchor.marty.prod:8443"
+  pkd_url: "https://pkd.marty.prod:8443"
+  document_signer_url: "https://doc-signer.marty.prod:8443"
+
+  # Production security requirements
+  require_mutual_tls: true
+  certificate_validation_enabled: true
+
+  # Production cache settings
+  pkd_cache_ttl: 7200  # 2 hours
+  certificate_cache_size: 5000
+
+  # Enhanced security for production
+  allowed_cipher_suites:
+    - "TLS_AES_256_GCM_SHA384"
+    - "TLS_CHACHA20_POLY1305_SHA256"
