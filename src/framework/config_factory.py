@@ -8,16 +8,16 @@ properly structured ServiceConfig instances for modern Marty services.
 from pathlib import Path
 from typing import Any, Dict
 
-from .config import Environment, ServiceConfig
+from .config import BaseServiceConfig, Environment
 
 
 def create_service_config(
     service_name: str,
     environment: str | Environment = Environment.DEVELOPMENT,
     config_path: Path | str | None = None,
-) -> ServiceConfig:
+) -> BaseServiceConfig:
     """
-    Create a modern ServiceConfig instance.
+    Create a modern BaseServiceConfig instance.
 
     Args:
         service_name: Name of the service
@@ -25,7 +25,7 @@ def create_service_config(
         config_path: Path to configuration directory
 
     Returns:
-        ServiceConfig instance
+        BaseServiceConfig instance
     """
     if config_path is None:
         config_path = Path("config")
@@ -36,7 +36,7 @@ def create_service_config(
     if isinstance(environment, str):
         environment = Environment(environment)
 
-    return ServiceConfig(
+    return BaseServiceConfig(
         service_name=service_name,
         environment=environment,
         config_path=config_path,
