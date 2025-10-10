@@ -6,7 +6,7 @@ import builtins
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, Dict, List, Optional
 
 
 class SecurityLevel(Enum):

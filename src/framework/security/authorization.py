@@ -7,7 +7,7 @@ import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import wraps
-from typing import Callable, Dict, Optional, Set, dict, set
+from typing import Callable, Dict, Optional, Set
 
 from .auth import AuthenticatedUser
 from .errors import AuthorizationError, InsufficientPermissionsError

@@ -331,6 +331,173 @@ class ResilienceConfigSection(BaseConfigSection):
             raise ValidationError("Retry max attempts must be positive")
 
 
+@dataclass
+class CryptographicConfigSection(BaseConfigSection):
+    """Cryptographic configuration section for document signing and PKI operations."""
+
+    @dataclass
+    class SigningConfig:
+        algorithm: str = "rsa2048"
+        key_id: str = ""
+        key_directory: str = "data/keys"
+        key_rotation_days: int = 90
+        certificate_validity_days: int = 365
+
+    @dataclass
+    class SDJWTConfig:
+        issuer: str = ""
+        signing_key_id: str = ""
+        signing_algorithm: str = "ES256"
+        vault_signing_algorithm: str = "ecdsa-p256"
+        certificate_id: str = ""
+        offer_ttl_seconds: int = 600
+        token_ttl_seconds: int = 600
+
+    @dataclass
+    class VaultConfig:
+        url: str = ""
+        auth_method: str = "approle"
+        token: str = ""
+        role_id: str = ""
+        secret_id: str = ""
+        namespace: str = ""
+        ca_cert: str = ""
+        mount_path: str = "secret"
+
+    signing: SigningConfig = field(default_factory=SigningConfig)
+    sd_jwt: SDJWTConfig = field(default_factory=SDJWTConfig)
+    vault: VaultConfig = field(default_factory=VaultConfig)
+
+    @classmethod
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "CryptographicConfigSection":
+        signing_data = data.get("signing", {})
+        signing = cls.SigningConfig(
+            algorithm=signing_data.get("algorithm", "rsa2048"),
+            key_id=signing_data.get("key_id", ""),
+            key_directory=signing_data.get("key_directory", "data/keys"),
+            key_rotation_days=signing_data.get("key_rotation_days", 90),
+            certificate_validity_days=signing_data.get("certificate_validity_days", 365),
+        )
+
+        sdjwt_data = data.get("sd_jwt", {})
+        sd_jwt = cls.SDJWTConfig(
+            issuer=sdjwt_data.get("issuer", ""),
+            signing_key_id=sdjwt_data.get("signing_key_id", ""),
+            signing_algorithm=sdjwt_data.get("signing_algorithm", "ES256"),
+            vault_signing_algorithm=sdjwt_data.get("vault_signing_algorithm", "ecdsa-p256"),
+            certificate_id=sdjwt_data.get("certificate_id", ""),
+            offer_ttl_seconds=sdjwt_data.get("offer_ttl_seconds", 600),
+            token_ttl_seconds=sdjwt_data.get("token_ttl_seconds", 600),
+        )
+
+        vault_data = data.get("vault", {})
+        vault = cls.VaultConfig(
+            url=vault_data.get("url", ""),
+            auth_method=vault_data.get("auth_method", "approle"),
+            token=vault_data.get("token", ""),
+            role_id=vault_data.get("role_id", ""),
+            secret_id=vault_data.get("secret_id", ""),
+            namespace=vault_data.get("namespace", ""),
+            ca_cert=vault_data.get("ca_cert", ""),
+            mount_path=vault_data.get("mount_path", "secret"),
+        )
+
+        return cls(signing=signing, sd_jwt=sd_jwt, vault=vault)
+
+    def validate(self) -> None:
+        if self.signing.key_rotation_days <= 0:
+            raise ValidationError("Key rotation days must be positive")
+        if self.signing.certificate_validity_days <= 0:
+            raise ValidationError("Certificate validity days must be positive")
+        if self.sd_jwt.offer_ttl_seconds <= 0:
+            raise ValidationError("SD-JWT offer TTL must be positive")
+        if self.sd_jwt.token_ttl_seconds <= 0:
+            raise ValidationError("SD-JWT token TTL must be positive")
+
+
+@dataclass
+class TrustStoreConfigSection(BaseConfigSection):
+    """Trust store and PKD configuration section."""
+
+    @dataclass
+    class PKDConfig:
+        service_url: str = ""
+        enabled: bool = True
+        update_interval_hours: int = 24
+        max_retries: int = 3
+        timeout_seconds: int = 30
+
+    @dataclass
+    class TrustAnchorConfig:
+        certificate_store_path: str = "/app/data/trust"
+        update_interval_hours: int = 24
+        validation_timeout_seconds: int = 30
+        enable_online_verification: bool = False
+
+    pkd: PKDConfig = field(default_factory=PKDConfig)
+    trust_anchor: TrustAnchorConfig = field(default_factory=TrustAnchorConfig)
+
+    @classmethod
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "TrustStoreConfigSection":
+        pkd_data = data.get("pkd", {})
+        pkd = cls.PKDConfig(
+            service_url=pkd_data.get("service_url", ""),
+            enabled=pkd_data.get("enabled", True),
+            update_interval_hours=pkd_data.get("update_interval_hours", 24),
+            max_retries=pkd_data.get("max_retries", 3),
+            timeout_seconds=pkd_data.get("timeout_seconds", 30),
+        )
+
+        trust_data = data.get("trust_anchor", {})
+        trust_anchor = cls.TrustAnchorConfig(
+            certificate_store_path=trust_data.get("certificate_store_path", "/app/data/trust"),
+            update_interval_hours=trust_data.get("update_interval_hours", 24),
+            validation_timeout_seconds=trust_data.get("validation_timeout_seconds", 30),
+            enable_online_verification=trust_data.get("enable_online_verification", False),
+        )
+
+        return cls(pkd=pkd, trust_anchor=trust_anchor)
+
+    def validate(self) -> None:
+        if self.pkd.update_interval_hours <= 0:
+            raise ValidationError("PKD update interval must be positive")
+        if self.pkd.timeout_seconds <= 0:
+            raise ValidationError("PKD timeout must be positive")
+        if self.trust_anchor.update_interval_hours <= 0:
+            raise ValidationError("Trust anchor update interval must be positive")
+
+
+@dataclass
+class ServiceDiscoveryConfigSection(BaseConfigSection):
+    """Service discovery and networking configuration."""
+
+    hosts: builtins.dict[str, str] = field(default_factory=dict)
+    ports: builtins.dict[str, int] = field(default_factory=dict)
+    enable_service_mesh: bool = False
+    service_mesh_namespace: str = "default"
+
+    @classmethod
+    def from_dict(cls, data: builtins.dict[str, Any]) -> "ServiceDiscoveryConfigSection":
+        return cls(
+            hosts=data.get("hosts", {}),
+            ports=data.get("ports", {}),
+            enable_service_mesh=data.get("enable_service_mesh", False),
+            service_mesh_namespace=data.get("service_mesh_namespace", "default"),
+        )
+
+    def validate(self) -> None:
+        for service, port in self.ports.items():
+            if port <= 0 or port > 65535:
+                raise ValidationError(f"Invalid port for service {service}: {port}")
+
+    def get_service_url(self, service_name: str, use_tls: bool = False) -> str:
+        """Get service URL for a given service."""
+        host = self.hosts.get(service_name, "localhost")
+        port = self.ports.get(service_name, 8080)
+        protocol = "https" if use_tls else "http"
+        return f"{protocol}://{host}:{port}"
+
+
 class ServiceConfig:
     """Service-specific configuration with validation and environment support."""
 
@@ -352,6 +519,9 @@ class ServiceConfig:
         self._logging: LoggingConfigSection | None = None
         self._monitoring: MonitoringConfigSection | None = None
         self._resilience: ResilienceConfigSection | None = None
+        self._cryptographic: CryptographicConfigSection | None = None
+        self._trust_store: TrustStoreConfigSection | None = None
+        self._service_discovery: ServiceDiscoveryConfigSection | None = None
 
         self._load_configuration()
 
@@ -377,14 +547,18 @@ class ServiceConfig:
 
     def _load_base_config(self) -> builtins.dict[str, Any]:
         """Load base configuration file."""
+        base_config = {}
+
+        # Try MMF style first (config/base.yaml)
         if self.config_path:
             base_path = self.config_path / "base.yaml"
         else:
             base_path = Path("config") / "base.yaml"
 
         if base_path.exists():
-            return self._load_yaml_file(base_path)
-        return {}
+            base_config = self._load_yaml_file(base_path)
+
+        return base_config
 
     def _load_environment_config(self) -> builtins.dict[str, Any]:
         """Load environment-specific configuration."""
@@ -489,12 +663,15 @@ class ServiceConfig:
             # Support per-service database configuration
             if isinstance(db_config, dict) and self.service_name in db_config:
                 service_db_config = db_config[self.service_name]
+            elif isinstance(db_config, dict) and "default" in db_config:
+                service_db_config = db_config["default"]
             else:
                 service_db_config = db_config
 
             if not service_db_config:
                 raise ConfigurationError(
-                    f"No database configuration found for service {self.service_name}"
+                    f"No database configuration found for service {self.service_name}. "
+                    f"Add a database section with either '{self.service_name}' or 'default' key."
                 )
 
             self._database = DatabaseConfigSection.from_dict(service_db_config)
@@ -545,6 +722,81 @@ class ServiceConfig:
             self._resilience.validate()
 
         return self._resilience
+
+    @property
+    def cryptographic(self) -> CryptographicConfigSection:
+        """Get cryptographic configuration."""
+        if not self._cryptographic:
+            # Get cryptographic config from dedicated section
+            crypto_config = self._raw_config.get("cryptographic", {})
+
+            # Also check service-specific config for cryptographic settings
+            service_config = self.get_service_config()
+            if service_config:
+                service_crypto = {}
+
+                # Extract signing configuration
+                if any(key in service_config for key in ["signing_algorithm", "signing_key_id"]):
+                    service_crypto["signing"] = {
+                        "algorithm": service_config.get("signing_algorithm", "rsa2048"),
+                        "key_id": service_config.get("signing_key_id", ""),
+                    }
+
+                # Extract SD-JWT configuration
+                if "sd_jwt" in service_config:
+                    service_crypto["sd_jwt"] = service_config["sd_jwt"]
+
+                # Merge with main crypto config
+                crypto_config = self._deep_merge(crypto_config, service_crypto)
+
+            self._cryptographic = CryptographicConfigSection.from_dict(crypto_config)
+            self._cryptographic.validate()
+
+        return self._cryptographic
+
+    @property
+    def trust_store(self) -> TrustStoreConfigSection:
+        """Get trust store configuration."""
+        if not self._trust_store:
+            trust_config = self._raw_config.get("trust_store", {})
+
+            # Check service-specific config for trust store settings
+            service_config = self.get_service_config()
+            if service_config:
+                service_trust = {}
+
+                # Extract trust anchor configuration
+                if "certificate_store_path" in service_config:
+                    service_trust["trust_anchor"] = {
+                        "certificate_store_path": service_config["certificate_store_path"],
+                        "update_interval_hours": service_config.get("update_interval_hours", 24),
+                        "validation_timeout_seconds": service_config.get("validation_timeout_seconds", 30),
+                        "enable_online_verification": service_config.get("enable_online_verification", False),
+                    }
+
+                # Merge with main trust config
+                trust_config = self._deep_merge(trust_config, service_trust)
+
+            self._trust_store = TrustStoreConfigSection.from_dict(trust_config)
+            self._trust_store.validate()
+
+        return self._trust_store
+
+    @property
+    def service_discovery(self) -> ServiceDiscoveryConfigSection:
+        """Get service discovery configuration."""
+        if not self._service_discovery:
+            discovery_config = {
+                "hosts": self._raw_config.get("hosts", {}),
+                "ports": self._raw_config.get("ports", {}),
+                "enable_service_mesh": self._raw_config.get("enable_service_mesh", False),
+                "service_mesh_namespace": self._raw_config.get("service_mesh_namespace", "default"),
+            }
+
+            self._service_discovery = ServiceDiscoveryConfigSection.from_dict(discovery_config)
+            self._service_discovery.validate()
+
+        return self._service_discovery
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value by key."""

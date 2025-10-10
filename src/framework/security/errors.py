@@ -3,7 +3,7 @@ Security error classes for the enterprise security framework.
 """
 
 import builtins
-from typing import Any, Dict, Optional, dict
+from typing import Any, Dict, Optional
 
 
 class SecurityError(Exception):
