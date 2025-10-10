@@ -14,6 +14,7 @@ Features:
 - CI/CD pipeline generation
 - Service discovery integration
 - Monitoring and observability setup
+- Unified service runner for microservices
 
 Author: Marty Framework Team
 Version: 1.0.0
@@ -25,26 +26,36 @@ import json
 import logging
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import click
 import jinja2
 import requests
-import toml
 import yaml
-from cookiecutter.main import cookiecutter
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.text import Text
+
+# Optional imports with fallbacks
+try:
+    import toml
+except ImportError:
+    toml = None
+
+try:
+    from cookiecutter.main import cookiecutter
+except ImportError:
+    cookiecutter = None
 
 __version__ = "1.0.0"
 
@@ -94,6 +105,29 @@ class ProjectConfig:
     environment: str = "development"
     skip_prompts: bool = False
     variables: builtins.dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class ServiceConfig:
+    """Service runtime configuration."""
+
+    name: str
+    host: str = "0.0.0.0"
+    port: int = 8000
+    grpc_port: int = 50051
+    grpc_enabled: bool = True
+    workers: int = 1
+    reload: bool = False
+    debug: bool = False
+    log_level: str = "info"
+    access_log: bool = True
+    metrics_enabled: bool = True
+    metrics_port: int = 9090
+    environment: str = "development"
+    config_file: str | None = None
+    app_module: str = "app:app"
+    grpc_module: str | None = None
+    working_directory: str | None = None
 
 
 class MartyTemplateManager:
@@ -147,7 +181,13 @@ class MartyTemplateManager:
 
         if self.config_path.exists():
             try:
-                return toml.load(self.config_path)
+                if toml:
+                    return toml.load(self.config_path)
+                else:
+                    # Fallback to basic YAML parsing
+                    with open(self.config_path) as f:
+                        import yaml
+                        return yaml.safe_load(f) or default_config
             except Exception as e:
                 logger.warning(f"Failed to load config: {e}")
                 return default_config
@@ -157,8 +197,13 @@ class MartyTemplateManager:
     def save_config(self):
         """Save CLI configuration."""
         try:
-            with open(self.config_path, "w") as f:
-                toml.dump(self.config, f)
+            if toml:
+                with open(self.config_path, "w") as f:
+                    toml.dump(self.config, f)
+            else:
+                # Fallback to YAML
+                with open(self.config_path, "w") as f:
+                    yaml.dump(self.config, f)
         except Exception as e:
             logger.error(f"Failed to save config: {e}")
 
@@ -515,7 +560,7 @@ class MartyProjectManager:
                 return parent
         return None
 
-    def get_project_info(self) -> builtins.dict[str, Any] | None:
+    def get_project_info(self) -> dict[str, Any] | None:
         """Get current project information."""
         if not self.current_project:
             return None
@@ -524,7 +569,11 @@ class MartyProjectManager:
         marty_config = self.current_project / "marty.toml"
         if marty_config.exists():
             try:
-                return toml.load(marty_config)
+                if toml:
+                    return toml.load(marty_config)
+                else:
+                    with open(marty_config) as f:
+                        return yaml.safe_load(f)
             except Exception as e:
                 logger.warning(f"Failed to load marty.toml: {e}")
 
@@ -532,8 +581,13 @@ class MartyProjectManager:
         pyproject_config = self.current_project / "pyproject.toml"
         if pyproject_config.exists():
             try:
-                data = toml.load(pyproject_config)
-                return data.get("tool", {}).get("marty", {})
+                if toml:
+                    data = toml.load(pyproject_config)
+                    return data.get("tool", {}).get("marty", {})
+                else:
+                    with open(pyproject_config) as f:
+                        data = yaml.safe_load(f)
+                        return data.get("tool", {}).get("marty", {})
             except Exception as e:
                 logger.warning(f"Failed to load pyproject.toml: {e}")
 
@@ -667,6 +721,232 @@ class MartyProjectManager:
         except Exception as e:
             console.print(f"[red]Deployment error: {e}[/red]")
             return False
+
+
+class MartyServiceRunner:
+    """Unified service runner for Marty microservices."""
+
+    def __init__(self):
+        self.current_directory = Path.cwd()
+
+    def resolve_service_config(
+        self,
+        service_name: str | None = None,
+        config_file: str | None = None,
+        environment: str = "development",
+        overrides: dict[str, Any] | None = None
+    ) -> ServiceConfig:
+        """Resolve service configuration from various sources."""
+        overrides = overrides or {}
+
+        # Determine service name
+        if not service_name:
+            # Try to infer from directory structure
+            if (self.current_directory / "main.py").exists():
+                service_name = self.current_directory.name
+            elif (self.current_directory / "app.py").exists():
+                service_name = self.current_directory.name
+            else:
+                # Look for service directories
+                service_dirs = [d for d in self.current_directory.iterdir()
+                              if d.is_dir() and not d.name.startswith('.')]
+                if len(service_dirs) == 1:
+                    service_name = service_dirs[0].name
+                else:
+                    service_name = "unknown-service"
+
+        # Start with defaults
+        config = ServiceConfig(name=service_name, environment=environment)
+
+        # Load from configuration file if specified
+        if config_file:
+            file_config = self._load_config_file(config_file)
+            self._update_config_from_dict(config, file_config)
+        else:
+            # Look for default config files
+            default_configs = [
+                f"config/{environment}.yaml",
+                f"config/{environment}.yml",
+                "config/base.yaml",
+                "config/base.yml",
+                "config.yaml",
+                "config.yml"
+            ]
+
+            for config_path in default_configs:
+                full_path = self.current_directory / config_path
+                if full_path.exists():
+                    file_config = self._load_config_file(str(full_path))
+                    self._update_config_from_dict(config, file_config)
+                    config.config_file = str(full_path)
+                    break
+
+        # Apply command-line overrides
+        for key, value in overrides.items():
+            if value is not None:
+                setattr(config, key, value)
+
+        # Auto-detect app module if not specified
+        if config.app_module == "app:app":
+            config.app_module = self._detect_app_module()
+
+        # Auto-detect gRPC module
+        if config.grpc_enabled and not config.grpc_module:
+            config.grpc_module = self._detect_grpc_module()
+
+        config.working_directory = str(self.current_directory)
+
+        return config
+
+    def _load_config_file(self, config_file: str) -> dict[str, Any]:
+        """Load configuration from YAML file."""
+        try:
+            with open(config_file) as f:
+                return yaml.safe_load(f) or {}
+        except Exception as e:
+            logger.warning(f"Failed to load config file {config_file}: {e}")
+            return {}
+
+    def _update_config_from_dict(self, config: ServiceConfig, data: dict[str, Any]):
+        """Update service config from dictionary."""
+        # Map common config keys
+        mappings = {
+            'host': 'host',
+            'port': 'port',
+            'grpc_port': 'grpc_port',
+            'workers': 'workers',
+            'debug': 'debug',
+            'log_level': 'log_level',
+            'metrics_enabled': 'metrics_enabled',
+            'metrics_port': 'metrics_port',
+            'app_module': 'app_module',
+            'grpc_module': 'grpc_module'
+        }
+
+        for config_key, attr_name in mappings.items():
+            if config_key in data:
+                setattr(config, attr_name, data[config_key])
+
+        # Handle nested service config
+        if 'service' in data:
+            self._update_config_from_dict(config, data['service'])
+
+    def _detect_app_module(self) -> str:
+        """Auto-detect the FastAPI app module."""
+        # Check common patterns
+        patterns = [
+            ("main.py", "main:app"),
+            ("app.py", "app:app"),
+            ("api.py", "api:app"),
+            (f"{self.current_directory.name}/main.py", f"{self.current_directory.name}.main:app"),
+            (f"{self.current_directory.name}/app.py", f"{self.current_directory.name}.app:app"),
+        ]
+
+        for file_path, module in patterns:
+            if (self.current_directory / file_path).exists():
+                return module
+
+        return "app:app"  # fallback
+
+    def _detect_grpc_module(self) -> str | None:
+        """Auto-detect the gRPC server module."""
+        patterns = [
+            ("grpc_server.py", "grpc_server:serve"),
+            ("grpc_service.py", "grpc_service:serve"),
+            (f"{self.current_directory.name}/grpc_server.py", f"{self.current_directory.name}.grpc_server:serve"),
+        ]
+
+        for file_path, module in patterns:
+            if (self.current_directory / file_path).exists():
+                return module
+
+        return None
+
+    def run_service(self, config: ServiceConfig):
+        """Run the service with the given configuration."""
+        import uvicorn
+
+        # Setup signal handlers for graceful shutdown
+        def signal_handler(signum, frame):
+            logger.info(f"Received signal {signum}, shutting down...")
+            sys.exit(0)
+
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        # Change to working directory if specified
+        if config.working_directory:
+            os.chdir(config.working_directory)
+
+        # If gRPC is enabled and we have both servers, run concurrently
+        if config.grpc_enabled and config.grpc_module:
+            self._run_dual_servers(config)
+        else:
+            # Run HTTP server only
+            self._run_http_server(config)
+
+    def _run_http_server(self, config: ServiceConfig):
+        """Run FastAPI HTTP server."""
+        import uvicorn
+
+        uvicorn_config = uvicorn.Config(
+            config.app_module,
+            host=config.host,
+            port=config.port,
+            workers=config.workers if not config.reload else 1,
+            reload=config.reload,
+            log_level=config.log_level,
+            access_log=config.access_log,
+        )
+
+        server = uvicorn.Server(uvicorn_config)
+        server.run()
+
+    def _run_dual_servers(self, config: ServiceConfig):
+        """Run both HTTP and gRPC servers concurrently."""
+        import uvicorn
+
+        async def run_servers():
+            # Import the gRPC serve function dynamically
+            try:
+                if not config.grpc_module:
+                    raise ValueError("gRPC module not specified")
+
+                module_name, func_name = config.grpc_module.split(':')
+                module = __import__(module_name, fromlist=[func_name])
+                grpc_serve = getattr(module, func_name)
+            except Exception as e:
+                logger.error(f"Failed to import gRPC module {config.grpc_module}: {e}")
+                # Fall back to HTTP only
+                self._run_http_server(config)
+                return
+
+            # Configure uvicorn
+            uvicorn_config = uvicorn.Config(
+                config.app_module,
+                host=config.host,
+                port=config.port,
+                log_level=config.log_level,
+                access_log=config.access_log,
+            )
+
+            server = uvicorn.Server(uvicorn_config)
+
+            # Start both servers concurrently
+            logger.info(f"Starting HTTP server on {config.host}:{config.port}")
+            logger.info(f"Starting gRPC server on port {config.grpc_port}")
+
+            await asyncio.gather(
+                server.serve(),
+                grpc_serve(),
+                return_exceptions=True
+            )
+
+        # Run the event loop
+        try:
+            asyncio.run(run_servers())
+        except KeyboardInterrupt:
+            logger.info("Servers stopped by user")
 
 
 # CLI Commands
@@ -958,6 +1238,101 @@ def run():
         console.print("\n[yellow]Development server stopped[/yellow]")
     except Exception as e:
         console.print(f"[red]Run error: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option("--config", "-c", help="Configuration file path")
+@click.option("--environment", "-e", default="development", help="Environment")
+@click.option("--host", default="0.0.0.0", help="Host to bind to")
+@click.option("--port", type=int, help="Port to bind to (overrides config)")
+@click.option("--grpc-port", type=int, help="gRPC port to bind to (overrides config)")
+@click.option("--workers", type=int, default=1, help="Number of worker processes")
+@click.option("--reload", is_flag=True, help="Enable auto-reload for development")
+@click.option("--debug", is_flag=True, help="Enable debug mode")
+@click.option("--log-level", default="info", help="Log level")
+@click.option("--access-log/--no-access-log", default=True, help="Enable access logging")
+@click.option("--metrics/--no-metrics", default=True, help="Enable metrics")
+@click.option("--dry-run", is_flag=True, help="Show what would be run without executing")
+@click.argument("service_name", required=False)
+def runservice(
+    service_name,
+    config,
+    environment,
+    host,
+    port,
+    grpc_port,
+    workers,
+    reload,
+    debug,
+    log_level,
+    access_log,
+    metrics,
+    dry_run
+):
+    """Run a Marty microservice using the framework patterns.
+
+    This command provides a unified way to launch microservices, eliminating the need
+    for custom startup code in each service. It automatically configures logging,
+    metrics, database connections, and both HTTP and gRPC servers based on the
+    service configuration.
+
+    Examples:
+        marty runservice trust-svc
+        marty runservice --config config/production.yaml --environment production
+        marty runservice --port 8080 --grpc-port 50051 --reload my-service
+    """
+    service_runner = MartyServiceRunner()
+
+    try:
+        # Determine service configuration
+        service_config = service_runner.resolve_service_config(
+            service_name=service_name,
+            config_file=config,
+            environment=environment,
+            overrides={
+                "host": host,
+                "port": port,
+                "grpc_port": grpc_port,
+                "workers": workers,
+                "reload": reload,
+                "debug": debug,
+                "log_level": log_level,
+                "access_log": access_log,
+                "metrics": metrics,
+            }
+        )
+
+        if dry_run:
+            console.print("[bold]Service Configuration (Dry Run):[/bold]")
+            console.print(f"Service: {service_config.name}")
+            console.print(f"Host: {service_config.host}:{service_config.port}")
+            if service_config.grpc_enabled:
+                console.print(f"gRPC: {service_config.host}:{service_config.grpc_port}")
+            console.print(f"Environment: {service_config.environment}")
+            console.print(f"Workers: {service_config.workers}")
+            console.print(f"Debug: {service_config.debug}")
+            console.print(f"Reload: {service_config.reload}")
+            console.print(f"Log Level: {service_config.log_level}")
+            console.print(f"Metrics: {service_config.metrics_enabled}")
+            return
+
+        # Start the service
+        console.print(f"[green]Starting {service_config.name} service...[/green]")
+        console.print(f"Environment: {service_config.environment}")
+        console.print(f"HTTP Server: http://{service_config.host}:{service_config.port}")
+        if service_config.grpc_enabled:
+            console.print(f"gRPC Server: {service_config.host}:{service_config.grpc_port}")
+
+        service_runner.run_service(service_config)
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Service stopped by user[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Failed to start service: {e}[/red]")
+        if debug:
+            import traceback
+            console.print(traceback.format_exc())
         sys.exit(1)
 
 
