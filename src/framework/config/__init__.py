@@ -8,6 +8,7 @@ This package provides enterprise-grade configuration management including:
 - Configuration hot-reloading
 - Integration with external config services
 - Multiple configuration sources (files, env vars, external services)
+- Plugin configuration management
 """
 
 from .manager import (  # Core classes; Enums; Providers; Utility functions; Data classes
@@ -28,6 +29,13 @@ from .manager import (  # Core classes; Enums; Providers; Utility functions; Dat
     get_secret_manager,
     get_service_config,
     load_config_schema,
+)
+from .plugin_config import (
+    PluginConfig,
+    PluginConfigManager,
+    PluginConfigProvider,
+    PluginConfigSection,
+    create_plugin_config_manager,
 )
 
 __all__ = [
@@ -53,4 +61,10 @@ __all__ = [
     "get_secret_manager",
     "get_service_config",
     "load_config_schema",
+    # Plugin configuration
+    "PluginConfig",
+    "PluginConfigSection",
+    "PluginConfigProvider",
+    "PluginConfigManager",
+    "create_plugin_config_manager",
 ]

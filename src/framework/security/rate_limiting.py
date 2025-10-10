@@ -9,7 +9,7 @@ import re
 import time
 from abc import ABC, abstractmethod
 from functools import wraps
-from typing import Callable, Dict, Optional, Set, Union, dict
+from typing import Callable, Dict, Optional, Set, Union
 
 from .config import RateLimitConfig
 from .errors import RateLimitExceededError
