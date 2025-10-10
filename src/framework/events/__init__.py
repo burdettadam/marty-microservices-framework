@@ -6,8 +6,12 @@ This package provides:
 - Event handlers and subscription management
 - Domain and system events
 - Event registry and serialization
+- Unified event publishing utilities for audit, notification, and domain events
 """
 
+# New unified event publishing components
+from .config import EventConfig, EventPublisherConfig
+from .decorators import audit_event, domain_event, publish_on_error, publish_on_success
 from .event_bus import (
     EVENT_REGISTRY,
     BaseEvent,
@@ -26,8 +30,12 @@ from .event_bus import (
     publish_system_event,
     register_event,
 )
+from .exceptions import EventPublishingError
+from .publisher import EventPublisher, get_event_publisher
+from .types import AuditEventType, EventPriority, NotificationEventType
 
 __all__ = [
+    # Existing event bus components
     "EVENT_REGISTRY",
     "BaseEvent",
     "DomainEvent",
@@ -44,4 +52,17 @@ __all__ = [
     "publish_domain_event",
     "publish_system_event",
     "register_event",
+    # New unified event publishing components
+    "EventConfig",
+    "EventPublisherConfig",
+    "EventPublisher",
+    "get_event_publisher",
+    "audit_event",
+    "domain_event",
+    "publish_on_success",
+    "publish_on_error",
+    "AuditEventType",
+    "NotificationEventType",
+    "EventPriority",
+    "EventPublishingError",
 ]
