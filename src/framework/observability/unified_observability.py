@@ -17,9 +17,9 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional, Union
 
 # MMF framework imports
-from framework.config import ServiceConfig
+from framework.config import BaseServiceConfig
 from framework.observability.monitoring import (
-    AlertManager,
+    Alert,
     HealthCheck,
     HealthChecker,
     HealthStatus,
@@ -67,7 +67,7 @@ class ObservabilityManager:
     and tracing across all Marty services using the unified configuration system.
     """
 
-    def __init__(self, config: ServiceConfig):
+    def __init__(self, config: BaseServiceConfig):
         """
         Initialize observability manager with unified configuration.
 
@@ -389,7 +389,7 @@ class ObservabilityManager:
 
 
 # Factory function for easy integration
-def create_observability_manager(config: ServiceConfig) -> ObservabilityManager:
+def create_observability_manager(config: BaseServiceConfig) -> ObservabilityManager:
     """
     Factory function to create an observability manager from service config.
 
