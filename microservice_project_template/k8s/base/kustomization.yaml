@@ -4,3 +4,9 @@ resources:
   - deployment.yaml
   - service.yaml
   - configmap.yaml
+  - serviceaccount.yaml
+  - servicemonitor.yaml
+  - podmonitor.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - networkpolicy.yaml

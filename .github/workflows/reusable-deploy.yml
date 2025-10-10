@@ -1,0 +1,174 @@
+name: Reusable Deploy
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: 'Name of the service being deployed'
+        required: true
+        type: string
+      environment:
+        description: 'Target environment (dev, staging, prod)'
+        required: true
+        type: string
+      kustomize-path:
+        description: 'Path to Kustomize overlay'
+        required: false
+        type: string
+        default: './k8s/overlays'
+      namespace:
+        description: 'Kubernetes namespace'
+        required: false
+        type: string
+        default: ''
+      image-tag:
+        description: 'Container image tag to deploy'
+        required: true
+        type: string
+      dry-run:
+        description: 'Perform dry-run deployment'
+        required: false
+        type: boolean
+        default: false
+      wait-for-rollout:
+        description: 'Wait for deployment rollout to complete'
+        required: false
+        type: boolean
+        default: true
+      rollback-on-failure:
+        description: 'Rollback on deployment failure'
+        required: false
+        type: boolean
+        default: true
+    secrets:
+      kubeconfig:
+        description: 'Kubernetes config for deployment'
+        required: false
+      registry-token:
+        description: 'Registry token for pulling images'
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Set up Kubernetes config
+        run: |
+          if [ -n "${{ secrets.kubeconfig }}" ]; then
+            mkdir -p ~/.kube
+            echo "${{ secrets.kubeconfig }}" | base64 -d > ~/.kube/config
+            chmod 600 ~/.kube/config
+          fi
+
+      - name: Set namespace
+        id: namespace
+        run: |
+          if [ -n "${{ inputs.namespace }}" ]; then
+            echo "namespace=${{ inputs.namespace }}" >> $GITHUB_OUTPUT
+          else
+            echo "namespace=${{ inputs.service-name }}-${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace ${{ steps.namespace.outputs.namespace }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Update image tag in Kustomize
+        run: |
+          cd ${{ inputs.kustomize-path }}/${{ inputs.environment }}
+
+          # Create or update kustomization.yaml with new image
+          if ! grep -q "images:" kustomization.yaml; then
+            echo "" >> kustomization.yaml
+            echo "images:" >> kustomization.yaml
+          fi
+
+          # Use kustomize edit to set image
+          kustomize edit set image ${{ inputs.service-name }}=ghcr.io/${{ github.repository_owner }}/${{ inputs.service-name }}:${{ inputs.image-tag }}
+
+      - name: Validate Kustomize build
+        run: |
+          cd ${{ inputs.kustomize-path }}/${{ inputs.environment }}
+          kustomize build . > /tmp/manifests.yaml
+          kubectl --dry-run=client apply -f /tmp/manifests.yaml
+
+      - name: Deploy (dry-run)
+        if: ${{ inputs.dry-run }}
+        run: |
+          cd ${{ inputs.kustomize-path }}/${{ inputs.environment }}
+          echo "🔍 Dry-run deployment for ${{ inputs.service-name }} in ${{ inputs.environment }}"
+          kustomize build . | kubectl apply --dry-run=client -f -
+
+      - name: Deploy to Kubernetes
+        if: ${{ !inputs.dry-run }}
+        run: |
+          cd ${{ inputs.kustomize-path }}/${{ inputs.environment }}
+          echo "🚀 Deploying ${{ inputs.service-name }} to ${{ inputs.environment }}"
+          kustomize build . | kubectl apply -f -
+
+      - name: Wait for rollout
+        if: ${{ !inputs.dry-run && inputs.wait-for-rollout }}
+        run: |
+          echo "⏳ Waiting for rollout to complete..."
+          kubectl rollout status deployment/${{ inputs.service-name }} -n ${{ steps.namespace.outputs.namespace }} --timeout=600s
+
+      - name: Verify deployment
+        if: ${{ !inputs.dry-run }}
+        run: |
+          echo "✅ Verifying deployment..."
+          kubectl get pods -n ${{ steps.namespace.outputs.namespace }} -l app.kubernetes.io/name=${{ inputs.service-name }}
+          kubectl get services -n ${{ steps.namespace.outputs.namespace }} -l app.kubernetes.io/name=${{ inputs.service-name }}
+
+      - name: Run health checks
+        if: ${{ !inputs.dry-run }}
+        run: |
+          echo "🏥 Running health checks..."
+          # Wait for pods to be ready
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=${{ inputs.service-name }} -n ${{ steps.namespace.outputs.namespace }} --timeout=300s
+
+          # Check deployment status
+          READY_REPLICAS=$(kubectl get deployment ${{ inputs.service-name }} -n ${{ steps.namespace.outputs.namespace }} -o jsonpath='{.status.readyReplicas}')
+          DESIRED_REPLICAS=$(kubectl get deployment ${{ inputs.service-name }} -n ${{ steps.namespace.outputs.namespace }} -o jsonpath='{.spec.replicas}')
+
+          if [ "$READY_REPLICAS" = "$DESIRED_REPLICAS" ]; then
+            echo "✅ Health check passed: $READY_REPLICAS/$DESIRED_REPLICAS replicas ready"
+          else
+            echo "❌ Health check failed: $READY_REPLICAS/$DESIRED_REPLICAS replicas ready"
+            exit 1
+          fi
+
+      - name: Rollback on failure
+        if: ${{ failure() && inputs.rollback-on-failure && !inputs.dry-run }}
+        run: |
+          echo "🔄 Rolling back deployment due to failure..."
+          kubectl rollout undo deployment/${{ inputs.service-name }} -n ${{ steps.namespace.outputs.namespace }}
+          kubectl rollout status deployment/${{ inputs.service-name }} -n ${{ steps.namespace.outputs.namespace }} --timeout=600s
+
+      - name: Generate deployment summary
+        if: always()
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service**: ${{ inputs.service-name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Namespace**: ${{ steps.namespace.outputs.namespace }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image Tag**: ${{ inputs.image-tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run**: ${{ inputs.dry-run }}" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ inputs.dry-run }}" = "false" ]; then
+            echo "- **Status**: $(kubectl get deployment ${{ inputs.service-name }} -n ${{ steps.namespace.outputs.namespace }} -o jsonpath='{.status.conditions[?(@.type=="Progressing")].status}' 2>/dev/null || echo "Unknown")" >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1392,5 +1392,14 @@ def config(author, email, license, python_version):
     )
 
 
+# Import and add migration commands
+try:
+    from marty_cli.commands import migrate
+    cli.add_command(migrate)
+except ImportError:
+    # Migration commands not available
+    pass
+
+
 if __name__ == "__main__":
     cli()
