@@ -30,7 +30,7 @@ class FallbackProvider:
 
     def get_fallback_value(self, context: dict[str, Any]) -> Any:
         """Get fallback value for given context."""
-        raise NotImplementedError
+        return None
 
 
 class DefaultValueProvider(FallbackProvider):
