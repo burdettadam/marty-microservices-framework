@@ -28,7 +28,7 @@ class ErrorClassifier(Protocol):
 
     def should_count_as_failure(self, exception: Exception) -> bool:
         """Determine if an exception should count as a failure."""
-        raise NotImplementedError
+        ...
 
 
 class DefaultErrorClassifier:
