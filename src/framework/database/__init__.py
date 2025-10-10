@@ -8,6 +8,7 @@ This module provides:
 - Connection pooling
 - Audit logging capabilities
 - Database utilities
+- Outbox pattern for reliable event publishing
 
 Example usage:
     from framework.database import DatabaseConfig, DatabaseManager, Repository
@@ -57,6 +58,9 @@ from .models import (
     TimestampMixin,
     UUIDMixin,
 )
+
+# Outbox pattern components
+from .outbox import OutboxEvent, OutboxRepository
 from .repository import (
     BaseRepository,
     ConflictError,
@@ -109,6 +113,9 @@ __all__ = [
     "IsolationLevel",
     "MetadataMixin",
     "NotFoundError",
+    # Outbox pattern
+    "OutboxEvent",
+    "OutboxRepository",
     "Repository",
     "RepositoryError",
     "RetryableError",
