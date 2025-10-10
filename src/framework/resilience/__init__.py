@@ -7,8 +7,11 @@ Provides enterprise-grade resilience patterns for microservices including:
 - Bulkhead Isolation: Resource isolation and thread pools
 - Timeout Management: Request and operation timeouts
 - Fallback Strategies: Graceful degradation patterns
+- Chaos Engineering: Fault injection and resilience testing
+- Enhanced Monitoring: Comprehensive metrics and health checks
 """
 
+# Import basic resilience patterns
 from .bulkhead import (
     BulkheadConfig,
     BulkheadError,
@@ -23,6 +26,48 @@ from .circuit_breaker import (
     CircuitBreakerError,
     CircuitBreakerState,
     circuit_breaker,
+)
+
+# Import enhanced resilience patterns (ported from Marty)
+from .enhanced import (  # Advanced retry mechanisms; Chaos engineering; Enhanced circuit breaker; Graceful degradation; gRPC interceptors; Monitoring; Outbound calls
+    AdvancedRetryConfig,
+    AdvancedRetryManager,
+    AdvancedRetryMetrics,
+    AsyncResilienceClientInterceptor,
+    BackoffStrategy,
+    CachedValueProvider,
+    ChaosConfig,
+    ChaosInjector,
+    ChaosType,
+    CompositeResilienceInterceptor,
+    DefaultErrorClassifier,
+    DefaultValueProvider,
+    DegradationLevel,
+    EnhancedCircuitBreaker,
+    EnhancedCircuitBreakerConfig,
+    EnhancedResilienceServerInterceptor,
+    ErrorClassifier,
+    FallbackProvider,
+    FeatureToggle,
+    GracefulDegradationManager,
+    HealthBasedDegradationMonitor,
+    ResilienceClientInterceptor,
+    ResilienceHealthCheck,
+    ResilienceMonitor,
+    ResilienceTestSuite,
+    RetryResult,
+    ServiceFallbackProvider,
+    async_call_with_resilience,
+    async_retry_with_advanced_policy,
+    chaos_context,
+    generate_resilience_health_report,
+    get_all_retry_manager_stats,
+    get_global_monitor,
+    get_resilience_health_status,
+    get_retry_manager,
+    register_circuit_breaker_for_monitoring,
+    register_retry_manager_for_monitoring,
+    retry_with_advanced_policy,
 )
 from .fallback import (
     CacheFallback,
@@ -59,12 +104,11 @@ from .timeout import (
 )
 
 __all__ = [
-    # Bulkhead
+    # Basic resilience patterns
     "BulkheadConfig",
     "BulkheadError",
     "BulkheadPool",
     "CacheFallback",
-    # Circuit Breaker
     "CircuitBreaker",
     "CircuitBreakerConfig",
     "CircuitBreakerError",
@@ -73,23 +117,19 @@ __all__ = [
     "ExponentialBackoff",
     "FallbackConfig",
     "FallbackError",
-    # Fallback
     "FallbackStrategy",
     "FunctionFallback",
     "LinearBackoff",
     "ResilienceConfig",
-    # Patterns
     "ResilienceManager",
     "ResiliencePattern",
     "ResilienceTimeoutError",
-    # Retry
     "RetryConfig",
     "RetryError",
     "RetryStrategy",
     "SemaphoreBulkhead",
     "StaticFallback",
     "ThreadPoolBulkhead",
-    # Timeout
     "TimeoutConfig",
     "TimeoutManager",
     "bulkhead_isolate",
@@ -101,4 +141,44 @@ __all__ = [
     "timeout_async",
     "with_fallback",
     "with_timeout",
+
+    # Enhanced resilience patterns (from Marty)
+    "AdvancedRetryConfig",
+    "AdvancedRetryManager",
+    "AdvancedRetryMetrics",
+    "async_call_with_resilience",
+    "async_retry_with_advanced_policy",
+    "AsyncResilienceClientInterceptor",
+    "BackoffStrategy",
+    "CachedValueProvider",
+    "chaos_context",
+    "ChaosConfig",
+    "ChaosInjector",
+    "ChaosType",
+    "CompositeResilienceInterceptor",
+    "DefaultErrorClassifier",
+    "DefaultValueProvider",
+    "DegradationLevel",
+    "EnhancedCircuitBreaker",
+    "EnhancedCircuitBreakerConfig",
+    "EnhancedResilienceServerInterceptor",
+    "ErrorClassifier",
+    "FallbackProvider",
+    "FeatureToggle",
+    "generate_resilience_health_report",
+    "get_all_retry_manager_stats",
+    "get_global_monitor",
+    "get_resilience_health_status",
+    "get_retry_manager",
+    "GracefulDegradationManager",
+    "HealthBasedDegradationMonitor",
+    "register_circuit_breaker_for_monitoring",
+    "register_retry_manager_for_monitoring",
+    "ResilienceClientInterceptor",
+    "ResilienceHealthCheck",
+    "ResilienceMonitor",
+    "ResilienceTestSuite",
+    "retry_with_advanced_policy",
+    "RetryResult",
+    "ServiceFallbackProvider",
 ]
