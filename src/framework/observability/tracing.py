@@ -11,13 +11,18 @@ import logging
 import os
 from typing import Optional, Set
 
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
-
 logger = logging.getLogger(__name__)
+
+try:
+    from opentelemetry import trace
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+    OPENTELEMETRY_AVAILABLE = True
+except ImportError:
+    OPENTELEMETRY_AVAILABLE = False
+    logger.warning("OpenTelemetry not available, tracing will be disabled")
 
 # Environment variables for OpenTelemetry configuration
 OTEL_ENABLED = os.getenv("OTEL_TRACING_ENABLED", "false").lower() in (
@@ -43,16 +48,19 @@ OTEL_CONSOLE_EXPORT = os.getenv("OTEL_CONSOLE_EXPORT", "false").lower() in (
 )
 
 # Global tracer reference
-_tracer: trace.Tracer | None = None
+_tracer = None
 _instrumented = False
 
 
-def get_tracer() -> trace.Tracer:
+def get_tracer():
     """Get the configured tracer instance.
 
     Returns:
-        Configured OpenTelemetry tracer instance.
+        Configured OpenTelemetry tracer instance or None if not available.
     """
+    if not OPENTELEMETRY_AVAILABLE:
+        return None
+
     global _tracer
     if _tracer is None:
         _tracer = trace.get_tracer(__name__)
@@ -65,6 +73,10 @@ def init_tracing(service_name: str | None = None) -> None:
     Args:
         service_name: Name of the service for tracing (overrides env var)
     """
+    if not OPENTELEMETRY_AVAILABLE:
+        logger.warning("OpenTelemetry not available, tracing disabled")
+        return
+
     global _instrumented
 
     if _instrumented:
@@ -132,7 +144,7 @@ def instrument_grpc() -> None:
 
     Requires opentelemetry-instrumentation-grpc package.
     """
-    if not OTEL_ENABLED:
+    if not OPENTELEMETRY_AVAILABLE or not OTEL_ENABLED:
         return
 
     try:
@@ -166,7 +178,7 @@ def instrument_fastapi() -> None:
 
     Requires opentelemetry-instrumentation-fastapi package.
     """
-    if not OTEL_ENABLED:
+    if not OPENTELEMETRY_AVAILABLE or not OTEL_ENABLED:
         return
 
     try:
@@ -189,7 +201,7 @@ def instrument_sqlalchemy() -> None:
 
     Requires opentelemetry-instrumentation-sqlalchemy package.
     """
-    if not OTEL_ENABLED:
+    if not OPENTELEMETRY_AVAILABLE or not OTEL_ENABLED:
         return
 
     try:
@@ -212,7 +224,7 @@ def instrument_requests() -> None:
 
     Requires opentelemetry-instrumentation-requests package.
     """
-    if not OTEL_ENABLED:
+    if not OPENTELEMETRY_AVAILABLE or not OTEL_ENABLED:
         return
 
     try:
@@ -235,7 +247,7 @@ def instrument_kafka() -> None:
 
     Requires opentelemetry-instrumentation-kafka-python package.
     """
-    if not OTEL_ENABLED:
+    if not OPENTELEMETRY_AVAILABLE or not OTEL_ENABLED:
         return
 
     try:
@@ -255,7 +267,7 @@ def instrument_kafka() -> None:
 
 def auto_instrument() -> None:
     """Automatically instrument common libraries."""
-    if not OTEL_ENABLED:
+    if not OPENTELEMETRY_AVAILABLE or not OTEL_ENABLED:
         return
 
     logger.info("Auto-instrumenting common libraries...")
@@ -270,6 +282,9 @@ def auto_instrument() -> None:
 
 def shutdown_tracing() -> None:
     """Shutdown tracing and flush pending spans."""
+    if not OPENTELEMETRY_AVAILABLE:
+        return
+
     global _instrumented
 
     if not _instrumented or not OTEL_ENABLED:
@@ -290,7 +305,8 @@ class traced_operation:
 
     Example:
         with traced_operation("operation_name") as span:
-            span.set_attribute("key", "value")
+            if span:  # Check if span is available
+                span.set_attribute("key", "value")
             # Do work
     """
 
@@ -300,7 +316,13 @@ class traced_operation:
         self.span = None
 
     def __enter__(self):
+        if not OPENTELEMETRY_AVAILABLE:
+            return None
+
         tracer = get_tracer()
+        if tracer is None:
+            return None
+
         self.span = tracer.start_span(self.operation_name)
 
         # Set provided attributes
@@ -310,7 +332,7 @@ class traced_operation:
         return self.span
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.span:
+        if self.span and OPENTELEMETRY_AVAILABLE:
             if exc_type:
                 self.span.record_exception(exc_val)
                 self.span.set_status(trace.Status(trace.StatusCode.ERROR, str(exc_val)))
