@@ -1,7 +1,7 @@
 # Marty Microservices Framework - Makefile
 # Convenient commands for framework development and usage
 
-.PHONY: help setup install test dev generate new clean docs
+.PHONY: help setup install test dev setup-dev generate new clean docs scripts
 
 # Default target
 help: ## Show this help message
@@ -17,22 +17,16 @@ help: ## Show this help message
 
 setup: ## Complete setup: install deps, hooks, and validate
 	@echo "🚀 Setting up Marty Microservices Framework..."
-	@uv sync --extra dev
+	@uv sync --group dev
 	@uv run playwright install chromium
 	@uv run pre-commit install
 	@python3 scripts/validate_templates.py
 	@echo "✅ Setup complete!"
 
-install: ## Install framework dependencies only
+install: ## Install framework dependencies
 	@echo "📦 Installing framework dependencies..."
-	@uv sync --extra dev
+	@uv sync --group dev
 	@echo "✅ Dependencies installed!"
-
-install-all: ## Install all dependencies including chassis
-	@echo "📦 Installing all framework dependencies..."
-	@uv sync --extra dev
-	@cd marty_chassis && uv sync --extra dev
-	@echo "✅ All dependencies installed!"
 
 # ==============================================================================
 # Testing
@@ -75,6 +69,10 @@ dev: ## Setup complete development environment
 	@$(MAKE) setup
 	@echo "🎉 Development environment ready!"
 	@echo "💡 Try: make test, make generate, make new"
+
+setup-dev: ## Run comprehensive development setup script
+	@echo "🚀 Running comprehensive development setup..."
+	@python3 scripts/setup_dev.py
 
 check: ## Run all code quality checks
 	@echo "🔍 Running code quality checks..."
@@ -135,6 +133,7 @@ clean: ## Clean build artifacts and cache files
 	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	@rm -rf dist/ build/ htmlcov/ .coverage
+	@rm -f test_results.json *_test_demo_results.json *_test_results.json coverage.xml
 	@echo "✅ Cleanup complete!"
 
 docs: ## Show documentation and usage examples
@@ -163,6 +162,38 @@ docs: ## Show documentation and usage examples
 	@echo "   make generate TYPE=fastapi NAME=user-api"
 	@echo "   make generate TYPE=grpc NAME=data-processor"
 	@echo "   make new NAME=my-awesome-project"
+	@echo ""
+	@echo "📜 Scripts:"
+	@echo "   make scripts                            # Show available scripts"
+
+scripts: ## Show available development scripts
+	@echo "📜 Development Scripts"
+	@echo "====================="
+	@echo ""
+	@echo "📖 For detailed descriptions, see: scripts/README.md"
+	@echo ""
+	@echo "🔧 Development:"
+	@echo "   python3 scripts/setup_dev.py           # Development environment setup"
+	@echo "   python3 scripts/test_framework.py      # Framework component testing"
+	@echo ""
+	@echo "🧪 Testing:"
+	@echo "   python3 scripts/test_runner.py         # Main test runner with reports"
+	@echo "   python3 scripts/real_e2e_test_runner.py # E2E test runner"
+	@echo "   ./scripts/run_kind_playwright_e2e.sh   # Kind + Playwright E2E"
+	@echo ""
+	@echo "✅ Validation:"
+	@echo "   ./scripts/validate.sh                  # General validation"
+	@echo "   python3 scripts/validate_templates.py  # Template validation"
+	@echo "   python3 scripts/validate_observability.py # Observability validation"
+	@echo "   python3 scripts/verify_security_framework.py # Security verification"
+	@echo ""
+	@echo "🏗️ Generation:"
+	@echo "   python3 scripts/generate_service.py    # Service generation utility"
+	@echo ""
+	@echo "🛠️ Utilities:"
+	@echo "   python3 scripts/check_dependencies.py  # Dependency checking"
+	@echo "   ./scripts/cleanup.sh                   # Clean up artifacts"
+	@echo "   ./scripts/show_script_commands.sh      # Show script commands"
 
 status: ## Show framework status
 	@echo "📊 Framework Status"

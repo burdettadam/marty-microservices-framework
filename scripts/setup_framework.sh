@@ -57,7 +57,7 @@ echo "📦 Installing framework dependencies..."
 cd "$FRAMEWORK_ROOT"
 
 # Use UV to install the framework in development mode
-uv sync --extra dev
+uv sync --group dev
 
 print_status "Framework dependencies installed"
 
@@ -71,7 +71,7 @@ if [ -f "$FRAMEWORK_ROOT/microservice_project_template/pyproject.toml" ]; then
     fi
 
     # Install dependencies
-    uv sync --extra dev
+    uv sync --group dev
 
     print_status "Project template environment ready"
 fi
@@ -125,7 +125,7 @@ echo ""
 echo "  2. Use the project template:"
 echo "     cp -r microservice_project_template my-new-project"
 echo "     cd my-new-project"
-echo "     uv sync --extra dev"
+echo "     uv sync --group dev"
 echo ""
 echo "  3. Validate templates:"
 echo "     python3 scripts/validate_templates.py"

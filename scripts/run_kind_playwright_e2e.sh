@@ -82,7 +82,7 @@ check_prerequisites() {
     # Check if Playwright is installed
     if ! uv run python -c "import playwright" &> /dev/null; then
         print_warning "Playwright may not be installed. Installing dependencies..."
-        uv sync --extra dev
+        uv sync --group dev
         uv run playwright install chromium
     fi
     print_status "Python dependencies are ready"

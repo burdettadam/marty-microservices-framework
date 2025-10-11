@@ -34,7 +34,7 @@ try:
     KUBERNETES_AVAILABLE = True
 except ImportError:
     KUBERNETES_AVAILABLE = False
-    print("⚠️  Warning: Kubernetes client not available. Install with: uv sync --extra dev")
+    print("⚠️  Warning: Kubernetes client not available. Install with: uv sync --group dev")
 
 
 class SimpleKindManager:
