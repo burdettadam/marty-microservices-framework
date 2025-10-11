@@ -7,16 +7,18 @@ analysis, bottleneck detection, timeout monitoring, and auditability testing.
 
 import asyncio
 import builtins
+import os
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, Dict, List, Optional
 
 import psutil
 import pytest
 import pytest_asyncio
+
 from marty_chassis.plugins.examples import (
     CircuitBreakerPlugin,
     DataProcessingPipelinePlugin,
@@ -414,3 +416,124 @@ class TimeoutMonitor:
 def timeout_monitor():
     """Create timeout monitor for testing."""
     return TimeoutMonitor(timeout_threshold=5.0)
+
+
+# Real infrastructure fixtures for E2E tests
+
+# Configure Docker client for testcontainers
+def configure_docker_client():
+    """Configure Docker client for testcontainers on macOS Docker Desktop."""
+    import platform
+
+    if platform.system() == "Darwin":  # macOS
+        # Set Docker socket path for Docker Desktop
+        docker_host = "unix:///Users/" + os.environ.get("USER", "user") + "/.docker/run/docker.sock"
+        if os.path.exists(docker_host.replace("unix://", "")):
+            os.environ["DOCKER_HOST"] = docker_host
+        elif os.path.exists("/var/run/docker.sock"):
+            os.environ["DOCKER_HOST"] = "unix:///var/run/docker.sock"
+
+
+@pytest.fixture(scope="session")
+async def postgres_container():
+    """Provide a PostgreSQL container for E2E tests."""
+    from testcontainers.postgres import PostgresContainer
+
+    # Configure Docker client before creating container
+    configure_docker_client()
+
+    with PostgresContainer("postgres:15-alpine") as postgres:
+        postgres.start()
+        yield postgres
+
+
+@pytest.fixture(scope="session")
+async def redis_container():
+    """Provide a Redis container for E2E tests."""
+    from testcontainers.redis import RedisContainer
+
+    # Configure Docker client before creating container
+    configure_docker_client()
+
+    with RedisContainer("redis:7-alpine") as redis:
+        redis.start()
+        yield redis
+
+
+@pytest.fixture
+async def real_database_connection(postgres_container):
+    """Provide a real database connection for E2E tests."""
+    import asyncpg
+
+    connection_url = postgres_container.get_connection_url()
+    # Convert psycopg2 URL to asyncpg format
+    asyncpg_url = connection_url.replace("postgresql+psycopg2://", "postgresql://")
+
+    connection = await asyncpg.connect(asyncpg_url)
+
+    # Setup test schema for E2E tests
+    await connection.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
+    await connection.execute("""
+        CREATE TABLE IF NOT EXISTS items (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
+    await connection.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            product_id INTEGER NOT NULL,
+            quantity INTEGER NOT NULL,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+    """)
+
+    yield connection
+
+    # Cleanup
+    await connection.execute("DROP TABLE IF EXISTS orders")
+    await connection.execute("DROP TABLE IF EXISTS items")
+    await connection.execute("DROP TABLE IF EXISTS users")
+    await connection.close()
+
+
+@pytest.fixture
+async def real_redis_client(redis_container):
+    """Provide a real Redis client for E2E tests."""
+    import redis.asyncio as redis
+
+    redis_url = f"redis://localhost:{redis_container.get_exposed_port(6379)}/0"
+    client = redis.from_url(redis_url)
+
+    yield client
+
+    # Cleanup
+    await client.flushdb()
+    await client.close()
+
+
+@pytest.fixture
+async def real_event_bus(test_service_name: str):
+    """Provide a real event bus for E2E tests."""
+    from src.framework.events.event_bus import InMemoryEventBus
+
+    # Create in-memory event bus for E2E tests
+    event_bus = InMemoryEventBus()
+    await event_bus.start()
+
+    yield event_bus
+
+    # Cleanup
+    await event_bus.stop()

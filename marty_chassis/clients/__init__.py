@@ -10,11 +10,12 @@ This module provides HTTP and gRPC client libraries with built-in:
 """
 
 import time
-from typing import Any, Optional, Union, dict
+from typing import Any, Dict, Optional, Union
 
 import grpc
 import httpx
 from grpc import aio
+
 from marty_chassis.config import ChassisConfig
 from marty_chassis.exceptions import ClientError
 from marty_chassis.logger import get_logger

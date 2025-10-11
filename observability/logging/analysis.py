@@ -493,7 +493,8 @@ class LogStreamProcessor:
             return
 
         self.running = True
-        redis = aioredis.from_url(
+        import redis.asyncio as redis_client
+        redis = redis_client.from_url(
             f"redis://{self.analyzer.redis_host}:{self.analyzer.redis_port}"
         )
 

@@ -7,7 +7,7 @@ import asyncio
 import builtins
 import logging
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from typing import Any, AsyncContextManager, Dict, Optional, Set, dict
+from typing import Any, AsyncContextManager, Dict, Optional, Set
 
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.asyncio import (

@@ -15,7 +15,7 @@ import logging
 import statistics
 import time
 from dataclasses import asdict, dataclass
-from typing import Dict, List, Optional, dict, list
+from typing import Dict, List, Optional
 
 import aiohttp
 import grpc

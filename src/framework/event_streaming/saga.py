@@ -13,19 +13,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    dict,
-    list,
-    type,
-)
+from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar
 
 from .core import DomainEvent, EventBus, EventMetadata
 from .cqrs import Command, CommandBus, CommandStatus

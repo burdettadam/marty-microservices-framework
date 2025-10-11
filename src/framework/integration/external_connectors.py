@@ -17,7 +17,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Protocol, Set, dict, list
+from typing import Any, Callable, Dict, List, Optional, Protocol, Set
 from urllib.parse import urljoin
 
 import aiofiles

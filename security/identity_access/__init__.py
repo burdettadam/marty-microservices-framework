@@ -23,7 +23,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, set, tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import parse_qs, urlparse
 
 import bcrypt
@@ -32,11 +32,12 @@ import jwt
 # External dependencies
 try:
     import aiohttp
-    import aioredis
+    import redis.asyncio as redis
     from cryptography.hazmat.primitives import hashes, serialization
     from cryptography.hazmat.primitives.asymmetric import padding, rsa
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
     from prometheus_client import Counter, Gauge, Histogram
+    REDIS_AVAILABLE = True
 
     CRYPTO_AVAILABLE = True
 except ImportError:

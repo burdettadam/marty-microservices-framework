@@ -13,14 +13,16 @@ import json
 import time
 from pathlib import Path
 
+import pytest
 import pytest_asyncio
+
 from tests.e2e.conftest import PerformanceAnalyzer, TimeoutMonitor
 
 
 class TestTimeoutDetection:
     """Test suite for timeout detection and circuit breaker functionality."""
 
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_timeout_detection_and_circuit_breaker(
         self,
         simulation_plugin,

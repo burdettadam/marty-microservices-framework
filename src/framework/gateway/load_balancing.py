@@ -14,7 +14,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, dict, list, tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .core import GatewayRequest, GatewayResponse
 

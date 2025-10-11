@@ -17,7 +17,7 @@ import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, dict, list, set
+from typing import Any, Dict, List, Optional, Set
 
 import click
 import questionary

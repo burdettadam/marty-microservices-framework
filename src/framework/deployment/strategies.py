@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Final, List, Optional, Set, dict, list
+from typing import Any, Dict, Final, List, Optional, Set
 
 
 class DeploymentStrategy(Enum):

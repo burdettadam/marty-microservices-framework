@@ -11,7 +11,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, dict, list, set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from .circuit_breaker import CircuitBreakerConfig, CircuitBreakerManager
 from .core import ServiceInstance, ServiceRegistry, ServiceWatcher

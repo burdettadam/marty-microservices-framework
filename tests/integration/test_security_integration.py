@@ -9,20 +9,20 @@ import asyncio
 import builtins
 import json
 from datetime import datetime
-from typing import Any, Dict, Optional, dict
+from typing import Any, Dict, Optional
 
 from security.compliance import ComplianceManager
 from security.compliance.risk_management import RiskCategory, RiskManager
-from security.iam import AdvancedAuthenticationManager, AuthorizationEngine
+from security.identity_access import IAMManager, RBACManager
 from security.monitoring import (
     SecurityEventSeverity,
     SecurityEventType,
     SecurityMonitoringSystem,
 )
-from security.threat_detection import ThreatDetectionEngine, ThreatSeverity
+from security.threat_detection import ThreatDetectionManager, ThreatLevel
 
 # Import security components
-from security.zero_trust import ZeroTrustOrchestrator
+from security.zero_trust import ZeroTrustManager
 
 
 class SecurityIntegrationTestSuite:
@@ -35,9 +35,9 @@ class SecurityIntegrationTestSuite:
         self.components_initialized = False
 
         # Component instances
-        self.zero_trust: ZeroTrustOrchestrator | None = None
-        self.threat_detection: ThreatDetectionEngine | None = None
-        self.iam_manager: AdvancedAuthenticationManager | None = None
+        self.zero_trust: ZeroTrustManager | None = None
+        self.threat_detection: ThreatDetectionManager | None = None
+        self.iam_manager: IAMManager | None = None
         self.compliance_manager: ComplianceManager | None = None
         self.risk_manager: RiskManager | None = None
         self.monitoring_system: SecurityMonitoringSystem | None = None
@@ -49,15 +49,15 @@ class SecurityIntegrationTestSuite:
 
         try:
             # Initialize Zero-Trust
-            self.zero_trust = ZeroTrustOrchestrator()
-            await self.zero_trust.start_policy_engine()
+            self.zero_trust = ZeroTrustManager()
+            await self.zero_trust.initialize_ca()
 
             # Initialize Threat Detection
-            self.threat_detection = ThreatDetectionEngine()
+            self.threat_detection = ThreatDetectionManager()
             await self.threat_detection.start_monitoring()
 
             # Initialize IAM
-            self.iam_manager = AdvancedAuthenticationManager()
+            self.iam_manager = IAMManager()
             await self.iam_manager.initialize()
 
             # Initialize Compliance
@@ -109,7 +109,7 @@ class SecurityIntegrationTestSuite:
             )
 
             # Test authorization
-            auth_engine = AuthorizationEngine()
+            auth_engine = RBACManager()
             access_result = await auth_engine.check_permission(
                 user_id=registration_result["user_id"],
                 resource="api:user_profile",
@@ -142,16 +142,46 @@ class SecurityIntegrationTestSuite:
         print(f"\n🧪 Testing {test_name}...")
 
         try:
-            # Create test policies
-            policy_result = await self.zero_trust.policy_engine.create_policy(
-                policy_name="test_api_access",
-                subjects=["user:test_user"],
-                resources=["service:api-gateway"],
-                actions=["read"],
-                conditions=["time:business_hours"],
+            # Create test policy using available API
+            from datetime import datetime, timedelta
+
+            from security.zero_trust import (
+                AccessDecision,
+                AccessPolicy,
+                SecurityLevel,
+                ServiceIdentity,
             )
 
-            assert policy_result["success"], "Policy creation failed"
+            # Create a test service identity
+            test_identity = ServiceIdentity(
+                service_name="test_user",
+                namespace="default",
+                cluster="default",
+                service_account="test-sa",
+                certificate_fingerprint="test_fingerprint",
+                public_key_hash="test_hash",
+                created_at=datetime.now(),
+                expires_at=datetime.now() + timedelta(days=30),
+                security_level=SecurityLevel.INTERNAL,
+                capabilities={"read"}
+            )
+
+            # Register the identity
+            self.zero_trust.policy_engine.register_identity(test_identity)
+
+            # Create a test policy using the correct API
+            test_policy = AccessPolicy(
+                policy_id="test_api_access",
+                name="Test API Access",
+                description="Test policy for API access",
+                source_selector={"service_name": "test_user"},
+                target_selector={"service": "api-gateway"},
+                action="read",
+                decision=AccessDecision.ALLOW,
+                priority=10
+            )
+
+            self.zero_trust.policy_engine.add_policy(test_policy)
 
             # Test access during business hours (should be allowed)
             access_request = {

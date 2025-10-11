@@ -13,14 +13,16 @@ import json
 import time
 from pathlib import Path
 
+import pytest
 import pytest_asyncio
+
 from tests.e2e.conftest import PerformanceAnalyzer
 
 
 class TestBottleneckAnalysis:
     """Test suite for performance bottleneck analysis."""
 
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_comprehensive_bottleneck_analysis(
         self,
         simulation_plugin,

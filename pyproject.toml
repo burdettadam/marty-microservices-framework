@@ -45,18 +45,23 @@ dependencies = [
     "locust>=2.34.0",
     "grpcio>=1.75.1",
     "grpcio-tools>=1.75.1",
+    "grpcio-reflection>=1.59.0",
     "bandit[toml]>=1.8.0",
     "defusedxml>=0.7.1",
     "psutil>=7.1.0",
     "pyjwt>=2.10.1",
     "cryptography>=46.0.2",
     "sqlalchemy>=2.0.44",
-    "aioredis>=2.0.1",
     "bcrypt>=5.0.0",
     "opentelemetry-api>=1.37.0",
     "opentelemetry-sdk>=1.37.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.37.0",
     "pydantic-settings>=2.11.0",
+    "docker>=7.1.0",
+    "passlib>=1.7.4",
+    "matplotlib>=3.9.4",
+    "seaborn>=0.13.2",
+    "numpy>=2.0.2",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -87,6 +92,16 @@ dev = [
     "flake8>=6.0.0",
     "mypy>=1.7.0",
     "pre-commit>=3.5.0",
+    "playwright>=1.40.0",
+    "pytest-playwright>=0.4.3",
+    "kubernetes>=28.1.0",
+    "docker>=6.1.0",
+    "aiohttp>=3.9.0",
+    "httpx>=0.25.0",
+    "testcontainers>=3.7.0",
+    "psycopg2-binary>=2.9.0",
+    "redis>=4.5.0",
+    "python-json-logger>=2.0.0",
 ]
 
 microservices = [
@@ -130,9 +145,14 @@ marty_cli = ["templates/**/*"]
 
 [dependency-groups]
 dev = [
+    "aiohttp>=3.13.0",
     "bandit>=1.8.6",
     "build>=1.3.0",
+    "docker>=7.1.0",
+    "kubernetes>=34.1.0",
+    "playwright>=1.55.0",
     "pre-commit>=4.3.0",
+    "pytest-playwright>=0.7.1",
     "ruff>=0.14.0",
     "twine>=6.2.0",
 ]
@@ -191,3 +211,86 @@ select = [
 
 [tool.uv.sources]
 rich = { git = "https://github.com/Textualize/rich.git" }
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--tb=short",
+    "--cov=src",
+    "--cov-branch",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+    "--asyncio-mode=auto",
+    "--durations=10",
+]
+markers = [
+    "unit: Unit tests - fast, isolated tests for individual components",
+    "integration: Integration tests - test component interactions",
+    "e2e: End-to-end tests - full workflow validation",
+    "performance: Performance and load tests",
+    "slow: Tests that take more than 5 seconds",
+    "external: Tests that require external services",
+    "database: Tests that require database access",
+    "kafka: Tests that require Kafka/event bus",
+    "redis: Tests that require Redis/caching",
+    "docker: Tests that require Docker containers",
+    "chaos: Chaos engineering tests",
+    "security: Security and compliance tests",
+]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/build/*",
+    "*/dist/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+show_missing = true
+skip_covered = false
+sort = "Cover"
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"

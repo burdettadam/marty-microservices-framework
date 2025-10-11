@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, dict, list
+from typing import Any, Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
 
@@ -699,3 +699,120 @@ def get_discovery_metrics() -> DiscoveryMetrics:
 def get_metrics_aggregator() -> MetricsAggregator:
     """Get global metrics aggregator."""
     return global_metrics_aggregator
+
+
+class LoadBalancingMetrics:
+    """Metrics specific to load balancing operations."""
+
+    def __init__(self, collector: MetricsCollector):
+        self.collector = collector
+        self._initialize_metrics()
+
+    def _initialize_metrics(self):
+        """Initialize load balancing specific metrics."""
+
+        # Load balancing metrics
+        self.collector.create_counter(
+            "load_balancer_requests_total",
+            "Total number of load balancer requests",
+            MetricUnit.COUNT,
+        )
+
+        self.collector.create_counter(
+            "load_balancer_requests_successful",
+            "Number of successful load balancer requests",
+            MetricUnit.COUNT,
+        )
+
+        self.collector.create_counter(
+            "load_balancer_requests_failed",
+            "Number of failed load balancer requests",
+            MetricUnit.COUNT,
+        )
+
+        self.collector.create_histogram(
+            "load_balancer_response_time",
+            "Response time for load balancing operations",
+            MetricUnit.SECONDS,
+        )
+
+        self.collector.create_gauge(
+            "load_balancer_active_connections",
+            "Number of active connections through load balancer",
+            MetricUnit.COUNT,
+        )
+
+    def record_request(self, success: bool = True, response_time: float = 0.0):
+        """Record a load balancing request."""
+        self.collector.increment("load_balancer_requests_total")
+
+        if success:
+            self.collector.increment("load_balancer_requests_successful")
+        else:
+            self.collector.increment("load_balancer_requests_failed")
+
+        if response_time > 0:
+            self.collector.record_value("load_balancer_response_time", response_time)
+
+    def set_active_connections(self, count: int):
+        """Set the number of active connections."""
+        self.collector.set_gauge("load_balancer_active_connections", count)
+
+
+class ServiceMetrics:
+    """Metrics specific to individual services."""
+
+    def __init__(self, collector: MetricsCollector, service_name: str):
+        self.collector = collector
+        self.service_name = service_name
+        self._initialize_metrics()
+
+    def _initialize_metrics(self):
+        """Initialize service specific metrics."""
+
+        # Service metrics
+        self.collector.create_counter(
+            f"service_{self.service_name}_requests_total",
+            f"Total number of requests to {self.service_name}",
+            MetricUnit.COUNT,
+        )
+
+        self.collector.create_counter(
+            f"service_{self.service_name}_requests_successful",
+            f"Number of successful requests to {self.service_name}",
+            MetricUnit.COUNT,
+        )
+
+        self.collector.create_counter(
+            f"service_{self.service_name}_requests_failed",
+            f"Number of failed requests to {self.service_name}",
+            MetricUnit.COUNT,
+        )
+
+        self.collector.create_histogram(
+            f"service_{self.service_name}_response_time",
+            f"Response time for {self.service_name}",
+            MetricUnit.SECONDS,
+        )
+
+        self.collector.create_gauge(
+            f"service_{self.service_name}_health_score",
+            f"Health score for {self.service_name}",
+            MetricUnit.PERCENTAGE,
+        )
+
+    def record_request(self, success: bool = True, response_time: float = 0.0):
+        """Record a service request."""
+        self.collector.increment(f"service_{self.service_name}_requests_total")
+
+        if success:
+            self.collector.increment(f"service_{self.service_name}_requests_successful")
+        else:
+            self.collector.increment(f"service_{self.service_name}_requests_failed")
+
+        if response_time > 0:
+            self.collector.record_value(f"service_{self.service_name}_response_time", response_time)
+
+    def set_health_score(self, score: float):
+        """Set the health score for the service."""
+        self.collector.set_gauge(f"service_{self.service_name}_health_score", score)

@@ -6,7 +6,7 @@ import builtins
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Type, dict, list, type
+from typing import Any, Dict, List, Optional, Type
 
 from sqlalchemy import MetaData, Table, func, inspect, select, text
 from sqlalchemy.sql import quoted_name

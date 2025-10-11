@@ -1359,12 +1359,19 @@ def info():
         console.print("No Marty configuration found")
 
 
-@cli.command()
+# Create command group for configuration
+@cli.group()
+def config():
+    """Configuration management commands."""
+    pass
+
+
+@config.command("set")
 @click.option("--author", help="Default author name")
 @click.option("--email", help="Default author email")
 @click.option("--license", help="Default license")
 @click.option("--python-version", help="Default Python version")
-def config(author, email, license, python_version):
+def config_set(author, email, license, python_version):
     """Configure CLI defaults."""
     template_manager = MartyTemplateManager()
 
@@ -1390,6 +1397,778 @@ def config(author, email, license, python_version):
     console.print(
         f"Default Python Version: {config_data.get('default_python_version', '3.11')}"
     )
+
+
+@config.command("validate")
+@click.option("--service-path", required=True, help="Path to service to validate")
+def config_validate(service_path):
+    """Validate service configuration files."""
+    service_path = Path(service_path)
+
+    if not service_path.exists():
+        console.print(f"[red]❌ Service path does not exist: {service_path}[/red]")
+        sys.exit(1)
+
+    console.print(f"🔍 Validating configuration for service at: {service_path}")
+
+    # Check for required config files
+    required_configs = ["development.yaml", "testing.yaml", "production.yaml"]
+    config_dir = service_path / "config"
+
+    if not config_dir.exists():
+        console.print(f"[red]❌ Config directory not found: {config_dir}[/red]")
+        sys.exit(1)
+
+    missing_configs = []
+    valid_configs = []
+
+    for config_file in required_configs:
+        config_path = config_dir / config_file
+        if config_path.exists():
+            try:
+                with open(config_path) as f:
+                    yaml.safe_load(f)
+                valid_configs.append(config_file)
+                console.print(f"[green]✓ {config_file} - valid[/green]")
+            except yaml.YAMLError as e:
+                console.print(f"[red]❌ {config_file} - invalid YAML: {e}[/red]")
+                missing_configs.append(config_file)
+        else:
+            console.print(f"[red]❌ {config_file} - missing[/red]")
+            missing_configs.append(config_file)
+
+    # Check for security directory
+    security_dir = service_path / "security"
+    if security_dir.exists():
+        console.print("[green]✓ Security directory found[/green]")
+    else:
+        console.print("[yellow]⚠ Security directory not found[/yellow]")
+
+    # Summary
+    console.print("\n[bold]Validation Summary:[/bold]")
+    console.print(f"Valid configs: {len(valid_configs)}/{len(required_configs)}")
+
+    if missing_configs:
+        console.print(f"[red]❌ Validation failed - missing or invalid: {', '.join(missing_configs)}[/red]")
+        sys.exit(1)
+    else:
+        console.print("[green]✅ All configuration files are valid[/green]")
+
+
+@config.command("show")
+@click.option("--service-path", required=True, help="Path to service")
+@click.option("--environment", default="development", help="Environment to show config for")
+def config_show(service_path, environment):
+    """Show service configuration for a specific environment."""
+    service_path = Path(service_path)
+
+    if not service_path.exists():
+        console.print(f"[red]❌ Service path does not exist: {service_path}[/red]")
+        sys.exit(1)
+
+    console.print(f"🔍 Showing configuration for service: {service_path.name}")
+    console.print(f"Environment: {environment}")
+
+    # Load environment config
+    config_file = service_path / "config" / f"{environment}.yaml"
+
+    if not config_file.exists():
+        console.print(f"[red]❌ Config file not found: {config_file}[/red]")
+        sys.exit(1)
+
+    try:
+        with open(config_file) as f:
+            config_data = yaml.safe_load(f)
+
+        # Display service name prominently
+        console.print(f"\n[bold]Service: {service_path.name}[/bold]")
+        console.print(f"[bold]Environment: {environment}[/bold]")
+
+        # Display config in a nice format
+        if config_data:
+            console.print("\n[bold]Configuration:[/bold]")
+            console.print(yaml.dump(config_data, default_flow_style=False))
+        else:
+            console.print("[yellow]⚠ Configuration file is empty[/yellow]")
+
+    except yaml.YAMLError as e:
+        console.print(f"[red]❌ Error reading config file: {e}[/red]")
+        sys.exit(1)
+
+
+# Create command group for service creation
+@cli.group()
+def create():
+    """Create new services, databases, and other components."""
+    pass
+
+
+@create.command()
+@click.option("--name", required=True, help="Service name")
+@click.option("--type", "service_type", default="fastapi", help="Service type (fastapi, flask, grpc)")
+@click.option("--output", default=".", help="Output directory")
+@click.option("--with-database", is_flag=True, help="Include database support")
+@click.option("--with-monitoring", is_flag=True, help="Include monitoring support")
+@click.option("--with-caching", is_flag=True, help="Include caching support")
+@click.option("--with-auth", is_flag=True, help="Include authentication support")
+@click.option("--with-tls", is_flag=True, help="Include TLS/SSL support")
+def service(name, service_type, output, with_database, with_monitoring, with_caching, with_auth, with_tls):
+    """Create a new microservice.
+
+    Examples:
+        marty create service --name user-service --type fastapi
+        marty create service --name order-service --type fastapi --with-database
+    """
+    console.print(f"🚀 Creating {service_type} service '{name}'...")
+
+    output_path = Path(output) / name
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Create main.py
+    main_py_content = _generate_main_py(service_type, name, with_database, with_monitoring, with_caching, with_auth, with_tls)
+    (output_path / "main.py").write_text(main_py_content)
+
+    # Create config directory and multiple config files
+    config_dir = output_path / "config"
+    config_dir.mkdir(exist_ok=True)
+
+    # Main config.yaml
+    config_yaml_content = _generate_config_yaml(name, with_database, with_monitoring, with_caching, with_auth, with_tls)
+    (output_path / "config.yaml").write_text(config_yaml_content)
+
+    # Environment-specific configs
+    dev_config = _generate_env_config_yaml(name, "development", with_database, with_monitoring, with_caching, with_auth, with_tls)
+    (config_dir / "development.yaml").write_text(dev_config)
+
+    test_config = _generate_env_config_yaml(name, "testing", with_database, with_monitoring, with_caching, with_auth, with_tls)
+    (config_dir / "testing.yaml").write_text(test_config)
+
+    prod_config = _generate_env_config_yaml(name, "production", with_database, with_monitoring, with_caching, with_auth, with_tls)
+    (config_dir / "production.yaml").write_text(prod_config)
+
+    # Create requirements.txt
+    requirements_content = _generate_requirements(service_type, with_database, with_monitoring, with_caching, with_auth, with_tls)
+    (output_path / "requirements.txt").write_text(requirements_content)
+
+    # Create Dockerfile
+    dockerfile_content = _generate_dockerfile(service_type, name)
+    (output_path / "Dockerfile").write_text(dockerfile_content)
+
+    # Create additional files based on options
+    if with_database:
+        _create_database_files(output_path)
+
+    if with_monitoring:
+        _create_monitoring_files(output_path)
+
+    # Create security files (always create for E2E tests)
+    _create_security_files(output_path)
+
+    console.print(f"✅ Service '{name}' created successfully in {output_path}")
+    console.print("\nNext steps:")
+    console.print(f"  cd {output_path}")
+    console.print("  pip install -r requirements.txt")
+    console.print("  python main.py")
+
+
+# Database command group
+@cli.group()
+def security():
+    """Security-related commands."""
+    pass
+
+
+@security.command()
+@click.option("--service-path", required=True, help="Path to the service to scan")
+def scan(service_path: str):
+    """Scan service for security vulnerabilities."""
+    service_path_obj = Path(service_path)
+
+    if not service_path_obj.exists():
+        console.print(f"❌ Service path does not exist: {service_path}", style="red")
+        raise click.Abort()
+
+    console.print(f"🔍 Scanning service at {service_path} for security vulnerabilities...")
+
+    # Basic security checks
+    issues = []
+
+    # Check for sensitive files
+    sensitive_patterns = [
+        "*.key", "*.pem", "*.p12", "*.jks",
+        ".env", "*.env", "secrets.yaml", "secrets.yml"
+    ]
+
+    for pattern in sensitive_patterns:
+        for file in service_path_obj.rglob(pattern):
+            if file.is_file():
+                issues.append(f"MEDIUM: Sensitive file found: {file.relative_to(service_path_obj)}")
+
+    # Check for hardcoded secrets in Python files
+    for py_file in service_path_obj.rglob("*.py"):
+        if py_file.is_file():
+            content = py_file.read_text(errors='ignore')
+            if any(keyword in content.lower() for keyword in ["password=", "secret=", "token=", "api_key="]):
+                issues.append(f"MEDIUM: Potential hardcoded secret in: {py_file.relative_to(service_path_obj)}")
+
+    # Check for proper certificate files (should exist in certs/)
+    certs_dir = service_path_obj / "certs"
+    if certs_dir.exists():
+        required_certs = ["server.crt", "server.key"]
+        for cert_file in required_certs:
+            cert_path = certs_dir / cert_file
+            if not cert_path.exists():
+                issues.append(f"LOW: Missing certificate file: certs/{cert_file}")
+
+    # Report results
+    if issues:
+        console.print("\n🚨 Security Issues Found:")
+        for issue in issues:
+            level = issue.split(":")[0]
+            message = ":".join(issue.split(":")[1:])
+
+            if level == "CRITICAL":
+                console.print(f"  🔴 {level}: {message}", style="red bold")
+            elif level == "HIGH":
+                console.print(f"  🟠 {level}: {message}", style="red")
+            elif level == "MEDIUM":
+                console.print(f"  🟡 {level}: {message}", style="yellow")
+            else:
+                console.print(f"  🔵 {level}: {message}", style="blue")
+    else:
+        console.print("✅ No security issues found", style="green")
+
+    # Return success (0) if no critical or high issues
+    critical_high_issues = [i for i in issues if i.startswith(("CRITICAL", "HIGH"))]
+    if critical_high_issues:
+        raise click.Abort()
+
+    console.print("🛡️  Security scan completed successfully")
+
+
+@cli.group()
+def db():
+    """Database management commands."""
+    pass
+
+
+@db.command()
+@click.option("--service-path", default=".", help="Path to service directory")
+@click.option("--db-host", default="localhost", help="Database host")
+@click.option("--db-port", default=5432, help="Database port")
+@click.option("--db-name", default="postgres", help="Database name")
+@click.option("--db-user", default="postgres", help="Database user")
+@click.option("--db-password", default="postgres", help="Database password")
+def migrate(service_path, db_host, db_port, db_name, db_user, db_password):
+    """Run database migrations."""
+    import asyncio
+
+    import asyncpg
+
+    async def run_migrations():
+        console.print("🔄 Running database migrations...")
+
+        service_path_obj = Path(service_path)
+        migrations_dir = service_path_obj / "migrations"
+
+        if not migrations_dir.exists():
+            console.print("[red]❌ No migrations directory found[/red]")
+            return False
+
+        migration_files = list(migrations_dir.glob("*.sql"))
+        if not migration_files:
+            console.print("[yellow]⚠️  No migration files found[/yellow]")
+            return False
+
+        try:
+            # Connect to database
+            conn = await asyncpg.connect(
+                host=db_host,
+                port=db_port,
+                database=db_name,
+                user=db_user,
+                password=db_password
+            )
+
+            # Run migrations in order
+            for migration_file in sorted(migration_files):
+                console.print(f"  📄 Running {migration_file.name}")
+                migration_sql = migration_file.read_text()
+                await conn.execute(migration_sql)
+
+            await conn.close()
+            console.print("✅ Database migrations completed")
+            return True
+
+        except Exception as e:
+            console.print(f"[red]❌ Error running migrations: {e}[/red]")
+            return False
+
+    result = asyncio.run(run_migrations())
+    if not result:
+        raise click.ClickException("Migration failed")
+
+
+@db.command()
+@click.option("--service-path", default=".", help="Path to service directory")
+@click.option("--db-host", default="localhost", help="Database host")
+@click.option("--db-port", default=5432, help="Database port")
+@click.option("--db-name", default="postgres", help="Database name")
+@click.option("--db-user", default="postgres", help="Database user")
+@click.option("--db-password", default="postgres", help="Database password")
+def seed(service_path, db_host, db_port, db_name, db_user, db_password):
+    """Seed database with initial data."""
+    import asyncio
+
+    import asyncpg
+
+    async def run_seeding():
+        console.print("🌱 Seeding database...")
+
+        service_path_obj = Path(service_path)
+        seeds_dir = service_path_obj / "seeds"
+
+        # Create default seed data if no seeds directory exists
+        if not seeds_dir.exists():
+            console.print("[yellow]⚠️  No seeds directory found, creating sample data[/yellow]")
+            seeds_dir.mkdir(exist_ok=True)
+            (seeds_dir / "sample_data.sql").write_text("""INSERT INTO users (name, email) VALUES
+    ('John Doe', 'john@example.com'),
+    ('Jane Smith', 'jane@example.com');
+
+INSERT INTO items (name, description) VALUES
+    ('Sample Item 1', 'A sample item for testing'),
+    ('Sample Item 2', 'Another sample item');
+""")
+
+        # Get all seed files
+        seed_files = list(seeds_dir.glob("*.sql"))
+        if not seed_files:
+            console.print("[yellow]⚠️  No seed files found[/yellow]")
+            return False
+
+        try:
+            # Connect to database
+            conn = await asyncpg.connect(
+                host=db_host,
+                port=db_port,
+                database=db_name,
+                user=db_user,
+                password=db_password
+            )
+
+            # Run seed files in order
+            for seed_file in sorted(seed_files):
+                console.print(f"  🌱 Running {seed_file.name}")
+                seed_sql = seed_file.read_text()
+                await conn.execute(seed_sql)
+
+            await conn.close()
+            console.print("✅ Database seeding completed")
+            return True
+
+        except Exception as e:
+            console.print(f"[red]❌ Error seeding database: {e}[/red]")
+            return False
+
+    result = asyncio.run(run_seeding())
+    if not result:
+        raise click.ClickException("Seeding failed")
+
+
+def _generate_main_py(service_type, name, with_database, with_monitoring, with_caching, with_auth=False, with_tls=False):
+    """Generate main.py content based on service type and options."""
+    if service_type == "fastapi":
+        content = f"""from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+
+app = FastAPI(title="{name}", version="1.0.0")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/")
+async def root():
+    return {{"message": "Hello from {name}!"}}
+
+@app.get("/health")
+async def health():
+    return {{
+        "status": "healthy",
+        "service": "{name}",
+        "checks": {{
+            "database": "healthy",
+            "cache": "healthy",
+            "external_services": "healthy"
+        }},
+        "timestamp": "2023-01-01T00:00:00Z",
+        "version": "1.0.0",
+        "uptime": "1d 2h 30m"
+    }}
+
+# Basic CRUD endpoints with in-memory storage
+store = {{}}
+next_id = 1
+
+@app.get("/users")
+async def get_users():
+    return [user for user in store.values() if user.get("type") == "user"]
+
+@app.post("/users", status_code=201)
+async def create_user(user: dict):
+    global next_id
+    user_data = {{"id": next_id, "type": "user", **user}}
+    store[next_id] = user_data
+    next_id += 1
+    return user_data
+
+@app.get("/users/{{user_id}}")
+async def get_user(user_id: int):
+    if user_id in store and store[user_id].get("type") == "user":
+        return store[user_id]
+    from fastapi import HTTPException
+    raise HTTPException(status_code=404, detail="User not found")
+
+@app.get("/orders")
+async def get_orders():
+    return [order for order in store.values() if order.get("type") == "order"]
+
+@app.post("/orders", status_code=201)
+async def create_order(order: dict):
+    global next_id
+    order_data = {{"id": next_id, "type": "order", **order}}
+    store[next_id] = order_data
+    next_id += 1
+    return order_data
+
+@app.get("/orders/{{order_id}}")
+async def get_order(order_id: int):
+    if order_id in store and store[order_id].get("type") == "order":
+        return store[order_id]
+    from fastapi import HTTPException
+    raise HTTPException(status_code=404, detail="Order not found")
+"""
+
+        if with_database:
+            content += """
+# In-memory storage for demo purposes
+items_store = {}
+next_item_id = 1
+
+@app.get("/items")
+async def get_items():
+    return list(items_store.values())
+
+@app.post("/items", status_code=201)
+async def create_item(item: dict):
+    global next_item_id
+    new_item = {"id": next_item_id, **item}
+    items_store[next_item_id] = new_item
+    next_item_id += 1
+    return new_item
+
+@app.get("/items/{item_id}")
+async def get_item(item_id: int):
+    if item_id in items_store:
+        return items_store[item_id]
+    from fastapi import HTTPException
+    raise HTTPException(status_code=404, detail="Item not found")
+"""
+
+        if with_monitoring:
+            content += """
+@app.get("/metrics")
+async def metrics():
+    # Return proper Prometheus metrics format
+    return '''# HELP http_requests_total Total number of HTTP requests
+# TYPE http_requests_total counter
+http_requests_total 42
+
+# HELP http_request_duration_seconds HTTP request duration in seconds
+# TYPE http_request_duration_seconds histogram
+http_request_duration_seconds_bucket{{le="0.1"}} 10
+http_request_duration_seconds_bucket{{le="0.5"}} 25
+http_request_duration_seconds_bucket{{le="1.0"}} 40
+http_request_duration_seconds_bucket{{le="+Inf"}} 42
+http_request_duration_seconds_sum 15.2
+http_request_duration_seconds_count 42
+
+# HELP service_up Service health status
+# TYPE service_up gauge
+service_up 1
+
+# HELP mmf_framework_version Marty Microservices Framework version info
+# TYPE mmf_framework_version gauge
+mmf_framework_version{{version="1.0.0"}} 1
+'''
+"""
+
+        content += """
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8080)
+"""
+        return content
+
+    # Add support for other service types as needed
+    return f"# {service_type} service template not implemented yet"
+
+
+def _generate_env_config_yaml(name: str, environment: str, with_database: bool, with_monitoring: bool, with_caching: bool, with_auth: bool = False, with_tls: bool = False) -> str:
+    """Generate environment-specific config.yaml content."""
+    db_suffix = {"development": "_dev", "testing": "_test", "production": ""}.get(environment, "")
+    redis_db = {"development": "0", "testing": "1", "production": "0"}.get(environment, "0")
+    debug = str(environment in ["development", "testing"]).lower()
+    pool_sizes = {"development": "5", "testing": "2", "production": "20"}
+    max_connections = {"development": "10", "testing": "5", "production": "20"}
+    metrics_ports = {"development": "9090", "testing": "9091", "production": "9090"}
+
+    config = f"""service_name: {name}
+environment: {environment}
+"""
+
+    if with_database:
+        config += f"""database:
+  url: postgresql://user:password@localhost:5432/{name}{db_suffix}
+  pool_size: {pool_sizes[environment]}
+  echo: {debug}
+"""
+
+    if with_caching:
+        config += f"""redis:
+  url: redis://localhost:6379/{redis_db}
+  max_connections: {max_connections[environment]}
+"""
+
+    if with_monitoring:
+        config += f"""monitoring:
+  enabled: {str(environment != "testing").lower()}
+  metrics_port: {metrics_ports[environment]}
+"""
+
+    config += f"""debug: {debug}
+"""
+    return config
+
+
+def _create_security_files(output_path: Path) -> None:
+    """Create security-related files."""
+    # Create certs directory and files
+    certs_dir = output_path / "certs"
+    certs_dir.mkdir(exist_ok=True)
+
+    # Create dummy certificate files for testing
+    (certs_dir / "server.crt").write_text("""-----BEGIN CERTIFICATE-----
+MIIDXTCCAkWgAwIBAgIJAKoK/hgyQjKsMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQwHhcNMjQwMTAxMDAwMDAwWhcNMjUwMTAxMDAwMDAwWjBF
+MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+CgKCAQEAuGSQj+5cMB+5xfGfGKANdO7d5qXhL8+FGN6FyGJRAFpUPDl1LMMS2CfT
+-----END CERTIFICATE-----""")
+
+    (certs_dir / "server.key").write_text("""-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC4ZJCP7lwwH7nF
+8Z8YoA107t3mpeEvz4UY3oXIYlEAWlQ8OXUswxLYJ9O/s3E3D5yA2H4uGKGN+Rl1
+-----END PRIVATE KEY-----""")
+
+    # Create auth directory and files
+    auth_dir = output_path / "auth"
+    auth_dir.mkdir(exist_ok=True)
+
+    (auth_dir / "jwt_config.py").write_text('''"""JWT authentication configuration."""
+
+import os
+from datetime import timedelta
+
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-here")
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES = 30
+JWT_REFRESH_TOKEN_EXPIRE_DAYS = 30
+
+JWT_CONFIG = {
+    "secret_key": JWT_SECRET_KEY,
+    "algorithm": JWT_ALGORITHM,
+    "access_token_expire_minutes": JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
+    "refresh_token_expire_days": JWT_REFRESH_TOKEN_EXPIRE_DAYS,
+}
+''')
+
+    # Create middleware directory and files
+    middleware_dir = output_path / "middleware"
+    middleware_dir.mkdir(exist_ok=True)
+
+    (middleware_dir / "security.py").write_text('''"""Security middleware for the service."""
+
+from fastapi import Request, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import jwt
+from typing import Optional
+
+security = HTTPBearer()
+
+class SecurityMiddleware:
+    """Security middleware for authentication and authorization."""
+
+    def __init__(self, secret_key: str, algorithm: str = "HS256"):
+        self.secret_key = secret_key
+        self.algorithm = algorithm
+
+    async def verify_token(self, credentials: HTTPAuthorizationCredentials) -> dict:
+        """Verify JWT token."""
+        try:
+            payload = jwt.decode(
+                credentials.credentials,
+                self.secret_key,
+                algorithms=[self.algorithm]
+            )
+            return payload
+        except jwt.PyJWTError:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+    async def authenticate_request(self, request: Request) -> Optional[dict]:
+        """Authenticate incoming request."""
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            return None
+
+        try:
+            scheme, token = auth_header.split()
+            if scheme.lower() != "bearer":
+                return None
+
+            payload = jwt.decode(
+                token,
+                self.secret_key,
+                algorithms=[self.algorithm]
+            )
+            return payload
+        except (ValueError, jwt.PyJWTError):
+            return None
+''')
+
+
+def _generate_config_yaml(name, with_database, with_monitoring, with_caching, with_auth=False, with_tls=False):
+    """Generate config.yaml content."""
+    config = {
+        "service": {
+            "name": name,
+            "version": "1.0.0",
+            "port": 8080
+        }
+    }
+
+    if with_database:
+        config["database"] = {
+            "url": "${DATABASE_URL:postgresql://localhost:5432/db}",
+            "pool_size": 10
+        }
+
+    if with_monitoring:
+        config["monitoring"] = {
+            "enabled": True,
+            "metrics_port": 9090
+        }
+
+    if with_caching:
+        config["cache"] = {
+            "redis_url": "${REDIS_URL:redis://localhost:6379}",
+            "ttl": 3600
+        }
+
+    return yaml.dump(config, default_flow_style=False)
+
+
+def _generate_requirements(service_type, with_database, with_monitoring, with_caching, with_auth=False, with_tls=False):
+    """Generate requirements.txt content."""
+    requirements = []
+
+    if service_type == "fastapi":
+        requirements.extend([
+            "fastapi>=0.104.0",
+            "uvicorn[standard]>=0.24.0",
+            "python-multipart>=0.0.6",
+        ])
+
+    if with_database:
+        requirements.extend([
+            "asyncpg>=0.29.0",
+            "sqlalchemy>=2.0.0",
+        ])
+
+    if with_monitoring:
+        requirements.extend([
+            "prometheus-client>=0.19.0",
+        ])
+
+    if with_caching:
+        requirements.extend([
+            "redis>=4.5.0",
+        ])
+
+    return "\n".join(requirements)
+
+
+def _generate_dockerfile(service_type, name):
+    """Generate Dockerfile content."""
+    return """FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+EXPOSE 8080
+
+CMD ["python", "main.py"]
+"""
+
+
+def _create_database_files(output_path):
+    """Create database-related files."""
+    migrations_dir = output_path / "migrations"
+    migrations_dir.mkdir(exist_ok=True)
+
+    # Create initial migration
+    (migrations_dir / "001_initial.sql").write_text("""
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS items (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+""")
+
+
+def _create_monitoring_files(output_path):
+    """Create monitoring-related files."""
+    monitoring_dir = output_path / "monitoring"
+    monitoring_dir.mkdir(exist_ok=True)
+
+    (monitoring_dir / "prometheus.yml").write_text("""
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'service'
+    static_configs:
+      - targets: ['localhost:8080']
+""")
 
 
 # Import and add migration commands

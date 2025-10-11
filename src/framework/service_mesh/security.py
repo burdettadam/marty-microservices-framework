@@ -12,7 +12,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import jwt
 from cryptography import x509

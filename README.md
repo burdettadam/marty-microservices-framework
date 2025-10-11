@@ -14,6 +14,191 @@ The Marty Microservices Framework is a complete toolkit for building production-
 - **Best Practices** - Enterprise-grade patterns and configurations
 - **Testing Framework** - Comprehensive validation and testing tools
 
+## 🏛️ Architecture Overview
+
+```mermaid
+graph TB
+    %% Development Tools Layer
+    subgraph dev["🛠️ Development Tools"]
+        cli[Marty CLI]
+        templates[Service Templates]
+        generator[Code Generator]
+        scripts[Setup Scripts]
+    end
+
+    %% Testing Infrastructure Layer
+    subgraph testing["🧪 Testing Infrastructure"]
+        unit[Unit Tests]
+        integration[Integration Tests]
+        e2e[E2E Tests]
+        kind[Kind Cluster]
+        playwright[Playwright Browser Testing]
+        testinfra[Test Infrastructure Classes]
+    end
+
+    %% Framework Core Layer
+    subgraph framework["🏗️ Enterprise Framework"]
+        security[Security Framework]
+        database[Database Layer]
+        audit[Audit Logging]
+        config[Configuration]
+        chassis[Marty Chassis]
+    end
+
+    %% Service Layer
+    subgraph services["⚙️ Microservices"]
+        fastapi[FastAPI Services]
+        grpc[gRPC Services]
+        hybrid[Hybrid Services]
+        auth[Auth Services]
+        db_svc[Database Services]
+        cache[Caching Services]
+        queue[Message Queue Services]
+    end
+
+    %% Infrastructure Layer
+    subgraph k8s["☸️ Kubernetes Infrastructure"]
+        cluster[Kind/K8s Cluster]
+        mesh[Service Mesh<br/>Istio/Linkerd]
+        ingress[Ingress Controllers]
+        policies[Security Policies]
+    end
+
+    %% Observability Layer
+    subgraph obs["📊 Observability Stack"]
+        prometheus[Prometheus]
+        grafana[Grafana]
+        kafka[Kafka Events]
+        metrics[Custom Metrics]
+        alerts[Alertmanager]
+    end
+
+    %% DevOps Layer
+    subgraph devops["🚀 DevOps & CI/CD"]
+        cicd[GitHub Actions]
+        gitops[GitOps]
+        deployment[Deployment Pipelines]
+        monitoring[Infrastructure Monitoring]
+    end
+
+    %% Connections
+    cli --> generator
+    generator --> templates
+    templates --> services
+
+    services --> framework
+    framework --> chassis
+
+    services --> k8s
+    k8s --> mesh
+    k8s --> obs
+
+    testing --> kind
+    testing --> playwright
+    testing --> testinfra
+    kind --> k8s
+    playwright --> services
+
+    obs --> prometheus
+    obs --> grafana
+    obs --> kafka
+
+    devops --> k8s
+    devops --> obs
+
+    %% Testing connections
+    e2e -.-> kind
+    e2e -.-> playwright
+    testinfra -.-> kind
+    testinfra -.-> services
+
+    %% Styling
+    classDef devtools fill:#e1f5fe
+    classDef testing fill:#f3e5f5
+    classDef framework fill:#e8f5e8
+    classDef services fill:#fff3e0
+    classDef k8s fill:#e3f2fd
+    classDef obs fill:#fce4ec
+    classDef devops fill:#f1f8e9
+
+    class dev devtools
+    class testing testing
+    class framework framework
+    class services services
+    class k8s k8s
+    class obs obs
+    class devops devops
+```
+
+### 🎭 E2E Testing Architecture
+
+The framework includes comprehensive end-to-end testing using Kind + Playwright:
+
+```mermaid
+graph LR
+    %% Test Infrastructure
+    subgraph test_infra["🧪 Test Infrastructure"]
+        test_runner[Test Runner]
+        kind_manager[KindClusterManager]
+        deployer[MicroserviceDeployer]
+        playwright_tester[PlaywrightTester]
+    end
+
+    %% Kind Cluster
+    subgraph kind_cluster["☸️ Kind Cluster"]
+        k8s_api[Kubernetes API]
+        services_ns[Services Namespace]
+        obs_ns[Observability Namespace]
+    end
+
+    %% Deployed Services
+    subgraph deployed["⚙️ Deployed Services"]
+        dashboard[Dashboard Service]
+        api[API Services]
+        db[Database]
+        redis[Redis Cache]
+    end
+
+    %% Browser Testing
+    subgraph browser["🎭 Playwright Testing"]
+        chromium[Chromium Browser]
+        ui_tests[UI Tests]
+        visual_tests[Visual Regression]
+        perf_tests[Performance Tests]
+    end
+
+    %% Flow
+    test_runner --> kind_manager
+    kind_manager --> k8s_api
+    test_runner --> deployer
+    deployer --> services_ns
+    test_runner --> playwright_tester
+    playwright_tester --> chromium
+
+    services_ns --> dashboard
+    services_ns --> api
+    services_ns --> db
+    services_ns --> redis
+
+    chromium --> dashboard
+    chromium --> api
+
+    ui_tests --> chromium
+    visual_tests --> chromium
+    perf_tests --> chromium
+
+    %% Styling
+    classDef infrastructure fill:#e1f5fe
+    classDef cluster fill:#e8f5e8
+    classDef services fill:#fff3e0
+    classDef testing fill:#f3e5f5
+
+    class test_infra infrastructure
+    class kind_cluster cluster
+    class deployed services
+    class browser testing
+```
+
 ## 🏗️ Framework Structure
 
 ```

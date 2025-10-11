@@ -10,7 +10,7 @@ import functools
 import logging
 import time
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Set, dict, list
+from typing import Callable
 
 from prometheus_client import (
     CONTENT_TYPE_LATEST,

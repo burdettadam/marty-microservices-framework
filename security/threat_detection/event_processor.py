@@ -21,12 +21,14 @@ from typing import Any, Callable, Dict, List, Optional, dict, list
 # External dependencies
 try:
     import aiohttp
-    import aioredis
+    import redis.asyncio as redis
     from prometheus_client import Counter, Gauge, Histogram
+    REDIS_AVAILABLE = True
 
     STREAMING_AVAILABLE = True
 except ImportError:
     STREAMING_AVAILABLE = False
+    REDIS_AVAILABLE = False
 
 
 @dataclass

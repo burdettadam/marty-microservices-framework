@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, TypeVar, dict, list
+from typing import Any, Callable, Dict, List, Optional, Set, TypeVar
 
 logger = logging.getLogger(__name__)
 

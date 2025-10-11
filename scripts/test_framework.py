@@ -62,8 +62,8 @@ def test_template_validation() -> bool:
     script_dir = Path(__file__).parent
     framework_root = script_dir.parent
 
-    # Use python3 since we're in a standalone framework
-    python_cmd = "python3"
+    # Use uv run python for proper environment
+    python_cmd = "uv run python"
 
     result = run_command(
         f"cd {framework_root} && {python_cmd} scripts/validate_templates.py"
@@ -89,8 +89,8 @@ def test_service_generation() -> bool:
     script_dir = Path(__file__).parent
     framework_root = script_dir.parent
 
-    # Use python3 for standalone framework
-    python_cmd = "python3"
+    # Use uv run python for proper environment
+    python_cmd = "uv run python"
 
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
@@ -99,7 +99,7 @@ def test_service_generation() -> bool:
             print(f"  Testing {service_type} service...")
 
             service_name = f"test-{service_type}-service"
-            cmd = f"cd {temp_path} && {python_cmd} {framework_root}/scripts/generate_service.py {service_type} {service_name} --output-dir ./src"
+            cmd = f"cd {framework_root} && {python_cmd} scripts/generate_service.py {service_type} {service_name} --output-dir {temp_path}/src"
 
             result = run_command(cmd)
             results[service_type] = result
@@ -107,14 +107,15 @@ def test_service_generation() -> bool:
             if result["success"]:
                 print(f"    ✅ {service_type}: Generated successfully")
 
-                # Test Python syntax
-                syntax_cmd = f"find {temp_path}/src -name '*.py' -exec {python_cmd} -m py_compile {{}} \\;"
+                # Test Python syntax using proper uv environment
+                syntax_cmd = f"cd {framework_root} && find {temp_path}/src -name '*.py' -print0 | xargs -0 {python_cmd} -m py_compile"
                 syntax_result = run_command(syntax_cmd)
 
                 if syntax_result["success"]:
                     print(f"    ✅ {service_type}: Python syntax valid")
                 else:
                     print(f"    ❌ {service_type}: Python syntax errors")
+                    print(f"      Syntax Error Details: {syntax_result['stderr']}")
                     results[service_type]["syntax_valid"] = False
             else:
                 print(f"    ❌ {service_type}: Generation failed")
@@ -228,8 +229,8 @@ def test_script_functionality() -> bool:
     script_dir = Path(__file__).parent
     framework_root = script_dir.parent
 
-    # Use python3 for standalone framework
-    python_cmd = "python3"
+    # Use uv run python for proper environment
+    python_cmd = "uv run python"
 
     scripts = ["scripts/validate_templates.py", "scripts/generate_service.py"]
 
@@ -238,7 +239,7 @@ def test_script_functionality() -> bool:
     for script in scripts:
         # Test script help/version
         if "generate_service" in script:
-            cmd = f"cd {framework_root} && {python_cmd} {script} --help"
+            cmd = f"cd {framework_root} && {python_cmd} scripts/generate_service.py --help"
         else:
             # For validate_templates.py, we already tested it above
             results[script] = {"success": True, "tested": "above"}

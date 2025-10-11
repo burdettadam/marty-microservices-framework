@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, TypeVar, dict
+from typing import Any, Callable, Dict, Optional, TypeVar
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)

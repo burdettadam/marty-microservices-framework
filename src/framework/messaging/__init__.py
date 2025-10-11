@@ -238,42 +238,43 @@ __all__ = [
     "stream_event_handler",
 ]
 
+from ..events import (
+    BaseEvent,
+    EventBus,
+    EventHandler,
+    EventMetadata,
+    publish_domain_event,
+    publish_system_event,
+)
+
 # Legacy backend imports
 from .backends import (
     BackendConfig,
+    BackendFactory,
     InMemoryBackend,
     MessageBackend,
     RabbitMQBackend,
     RedisBackend,
-    SQSBackend,
-    create_backend,
-)
-from .events import (
-    Event,
-    EventBus,
-    EventHandler,
-    EventMetadata,
-    event_handler,
-    publish_event,
 )
 from .patterns import (
-    DelayedMessage,
-    PatternHandler,
-    PubSubPattern,
+    Consumer,
+    MessagePattern,
+    Producer,
     RequestReplyPattern,
     WorkQueuePattern,
 )
 
 # New enterprise messaging components
-from .queue import BaseMessage
-from .queue import Message as NewMessage
-from .queue import MessageConsumer
-from .queue import MessageHandler as NewMessageHandler
-from .queue import MessagePattern as NewMessagePattern
-from .queue import MessageProducer
-from .queue import MessageQueue as NewMessageQueue
-from .queue import MessageRouter, QueueConfig, QueueManager, QueueMetrics
-from .queue import message_handler as new_message_handler
+from .queue import Message
+from .queue import MessageHandler as QueueMessageHandler
+from .queue import MessageQueue
+
+# Additional imports temporarily commented out due to missing exports
+# from .queue import MessagePattern as NewMessagePattern
+# from .queue import MessageProducer
+# from .queue import MessageQueue as NewMessageQueue
+# from .queue import MessageRouter, QueueConfig, QueueManager, QueueMetrics
+# from .queue import message_handler as new_message_handler
 
 __all__ = [
     "Aggregate",
@@ -346,31 +347,24 @@ __all__ = [
 from .core import (
     ExchangeConfig,
     ExchangeType,
+    MessageBus,
     MessageExchange,
     MessageHeaders,
     MessageStatus,
 )
-from .dlq import (
-    DeadLetterQueue,
-    DLQConfig,
-    DLQStrategy,
-    MessageFailureHandler,
-    RetryStrategy,
-)
+from .dlq import DLQConfig, DLQManager, DLQMessage, RetryStrategy
 from .manager import (
     MessagingConfig,
     MessagingManager,
-    get_messaging_manager,
-    initialize_messaging,
+    create_messaging_config_from_dict,
 )
 from .middleware import (
     AuthenticationMiddleware,
     CompressionMiddleware,
-    EncryptionMiddleware,
     MessageMiddleware,
     MetricsMiddleware,
     MiddlewareChain,
-    TracingMiddleware,
+    ValidationMiddleware,
 )
 from .patterns import (
     Consumer,
@@ -380,15 +374,7 @@ from .patterns import (
     PublishSubscribePattern,
     RoutingPattern,
 )
-from .routing import (
-    DirectRouter,
-    FanoutRouter,
-    Route,
-    Router,
-    RoutingKey,
-    RoutingStrategy,
-    TopicRouter,
-)
+from .routing import MessageRouter, RoutingConfig, RoutingEngine, RoutingRule
 from .serialization import (
     AvroSerializer,
     JSONSerializer,
@@ -420,6 +406,7 @@ __all__ = [
     "Message",
     # Backends
     "MessageBackend",
+    "MessageBus",
     "MessageExchange",
     "MessageFailureHandler",
     "MessageHandler",

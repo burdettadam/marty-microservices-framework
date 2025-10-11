@@ -23,7 +23,7 @@ import pytest
 framework_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(framework_path))
 
-from . import marty_config, mock_context, temp_dir
+from . import mock_context, temp_dir
 
 
 class TestFullPluginLifecycle:

@@ -12,11 +12,12 @@ import asyncio
 import builtins
 import json
 from pathlib import Path
-from typing import Dict, List, Set, dict, list
+from typing import Dict, List, Set
 
 import pytest
 from aiohttp import web  # Added for F821 'web'
 from playwright.async_api import Browser, Page, async_playwright
+
 from tests.e2e.conftest import PerformanceAnalyzer
 
 

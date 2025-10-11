@@ -13,9 +13,10 @@ from typing import Any, Dict
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from conftest import TestPlugin, mock_context
 
 from framework.plugins import MMFPlugin, PluginContext, PluginManager, PluginMetadata
+
+from . import TestPlugin, mock_context
 
 
 class TestPluginMetadata:
@@ -158,7 +159,7 @@ class TestPluginManager:
         await plugin_manager.register_plugin("plugin1", plugin1, PluginMetadata("plugin1", "1.0.0"))
         await plugin_manager.register_plugin("plugin2", plugin2, PluginMetadata("plugin2", "1.0.0"))
 
-        await plugin_manager.start_all()
+        await plugin_manager.start_all_plugins()
 
         assert plugin1.started
         assert plugin2.started
@@ -172,10 +173,10 @@ class TestPluginManager:
         await plugin_manager.register_plugin("plugin1", plugin1, PluginMetadata("plugin1", "1.0.0"))
         await plugin_manager.register_plugin("plugin2", plugin2, PluginMetadata("plugin2", "1.0.0"))
 
-        await plugin_manager.start_all()
+        await plugin_manager.start_all_plugins()
         assert plugin1.started and plugin2.started
 
-        await plugin_manager.stop_all()
+        await plugin_manager.stop_all_plugins()
         assert not plugin1.started and not plugin2.started
 
     def test_manager_get_plugin_info(self, plugin_manager, mock_context):
@@ -209,7 +210,7 @@ class TestPluginManager:
         await plugin_manager.register_plugin("plugin1", plugin1, PluginMetadata("plugin1", "1.0.0"))
         await plugin_manager.register_plugin("plugin2", plugin2, PluginMetadata("plugin2", "1.0.0"))
 
-        await plugin_manager.start_all()
+        await plugin_manager.start_all_plugins()
 
         health = await plugin_manager.get_health_status()
 
@@ -237,6 +238,10 @@ class TestPluginErrorHandling:
     async def test_plugin_initialization_error(self, mock_context):
         """Test handling of plugin initialization errors."""
         class FailingPlugin(MMFPlugin):
+            @property
+            def metadata(self) -> PluginMetadata:
+                return PluginMetadata(name="failing-plugin", version="1.0.0")
+
             async def initialize(self, context: PluginContext) -> None:
                 raise RuntimeError("Initialization failed")
 
@@ -258,6 +263,10 @@ class TestPluginErrorHandling:
     async def test_plugin_start_error(self, mock_context):
         """Test handling of plugin start errors."""
         class FailingStartPlugin(MMFPlugin):
+            @property
+            def metadata(self) -> PluginMetadata:
+                return PluginMetadata(name="failing-start-plugin", version="1.0.0")
+
             async def initialize(self, context: PluginContext) -> None:
                 pass
 

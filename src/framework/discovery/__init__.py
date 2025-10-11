@@ -43,10 +43,10 @@ Usage:
 
 # Circuit breaker integration
 from .circuit_breaker import (
+    CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerMetrics,
     CircuitBreakerState,
-    ServiceCircuitBreaker,
 )
 
 # Core service discovery components
@@ -61,22 +61,22 @@ from .core import (
 # Service discovery patterns
 from .discovery import (
     ClientSideDiscovery,
+    DiscoveryConfig,
     DiscoveryPattern,
     ServerSideDiscovery,
-    ServiceDiscovery,
-    ServiceDiscoveryConfig,
+    ServiceDiscoveryClient,
 )
 
 # Health monitoring and checks
 from .health import (
-    CustomHealthCheck,
+    CustomHealthChecker,
     HealthCheckConfig,
+    HealthChecker,
     HealthCheckResult,
     HealthCheckType,
-    HealthMetrics,
     HealthMonitor,
-    HTTPHealthCheck,
-    TCPHealthCheck,
+    HTTPHealthChecker,
+    TCPHealthChecker,
 )
 
 # Load balancing strategies and algorithms
@@ -95,18 +95,11 @@ from .load_balancing import (
 )
 
 # Management and orchestration
-from .manager import DiscoveryManagerState
-from .manager import ServiceDiscoveryConfig as ManagerConfig
-from .manager import ServiceDiscoveryManager
+from .manager import DiscoveryManagerConfig as ManagerConfig
+from .manager import DiscoveryManagerState, ServiceDiscoveryManager
 
 # Service mesh integration
-from .mesh import (
-    RoutingRule,
-    SecurityPolicy,
-    ServiceMesh,
-    ServiceMeshConfig,
-    TrafficPolicy,
-)
+from .mesh import ServiceMeshConfig, ServiceMeshManager, TrafficPolicy
 
 # Monitoring and metrics
 from .monitoring import (
@@ -133,19 +126,19 @@ __all__ = [
     "ClientSideDiscovery",
     "ConsistentHashBalancer",
     "ConsulServiceRegistry",
-    "CustomHealthCheck",
+    "CustomHealthChecker",
     "DiscoveryManagerState",
     # Monitoring
     "DiscoveryMetrics",
     "DiscoveryPattern",
     "EtcdServiceRegistry",
-    "HTTPHealthCheck",
+    "HTTPHealthChecker",
     "HealthBasedBalancer",
     "HealthCheck",
     "HealthCheckConfig",
     "HealthCheckResult",
     "HealthCheckType",
-    "HealthMetrics",
+    "HealthChecker",
     # Health monitoring
     "HealthMonitor",
     "HealthStatus",
@@ -165,10 +158,10 @@ __all__ = [
     "SecurityPolicy",
     "ServerSideDiscovery",
     # Circuit breaker
-    "ServiceCircuitBreaker",
+    "CircuitBreaker",
     # Service discovery
-    "ServiceDiscovery",
-    "ServiceDiscoveryConfig",
+    "ServiceDiscoveryClient",
+    "DiscoveryConfig",
     # Management
     "ServiceDiscoveryManager",
     # Core components
@@ -181,7 +174,7 @@ __all__ = [
     # Service registry
     "ServiceRegistry",
     "ServiceRegistryConfig",
-    "TCPHealthCheck",
+    "TCPHealthChecker",
     "TrafficPolicy",
     "WeightedLeastConnectionsBalancer",
     "WeightedRoundRobinBalancer",

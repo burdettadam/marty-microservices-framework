@@ -15,7 +15,7 @@ import builtins
 import logging
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple, dict, list, tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import redis.asyncio as redis
 from fastapi import Request

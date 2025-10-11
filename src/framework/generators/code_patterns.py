@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Set, dict, list
+from typing import Any, Dict, List, Set
 
 from jinja2 import Environment, FileSystemLoader, Template
 
@@ -587,7 +587,7 @@ Concrete factory for creating {{ factory_type }} variants of domain objects.
 """
 
 import logging
-from typing import Any, dict
+from typing import Any
 
 {% for domain_object in domain_objects %}
 from app.models.{{ domain_object.lower() }} import {{ domain_object }}

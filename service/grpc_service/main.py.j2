@@ -40,7 +40,7 @@ from src.framework.messaging.streams import EventStreamManager
 from src.framework.gateway.api_gateway import APIGateway
 
 # Import service implementation
-from .service import {{service_name|title}}Service, {{service_name|title}}ServiceConfig
+from .service import {{service_class}}Service, {{service_class}}ServiceConfig
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ async def create_service_factory() -> GRPCServiceFactory:
     """Create and configure the gRPC service factory with Phase 2 infrastructure."""
 
     # Phase 1: Load base configuration
-    config = {{service_name|title}}ServiceConfig()
+    config = {{service_class}}ServiceConfig()
 
     # Phase 2: Initialize enterprise configuration management
     config_manager = ConfigManager()
@@ -94,7 +94,7 @@ async def create_service_factory() -> GRPCServiceFactory:
 
     # Register service with all Phase 2 components
     def create_service():
-        return {{service_name|title}}Service(
+        return {{service_class}}Service(
             config=service_config,
             config_manager=config_manager,
             secret_manager=secret_manager,

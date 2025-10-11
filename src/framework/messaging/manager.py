@@ -11,7 +11,7 @@ import logging
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, dict, list
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from .backends import BackendConfig, BackendFactory, BackendType, MessageBackend
 from .core import (

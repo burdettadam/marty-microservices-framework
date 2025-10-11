@@ -444,3 +444,41 @@ def load_config_schema(schema_path: str) -> builtins.dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to load config schema from {schema_path}: {e}")
         return {}
+
+
+class FrameworkConfig(BaseServiceConfig):
+    """
+    Framework-level configuration for the Marty Microservices Framework.
+
+    This provides default configuration settings for the entire framework
+    and can be used by tests and applications that need framework-wide settings.
+    """
+
+    # Framework identification
+    framework_name: str = Field(default="marty-microservices-framework", description="Name of the framework")
+    framework_version: str = Field(default="1.0.0", description="Version of the framework")
+
+    # Default service settings
+    default_service_timeout: float = Field(default=30.0, description="Default service timeout in seconds")
+    default_retry_attempts: int = Field(default=3, description="Default number of retry attempts")
+
+    # Messaging configuration
+    messaging_enabled: bool = Field(default=True, description="Enable messaging system")
+    default_message_broker: str = Field(default="in-memory", description="Default message broker")
+
+    # Discovery configuration
+    discovery_enabled: bool = Field(default=True, description="Enable service discovery")
+    default_discovery_backend: str = Field(default="in-memory", description="Default discovery backend")
+
+    # Observability configuration
+    metrics_enabled: bool = Field(default=True, description="Enable metrics collection")
+    tracing_enabled: bool = Field(default=False, description="Enable distributed tracing")
+    logging_level: str = Field(default="INFO", description="Default logging level")
+
+    # Security configuration
+    security_enabled: bool = Field(default=False, description="Enable security features")
+    auth_required: bool = Field(default=False, description="Require authentication")
+
+    # Database configuration
+    database_enabled: bool = Field(default=False, description="Enable database support")
+    default_database_url: str | None = Field(default=None, description="Default database URL")
