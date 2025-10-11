@@ -1,7 +1,7 @@
 # Marty Microservices Framework - Makefile
 # Convenient commands for framework development and usage
 
-.PHONY: help setup test validate generate clean docs typecheck
+.PHONY: help setup install test dev generate new clean docs
 
 # Default target
 help: ## Show this help message
@@ -11,29 +11,36 @@ help: ## Show this help message
 	@echo "Available commands:"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-setup: ## Setup the framework and validate installation
+# ==============================================================================
+# Setup & Installation
+# ==============================================================================
+
+setup: ## Complete setup: install deps, hooks, and validate
 	@echo "🚀 Setting up Marty Microservices Framework..."
-	@bash scripts/setup_framework.sh
-
-install: ## Install framework with UV in development mode
-	@echo "📦 Installing framework with UV..."
 	@uv sync --extra dev
-	@echo "✅ Framework installed successfully!"
+	@uv run playwright install chromium
+	@uv run pre-commit install
+	@python3 scripts/validate_templates.py
+	@echo "✅ Setup complete!"
 
-install-chassis: ## Install marty-chassis package with UV
-	@echo "📦 Installing marty-chassis package..."
+install: ## Install framework dependencies only
+	@echo "📦 Installing framework dependencies..."
+	@uv sync --extra dev
+	@echo "✅ Dependencies installed!"
+
+install-all: ## Install all dependencies including chassis
+	@echo "📦 Installing all framework dependencies..."
+	@uv sync --extra dev
 	@cd marty_chassis && uv sync --extra dev
-	@echo "✅ marty-chassis installed successfully!"
+	@echo "✅ All dependencies installed!"
 
-# Test targets
-test: ## Run comprehensive framework tests
-	@echo "🧪 Running framework tests..."
-	@python3 scripts/test_framework.py
+# ==============================================================================
+# Testing
+# ==============================================================================
 
-test-all: ## Run all tests including type checking
-	@echo "🧪 Running comprehensive tests with type checking..."
-	@python3 scripts/test_framework.py
-	@python3 -m mypy scripts/ --config-file mypy.ini
+test: ## Run all tests (unit + integration + e2e)
+	@echo "🧪 Running all tests..."
+	@uv run pytest -v
 
 test-unit: ## Run unit tests only
 	@echo "🧪 Running unit tests..."
@@ -43,291 +50,144 @@ test-integration: ## Run integration tests only
 	@echo "🧪 Running integration tests..."
 	@uv run pytest -m integration -v
 
-test-e2e: ## Run end-to-end tests
+test-e2e: ## Run end-to-end tests (includes docker containers)
 	@echo "🧪 Running E2E tests..."
 	@uv run pytest -m e2e -v
 
-test-coverage: ## Run tests with coverage report
+test-kind: ## Run Kind-based E2E tests only (no docker containers)
+	@echo "🎭 Running Kind + Playwright E2E tests..."
+	@uv run pytest tests/e2e/test_kind_playwright_e2e.py tests/e2e/simple_kind_playwright_test.py -v
+
+test-coverage: ## Run all tests with coverage report
 	@echo "🧪 Running tests with coverage..."
 	@uv run pytest --cov=src --cov-report=html --cov-report=term
 
-test-fast: ## Run tests with fail-fast mode
-	@echo "🧪 Running fast tests..."
-	@uv run pytest -x -v --tb=short
+test-quick: ## Run tests with fail-fast mode
+	@echo "🧪 Running quick tests (fail-fast)..."
+	@uv run pytest -x --tb=short
 
-# Kind + Playwright E2E test targets
-test-kind-playwright: ## Run Kind + Playwright E2E tests
-	@echo "🎭 Running Kind + Playwright E2E tests..."
-	@uv run pytest tests/e2e/test_kind_playwright_e2e.py -v -s
+# ==============================================================================
+# Development
+# ==============================================================================
 
-test-kind-playwright-all: ## Run all Kind + Playwright E2E tests with options
-	@echo "🎭 Running comprehensive Kind + Playwright E2E tests..."
-	@./scripts/run_kind_playwright_e2e.sh
+dev: ## Setup complete development environment
+	@echo "🔧 Setting up development environment..."
+	@$(MAKE) setup
+	@echo "🎉 Development environment ready!"
+	@echo "💡 Try: make test, make generate, make new"
 
-test-kind-playwright-dashboard: ## Run Kind + Playwright dashboard tests only
-	@echo "🎭 Running Kind + Playwright dashboard tests..."
-	@./scripts/run_kind_playwright_e2e.sh --test-type dashboard
-
-test-kind-playwright-visual: ## Run Kind + Playwright visual regression tests
-	@echo "🎭 Running Kind + Playwright visual tests..."
-	@./scripts/run_kind_playwright_e2e.sh --test-type visual
-
-test-kind-playwright-debug: ## Run Kind + Playwright tests with browser visible
-	@echo "🎭 Running Kind + Playwright tests in debug mode..."
-	@./scripts/run_kind_playwright_e2e.sh --headless false
-
-# Development targets
-lint: ## Run ruff linting
-	@echo "🔍 Running ruff linting..."
+check: ## Run all code quality checks
+	@echo "🔍 Running code quality checks..."
 	@uv run ruff check .
-
-lint-fix: ## Run ruff linting with auto-fix
-	@echo "🔧 Running ruff linting with auto-fix..."
-	@uv run ruff check --fix .
-
-format: ## Format code with ruff
-	@echo "✨ Formatting code with ruff..."
-	@uv run ruff format .
-
-validate: ## Validate all service templates
-	@echo "🔍 Validating service templates..."
-	@python3 scripts/validate_templates.py
-
-typecheck: ## Run mypy type checking on framework scripts
-	@echo "🔍 Running mypy type checking..."
+	@uv run ruff format --check .
 	@python3 -m mypy scripts/ --config-file mypy.ini
+	@python3 scripts/validate_templates.py
+	@echo "✅ All checks passed!"
 
-typecheck-strict: ## Run mypy type checking with strict mode
-	@echo "🔍 Running strict mypy type checking..."
-	@python3 -m mypy scripts/ --config-file mypy.ini --strict --show-error-codes
+fix: ## Fix code formatting and linting issues
+	@echo "🔧 Fixing code issues..."
+	@uv run ruff check --fix .
+	@uv run ruff format .
+	@echo "✅ Code formatting fixed!"
 
-security: ## Run security checks with bandit
+security: ## Run security checks
 	@echo "🔒 Running security checks..."
 	@uv run bandit -r src/
 
-pre-commit-install: ## Install pre-commit hooks
-	@echo "🪝 Installing pre-commit hooks..."
-	@uv run pre-commit install
+# ==============================================================================
+# Code Generation
+# ==============================================================================
 
-pre-commit-run: ## Run pre-commit on all files
-	@echo "🪝 Running pre-commit on all files..."
-	@uv run pre-commit run --all-files
-
-# Build and documentation targets
-build: ## Build the package
-	@echo "📦 Building package..."
-	@uv run python -m build
-
-docs-serve: ## Serve documentation locally
-	@echo "📚 Serving documentation at http://localhost:8000..."
-	@uv run python -m http.server 8000 -d docs/
-
-demo-e2e: ## Run the Kind + Playwright E2E demo
-	@echo "🎭 Running Kind + Playwright E2E demo..."
-	@uv run python demo_kind_playwright_e2e.py
-
-# Simple E2E test
-test-simple-e2e: ## Run simple Kind + Playwright E2E test
-	@echo "🎭 Running simple Kind + Playwright E2E test..."
-	@uv run python tests/e2e/simple_kind_playwright_test.py
-
-# Show available script commands
-show-commands: ## Show all available script commands (npm-like)
-	@./scripts/show_script_commands.sh
-
-# Check dependencies
-check-deps: ## Check if all dependencies are properly installed
-	@echo "🔍 Checking dependencies..."
-	@uv run python scripts/check_dependencies.py
-
-# Setup targets
-setup-dev: ## Setup complete development environment
-	@echo "🚀 Setting up development environment..."
-	@uv sync --extra dev
-	@uv run playwright install chromium
-	@uv run pre-commit install
-	@echo "✅ Development environment ready!"
-
-setup-all: ## Setup environment with all extras
-	@echo "🚀 Setting up complete environment..."
-	@uv sync --all-extras
-	@uv run playwright install chromium
-	@uv run pre-commit install
-	@echo "✅ Complete environment ready!"
-
-clean: ## Clean build artifacts and cache files
-	@echo "🧹 Cleaning build artifacts..."
-	@rm -rf dist/ build/ .pytest_cache/ htmlcov/ .coverage .mypy_cache/ .ruff_cache/
-	@echo "✅ Cleanup complete!"
-
-# Service generation targets
-generate-fastapi: ## Generate a FastAPI service (make generate-fastapi NAME=my-service)
-	@if [ -z "$(NAME)" ]; then \
-		echo "❌ Error: NAME parameter is required"; \
-		echo "Usage: make generate-fastapi NAME=my-service"; \
+generate: ## Generate a service (make generate TYPE=fastapi NAME=my-service)
+	@if [ -z "$(TYPE)" ] || [ -z "$(NAME)" ]; then \
+		echo "❌ Error: TYPE and NAME parameters are required"; \
+		echo "Usage: make generate TYPE=fastapi NAME=my-service"; \
+		echo "Available types: fastapi, grpc, hybrid, auth"; \
 		exit 1; \
 	fi
-	@echo "🏗️ Generating FastAPI service: $(NAME)"
-	@python3 scripts/generate_service.py fastapi $(NAME) --description "$(NAME) REST API service"
+	@echo "🏗️ Generating $(TYPE) service: $(NAME)"
+	@python3 scripts/generate_service.py $(TYPE) $(NAME) --description "$(NAME) service"
 
-generate-grpc: ## Generate a gRPC service (make generate-grpc NAME=my-service)
+new: ## Create a new project (make new NAME=my-project)
 	@if [ -z "$(NAME)" ]; then \
 		echo "❌ Error: NAME parameter is required"; \
-		echo "Usage: make generate-grpc NAME=my-service"; \
-		exit 1; \
-	fi
-	@echo "🏗️ Generating gRPC service: $(NAME)"
-	@python3 scripts/generate_service.py grpc $(NAME) --description "$(NAME) gRPC service"
-
-generate-hybrid: ## Generate a hybrid service (make generate-hybrid NAME=my-service)
-	@if [ -z "$(NAME)" ]; then \
-		echo "❌ Error: NAME parameter is required"; \
-		echo "Usage: make generate-hybrid NAME=my-service"; \
-		exit 1; \
-	fi
-	@echo "🏗️ Generating hybrid service: $(NAME)"
-	@python3 scripts/generate_service.py hybrid $(NAME) --description "$(NAME) hybrid service"
-
-generate-auth: ## Generate an auth service (make generate-auth NAME=my-auth-service)
-	@if [ -z "$(NAME)" ]; then \
-		echo "❌ Error: NAME parameter is required"; \
-		echo "Usage: make generate-auth NAME=my-auth-service"; \
-		exit 1; \
-	fi
-	@echo "🏗️ Generating authentication service: $(NAME)"
-	@python3 scripts/generate_service.py auth $(NAME) --description "$(NAME) authentication service"
-
-# Project template targets
-new-project: ## Create a new project from template (make new-project NAME=my-project)
-	@if [ -z "$(NAME)" ]; then \
-		echo "❌ Error: NAME parameter is required"; \
-		echo "Usage: make new-project NAME=my-project"; \
+		echo "Usage: make new NAME=my-project"; \
 		exit 1; \
 	fi
 	@if [ -d "$(NAME)" ]; then \
 		echo "❌ Error: Directory $(NAME) already exists"; \
 		exit 1; \
 	fi
-	@echo "🏗️ Creating new project: $(NAME)"
+	@echo "�️ Creating new project: $(NAME)"
 	@cp -r microservice_project_template $(NAME)
-	@echo "✅ Project created successfully!"
-	@echo "📁 Location: ./$(NAME)"
-	@echo "🚀 Next steps:"
-	@echo "   cd $(NAME)"
-	@echo "   uv sync --extra dev"
-	@echo "   make dev"
+	@echo "✅ Project created: ./$(NAME)"
+	@echo "🚀 Next: cd $(NAME) && make dev"
 
-# Development targets
-dev-project: ## Setup development environment in project template
-	@echo "🔧 Setting up development environment in project template..."
-	@cd microservice_project_template && uv sync --extra dev
-	@echo "✅ Development environment ready!"
+# ==============================================================================
+# Utilities
+# ==============================================================================
 
-# Cleanup targets
-clean: ## Clean generated files and caches
-	@echo "🧹 Cleaning up..."
+clean: ## Clean build artifacts and cache files
+	@echo "🧹 Cleaning build artifacts..."
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	@find . -type f -name "*.pyo" -delete 2>/dev/null || true
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
-	@rm -rf src/test_* 2>/dev/null || true
+	@rm -rf dist/ build/ htmlcov/ .coverage
 	@echo "✅ Cleanup complete!"
 
-clean-all: clean ## Clean everything including virtual environments
-	@echo "🧹 Deep cleaning..."
-	@rm -rf microservice_project_template/.venv 2>/dev/null || true
-	@rm -rf microservice_project_template/.pytest_cache 2>/dev/null || true
-	@rm -rf microservice_project_template/.mypy_cache 2>/dev/null || true
-	@rm -rf microservice_project_template/.ruff_cache 2>/dev/null || true
-	@echo "✅ Deep cleanup complete!"
+docs: ## Show documentation and usage examples
+	@echo "📚 Marty Microservices Framework"
+	@echo "================================="
+	@echo ""
+	@echo "📖 Quick Start:"
+	@echo "   make setup                              # Complete setup"
+	@echo "   make test                               # Run all tests"
+	@echo "   make generate TYPE=fastapi NAME=api     # Generate service"
+	@echo "   make new NAME=my-project                # Create new project"
+	@echo ""
+	@echo "🧪 Testing:"
+	@echo "   make test-unit                          # Unit tests only"
+	@echo "   make test-integration                   # Integration tests"
+	@echo "   make test-e2e                          # All E2E tests"
+	@echo "   make test-kind                          # Kind E2E tests only"
+	@echo "   make test-coverage                      # With coverage"
+	@echo ""
+	@echo "🔧 Development:"
+	@echo "   make dev                                # Setup dev environment"
+	@echo "   make check                              # Run all quality checks"
+	@echo "   make fix                                # Fix formatting/linting"
+	@echo ""
+	@echo "🏗️ Generation (TYPE: fastapi, grpc, hybrid, auth):"
+	@echo "   make generate TYPE=fastapi NAME=user-api"
+	@echo "   make generate TYPE=grpc NAME=data-processor"
+	@echo "   make new NAME=my-awesome-project"
 
-# Documentation and examples
-docs: ## Show documentation links
-	@echo "📚 Marty Microservices Framework Documentation"
-	@echo "=============================================="
+status: ## Show framework status
+	@echo "📊 Framework Status"
+	@echo "=================="
 	@echo ""
-	@echo "📖 Main Documentation:"
-	@echo "   README.md                                 - Framework overview and usage"
-	@echo "   microservice_project_template/README.md  - Project template documentation"
-	@echo ""
-	@echo "🏗️ Architecture Documentation:"
-	@echo "   microservice_project_template/docs/ARCHITECTURE.md     - System architecture"
-	@echo "   microservice_project_template/docs/LOCAL_DEVELOPMENT.md - Development guide"
-	@echo "   microservice_project_template/docs/OBSERVABILITY.md    - Monitoring and metrics"
-	@echo "   microservice_project_template/docs/ANALYTICS.md        - Analytics framework"
-	@echo ""
-	@echo "🛠️ Service Templates:"
-	@echo "   service/fastapi_service/     - REST API services"
-	@echo "   service/grpc_service/        - gRPC services"
-	@echo "   service/hybrid_service/      - Combined REST + gRPC"
-	@echo "   service/auth_service/        - Authentication services"
-	@echo "   service/database_service/    - Database-backed services"
-	@echo "   service/caching_service/     - Redis caching services"
-	@echo "   service/message_queue_service/ - Message queue services"
+	@if command -v uv >/dev/null 2>&1; then echo "✅ UV installed"; else echo "❌ UV missing"; fi
+	@if [ -d ".venv" ]; then echo "✅ Virtual environment"; else echo "❌ No virtual environment"; fi
+	@if [ -f "scripts/validate_templates.py" ]; then echo "✅ Scripts available"; else echo "❌ Scripts missing"; fi
+	@if [ -d "microservice_project_template" ]; then echo "✅ Project template"; else echo "❌ Template missing"; fi
 
-examples: ## Show usage examples
-	@echo "🚀 Marty Microservices Framework - Usage Examples"
-	@echo "================================================="
-	@echo ""
-	@echo "🔧 Framework Setup:"
-	@echo "   make setup                    # Setup framework and validate"
-	@echo "   make test                     # Run comprehensive tests"
-	@echo "   make test-all                 # Run tests with type checking"
-	@echo "   make validate                 # Validate templates"
-	@echo "   make typecheck                # Run mypy type checking"
-	@echo ""
-	@echo "🏗️ Service Generation:"
-	@echo "   make generate-fastapi NAME=user-api        # REST API service"
-	@echo "   make generate-grpc NAME=data-processor      # gRPC service"
-	@echo "   make generate-hybrid NAME=payment-service   # Hybrid service"
-	@echo "   make generate-auth NAME=auth-service        # Auth service"
-	@echo ""
-	@echo "📦 Project Creation:"
-	@echo "   make new-project NAME=my-awesome-service    # New complete project"
-	@echo "   cd my-awesome-service && make dev           # Start development"
-	@echo ""
-	@echo "🧹 Maintenance:"
-	@echo "   make clean                    # Clean temporary files"
-	@echo "   make clean-all               # Deep clean including venvs"
-	@echo ""
-	@echo "📚 Documentation:"
-	@echo "   make docs                    # Show documentation links"
-	@echo "   make examples               # Show this examples list"
+# ==============================================================================
+# CI/CD
+# ==============================================================================
 
-# Status and information
-status: ## Show framework status and information
-	@echo "📊 Marty Microservices Framework Status"
-	@echo "======================================="
-	@echo ""
-	@echo "📁 Framework Structure:"
-	@ls -la scripts/ | grep -E '\.(py|sh)$$' | awk '{print "   " $$9}' || echo "   No scripts found"
-	@echo ""
-	@echo "🛠️ Available Service Templates:"
-	@ls -d service/*/ 2>/dev/null | sed 's|service/||g; s|/||g' | awk '{print "   " $$1}' || echo "   No templates found"
-	@echo ""
-	@echo "📦 Project Template:"
-	@if [ -d "microservice_project_template" ]; then echo "   ✅ Available"; else echo "   ❌ Missing"; fi
-	@echo ""
-	@echo "🔍 Template Validation:"
-	@python3 scripts/validate_templates.py > /dev/null 2>&1 && echo "   ✅ All templates valid" || echo "   ❌ Some templates need attention"
-
-# Quick development workflow
-quick-start: setup ## Complete quick start workflow
-	@echo "🎉 Quick Start Complete!"
-	@echo ""
-	@echo "Try these commands:"
-	@echo "  make generate-fastapi NAME=hello-world    # Generate a service"
-	@echo "  make new-project NAME=my-project          # Create a complete project"
-	@echo "  make examples                             # See more examples"
-
-# CI/CD friendly targets
-ci-test: ## Run tests suitable for CI/CD
+ci: ## Run CI/CD pipeline (validate, test, check)
+	@echo "🚀 Running CI/CD pipeline..."
 	@python3 scripts/validate_templates.py
-	@python3 scripts/test_framework.py
+	@uv run pytest -m "unit or integration" --tb=short
+	@uv run ruff check .
 	@python3 -m mypy scripts/ --config-file mypy.ini
+	@echo "✅ CI/CD pipeline completed!"
 
-ci-setup: ## Setup for CI/CD environment
-	@pip3 install jinja2 mypy
-	@chmod +x scripts/*.sh scripts/*.py
+# Legacy support (will be removed in future versions)
+lint: fix
+format: fix
+validate: check
+typecheck: check
+	@echo "🔍 Running strict mypy type checking..."
