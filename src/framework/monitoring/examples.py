@@ -7,7 +7,7 @@ for implementing advanced monitoring in microservices.
 
 import asyncio
 import logging
-from typing import Any, Dict, dict
+from typing import Any, Dict
 
 # FastAPI example
 try:

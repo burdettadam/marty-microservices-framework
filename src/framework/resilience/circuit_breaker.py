@@ -13,7 +13,7 @@ from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Generic, Optional, TypeVar, dict
+from typing import Any, Callable, Dict, Generic, Optional, TypeVar
 
 T = TypeVar("T")
 

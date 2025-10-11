@@ -13,7 +13,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, dict, list
+from typing import Any, Dict, List, Optional, Set
 
 from .core import ExchangeConfig, Message, MessageExchange, MessageQueue, QueueConfig
 
@@ -605,9 +605,9 @@ class RedisBackend(MessageBackend):
     async def connect(self):
         """Connect to Redis."""
         try:
-            import aioredis
+            import redis.asyncio as redis
 
-            self._redis = aioredis.from_url(
+            self._redis = redis.from_url(
                 f"redis://{self.config.host}:{self.config.port}",
                 username=self.config.username,
                 password=self.config.password,
@@ -622,7 +622,7 @@ class RedisBackend(MessageBackend):
             logger.info(f"Connected to Redis at {self.config.host}:{self.config.port}")
 
         except ImportError:
-            raise RuntimeError("aioredis package required for Redis backend")
+            raise RuntimeError("redis package required for Redis backend")
         except Exception as e:
             logger.error(f"Failed to connect to Redis: {e}")
             raise

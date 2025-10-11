@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, dict, list, set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 import aioredis
 import psutil
@@ -482,7 +482,7 @@ class IntelligentCaching:
         # Multiple cache layers
         self.l1_cache = LRUCache(maxsize=1000)  # Fast in-memory cache
         self.l2_cache = TTLCache(maxsize=10000, ttl=3600)  # Larger TTL cache
-        self.distributed_cache: aioredis.Redis | None = None
+        self.distributed_cache: Any | None = None  # Redis client
 
         # Cache analytics
         self.cache_stats = defaultdict(lambda: {"hits": 0, "misses": 0, "evictions": 0})
@@ -503,7 +503,8 @@ class IntelligentCaching:
     ):
         """Initialize distributed cache (Redis)."""
         try:
-            self.distributed_cache = await aioredis.from_url(redis_url)
+            import redis.asyncio as redis
+            self.distributed_cache = redis.from_url(redis_url)
         except Exception as e:
             print(f"Failed to initialize distributed cache: {e}")
 

@@ -6,7 +6,7 @@ import builtins
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Optional, dict
+from typing import Any, Dict, Optional
 
 
 class DatabaseType(Enum):

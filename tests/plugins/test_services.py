@@ -21,10 +21,10 @@ import pytest
 framework_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(framework_path))
 
-from conftest import TestPlugin, marty_config, mock_context, mock_plugin_manager
-
 from framework.plugins.core import PluginContext
 from framework.plugins.services import PluginService, ServiceDefinition, ServiceRegistry
+
+from . import TestPlugin, mock_context
 
 
 class TestService(PluginService):

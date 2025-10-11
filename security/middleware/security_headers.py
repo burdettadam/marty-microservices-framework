@@ -15,7 +15,7 @@ Implements comprehensive security headers to protect against common web vulnerab
 import builtins
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union, dict, list
+from typing import Dict, List, Optional, Union
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware

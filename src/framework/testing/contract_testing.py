@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 from urllib.parse import urljoin
 
 import aiohttp

@@ -14,7 +14,7 @@ import functools
 import time
 from collections.abc import Callable
 from enum import Enum
-from typing import Any, Optional, TypeVar, Union, dict
+from typing import Any, Optional, TypeVar, Union
 
 from tenacity import (
     AsyncRetrying,

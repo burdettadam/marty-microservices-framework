@@ -8,7 +8,7 @@ service mesh components and configurations.
 import builtins
 import logging
 import tempfile
-from typing import Any, Dict, List, Optional, Set, dict, list
+from typing import Any, Dict, List, Optional, Set
 
 from .core import (
     BasicServiceMeshManager,

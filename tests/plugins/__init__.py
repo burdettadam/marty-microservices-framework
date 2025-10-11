@@ -116,8 +116,18 @@ class TestPlugin(MMFPlugin):
         self.initialized = False
         self.started = False
 
+    @property
+    def metadata(self) -> PluginMetadata:
+        """Test plugin metadata."""
+        return PluginMetadata(
+            name="test-plugin",
+            version="1.0.0",
+            description="Test plugin for unit testing",
+            author="Test Framework"
+        )
+
     async def initialize(self, context: PluginContext) -> None:
-        self.context = context
+        self._context = context
         self.initialized = True
 
     async def start(self) -> None:

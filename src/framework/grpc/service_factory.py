@@ -17,7 +17,7 @@ import logging
 import signal
 from concurrent import futures
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Protocol, Set, dict, list
+from typing import Any, Callable, Dict, List, Optional, Protocol, Set
 
 import grpc
 from grpc_health.v1 import health_pb2, health_pb2_grpc

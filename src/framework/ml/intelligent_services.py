@@ -16,7 +16,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, Set, dict, list
+from typing import Any, Callable, Dict, Generic, List, Optional, Set
 
 import numpy as np
 

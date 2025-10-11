@@ -11,7 +11,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, dict, list
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
 from .bulkhead import BulkheadConfig, BulkheadPool, get_bulkhead_manager
 from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig

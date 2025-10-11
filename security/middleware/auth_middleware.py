@@ -14,7 +14,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, dict, list
+from typing import Any, Callable, Dict, List, Optional
 
 import jwt
 import redis.asyncio as redis

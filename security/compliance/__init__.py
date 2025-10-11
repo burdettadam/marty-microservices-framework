@@ -21,17 +21,19 @@ from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, set, tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 # External dependencies
 try:
     import aiofiles
-    import aioredis
+    import redis.asyncio as redis
     from prometheus_client import Counter, Gauge, Histogram
 
     ASYNC_AVAILABLE = True
+    REDIS_AVAILABLE = True
 except ImportError:
     ASYNC_AVAILABLE = False
+    REDIS_AVAILABLE = False
 
 
 class ComplianceFramework(Enum):

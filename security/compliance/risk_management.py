@@ -17,7 +17,7 @@ from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, dict, list
+from typing import Any, Dict, List, Optional, Set
 
 # External dependencies
 try:

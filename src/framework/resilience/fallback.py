@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union, dict, list
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)

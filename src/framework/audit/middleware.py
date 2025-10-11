@@ -8,7 +8,7 @@ for API requests, authentication events, and other application activities.
 import json
 import logging
 import time
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, Dict, List, Optional
 
 # FastAPI imports
 try:

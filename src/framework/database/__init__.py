@@ -90,6 +90,9 @@ from .utilities import (
     get_database_utilities,
 )
 
+# Create aliases for backward compatibility
+DatabaseConnection = DatabaseManager
+
 __all__ = [
     "AuditMixin",
     # Models
@@ -100,6 +103,7 @@ __all__ = [
     "ConnectionError",
     "ConnectionPoolConfig",
     "DatabaseConfig",
+    "DatabaseConnection",
     "DatabaseError",
     # Manager
     "DatabaseManager",

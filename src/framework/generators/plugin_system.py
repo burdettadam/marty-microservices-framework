@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, dict, list, set
+from typing import Any, Dict, List, Optional, Set
 
 from jinja2 import Environment, FileSystemLoader, Template
 
@@ -620,7 +620,7 @@ This plugin provides custom template generation for {plugin_type.value} componen
 """
 
 from pathlib import Path
-from typing import Any, dict, list
+from typing import Any
 
 from src.framework.generators.plugin_system import (
     TemplatePlugin, TemplateMetadata, TemplateContext, TemplateType, PluginPhase

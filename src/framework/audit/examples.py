@@ -9,7 +9,7 @@ import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, dict
+from typing import Any, Dict
 
 # FastAPI example
 try:

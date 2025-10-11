@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, dict, list
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

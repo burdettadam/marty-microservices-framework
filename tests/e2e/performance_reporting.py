@@ -13,7 +13,7 @@ import builtins
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Set, dict
+from typing import Dict, Optional, Set
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -662,7 +662,7 @@ class PerformanceReportGenerator:
                 transform=ax_issues.transAxes,
                 fontsize=10,
                 va="top",
-                bbox=dict(boxstyle="round,pad=0.3", facecolor="#f8d7da", alpha=0.7),
+                bbox={"boxstyle": "round,pad=0.3", "facecolor": "#f8d7da", "alpha": 0.7},
             )
         else:
             ax_issues.text(

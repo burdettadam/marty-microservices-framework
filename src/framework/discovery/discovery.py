@@ -13,7 +13,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Protocol, Set, dict, list, set
+from typing import Any, Callable, Dict, List, Optional, Protocol, Set
 
 from .core import ServiceInstance, ServiceRegistry, ServiceWatcher
 from .load_balancing import (

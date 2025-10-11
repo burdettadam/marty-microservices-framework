@@ -26,7 +26,7 @@ from .core.middleware import setup_middleware
 from .core.error_handlers import setup_error_handlers
 
 
-class {{service_name|title}}Config(BaseServiceConfig):
+class {{service_class}}Config(BaseServiceConfig):
     """Configuration for {{service_name}} service."""
 
     service_name: str = "{{service_name}}"
@@ -42,7 +42,7 @@ class {{service_name|title}}Config(BaseServiceConfig):
 
 
 # Global references
-config = {{service_name|title}}Config()
+config = {{service_class}}Config()
 monitor: ServiceMonitor = None
 {% if use_database %}
 db_manager: DatabaseManager = None

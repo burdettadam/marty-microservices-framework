@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, dict, list, tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import jinja2
 import yaml

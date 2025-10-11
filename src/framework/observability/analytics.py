@@ -12,7 +12,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, dict, list, tuple
+from typing import Any, Dict, List, Optional, Tuple
 from uuid import uuid4
 
 from scipy import stats

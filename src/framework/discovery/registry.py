@@ -10,7 +10,7 @@ import builtins
 import json
 import logging
 import time
-from typing import Any, Dict, List, Optional, Set, dict, list
+from typing import Any, Dict, List, Optional, Set
 
 from .core import (
     HealthStatus,

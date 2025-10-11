@@ -14,7 +14,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, dict, list
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 from .core import Event
 

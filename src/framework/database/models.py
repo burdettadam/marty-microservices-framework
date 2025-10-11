@@ -5,7 +5,7 @@ Base database models and mixins for the enterprise database framework.
 import builtins
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Set, dict
+from typing import Any, Dict, Optional, Set
 
 from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.declarative import declared_attr

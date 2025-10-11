@@ -13,7 +13,7 @@ import os
 import re
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, Set, TypeVar, Union, dict, list, type
+from typing import Any, Optional, Set, TypeVar, Union
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError, validator

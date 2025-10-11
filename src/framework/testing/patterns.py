@@ -10,13 +10,14 @@ import builtins
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Set, dict, list
+from typing import Any, AsyncGenerator, Callable, Dict, List, Optional, Set
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
+
 from src.framework.database import BaseModel
 from src.framework.events import BaseEvent, EventHandler, InMemoryEventBus
 from src.framework.observability.monitoring import MetricsCollector

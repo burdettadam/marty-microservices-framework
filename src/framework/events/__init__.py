@@ -16,6 +16,7 @@ from .event_bus import (
     EVENT_REGISTRY,
     BaseEvent,
     DomainEvent,
+    Event,
     EventBus,
     EventHandler,
     EventMetadata,
@@ -34,11 +35,15 @@ from .exceptions import EventPublishingError
 from .publisher import EventPublisher, get_event_publisher
 from .types import AuditEventType, EventPriority, NotificationEventType
 
+# Create aliases for commonly used types
+# Event class is now concrete and exported directly
+
 __all__ = [
     # Existing event bus components
     "EVENT_REGISTRY",
     "BaseEvent",
     "DomainEvent",
+    "Event",
     "EventBus",
     "EventHandler",
     "EventMetadata",

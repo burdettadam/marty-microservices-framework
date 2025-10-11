@@ -9,7 +9,7 @@ This module provides:
 """
 
 import time
-from typing import Any, Optional, Set, Union, dict, list
+from typing import Any, Optional, Set, Union
 
 from fastapi import Request, Response
 from prometheus_client import (

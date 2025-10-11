@@ -13,7 +13,7 @@ import time
 from dataclasses import dataclass, field
 from enum import Enum
 from re import Pattern
-from typing import Any, Callable, Dict, List, Optional, Set, dict, list, set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from .core import Message
 

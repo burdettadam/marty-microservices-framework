@@ -15,9 +15,11 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, dict, list
+from typing import Dict, List
 
+import pytest
 import pytest_asyncio
+
 from tests.e2e.conftest import AuditEvent, PerformanceAnalyzer
 
 
@@ -292,7 +294,7 @@ class AuditTrailCollector:
 class TestAuditability:
     """Test suite for auditability and error tracking."""
 
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_comprehensive_auditability(
         self,
         simulation_plugin,

@@ -18,7 +18,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlparse
 
 # For HTTP operations

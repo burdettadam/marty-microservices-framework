@@ -20,6 +20,7 @@ from .manager import (  # Core classes; Enums; Providers; Utility functions; Dat
     Environment,
     EnvVarConfigProvider,
     FileConfigProvider,
+    FrameworkConfig,
     SecretManager,
     config_context,
     create_config_manager,
@@ -67,4 +68,6 @@ __all__ = [
     "PluginConfigProvider",
     "PluginConfigManager",
     "create_plugin_config_manager",
+    # Framework config
+    "FrameworkConfig",
 ]

@@ -12,7 +12,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -423,3 +423,51 @@ class QueueManager(ABC):
             "total_queues": len(self._queues),
             "total_exchanges": len(self._exchanges),
         }
+
+
+class MessageBus:
+    """
+    Simple MessageBus interface that wraps MessagingManager.
+
+    This provides a simpler interface for basic messaging operations
+    while maintaining compatibility with existing test code.
+    """
+
+    def __init__(self, service_name: str, config: dict[str, Any] | None = None):
+        """Initialize MessageBus with service name and configuration."""
+        # Import here to avoid circular imports
+        from .backends import BackendConfig, BackendType
+        from .manager import MessagingConfig, MessagingManager
+
+        if config is None:
+            config = {}
+
+        # Create a backend config from the provided config
+        backend_config = BackendConfig(
+            backend_type=BackendType.KAFKA,  # Default to Kafka
+            **config
+        )
+
+        messaging_config = MessagingConfig(
+            backend_config=backend_config
+        )
+        self._manager = MessagingManager(messaging_config)
+        self._service_name = service_name
+
+    async def start(self) -> None:
+        """Start the messaging system."""
+        await self._manager.initialize()
+
+    async def stop(self) -> None:
+        """Stop the messaging system."""
+        await self._manager.shutdown()
+
+    async def publish(self, topic: str, message: Any, **kwargs) -> None:
+        """Publish a message to a topic."""
+        await self._manager.publish(topic, message, **kwargs)
+
+    async def subscribe(self, topic: str, handler, **kwargs) -> None:
+        """Subscribe to a topic with a handler."""
+        # This is a simplified interface - in practice you'd need to create
+        # proper consumer configurations
+        raise NotImplementedError("Subscribe functionality needs to be implemented")

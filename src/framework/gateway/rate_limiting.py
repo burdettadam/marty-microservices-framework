@@ -17,7 +17,7 @@ import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, dict, list, tuple
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from .core import GatewayRequest, GatewayResponse
 

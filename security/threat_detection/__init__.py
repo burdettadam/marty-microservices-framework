@@ -22,14 +22,15 @@ from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, dict, list, set, tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 # External dependencies (optional)
 try:
     import aiohttp
-    import aioredis
     import numpy as np
+    import redis.asyncio as redis
     from prometheus_client import Counter, Gauge, Histogram
+    REDIS_AVAILABLE = True
 
     ANALYTICS_AVAILABLE = True
 except ImportError:

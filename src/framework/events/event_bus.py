@@ -108,7 +108,7 @@ class OutboxEvent(OutboxBase):
     event_id = Column(String(36), nullable=False, unique=True)
     event_type = Column(String(255), nullable=False)
     event_data = Column(Text, nullable=False)
-    metadata = Column(Text, nullable=True)
+    event_metadata = Column(Text, nullable=True)
     status = Column(String(50), nullable=False, default=EventStatus.PENDING.value)
     created_at = Column(
         DateTime(timezone=True),
@@ -160,6 +160,7 @@ class InMemoryEventBus(EventBus):
 
     def __init__(self):
         self._handlers: dict[str, list[EventHandler]] = {}
+        self._function_handlers: dict[str, list[Callable]] = {}
         self._running = False
 
     async def publish(
@@ -169,6 +170,8 @@ class InMemoryEventBus(EventBus):
         if not self._running:
             logger.warning("Event bus not running, event will be processed immediately")
         event_type = event.event_type
+
+        # Handle EventHandler instances
         handlers = self._handlers.get(event_type, [])
         for handler in handlers:
             try:
@@ -178,6 +181,18 @@ class InMemoryEventBus(EventBus):
                     "Error handling event %s with handler %s: %s",
                     event.event_id,
                     handler.__class__.__name__,
+                    e,
+                )
+
+        # Handle function handlers
+        function_handlers = self._function_handlers.get(event_type, [])
+        for handler_func in function_handlers:
+            try:
+                await handler_func(event)
+            except Exception as e:
+                logger.error(
+                    "Error handling event %s with function handler: %s",
+                    event.event_id,
                     e,
                 )
 
@@ -191,6 +206,17 @@ class InMemoryEventBus(EventBus):
             "Subscribed handler %s for events: %s",
             handler.__class__.__name__,
             handler.event_types,
+        )
+
+    def register_handler(self, name: str, event_type: str, handler_func: Callable) -> None:
+        """Register a function as an event handler."""
+        if event_type not in self._function_handlers:
+            self._function_handlers[event_type] = []
+        self._function_handlers[event_type].append(handler_func)
+        logger.info(
+            "Registered function handler '%s' for event type: %s",
+            name,
+            event_type,
         )
 
     async def unsubscribe(self, handler: EventHandler) -> None:
@@ -419,6 +445,34 @@ def register_event(event_class: type[BaseEvent]) -> type[BaseEvent]:
 
 
 # Common event types
+@register_event
+class Event(BaseEvent):
+    """Generic event for simple use cases."""
+
+    def __init__(self, id: str | None = None, type: str | None = None, data: dict | None = None, **kwargs):
+        super().__init__(event_id=id, **kwargs)
+        if type:
+            self.event_type = type
+        self.data = data or {}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "event_id": self.event_id,
+            "event_type": self.event_type,
+            "timestamp": self.timestamp.isoformat(),
+            "data": self.data,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Event:
+        return cls(
+            id=data["event_id"],
+            type=data["event_type"],
+            timestamp=datetime.fromisoformat(data["timestamp"]),
+            data=data.get("data", {}),
+        )
+
+
 @register_event
 class DomainEvent(BaseEvent):
     """Base domain event."""

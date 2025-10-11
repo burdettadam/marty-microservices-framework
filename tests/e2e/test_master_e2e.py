@@ -15,9 +15,11 @@ import asyncio
 import builtins
 import json
 from pathlib import Path
-from typing import Dict, dict
+from typing import Dict
 
+import pytest
 import pytest_asyncio
+
 from tests.e2e.conftest import PerformanceAnalyzer, TimeoutMonitor
 from tests.e2e.performance_reporting import generate_comprehensive_performance_report
 from tests.e2e.test_auditability import TestAuditability
@@ -29,7 +31,7 @@ from tests.e2e.test_timeout_detection import TestTimeoutDetection
 class TestMasterE2E:
     """Master end-to-end test suite that runs all performance tests."""
 
-    @pytest_asyncio.async_test
+    @pytest.mark.asyncio
     async def test_comprehensive_end_to_end_analysis(
         self,
         simulation_plugin,

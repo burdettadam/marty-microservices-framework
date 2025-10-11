@@ -12,19 +12,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import (
-    Any,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    dict,
-    list,
-    type,
-)
+from typing import Any, Dict, Generic, List, Optional, Set, Type, TypeVar
 
 from .core import DomainEvent, EventMetadata, EventStore
 

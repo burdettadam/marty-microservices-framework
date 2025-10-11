@@ -17,7 +17,7 @@ import sys
 import time
 import traceback
 import uuid
-from typing import Any, Optional, Set, Union, dict
+from typing import Any, Optional, Set, Union
 
 import structlog
 from pythonjsonlogger import jsonlogger
