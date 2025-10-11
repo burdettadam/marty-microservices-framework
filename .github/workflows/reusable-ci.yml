@@ -63,7 +63,7 @@ jobs:
         run: uv python install ${{ inputs.python-version }}
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --group dev
 
       - name: Run linting
         if: ${{ inputs.run-lint }}
