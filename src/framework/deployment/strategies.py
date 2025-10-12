@@ -1,7 +1,11 @@
 """
 Deployment Strategies Compatibility Shim
 
-This module provides backward compatibility for the decomposed deployment strategies.
+DEPRECATED: This is a compatibility shim that imports from the decomposed package.
+Please import directly from 'framework.deployment.strategies' package instead.
+
+New import path: from framework.deployment.strategies import DeploymentStrategy, ...
+
 The original monolithic strategies.py has been broken down into multiple modules:
 
 - enums.py: Deployment-related enumerations
@@ -12,6 +16,8 @@ The original monolithic strategies.py has been broken down into multiple modules
 For new code, prefer importing directly from the specific modules.
 This compatibility layer is maintained for existing code.
 """
+
+import warnings
 
 # Re-export all public classes and functions from the decomposed modules
 from .strategies import (  # Enums; Models; Managers; Orchestrator
@@ -37,6 +43,14 @@ from .strategies import (  # Enums; Models; Managers; Orchestrator
     ValidationResult,
     ValidationRunResult,
     create_deployment_orchestrator,
+)
+
+# Issue deprecation warning
+warnings.warn(
+    "Importing from framework.deployment.strategies.py is deprecated. "
+    "Please import directly from 'framework.deployment.strategies' package.",
+    DeprecationWarning,
+    stacklevel=2
 )
 
 __all__ = [

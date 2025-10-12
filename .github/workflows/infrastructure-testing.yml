@@ -20,7 +20,7 @@ on:
         - database
 
 env:
-  PYTHON_VERSION: "3.11"
+  PYTHON_VERSION: "3.13"
 
 jobs:
   # Phase 2 Infrastructure Integration Tests
@@ -190,7 +190,7 @@ jobs:
       run: |
         # Deploy test runner pod
         kubectl run infrastructure-tests \
-          --image=python:3.11-slim \
+          --image=python:3.13-slim \
           --rm -i --restart=Never \
           -n microservices-test \
           --overrides='
@@ -198,7 +198,7 @@ jobs:
           "spec": {
             "containers": [{
               "name": "infrastructure-tests",
-              "image": "python:3.11-slim",
+              "image": "python:3.13-slim",
               "command": ["python", "-c"],
               "args": ["import requests; print(\"Infrastructure test completed\")"],
               "env": [
