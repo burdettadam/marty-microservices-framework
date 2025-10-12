@@ -126,9 +126,70 @@ Messaging Patterns:
 - CQRS
 """
 
-# New enterprise messaging components
-# (Removed incorrect/unused typing import for built-in List; use builtins.list annotations directly if needed)
+# Legacy event system
+from ..events import (
+    BaseEvent,
+    EventBus,
+    EventHandler,
+    EventMetadata,
+    publish_domain_event,
+    publish_system_event,
+)
 
+# Backend implementations
+from .backends import (
+    BackendConfig,
+    BackendFactory,
+    InMemoryBackend,
+    MessageBackend,
+    RabbitMQBackend,
+    RedisBackend,
+)
+
+# Core messaging infrastructure
+from .core import (
+    ExchangeConfig,
+    ExchangeType,
+    MessageBus,
+    MessageExchange,
+    MessageHeaders,
+    MessageStatus,
+)
+
+# Dead letter queue support
+from .dlq import DLQConfig, DLQManager, DLQMessage, RetryStrategy
+
+# Messaging management
+from .manager import (
+    MessagingConfig,
+    MessagingManager,
+    create_messaging_config_from_dict,
+)
+
+# Middleware support
+from .middleware import (
+    AuthenticationMiddleware,
+    CompressionMiddleware,
+    MessageMiddleware,
+    MetricsMiddleware,
+    MiddlewareChain,
+    ValidationMiddleware,
+)
+
+# Additional patterns
+# Communication patterns
+from .patterns import (
+    Consumer,
+    ConsumerConfig,
+    Producer,
+    ProducerConfig,
+    PublishSubscribePattern,
+    RequestReplyPattern,
+    RoutingPattern,
+    WorkQueuePattern,
+)
+
+# Core messaging imports
 from .queue import (
     Message,
     MessageBroker,
@@ -144,6 +205,21 @@ from .queue import (
     message_queue_context,
     publish_message,
 )
+
+# Message routing
+from .routing import MessageRouter, RoutingConfig, RoutingEngine, RoutingRule
+
+# Serialization support
+from .serialization import (
+    AvroSerializer,
+    JSONSerializer,
+    MessageSerializer,
+    PickleSerializer,
+    ProtobufSerializer,
+    SerializationError,
+)
+
+# Event streaming imports
 from .streams import Aggregate
 from .streams import Event as StreamEvent
 from .streams import EventBus as StreamEventBus
@@ -164,18 +240,10 @@ from .streams import (
 from .streams import event_handler as stream_event_handler
 from .streams import event_streaming_context, get_event_manager
 
+# Consolidated exports - only items that are actually imported
 __all__ = [
-    "Aggregate",
-    "EventProcessor",
-    "EventSourcedRepository",
-    "EventStore",
-    "EventStream",
-    "EventStreamManager",
-    # Event Streaming Components
-    "EventType",
-    "InMemoryEventStore",
+    # Core message queue components
     "Message",
-    # Message Queue Components
     "MessageBroker",
     "MessageConfig",
     "MessageHandler",
@@ -183,262 +251,102 @@ __all__ = [
     "MessagePriority",
     "MessageQueue",
     "MessageStats",
-    "Repository",
-    "StreamEvent",
-    "StreamEventBus",
-    "StreamEventHandler",
-    "StreamProjection",
-    "create_event_manager",
-    "create_message_queue",
-    "domain_event",
-    "event_streaming_context",
-    "get_event_manager",
-    "get_message_queue",
-    "message_handler",
-    "message_queue_context",
-    "publish_message",
-    "stream_event_handler",
-]
 
-# New enterprise messaging components
-
-__all__ = [
+    # Event streaming components
     "Aggregate",
     "EventProcessor",
     "EventSourcedRepository",
     "EventStore",
     "EventStream",
     "EventStreamManager",
-    # Event Streaming Components
     "EventType",
     "InMemoryEventStore",
-    "Message",
-    # Message Queue Components
-    "MessageBroker",
-    "MessageConfig",
-    "MessageHandler",
-    "MessagePattern",
-    "MessagePriority",
-    "MessageQueue",
-    "MessageStats",
     "Repository",
     "StreamEvent",
     "StreamEventBus",
     "StreamEventHandler",
     "StreamProjection",
-    "create_event_manager",
-    "create_message_queue",
-    "domain_event",
-    "event_streaming_context",
-    "get_event_manager",
-    "get_message_queue",
-    "message_handler",
-    "message_queue_context",
-    "publish_message",
-    "stream_event_handler",
-]
 
-from ..events import (
-    BaseEvent,
-    EventBus,
-    EventHandler,
-    EventMetadata,
-    publish_domain_event,
-    publish_system_event,
-)
-
-# Legacy backend imports
-from .backends import (
-    BackendConfig,
-    BackendFactory,
-    InMemoryBackend,
-    MessageBackend,
-    RabbitMQBackend,
-    RedisBackend,
-)
-from .patterns import Consumer, Producer, RequestReplyPattern, WorkQueuePattern
-
-# New enterprise messaging components
-from .queue import MessageHandler as QueueMessageHandler
-
-# Additional imports temporarily commented out due to missing exports
-# from .queue import MessagePattern as NewMessagePattern
-# from .queue import MessageProducer
-# from .queue import MessageQueue as NewMessageQueue
-# from .queue import MessageRouter, QueueConfig, QueueManager, QueueMetrics
-# from .queue import message_handler as new_message_handler
-
-__all__ = [
-    "Aggregate",
-    # Legacy Backend Components
-    "BackendConfig",
-    # Legacy Queue Components
-    "BaseMessage",
-    # Legacy Pattern Components
-    "DeadLetterQueue",
-    "DelayedMessage",
-    "Event",
-    # Legacy Event Components
+    # Legacy event system
+    "BaseEvent",
     "EventBus",
     "EventHandler",
     "EventMetadata",
-    "EventProcessor",
-    "EventSourcedRepository",
-    "EventStore",
-    "EventStream",
-    "EventStreamManager",
-    # Event Streaming Components
-    "EventType",
+
+    # Backend implementations
+    "BackendConfig",
+    "BackendFactory",
     "InMemoryBackend",
-    "InMemoryEventStore",
     "MessageBackend",
-    # New Message Queue Components
-    "MessageBroker",
-    "MessageConfig",
-    "MessageConsumer",
-    "MessagePattern",
-    "MessagePriority",
-    "MessageProducer",
-    "MessageQueue",
-    "MessageRouter",
-    "MessageStats",
-    "NewMessage",
-    "NewMessageHandler",
-    "NewMessagePattern",
-    "NewMessageQueue",
-    "PatternHandler",
-    "PubSubPattern",
-    "QueueConfig",
-    "QueueManager",
-    "QueueMetrics",
     "RabbitMQBackend",
     "RedisBackend",
-    "Repository",
-    "RequestReplyPattern",
-    "SQSBackend",
-    "StreamEvent",
-    "StreamEventBus",
-    "StreamEventHandler",
-    "StreamProjection",
-    "WorkQueuePattern",
-    "create_backend",
-    "create_event_manager",
-    "create_message_queue",
-    "domain_event",
-    "event_handler",
-    "event_streaming_context",
-    "get_event_manager",
-    "get_message_queue",
-    "message_queue_context",
-    "new_message_handler",
-    "publish_event",
-    "publish_message",
-    "stream_event_handler",
-]
 
-from .core import (
-    ExchangeConfig,
-    ExchangeType,
-    MessageBus,
-    MessageExchange,
-    MessageHeaders,
-    MessageStatus,
-)
-from .dlq import DLQConfig, DLQManager, DLQMessage, RetryStrategy
-from .manager import (
-    MessagingConfig,
-    MessagingManager,
-    create_messaging_config_from_dict,
-)
-from .middleware import (
-    AuthenticationMiddleware,
-    CompressionMiddleware,
-    MessageMiddleware,
-    MetricsMiddleware,
-    MiddlewareChain,
-    ValidationMiddleware,
-)
-from .patterns import (
-    ConsumerConfig,
-    ProducerConfig,
-    PublishSubscribePattern,
-    RoutingPattern,
-)
-from .routing import MessageRouter, RoutingConfig, RoutingEngine, RoutingRule
-from .serialization import (
-    AvroSerializer,
-    JSONSerializer,
-    MessageSerializer,
-    PickleSerializer,
-    ProtobufSerializer,
-    SerializationError,
-)
-
-__all__ = [
-    "AuthenticationMiddleware",
-    "AvroSerializer",
-    "BackendConfig",
-    "CompressionMiddleware",
+    # Communication patterns
     "Consumer",
+    "Producer",
+    "RequestReplyPattern",
+    "WorkQueuePattern",
     "ConsumerConfig",
-    "DLQConfig",
-    "DLQStrategy",
-    # Dead Letter Queue
-    "DeadLetterQueue",
-    "DirectRouter",
-    "EncryptionMiddleware",
+    "ProducerConfig",
+    "PublishSubscribePattern",
+    "RoutingPattern",
+
+    # Core infrastructure
     "ExchangeConfig",
     "ExchangeType",
-    "FanoutRouter",
-    "InMemoryBackend",
-    "JSONSerializer",
-    # Core
-    "Message",
-    # Backends
-    "MessageBackend",
     "MessageBus",
     "MessageExchange",
-    "MessageFailureHandler",
-    "MessageHandler",
     "MessageHeaders",
-    # Middleware
-    "MessageMiddleware",
-    "MessagePattern",
-    "MessagePriority",
-    "MessageQueue",
-    "MessageRouter",
-    # Serialization
-    "MessageSerializer",
     "MessageStatus",
+
+    # Dead letter queue
+    "DLQConfig",
+    "DLQManager",
+    "DLQMessage",
+    "RetryStrategy",
+
+    # Management
     "MessagingConfig",
-    # Manager
     "MessagingManager",
+
+    # Middleware
+    "AuthenticationMiddleware",
+    "CompressionMiddleware",
+    "MessageMiddleware",
     "MetricsMiddleware",
     "MiddlewareChain",
-    "PickleSerializer",
-    # Patterns
-    "Producer",
-    "ProducerConfig",
-    "ProtobufSerializer",
-    "PublishSubscribePattern",
-    "QueueConfig",
-    "QueueManager",
-    "RabbitMQBackend",
-    "RedisBackend",
-    "RequestReplyPattern",
-    "RetryStrategy",
-    "Route",
+    "ValidationMiddleware",
+
     # Routing
-    "Router",
-    "RoutingKey",
-    "RoutingPattern",
-    "RoutingStrategy",
-    "SQSBackend",
+    "MessageRouter",
+    "RoutingConfig",
+    "RoutingEngine",
+    "RoutingRule",
+
+    # Serialization
+    "AvroSerializer",
+    "JSONSerializer",
+    "MessageSerializer",
+    "PickleSerializer",
+    "ProtobufSerializer",
     "SerializationError",
-    "TopicRouter",
-    "TracingMiddleware",
-    "WorkQueuePattern",
-    "create_backend",
-    "get_messaging_manager",
-    "initialize_messaging",
+
+    # Factory functions
+    "create_event_manager",
+    "create_message_queue",
+    "create_messaging_config_from_dict",
+
+    # Context managers
+    "event_streaming_context",
+    "message_queue_context",
+
+    # Utility functions
+    "domain_event",
+    "get_event_manager",
+    "get_message_queue",
+    "message_handler",
+    "publish_domain_event",
+    "publish_message",
+    "publish_system_event",
+    "stream_event_handler",
 ]
