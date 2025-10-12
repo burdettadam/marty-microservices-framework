@@ -50,6 +50,29 @@ func Login(cfg *config.Config, log logger.Logger{{- if include_database }}, dbMa
 		}
 
 		// TODO: Implement actual authentication logic
+		// For production, implement:
+		// 1. Hash password verification
+		// 2. Database user lookup
+		// 3. Rate limiting
+		// 4. Account lockout policies
+		// 5. Multi-factor authentication
+
+		{{- if include_database }}
+		// Database authentication example:
+		// user, err := dbManager.GetUserByEmail(req.Email)
+		// if err != nil {
+		//     log.Errorf("Database error: %v", err)
+		//     c.JSON(http.StatusInternalServerError, gin.H{"error": "Authentication service unavailable"})
+		//     return
+		// }
+		// if user == nil || !verifyPassword(req.Password, user.PasswordHash) {
+		//     c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		//     return
+		// }
+		{{- else }}
+		// Mock authentication - replace with real implementation
+		{{- endif }}
+
 		// For now, this is a mock implementation
 		if req.Email != "admin@example.com" || req.Password != "password" {
 			c.JSON(http.StatusUnauthorized, gin.H{
@@ -95,6 +118,50 @@ func Register(cfg *config.Config, log logger.Logger{{- if include_database }}, d
 		}
 
 		// TODO: Implement actual user registration logic
+		// For production, implement:
+		// 1. Email validation and uniqueness check
+		// 2. Password strength validation
+		// 3. Password hashing (bcrypt, argon2)
+		// 4. Email verification workflow
+		// 5. User profile creation
+		// 6. Terms of service acceptance
+
+		{{- if include_database }}
+		// Database registration example:
+		// // Validate email uniqueness
+		// existingUser, _ := dbManager.GetUserByEmail(req.Email)
+		// if existingUser != nil {
+		//     c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+		//     return
+		// }
+		//
+		// // Hash password
+		// hashedPassword, err := hashPassword(req.Password)
+		// if err != nil {
+		//     log.Errorf("Password hashing failed: %v", err)
+		//     c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
+		//     return
+		// }
+		//
+		// // Create user
+		// newUser := &User{
+		//     Email:    req.Email,
+		//     Name:     req.Name,
+		//     PasswordHash: hashedPassword,
+		//     CreatedAt:    time.Now(),
+		//     IsVerified:   false,
+		// }
+		//
+		// err = dbManager.CreateUser(newUser)
+		// if err != nil {
+		//     log.Errorf("User creation failed: %v", err)
+		//     c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
+		//     return
+		// }
+		{{- else }}
+		// Mock registration - replace with real implementation
+		{{- endif }}
+
 		// For now, this is a mock implementation
 
 		// Generate JWT token
@@ -125,8 +192,61 @@ func Register(cfg *config.Config, log logger.Logger{{- if include_database }}, d
 func RefreshToken(cfg *config.Config, log logger.Logger{{- if include_database }}, dbManager *database.DatabaseManager{{- endif }}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// TODO: Implement token refresh logic
-		c.JSON(http.StatusNotImplemented, gin.H{
-			"error": "Token refresh not implemented",
+		// For production, implement:
+		// 1. Validate current token
+		// 2. Check token blacklist
+		// 3. Verify user still exists and is active
+		// 4. Generate new access token
+		// 5. Optionally rotate refresh token
+		// 6. Update token issued time
+
+		var req struct {
+			RefreshToken string `json:"refresh_token" binding:"required"`
+		}
+
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid request body",
+				"details": err.Error(),
+			})
+			return
+		}
+
+		// Validate refresh token
+		claims, err := parseToken(req.RefreshToken, cfg.JWTSecret)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid refresh token",
+			})
+			return
+		}
+
+		{{- if include_database }}
+		// Verify user still exists in database
+		// user, err := dbManager.GetUserByID(claims.UserID)
+		// if err != nil || user == nil {
+		//     c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		//     return
+		// }
+		// if !user.IsActive {
+		//     c.JSON(http.StatusUnauthorized, gin.H{"error": "Account deactivated"})
+		//     return
+		// }
+		{{- endif }}
+
+		// Generate new access token
+		newToken, expiresAt, err := generateToken(cfg.JWTSecret, claims.UserID, claims.Email)
+		if err != nil {
+			log.Errorf("Failed to generate new token: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to refresh token",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"token": newToken,
+			"expires_at": expiresAt,
 		})
 	}
 }
@@ -138,6 +258,39 @@ func GetProfile(log logger.Logger{{- if include_database }}, dbManager *database
 		email := c.GetString("email")
 
 		// TODO: Fetch user from database
+		// For production, implement:
+		// 1. Fetch complete user profile from database
+		// 2. Handle user not found scenarios
+		// 3. Return appropriate user fields
+		// 4. Implement field selection/filtering
+		// 5. Add caching for frequently accessed profiles
+
+		{{- if include_database }}
+		// Database implementation example:
+		// user, err := dbManager.GetUserByID(userID)
+		// if err != nil {
+		//     log.Errorf("Failed to fetch user profile: %v", err)
+		//     c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch profile"})
+		//     return
+		// }
+		// if user == nil {
+		//     c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		//     return
+		// }
+		//
+		// // Return user profile (exclude sensitive fields)
+		// profile := User{
+		//     ID:        user.ID,
+		//     Email:     user.Email,
+		//     Name:      user.Name,
+		//     CreatedAt: user.CreatedAt,
+		//     UpdatedAt: user.UpdatedAt,
+		//     // Don't include PasswordHash, sensitive data
+		// }
+		//
+		// c.JSON(http.StatusOK, profile)
+		{{- else }}
+		// Mock profile - replace with real implementation
 		user := User{
 			ID:    userID,
 			Email: email,
@@ -145,6 +298,7 @@ func GetProfile(log logger.Logger{{- if include_database }}, dbManager *database
 		}
 
 		c.JSON(http.StatusOK, user)
+		{{- endif }}
 	}
 }
 
@@ -165,4 +319,27 @@ func generateToken(secret, userID, email string) (string, int64, error) {
 	}
 
 	return tokenString, expiresAt, nil
+}
+
+// TokenClaims represents the claims in our JWT token
+type TokenClaims struct {
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
+	jwt.RegisteredClaims
+}
+
+func parseToken(tokenString, secret string) (*TokenClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if claims, ok := token.Claims.(*TokenClaims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, jwt.ErrTokenInvalidClaims
 }
