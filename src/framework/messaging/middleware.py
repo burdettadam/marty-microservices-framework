@@ -76,9 +76,7 @@ class MiddlewareConfig:
 class MiddlewareContext:
     """Context for middleware execution."""
 
-    def __init__(
-        self, message: Message, stage: MiddlewareStage, direction: MiddlewareType
-    ):
+    def __init__(self, message: Message, stage: MiddlewareStage, direction: MiddlewareType):
         self.message = message
         self.stage = stage
         self.direction = direction
@@ -213,9 +211,7 @@ class MiddlewareChain:
         self._middleware.append(middleware)
         self._sorted = False
 
-    def remove_middleware(
-        self, middleware_type: builtins.type[MessageMiddleware]
-    ) -> bool:
+    def remove_middleware(self, middleware_type: builtins.type[MessageMiddleware]) -> bool:
         """Remove middleware by type."""
         for i, middleware in enumerate(self._middleware):
             if isinstance(middleware, middleware_type):
@@ -322,10 +318,7 @@ class MiddlewareChain:
 
     def get_middleware_stats(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Get statistics for all middleware."""
-        return {
-            middleware.__class__.__name__: middleware.stats
-            for middleware in self._middleware
-        }
+        return {middleware.__class__.__name__: middleware.stats for middleware in self._middleware}
 
 
 # Built-in Middleware Implementations
@@ -350,9 +343,7 @@ class ValidationMiddleware(MessageMiddleware):
                     logger.warning("Message %s failed validation", context.message.id)
                     return False
             except Exception as e:
-                logger.error(
-                    "Validation error for message %s: %s", context.message.id, e
-                )
+                logger.error("Validation error for message %s: %s", context.message.id, e)
                 return False
 
         return True
@@ -361,9 +352,7 @@ class ValidationMiddleware(MessageMiddleware):
 class TransformationMiddleware(MessageMiddleware):
     """Middleware for message transformation."""
 
-    def __init__(
-        self, transformer: Callable[[Message], Message], config: MiddlewareConfig = None
-    ):
+    def __init__(self, transformer: Callable[[Message], Message], config: MiddlewareConfig = None):
         super().__init__(config or MiddlewareConfig())
         self.transformer = transformer
 
@@ -375,9 +364,7 @@ class TransformationMiddleware(MessageMiddleware):
             context.message = transformed_message
             return True
         except Exception as e:
-            logger.error(
-                "Transformation error for message %s: %s", context.message.id, e
-            )
+            logger.error("Transformation error for message %s: %s", context.message.id, e)
             return False
 
 
@@ -409,9 +396,7 @@ class EnrichmentMiddleware(MessageMiddleware):
 class AuthenticationMiddleware(MessageMiddleware):
     """Middleware for message authentication."""
 
-    def __init__(
-        self, authenticator: Callable[[Message], bool], config: MiddlewareConfig = None
-    ):
+    def __init__(self, authenticator: Callable[[Message], bool], config: MiddlewareConfig = None):
         super().__init__(config or MiddlewareConfig())
         self.authenticator = authenticator
 
@@ -426,9 +411,7 @@ class AuthenticationMiddleware(MessageMiddleware):
 
             return True
         except Exception as e:
-            logger.error(
-                "Authentication error for message %s: %s", context.message.id, e
-            )
+            logger.error("Authentication error for message %s: %s", context.message.id, e)
             return False
 
 
@@ -482,19 +465,14 @@ class CompressionMiddleware(MessageMiddleware):
                 if isinstance(context.message.body, str | bytes):
                     compressed_body = self._compress(context.message.body)
                     context.message.body = compressed_body
-                    context.message.headers.custom[
-                        "compression"
-                    ] = self.compression_type
+                    context.message.headers.custom["compression"] = self.compression_type
 
             elif context.stage in [
                 MiddlewareStage.POST_DESERIALIZE,
                 MiddlewareStage.PRE_PROCESS,
             ]:
                 # Decompress incoming message
-                if (
-                    context.message.headers.custom.get("compression")
-                    == self.compression_type
-                ):
+                if context.message.headers.custom.get("compression") == self.compression_type:
                     decompressed_body = self._decompress(context.message.body)
                     context.message.body = decompressed_body
                     # Remove compression header
@@ -612,8 +590,7 @@ class MetricsMiddleware(MessageMiddleware):
         if processing_times:
             summary.update(
                 {
-                    "avg_processing_time": sum(processing_times)
-                    / len(processing_times),
+                    "avg_processing_time": sum(processing_times) / len(processing_times),
                     "min_processing_time": min(processing_times),
                     "max_processing_time": max(processing_times),
                 }
@@ -633,9 +610,7 @@ class MiddlewareFactory:
         stages: builtins.list[MiddlewareStage] = None,
     ) -> ValidationMiddleware:
         """Create validation middleware."""
-        config = MiddlewareConfig(
-            priority=priority, stages=stages or [MiddlewareStage.PRE_PROCESS]
-        )
+        config = MiddlewareConfig(priority=priority, stages=stages or [MiddlewareStage.PRE_PROCESS])
         return ValidationMiddleware(validators, config)
 
     @staticmethod
@@ -657,9 +632,7 @@ class MiddlewareFactory:
         stages: builtins.list[MiddlewareStage] = None,
     ) -> EnrichmentMiddleware:
         """Create enrichment middleware."""
-        config = MiddlewareConfig(
-            priority=priority, stages=stages or [MiddlewareStage.PRE_PROCESS]
-        )
+        config = MiddlewareConfig(priority=priority, stages=stages or [MiddlewareStage.PRE_PROCESS])
         return EnrichmentMiddleware(enricher, config)
 
     @staticmethod
@@ -681,9 +654,7 @@ class MiddlewareFactory:
         stages: builtins.list[MiddlewareStage] = None,
     ) -> RateLimitMiddleware:
         """Create rate limiting middleware."""
-        config = MiddlewareConfig(
-            priority=priority, stages=stages or [MiddlewareStage.PRE_PROCESS]
-        )
+        config = MiddlewareConfig(priority=priority, stages=stages or [MiddlewareStage.PRE_PROCESS])
         return RateLimitMiddleware(max_messages_per_second, config=config)
 
     @staticmethod
@@ -695,8 +666,7 @@ class MiddlewareFactory:
         """Create compression middleware."""
         config = MiddlewareConfig(
             priority=priority,
-            stages=stages
-            or [MiddlewareStage.PRE_SERIALIZE, MiddlewareStage.POST_DESERIALIZE],
+            stages=stages or [MiddlewareStage.PRE_SERIALIZE, MiddlewareStage.POST_DESERIALIZE],
         )
         return CompressionMiddleware(compression_type, config)
 
@@ -709,8 +679,7 @@ class MiddlewareFactory:
         """Create logging middleware."""
         config = MiddlewareConfig(
             priority=priority,
-            stages=stages
-            or [MiddlewareStage.PRE_PROCESS, MiddlewareStage.POST_PROCESS],
+            stages=stages or [MiddlewareStage.PRE_PROCESS, MiddlewareStage.POST_PROCESS],
         )
         return LoggingMiddleware(log_level, config)
 

@@ -41,9 +41,7 @@ class ServiceHealthChecker:
         }
 
         # Health check history
-        self.health_history: builtins.dict[str, deque] = defaultdict(
-            lambda: deque(maxlen=100)
-        )
+        self.health_history: builtins.dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
 
     async def start_health_monitoring(self, service: ServiceInstance):
         """Start health monitoring for a service."""
@@ -53,9 +51,7 @@ class ServiceHealthChecker:
         task = asyncio.create_task(self._health_check_loop(service))
         self.health_tasks[service.instance_id] = task
 
-        logging.info(
-            f"Started health monitoring for {service.service_name}:{service.instance_id}"
-        )
+        logging.info(f"Started health monitoring for {service.service_name}:{service.instance_id}")
 
     async def stop_health_monitoring(self, instance_id: str):
         """Stop health monitoring for a service."""
@@ -90,9 +86,7 @@ class ServiceHealthChecker:
 
             # Update service health status
             service.health_status = (
-                HealthStatus.HEALTHY
-                if health_result["healthy"]
-                else HealthStatus.UNHEALTHY
+                HealthStatus.HEALTHY if health_result["healthy"] else HealthStatus.UNHEALTHY
             )
             service.last_health_check = datetime.now(timezone.utc)
             service.last_seen = datetime.now(timezone.utc)
@@ -124,14 +118,10 @@ class ServiceHealthChecker:
             self.health_results[service.instance_id] = error_data
             self.health_history[service.instance_id].append(error_data)
 
-    async def _http_health_check(
-        self, service: ServiceInstance
-    ) -> builtins.dict[str, Any]:
+    async def _http_health_check(self, service: ServiceInstance) -> builtins.dict[str, Any]:
         """HTTP/HTTPS health check."""
         scheme = "https" if service.ssl_enabled else "http"
-        health_url = (
-            f"{scheme}://{service.host}:{service.port}{service.health_check_url}"
-        )
+        health_url = f"{scheme}://{service.host}:{service.port}{service.health_check_url}"
 
         timeout = aiohttp.ClientTimeout(total=self.timeout)
 
@@ -150,9 +140,7 @@ class ServiceHealthChecker:
                     },
                 }
 
-    async def _tcp_health_check(
-        self, service: ServiceInstance
-    ) -> builtins.dict[str, Any]:
+    async def _tcp_health_check(self, service: ServiceInstance) -> builtins.dict[str, Any]:
         """TCP health check."""
         try:
             reader, writer = await asyncio.wait_for(
@@ -168,9 +156,7 @@ class ServiceHealthChecker:
         except Exception as e:
             return {"healthy": False, "error": str(e)}
 
-    async def _grpc_health_check(
-        self, service: ServiceInstance
-    ) -> builtins.dict[str, Any]:
+    async def _grpc_health_check(self, service: ServiceInstance) -> builtins.dict[str, Any]:
         """gRPC health check."""
         # Simplified gRPC health check
         # In practice, this would use the gRPC health checking protocol
@@ -180,9 +166,7 @@ class ServiceHealthChecker:
         except Exception as e:
             return {"healthy": False, "error": str(e)}
 
-    async def _custom_health_check(
-        self, service: ServiceInstance
-    ) -> builtins.dict[str, Any]:
+    async def _custom_health_check(self, service: ServiceInstance) -> builtins.dict[str, Any]:
         """Custom health check based on service configuration."""
         # Custom health check logic based on service metadata
         custom_check = service.metadata.get("health_check")
@@ -204,9 +188,7 @@ class ServiceHealthChecker:
         history = self.health_history.get(instance_id, deque())
         return list(history)[-limit:]
 
-    def calculate_availability(
-        self, instance_id: str, window_minutes: int = 60
-    ) -> float:
+    def calculate_availability(self, instance_id: str, window_minutes: int = 60) -> float:
         """Calculate service availability over a time window."""
         history = self.health_history.get(instance_id, deque())
 
@@ -215,9 +197,7 @@ class ServiceHealthChecker:
 
         # Filter to time window
         cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=window_minutes)
-        recent_checks = [
-            check for check in history if check["timestamp"] >= cutoff_time
-        ]
+        recent_checks = [check for check in history if check["timestamp"] >= cutoff_time]
 
         if not recent_checks:
             return 0.0

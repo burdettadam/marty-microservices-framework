@@ -113,9 +113,7 @@ class UserService:
             limit=limit,
         )
 
-    @transactional(
-        config=TransactionConfig(isolation_level=IsolationLevel.REPEATABLE_READ)
-    )
+    @transactional(config=TransactionConfig(isolation_level=IsolationLevel.REPEATABLE_READ))
     async def create_user_with_post(
         self,
         username: str,
@@ -145,9 +143,7 @@ class UserService:
         """Get all posts by a user."""
         return await self.post_repository.find_by_field("author_id", user_id)
 
-    async def bulk_create_users(
-        self, users_data: builtins.list[dict]
-    ) -> builtins.list[User]:
+    async def bulk_create_users(self, users_data: builtins.list[dict]) -> builtins.list[User]:
         """Create multiple users in bulk."""
         return await self.user_repository.bulk_create(users_data)
 
@@ -285,9 +281,7 @@ async def demonstrate_database_framework():
 
         # Verify user is soft deleted (not in normal queries)
         found_user = await user_service.get_user_by_username("jane_smith")
-        print(
-            f"   ✓ User lookup after soft delete: {'Found' if found_user else 'Not found'}"
-        )
+        print(f"   ✓ User lookup after soft delete: {'Found' if found_user else 'Not found'}")
 
         # 10. Database utilities
         print("\n10. Using database utilities...")

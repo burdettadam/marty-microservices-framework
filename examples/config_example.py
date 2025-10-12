@@ -106,13 +106,9 @@ def demonstrate_environment_differences():
             # Service-specific settings
             service_config = config.get_service_config()
             if service_config:
-                max_amount = service_config.get(
-                    "max_transaction_amount", "Not configured"
-                )
+                max_amount = service_config.get("max_transaction_amount", "Not configured")
                 print(f"Max transaction amount: {max_amount}")
-                fraud_check = service_config.get(
-                    "fraud_check_enabled", "Not configured"
-                )
+                fraud_check = service_config.get("fraud_check_enabled", "Not configured")
                 print(f"Fraud check enabled: {fraud_check}")
 
             print()

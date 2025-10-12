@@ -124,9 +124,7 @@ class DataTransformation:
     transformation_script: str | None = None
 
     # Validation rules
-    validation_rules: builtins.list[builtins.dict[str, Any]] = field(
-        default_factory=list
-    )
+    validation_rules: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Metadata
     description: str = ""

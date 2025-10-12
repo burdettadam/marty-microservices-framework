@@ -144,9 +144,7 @@ async def login(username: str, password: str):
         jwt_auth = JWTAuthenticator(security_config)
 
         # Create authentication result
-        result = await jwt_auth.authenticate(
-            {"username": username, "password": password}
-        )
+        result = await jwt_auth.authenticate({"username": username, "password": password})
 
         if result.success:
             return {
@@ -309,6 +307,4 @@ if __name__ == "__main__":
     print("\n🚀 Starting server on http://localhost:8000")
     print("📖 API docs available at http://localhost:8000/docs")
 
-    uvicorn.run(
-        "security_example:app", host="0.0.0.0", port=8000, reload=True, log_level="info"
-    )
+    uvicorn.run("security_example:app", host="0.0.0.0", port=8000, reload=True, log_level="info")

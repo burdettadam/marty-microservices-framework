@@ -1,4 +1,5 @@
 """Feature flag management for deployment strategies."""
+
 import builtins
 import hashlib
 import logging
@@ -126,9 +127,7 @@ class FeatureFlagManager:
 
         return result
 
-    def _evaluate_boolean_flag(
-        self, flag: FeatureFlag, context: builtins.dict[str, Any]
-    ) -> bool:
+    def _evaluate_boolean_flag(self, flag: FeatureFlag, context: builtins.dict[str, Any]) -> bool:
         """Evaluate boolean feature flag."""
         # Check targeting rules
         for rule in flag.targeting_rules:
@@ -144,18 +143,14 @@ class FeatureFlagManager:
         user_id = context.get("user_id", "anonymous")
 
         # Generate consistent hash for user
-        user_hash = int(
-            hashlib.sha256(f"{flag.flag_id}:{user_id}".encode()).hexdigest(), 16
-        )
+        user_hash = int(hashlib.sha256(f"{flag.flag_id}:{user_id}".encode()).hexdigest(), 16)
         user_percentage = (user_hash % 100) / 100.0
 
         threshold = flag.value if isinstance(flag.value, int | float) else 0.5
 
         return user_percentage < threshold
 
-    def _evaluate_user_list_flag(
-        self, flag: FeatureFlag, context: builtins.dict[str, Any]
-    ) -> bool:
+    def _evaluate_user_list_flag(self, flag: FeatureFlag, context: builtins.dict[str, Any]) -> bool:
         """Evaluate user list feature flag."""
         user_id = context.get("user_id")
         if not user_id:
@@ -164,9 +159,7 @@ class FeatureFlagManager:
         user_list = flag.value if isinstance(flag.value, list) else []
         return user_id in user_list
 
-    def _evaluate_cohort_flag(
-        self, flag: FeatureFlag, context: builtins.dict[str, Any]
-    ) -> bool:
+    def _evaluate_cohort_flag(self, flag: FeatureFlag, context: builtins.dict[str, Any]) -> bool:
         """Evaluate cohort-based feature flag."""
         # Simplified cohort evaluation
         cohort = context.get("cohort", "default")
@@ -199,11 +192,7 @@ class FeatureFlagManager:
             if operator == "contains":
                 return expected_value in str(actual_value) if actual_value else False
             if operator == "in":
-                return (
-                    actual_value in expected_value
-                    if isinstance(expected_value, list)
-                    else False
-                )
+                return actual_value in expected_value if isinstance(expected_value, list) else False
 
         elif rule_type == "percentage":
             percentage = rule.get("percentage", 0)
@@ -224,9 +213,7 @@ class FeatureFlagManager:
         flag = self.feature_flags[flag_id]
 
         # Calculate evaluation statistics
-        recent_evaluations = [
-            e for e in self.flag_evaluations if e["flag_id"] == flag_id
-        ]
+        recent_evaluations = [e for e in self.flag_evaluations if e["flag_id"] == flag_id]
 
         return {
             "flag_id": flag.flag_id,

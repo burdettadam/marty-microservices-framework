@@ -111,9 +111,7 @@ class FallbackStrategy(ABC):
 class StaticFallback(FallbackStrategy):
     """Fallback that returns a static value."""
 
-    def __init__(
-        self, name: str, fallback_value: T, config: FallbackConfig | None = None
-    ):
+    def __init__(self, name: str, fallback_value: T, config: FallbackConfig | None = None):
         super().__init__(name, config)
         self.fallback_value = fallback_value
 
@@ -134,9 +132,7 @@ class StaticFallback(FallbackStrategy):
 
         except Exception as e:
             self._record_attempt(False, time.time() - start_time)
-            raise FallbackError(
-                f"Static fallback '{self.name}' failed", original_error, 1
-            ) from e
+            raise FallbackError(f"Static fallback '{self.name}' failed", original_error, 1) from e
 
 
 class FunctionFallback(FallbackStrategy):
@@ -181,9 +177,7 @@ class FunctionFallback(FallbackStrategy):
 
         except Exception as e:
             self._record_attempt(False, time.time() - start_time)
-            raise FallbackError(
-                f"Function fallback '{self.name}' failed", original_error, 1
-            ) from e
+            raise FallbackError(f"Function fallback '{self.name}' failed", original_error, 1) from e
 
 
 class CacheFallback(FallbackStrategy):
@@ -232,9 +226,7 @@ class CacheFallback(FallbackStrategy):
 
         except Exception as e:
             self._record_attempt(False, time.time() - start_time)
-            raise FallbackError(
-                f"Cache fallback '{self.name}' failed", original_error, 1
-            ) from e
+            raise FallbackError(f"Cache fallback '{self.name}' failed", original_error, 1) from e
 
 
 class ChainFallback(FallbackStrategy):
@@ -344,9 +336,7 @@ class FallbackManager:
             # Get fallback strategy
             if isinstance(fallback_strategy, str):
                 if fallback_strategy not in self._fallback_strategies:
-                    raise FallbackError(
-                        f"Unknown fallback strategy '{fallback_strategy}'", e, 0
-                    )
+                    raise FallbackError(f"Unknown fallback strategy '{fallback_strategy}'", e, 0)
                 strategy = self._fallback_strategies[fallback_strategy]
             else:
                 strategy = fallback_strategy
@@ -368,13 +358,10 @@ class FallbackManager:
     def get_stats(self) -> builtins.dict[str, Any]:
         """Get fallback manager statistics."""
         fallback_rate = self._fallback_triggered / max(1, self._total_operations)
-        fallback_success_rate = self._fallback_successful / max(
-            1, self._fallback_triggered
-        )
+        fallback_success_rate = self._fallback_successful / max(1, self._fallback_triggered)
 
         strategy_stats = {
-            name: strategy.get_stats()
-            for name, strategy in self._fallback_strategies.items()
+            name: strategy.get_stats() for name, strategy in self._fallback_strategies.items()
         }
 
         return {
@@ -417,17 +404,13 @@ def with_fallback(
 
             @wraps(func)
             async def async_wrapper(*args, **kwargs) -> T:
-                return await manager.execute_with_fallback(
-                    func, fallback_strategy, *args, **kwargs
-                )
+                return await manager.execute_with_fallback(func, fallback_strategy, *args, **kwargs)
 
             return async_wrapper
 
         @wraps(func)
         async def sync_wrapper(*args, **kwargs) -> T:
-            return await manager.execute_with_fallback(
-                func, fallback_strategy, *args, **kwargs
-            )
+            return await manager.execute_with_fallback(func, fallback_strategy, *args, **kwargs)
 
         return sync_wrapper
 
@@ -454,8 +437,6 @@ def create_cache_fallback(
     return CacheFallback(name, cache_provider, cache_key_func)
 
 
-def create_chain_fallback(
-    name: str, strategies: builtins.list[FallbackStrategy]
-) -> ChainFallback:
+def create_chain_fallback(name: str, strategies: builtins.list[FallbackStrategy]) -> ChainFallback:
     """Create a chain fallback strategy."""
     return ChainFallback(name, strategies)

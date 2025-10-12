@@ -28,6 +28,7 @@ import jwt
 # External dependencies
 try:
     from prometheus_client import Counter, Gauge
+
     REDIS_AVAILABLE = True
 
     CRYPTO_AVAILABLE = True
@@ -177,9 +178,7 @@ class Session:
     session_id: str
     user_id: str
     created_at: datetime = field(default_factory=datetime.now)
-    expires_at: datetime = field(
-        default_factory=lambda: datetime.now() + timedelta(hours=24)
-    )
+    expires_at: datetime = field(default_factory=lambda: datetime.now() + timedelta(hours=24))
     last_activity: datetime = field(default_factory=datetime.now)
     ip_address: str = ""
     user_agent: str = ""
@@ -210,22 +209,16 @@ class PasswordManager:
     def verify_password(self, password: str, password_hash: str) -> bool:
         """Verify password against hash"""
         try:
-            return bcrypt.checkpw(
-                password.encode("utf-8"), password_hash.encode("utf-8")
-            )
+            return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
         except Exception:
             return False
 
-    def validate_password_strength(
-        self, password: str
-    ) -> builtins.tuple[bool, builtins.list[str]]:
+    def validate_password_strength(self, password: str) -> builtins.tuple[bool, builtins.list[str]]:
         """Validate password strength"""
         errors = []
 
         if len(password) < self.min_length:
-            errors.append(
-                f"Password must be at least {self.min_length} characters long"
-            )
+            errors.append(f"Password must be at least {self.min_length} characters long")
 
         if not any(c.isupper() for c in password):
             errors.append("Password must contain at least one uppercase letter")
@@ -487,9 +480,7 @@ class RBACManager:
             str, builtins.dict[str, builtins.set[Permission]]
         ] = {}
 
-    def get_effective_roles(
-        self, user_roles: builtins.set[UserRole]
-    ) -> builtins.set[UserRole]:
+    def get_effective_roles(self, user_roles: builtins.set[UserRole]) -> builtins.set[UserRole]:
         """Get all effective roles including inherited ones"""
         effective_roles = set(user_roles)
 
@@ -524,9 +515,7 @@ class RBACManager:
     ) -> bool:
         """Check if user has required permission"""
 
-        effective_permissions = self.get_effective_permissions(
-            user_roles, user_permissions
-        )
+        effective_permissions = self.get_effective_permissions(user_roles, user_permissions)
 
         # Check direct permission
         if required_permission in effective_permissions:
@@ -557,9 +546,7 @@ class RBACManager:
 
         self.resource_permissions[resource][role] = permissions
 
-    def get_accessible_resources(
-        self, user_roles: builtins.set[UserRole]
-    ) -> builtins.list[str]:
+    def get_accessible_resources(self, user_roles: builtins.set[UserRole]) -> builtins.list[str]:
         """Get list of resources user can access"""
         accessible = []
         effective_roles = self.get_effective_roles(user_roles)
@@ -742,9 +729,7 @@ class IAMManager:
                 "Authentication attempts",
                 ["method", "status"],
             )
-            self.active_sessions = Gauge(
-                "marty_active_sessions", "Active user sessions"
-            )
+            self.active_sessions = Gauge("marty_active_sessions", "Active user sessions")
 
     def _create_default_admin(self):
         """Create default admin user"""
@@ -774,9 +759,7 @@ class IAMManager:
 
         if not user:
             if CRYPTO_AVAILABLE:
-                self.authentication_attempts.labels(
-                    method="password", status="failed"
-                ).inc()
+                self.authentication_attempts.labels(method="password", status="failed").inc()
             return False, None, None, "Invalid username or password"
 
         # Check account status
@@ -792,14 +775,10 @@ class IAMManager:
 
             # Lock account if too many failures
             if user.failed_login_attempts >= self.max_failed_attempts:
-                user.account_locked_until = (
-                    datetime.now() + self.account_lockout_duration
-                )
+                user.account_locked_until = datetime.now() + self.account_lockout_duration
 
             if CRYPTO_AVAILABLE:
-                self.authentication_attempts.labels(
-                    method="password", status="failed"
-                ).inc()
+                self.authentication_attempts.labels(method="password", status="failed").inc()
             return False, None, None, "Invalid username or password"
 
         # Reset failed attempts on successful login
@@ -818,9 +797,7 @@ class IAMManager:
         )
 
         if CRYPTO_AVAILABLE:
-            self.authentication_attempts.labels(
-                method="password", status="success"
-            ).inc()
+            self.authentication_attempts.labels(method="password", status="success").inc()
 
         return True, user, session_id, access_token
 
@@ -833,9 +810,7 @@ class IAMManager:
 
         if not is_valid:
             if CRYPTO_AVAILABLE:
-                self.authentication_attempts.labels(
-                    method="api_key", status="failed"
-                ).inc()
+                self.authentication_attempts.labels(method="api_key", status="failed").inc()
             return False, None, error
 
         # Get user
@@ -844,15 +819,11 @@ class IAMManager:
             return False, None, "User not found or inactive"
 
         if CRYPTO_AVAILABLE:
-            self.authentication_attempts.labels(
-                method="api_key", status="success"
-            ).inc()
+            self.authentication_attempts.labels(method="api_key", status="success").inc()
 
         return True, user, None
 
-    async def authenticate_jwt(
-        self, token: str
-    ) -> builtins.tuple[bool, User | None, str | None]:
+    async def authenticate_jwt(self, token: str) -> builtins.tuple[bool, User | None, str | None]:
         """Authenticate using JWT token"""
 
         is_valid, payload, error = self.jwt_manager.validate_token(token)
@@ -889,9 +860,7 @@ class IAMManager:
 
         # Update metrics
         if CRYPTO_AVAILABLE:
-            self.active_sessions.set(
-                len([s for s in self.sessions.values() if s.is_active])
-            )
+            self.active_sessions.set(len([s for s in self.sessions.values() if s.is_active]))
 
         return session_id
 
@@ -939,9 +908,7 @@ class IAMManager:
             errors.append("Email already exists")
 
         # Validate password strength
-        is_strong, password_errors = self.password_manager.validate_password_strength(
-            password
-        )
+        is_strong, password_errors = self.password_manager.validate_password_strength(password)
         if not is_strong:
             errors.extend(password_errors)
 
@@ -990,13 +957,9 @@ class IAMManager:
     def get_system_status(self) -> builtins.dict[str, Any]:
         """Get IAM system status"""
         active_sessions = [
-            s
-            for s in self.sessions.values()
-            if s.is_active and s.expires_at > datetime.now()
+            s for s in self.sessions.values() if s.is_active and s.expires_at > datetime.now()
         ]
-        active_api_keys = [
-            k for k in self.api_key_manager.api_keys.values() if k.is_active
-        ]
+        active_api_keys = [k for k in self.api_key_manager.api_keys.values() if k.is_active]
 
         return {
             "total_users": len(self.users),
@@ -1062,9 +1025,7 @@ async def main():
     print(f"Created API key: {api_key_string[:30]}...")
 
     # Test API key authentication
-    api_auth_success, api_user, api_error = await iam.authenticate_api_key(
-        api_key_string
-    )
+    api_auth_success, api_user, api_error = await iam.authenticate_api_key(api_key_string)
     if api_auth_success:
         print(f"API key authentication successful for {api_user.username}")
     else:

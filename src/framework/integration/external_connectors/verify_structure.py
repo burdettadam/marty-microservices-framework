@@ -2,18 +2,20 @@
 Verify relative imports in external_connectors package
 """
 
+
 # Test the actual files we created
 def test_files_exist():
     import os
+
     base_dir = os.path.dirname(__file__)
 
     expected_files = [
-        'enums.py',
-        'config.py',
-        'base.py',
-        '__init__.py',
-        'connectors/__init__.py',
-        'connectors/rest_api.py'
+        "enums.py",
+        "config.py",
+        "base.py",
+        "__init__.py",
+        "connectors/__init__.py",
+        "connectors/rest_api.py",
     ]
 
     for file_path in expected_files:
@@ -25,18 +27,19 @@ def test_files_exist():
             return False
     return True
 
+
 def test_syntax():
     import ast
     import os
 
     base_dir = os.path.dirname(__file__)
     python_files = [
-        'enums.py',
-        'config.py',
-        'base.py',
-        '__init__.py',
-        'connectors/__init__.py',
-        'connectors/rest_api.py'
+        "enums.py",
+        "config.py",
+        "base.py",
+        "__init__.py",
+        "connectors/__init__.py",
+        "connectors/rest_api.py",
     ]
 
     for file_path in python_files:
@@ -53,6 +56,7 @@ def test_syntax():
             print(f"❌ {file_path} error: {e}")
             return False
     return True
+
 
 if __name__ == "__main__":
     print("Testing external connectors package structure...")

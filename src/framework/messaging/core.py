@@ -113,9 +113,7 @@ class MessageHeaders:
         headers.correlation_id = data.get("correlation_id")
         headers.timestamp = data.get("timestamp", headers.timestamp)
         headers.content_type = data.get("content_type", headers.content_type)
-        headers.content_encoding = data.get(
-            "content_encoding", headers.content_encoding
-        )
+        headers.content_encoding = data.get("content_encoding", headers.content_encoding)
         headers.priority = MessagePriority(data.get("priority", headers.priority.value))
         headers.expiration = data.get("expiration")
         headers.reply_to = data.get("reply_to")
@@ -307,9 +305,7 @@ class MessageExchange(ABC):
         self.exchange_type = config.exchange_type
 
         # Bound queues
-        self._bindings: builtins.dict[
-            str, builtins.list[str]
-        ] = {}  # routing_key -> queue_names
+        self._bindings: builtins.dict[str, builtins.list[str]] = {}  # routing_key -> queue_names
 
         # Metrics
         self._published_count = 0
@@ -445,12 +441,10 @@ class MessageBus:
         # Create a backend config from the provided config
         backend_config = BackendConfig(
             backend_type=BackendType.KAFKA,  # Default to Kafka
-            **config
+            **config,
         )
 
-        messaging_config = MessagingConfig(
-            backend_config=backend_config
-        )
+        messaging_config = MessagingConfig(backend_config=backend_config)
         self._manager = MessagingManager(messaging_config)
         self._service_name = service_name
 

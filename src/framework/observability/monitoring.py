@@ -32,6 +32,7 @@ try:
         Info,
         generate_latest,
     )
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -120,9 +121,7 @@ class MetricsCollector:
         if PROMETHEUS_AVAILABLE:
             # Service info metric
             self.service_info = Info(
-                "mmf_service_info",
-                "Service information",
-                registry=self.registry
+                "mmf_service_info", "Service information", registry=self.registry
             )
             self.service_info.info({"service": service_name, "version": "1.0.0"})
 
@@ -191,9 +190,7 @@ class MetricsCollector:
 
         self._custom_counters[counter_key].labels(**labels).inc(value)
 
-    def gauge(
-        self, name: str, value: float, labels: dict[str, str] | None = None
-    ) -> None:
+    def gauge(self, name: str, value: float, labels: dict[str, str] | None = None) -> None:
         """Set a gauge metric.
 
         Args:
@@ -221,9 +218,7 @@ class MetricsCollector:
 
         self._custom_gauges[gauge_key].labels(**labels).set(value)
 
-    def histogram(
-        self, name: str, value: float, labels: dict[str, str] | None = None
-    ) -> None:
+    def histogram(self, name: str, value: float, labels: dict[str, str] | None = None) -> None:
         """Add a value to a histogram metric.
 
         Args:
@@ -263,13 +258,9 @@ class MetricsCollector:
         if not PROMETHEUS_AVAILABLE:
             return
 
-        self.requests_total.labels(
-            service=self.service_name, method=method, status=status
-        ).inc()
+        self.requests_total.labels(service=self.service_name, method=method, status=status).inc()
 
-        self.request_duration.labels(
-            service=self.service_name, method=method
-        ).observe(duration)
+        self.request_duration.labels(service=self.service_name, method=method).observe(duration)
 
     def record_error(self, method: str, error_type: str) -> None:
         """Record an error.
@@ -294,7 +285,7 @@ class MetricsCollector:
         if not PROMETHEUS_AVAILABLE or self.registry is None:
             return "# Prometheus not available\n"
 
-        return generate_latest(self.registry).decode('utf-8')
+        return generate_latest(self.registry).decode("utf-8")
 
     def get_metrics_summary(self) -> dict[str, Any]:
         """Get metrics summary for compatibility.
@@ -451,8 +442,7 @@ class HealthChecker:
                     # Check if it's time to run this check
                     if (
                         check.last_run is None
-                        or (current_time - check.last_run).total_seconds()
-                        >= check.interval
+                        or (current_time - check.last_run).total_seconds() >= check.interval
                     ):
                         self.run_check(check.name)
 
@@ -487,9 +477,7 @@ class SystemMetrics:
     def collect_cpu_metrics(self) -> None:
         """Collect CPU metrics."""
         cpu_percent = psutil.cpu_percent(interval=1)
-        self.metrics.gauge(
-            "system_cpu_usage_percent", cpu_percent, {"hostname": self._hostname}
-        )
+        self.metrics.gauge("system_cpu_usage_percent", cpu_percent, {"hostname": self._hostname})
 
         # Per-core metrics
         cpu_percents = psutil.cpu_percent(percpu=True)
@@ -504,12 +492,8 @@ class SystemMetrics:
         """Collect memory metrics."""
         memory = psutil.virtual_memory()
 
-        self.metrics.gauge(
-            "system_memory_total_bytes", memory.total, {"hostname": self._hostname}
-        )
-        self.metrics.gauge(
-            "system_memory_used_bytes", memory.used, {"hostname": self._hostname}
-        )
+        self.metrics.gauge("system_memory_total_bytes", memory.total, {"hostname": self._hostname})
+        self.metrics.gauge("system_memory_used_bytes", memory.used, {"hostname": self._hostname})
         self.metrics.gauge(
             "system_memory_available_bytes",
             memory.available,
@@ -523,15 +507,9 @@ class SystemMetrics:
         """Collect disk metrics."""
         disk = psutil.disk_usage("/")
 
-        self.metrics.gauge(
-            "system_disk_total_bytes", disk.total, {"hostname": self._hostname}
-        )
-        self.metrics.gauge(
-            "system_disk_used_bytes", disk.used, {"hostname": self._hostname}
-        )
-        self.metrics.gauge(
-            "system_disk_free_bytes", disk.free, {"hostname": self._hostname}
-        )
+        self.metrics.gauge("system_disk_total_bytes", disk.total, {"hostname": self._hostname})
+        self.metrics.gauge("system_disk_used_bytes", disk.used, {"hostname": self._hostname})
+        self.metrics.gauge("system_disk_free_bytes", disk.free, {"hostname": self._hostname})
         self.metrics.gauge(
             "system_disk_usage_percent",
             (disk.used / disk.total) * 100,
@@ -691,9 +669,7 @@ def time_operation(
         yield
     finally:
         duration = time.time() - start_time
-        metrics_collector.histogram(
-            f"{operation_name}_duration_seconds", duration, labels
-        )
+        metrics_collector.histogram(f"{operation_name}_duration_seconds", duration, labels)
 
 
 # Default health check functions

@@ -112,10 +112,7 @@ class ServiceQuery:
             return False
 
         # Check environment
-        if (
-            self.environment
-            and instance.metadata.environment != self.environment
-        ):
+        if self.environment and instance.metadata.environment != self.environment:
             return False
 
         # Check zone
@@ -127,10 +124,7 @@ class ServiceQuery:
             return False
 
         # Check health status
-        if (
-            not self.include_unhealthy
-            and instance.health_status != HealthStatus.HEALTHY
-        ):
+        if not self.include_unhealthy and instance.health_status != HealthStatus.HEALTHY:
             return False
 
         # Check tags

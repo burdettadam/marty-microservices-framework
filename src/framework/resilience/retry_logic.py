@@ -97,9 +97,7 @@ class RetryMechanism:
 
                 # Check if exception is retryable
                 if not self._is_retryable_exception(e):
-                    logging.warning(
-                        "Non-retryable exception in %s: %s", self.name, str(e)
-                    )
+                    logging.warning("Non-retryable exception in %s: %s", self.name, str(e))
                     raise
 
                 if attempt < self.config.max_attempts:
@@ -152,9 +150,7 @@ class RetryMechanism:
 
                 # Check if exception is retryable
                 if not self._is_retryable_exception(e):
-                    logging.warning(
-                        "Non-retryable exception in async %s: %s", self.name, str(e)
-                    )
+                    logging.warning("Non-retryable exception in async %s: %s", self.name, str(e))
                     raise
 
                 if attempt < self.config.max_attempts:

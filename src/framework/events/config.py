@@ -107,11 +107,13 @@ class EventPublisherConfig(BaseModel):
         }
 
         if self.kafka_sasl_mechanism:
-            config.update({
-                "sasl_mechanism": self.kafka_sasl_mechanism,
-                "sasl_plain_username": self.kafka_sasl_username,
-                "sasl_plain_password": self.kafka_sasl_password,
-            })
+            config.update(
+                {
+                    "sasl_mechanism": self.kafka_sasl_mechanism,
+                    "sasl_plain_username": self.kafka_sasl_username,
+                    "sasl_plain_password": self.kafka_sasl_password,
+                }
+            )
 
         # Override with custom producer config
         config.update(self.producer_config)

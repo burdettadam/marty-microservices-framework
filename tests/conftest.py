@@ -59,10 +59,7 @@ def test_config() -> dict[str, Any]:
 def framework_config():
     """Provide test configuration."""
     return BaseServiceConfig(
-        service_name="test-service",
-        environment="test",
-        debug=True,
-        log_level="DEBUG"
+        service_name="test-service", environment="test", debug=True, log_level="DEBUG"
     )
 
 
@@ -89,9 +86,7 @@ def test_correlation_id() -> str:
 def logger(test_service_name: str) -> StructuredLogger:
     """Provide a structured logger for tests."""
     return StructuredLogger(
-        service_name=test_service_name,
-        level="DEBUG",
-        correlation_id_key="correlation_id"
+        service_name=test_service_name, level="DEBUG", correlation_id_key="correlation_id"
     )
 
 
@@ -102,18 +97,20 @@ def metrics_collector(test_service_name: str) -> MetricsCollector:
     return MetricsCollector(
         service_name=test_service_name,
         registry=None,  # Use default registry
-        labels={"environment": "test"}
+        labels={"environment": "test"},
     )
 
 
 # Event bus fixtures
 @pytest.fixture
-async def event_bus(test_service_name: str, test_config: dict[str, Any]) -> AsyncGenerator[EventBus, None]:
+async def event_bus(
+    test_service_name: str, test_config: dict[str, Any]
+) -> AsyncGenerator[EventBus, None]:
     """Provide an event bus for tests."""
     event_bus = EventBus(
         service_name=test_service_name,
         bootstrap_servers=test_config["kafka_bootstrap_servers"],
-        consumer_group=f"{test_service_name}-test"
+        consumer_group=f"{test_service_name}-test",
     )
 
     try:
@@ -125,12 +122,11 @@ async def event_bus(test_service_name: str, test_config: dict[str, Any]) -> Asyn
 
 # Message bus fixtures
 @pytest.fixture
-async def message_bus(test_service_name: str, test_config: dict[str, Any]) -> AsyncGenerator[MessageBus, None]:
+async def message_bus(
+    test_service_name: str, test_config: dict[str, Any]
+) -> AsyncGenerator[MessageBus, None]:
     """Provide a message bus for tests."""
-    message_bus = MessageBus(
-        service_name=test_service_name,
-        config=test_config
-    )
+    message_bus = MessageBus(service_name=test_service_name, config=test_config)
 
     try:
         await message_bus.start()
@@ -204,11 +200,8 @@ def sample_event_data() -> dict[str, Any]:
         "data": {
             "user_id": "test-user-123",
             "action": "test_action",
-            "metadata": {
-                "test": True,
-                "environment": "test"
-            }
-        }
+            "metadata": {"test": True, "environment": "test"},
+        },
     }
 
 
@@ -220,11 +213,7 @@ def sample_message_data() -> dict[str, Any]:
         "message_type": "test.message",
         "correlation_id": str(uuid.uuid4()),
         "timestamp": "2025-10-10T15:30:00Z",
-        "payload": {
-            "data": "test data",
-            "count": 42,
-            "active": True
-        }
+        "payload": {"data": "test data", "count": 42, "active": True},
     }
 
 
@@ -306,7 +295,11 @@ async def wait_for_condition(condition_func, timeout: float = 5.0, interval: flo
     """Wait for a condition to become true."""
     elapsed = 0.0
     while elapsed < timeout:
-        if await condition_func() if asyncio.iscoroutinefunction(condition_func) else condition_func():
+        if (
+            await condition_func()
+            if asyncio.iscoroutinefunction(condition_func)
+            else condition_func()
+        ):
             return True
         await asyncio.sleep(interval)
         elapsed += interval

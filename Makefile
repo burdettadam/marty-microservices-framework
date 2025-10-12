@@ -215,10 +215,3 @@ ci: ## Run CI/CD pipeline (validate, test, check)
 	@uv run ruff check .
 	@python3 -m mypy scripts/ --config-file mypy.ini
 	@echo "✅ CI/CD pipeline completed!"
-
-# Legacy support (will be removed in future versions)
-lint: fix
-format: fix
-validate: check
-typecheck: check
-	@echo "🔍 Running strict mypy type checking..."

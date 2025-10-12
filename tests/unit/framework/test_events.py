@@ -14,6 +14,7 @@ from src.framework.events import Event, EventBus, EventHandler
 # Mock EventSubscription for testing since it doesn't exist yet
 class EventSubscription:
     """Mock EventSubscription for testing."""
+
     def __init__(self, subscriber_id: str, event_type: str, handler, priority: int = 0):
         self.subscriber_id = subscriber_id
         self.event_type = event_type
@@ -38,7 +39,7 @@ class TestEvent:
         event = Event(
             id="event-123",
             type="user.registered",
-            data={"user_id": 123, "email": "test@example.com"}
+            data={"user_id": 123, "email": "test@example.com"},
         )
 
         assert event.id == "event-123"
@@ -55,7 +56,7 @@ class TestEvent:
             data={"order_id": 456},
             source="order-service",
             correlation_id="corr-789",
-            version=2
+            version=2,
         )
 
         assert event.source == "order-service"
@@ -64,11 +65,7 @@ class TestEvent:
 
     def test_event_to_dict(self):
         """Test event serialization to dictionary."""
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         event_dict = event.to_dict()
 
@@ -85,7 +82,7 @@ class TestEvent:
             "type": "order.placed",
             "data": {"order_id": 456},
             "timestamp": "2024-01-01T12:00:00Z",
-            "version": 2
+            "version": 2,
         }
 
         event = Event.from_dict(event_dict)
@@ -97,34 +94,18 @@ class TestEvent:
 
     def test_event_equality(self):
         """Test event equality comparison."""
-        event1 = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event1 = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
-        event2 = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event2 = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
-        event3 = Event(
-            id="event-456",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event3 = Event(id="event-456", type="user.registered", data={"user_id": 123})
 
         assert event1 == event2
         assert event1 != event3
 
     def test_event_repr(self):
         """Test event string representation."""
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         repr_str = repr(event)
         assert "Event" in repr_str
@@ -145,9 +126,7 @@ class TestEventHandler:
             executed_events.append(event)
 
         handler = EventHandler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
         assert handler.name == "test-handler"
@@ -158,6 +137,7 @@ class TestEventHandler:
 
     async def test_event_handler_with_priority(self):
         """Test event handler with custom priority."""
+
         async def handler_func(event: Event) -> None:
             pass
 
@@ -165,7 +145,7 @@ class TestEventHandler:
             name="priority-handler",
             event_type="user.registered",
             handler_func=handler_func,
-            priority=10
+            priority=10,
         )
 
         assert handler.priority == 10
@@ -178,16 +158,10 @@ class TestEventHandler:
             executed_events.append(event)
 
         handler = EventHandler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await handler.execute(event)
 
@@ -196,79 +170,50 @@ class TestEventHandler:
 
     async def test_event_handler_execution_with_error(self):
         """Test event handler execution with error handling."""
+
         async def failing_handler(event: Event) -> None:
             raise ValueError("Handler failed")
 
         handler = EventHandler(
-            name="failing-handler",
-            event_type="user.registered",
-            handler_func=failing_handler
+            name="failing-handler", event_type="user.registered", handler_func=failing_handler
         )
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         # Should not raise exception, error should be handled
         await handler.execute(event)
 
     async def test_event_handler_matches_type(self):
         """Test event handler type matching."""
+
         async def handler_func(event: Event) -> None:
             pass
 
         handler = EventHandler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
-        matching_event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        matching_event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
-        non_matching_event = Event(
-            id="event-456",
-            type="order.placed",
-            data={"order_id": 456}
-        )
+        non_matching_event = Event(id="event-456", type="order.placed", data={"order_id": 456})
 
         assert handler.matches(matching_event) is True
         assert handler.matches(non_matching_event) is False
 
     async def test_event_handler_pattern_matching(self):
         """Test event handler pattern matching."""
+
         async def handler_func(event: Event) -> None:
             pass
 
         # Handler that matches all user events
-        handler = EventHandler(
-            name="user-handler",
-            event_type="user.*",
-            handler_func=handler_func
-        )
+        handler = EventHandler(name="user-handler", event_type="user.*", handler_func=handler_func)
 
-        user_registered = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        user_registered = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
-        user_updated = Event(
-            id="event-456",
-            type="user.updated",
-            data={"user_id": 123}
-        )
+        user_updated = Event(id="event-456", type="user.updated", data={"user_id": 123})
 
-        order_placed = Event(
-            id="event-789",
-            type="order.placed",
-            data={"order_id": 789}
-        )
+        order_placed = Event(id="event-789", type="order.placed", data={"order_id": 789})
 
         assert handler.matches(user_registered) is True
         assert handler.matches(user_updated) is True
@@ -282,13 +227,12 @@ class TestEventSubscription:
 
     def test_subscription_creation(self):
         """Test event subscription creation."""
+
         async def handler_func(event: Event) -> None:
             pass
 
         subscription = EventSubscription(
-            subscriber_id="service-123",
-            event_type="user.registered",
-            handler_func=handler_func
+            subscriber_id="service-123", event_type="user.registered", handler_func=handler_func
         )
 
         assert subscription.subscriber_id == "service-123"
@@ -298,13 +242,12 @@ class TestEventSubscription:
 
     def test_subscription_deactivation(self):
         """Test subscription deactivation."""
+
         async def handler_func(event: Event) -> None:
             pass
 
         subscription = EventSubscription(
-            subscriber_id="service-123",
-            event_type="user.registered",
-            handler_func=handler_func
+            subscriber_id="service-123", event_type="user.registered", handler_func=handler_func
         )
 
         assert subscription.is_active is True
@@ -314,13 +257,12 @@ class TestEventSubscription:
 
     def test_subscription_reactivation(self):
         """Test subscription reactivation."""
+
         async def handler_func(event: Event) -> None:
             pass
 
         subscription = EventSubscription(
-            subscriber_id="service-123",
-            event_type="user.registered",
-            handler_func=handler_func
+            subscriber_id="service-123", event_type="user.registered", handler_func=handler_func
         )
 
         subscription.deactivate()
@@ -352,9 +294,7 @@ class TestEventBus:
             pass
 
         handler = bus.register_handler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
         assert len(bus.handlers) == 1
@@ -369,16 +309,12 @@ class TestEventBus:
             pass
 
         bus.register_handler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
         with pytest.raises(ValueError, match="Handler 'test-handler' already registered"):
             bus.register_handler(
-                name="test-handler",
-                event_type="order.placed",
-                handler_func=handler_func
+                name="test-handler", event_type="order.placed", handler_func=handler_func
             )
 
     def test_event_bus_unregister_handler(self):
@@ -389,9 +325,7 @@ class TestEventBus:
             pass
 
         bus.register_handler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
         assert len(bus.handlers) == 1
@@ -408,16 +342,10 @@ class TestEventBus:
             executed_events.append(event)
 
         bus.register_handler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await bus.publish(event)
 
@@ -440,24 +368,14 @@ class TestEventBus:
             handler2_events.append(event)
 
         bus.register_handler(
-            name="handler-1",
-            event_type="user.registered",
-            handler_func=handler1_func,
-            priority=1
+            name="handler-1", event_type="user.registered", handler_func=handler1_func, priority=1
         )
 
         bus.register_handler(
-            name="handler-2",
-            event_type="user.registered",
-            handler_func=handler2_func,
-            priority=2
+            name="handler-2", event_type="user.registered", handler_func=handler2_func, priority=2
         )
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await bus.publish(event)
         await asyncio.sleep(0.1)
@@ -486,28 +404,24 @@ class TestEventBus:
             name="low-handler",
             event_type="user.registered",
             handler_func=low_priority_handler,
-            priority=1
+            priority=1,
         )
 
         bus.register_handler(
             name="high-handler",
             event_type="user.registered",
             handler_func=high_priority_handler,
-            priority=10
+            priority=10,
         )
 
         bus.register_handler(
             name="medium-handler",
             event_type="user.registered",
             handler_func=medium_priority_handler,
-            priority=5
+            priority=5,
         )
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await bus.publish(event)
         await asyncio.sleep(0.1)
@@ -524,19 +438,13 @@ class TestEventBus:
             executed_events.append(event)
 
         subscription = bus.subscribe(
-            subscriber_id="service-123",
-            event_type="user.registered",
-            handler_func=handler_func
+            subscriber_id="service-123", event_type="user.registered", handler_func=handler_func
         )
 
         assert len(bus.subscriptions) == 1
         assert subscription.subscriber_id == "service-123"
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await bus.publish(event)
         await asyncio.sleep(0.1)
@@ -556,19 +464,13 @@ class TestEventBus:
             executed_events.append(event)
 
         subscription = bus.subscribe(
-            subscriber_id="service-123",
-            event_type="user.registered",
-            handler_func=handler_func
+            subscriber_id="service-123", event_type="user.registered", handler_func=handler_func
         )
 
         # Deactivate subscription
         subscription.deactivate()
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await bus.publish(event)
         await asyncio.sleep(0.1)
@@ -588,22 +490,14 @@ class TestEventBus:
             successful_executions.append(event)
 
         bus.register_handler(
-            name="failing-handler",
-            event_type="user.registered",
-            handler_func=failing_handler
+            name="failing-handler", event_type="user.registered", handler_func=failing_handler
         )
 
         bus.register_handler(
-            name="successful-handler",
-            event_type="user.registered",
-            handler_func=successful_handler
+            name="successful-handler", event_type="user.registered", handler_func=successful_handler
         )
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await bus.publish(event)
         await asyncio.sleep(0.1)
@@ -626,16 +520,10 @@ class TestEventBus:
 
         bus.add_middleware(test_middleware)
         bus.register_handler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await bus.publish(event)
         await asyncio.sleep(0.1)
@@ -664,16 +552,10 @@ class TestEventBus:
             pass
 
         bus.register_handler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await bus.publish(event)
         await asyncio.sleep(0.1)
@@ -699,17 +581,12 @@ class TestEventBus:
 
         bus.add_filter(event_filter)
         bus.register_handler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
         # Event from trusted source
         trusted_event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123},
-            source="trusted-service"
+            id="event-123", type="user.registered", data={"user_id": 123}, source="trusted-service"
         )
 
         # Event from untrusted source
@@ -717,7 +594,7 @@ class TestEventBus:
             id="event-456",
             type="user.registered",
             data={"user_id": 456},
-            source="untrusted-service"
+            source="untrusted-service",
         )
 
         await bus.publish(trusted_event)
@@ -728,7 +605,7 @@ class TestEventBus:
         assert len(filtered_events) == 1
         assert filtered_events[0].id == "event-123"
 
-    @patch('src.framework.events.logger')
+    @patch("src.framework.events.logger")
     async def test_event_bus_logging(self, mock_logger):
         """Test event bus logging functionality."""
         bus = EventBus(service_name="test-service")
@@ -737,16 +614,10 @@ class TestEventBus:
             pass
 
         bus.register_handler(
-            name="test-handler",
-            event_type="user.registered",
-            handler_func=handler_func
+            name="test-handler", event_type="user.registered", handler_func=handler_func
         )
 
-        event = Event(
-            id="event-123",
-            type="user.registered",
-            data={"user_id": 123}
-        )
+        event = Event(id="event-123", type="user.registered", data={"user_id": 123})
 
         await bus.publish(event)
         await asyncio.sleep(0.1)

@@ -24,9 +24,7 @@ class ServiceDiscovery:
         success = self.registry.register_service(service)
         if success:
             # Start health checking for this service
-            self.health_checker.start_health_checking(
-                service.service_name, self.registry
-            )
+            self.health_checker.start_health_checking(service.service_name, self.registry)
         return success
 
     def deregister_service(self, service_name: str, host: str, port: int) -> bool:

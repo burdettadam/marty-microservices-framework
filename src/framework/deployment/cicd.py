@@ -73,9 +73,7 @@ class PipelineConfig:
     provider: PipelineProvider
     repository_url: str
     branch: str = "main"
-    triggers: builtins.list[str] = field(
-        default_factory=lambda: ["push", "pull_request"]
-    )
+    triggers: builtins.list[str] = field(default_factory=lambda: ["push", "pull_request"])
     stages: builtins.list[PipelineStage] = field(default_factory=list)
     environment_variables: builtins.dict[str, str] = field(default_factory=dict)
     secrets: builtins.dict[str, str] = field(default_factory=dict)
@@ -439,9 +437,7 @@ pipeline {{
                 {
                     "name": "test",
                     "taskRef": {"name": "pytest"},
-                    "runAfter": ["build"]
-                    if PipelineStage.BUILD in config.stages
-                    else None,
+                    "runAfter": ["build"] if PipelineStage.BUILD in config.stages else None,
                     "workspaces": [{"name": "source", "workspace": "shared-workspace"}],
                 }
             )
@@ -454,9 +450,7 @@ pipeline {{
                 {
                     "name": f"deploy-{env_name}",
                     "taskRef": {"name": "helm-deploy"},
-                    "runAfter": ["test"]
-                    if PipelineStage.TEST in config.stages
-                    else ["build"],
+                    "runAfter": ["test"] if PipelineStage.TEST in config.stages else ["build"],
                     "params": [
                         {
                             "name": "CHART_PATH",
@@ -635,9 +629,7 @@ class CICDManager:
         self.pipeline_generator = PipelineGenerator()
         self.executions: builtins.dict[str, PipelineExecution] = {}
 
-    async def create_pipeline(
-        self, pipeline: DeploymentPipeline, output_dir: Path
-    ) -> bool:
+    async def create_pipeline(self, pipeline: DeploymentPipeline, output_dir: Path) -> bool:
         """Create CI/CD pipeline configuration files."""
         try:
             config = pipeline.config
@@ -648,10 +640,8 @@ class CICDManager:
 
             # Generate pipeline configuration
             if config.provider == PipelineProvider.GITHUB_ACTIONS:
-                workflow_content = (
-                    self.pipeline_generator.generate_github_actions_workflow(
-                        config, deployment_config
-                    )
+                workflow_content = self.pipeline_generator.generate_github_actions_workflow(
+                    config, deployment_config
                 )
 
                 workflows_dir = output_dir / ".github" / "workflows"
@@ -698,9 +688,7 @@ class CICDManager:
             logger.error(f"Failed to create pipeline: {e}")
             return False
 
-    async def _create_gitops_config(
-        self, pipeline: DeploymentPipeline, output_dir: Path
-    ) -> None:
+    async def _create_gitops_config(self, pipeline: DeploymentPipeline, output_dir: Path) -> None:
         """Create GitOps configuration."""
         gitops_config = pipeline.gitops_config
         deployment_config = pipeline.deployment_config
@@ -711,9 +699,7 @@ class CICDManager:
         gitops_manager = GitOpsManager(gitops_config)
         app_name = f"{deployment_config.service_name}-{deployment_config.target.environment.value}"
 
-        app_config = await gitops_manager.create_application(
-            app_name, deployment_config
-        )
+        app_config = await gitops_manager.create_application(app_name, deployment_config)
 
         gitops_dir = output_dir / "gitops"
         gitops_dir.mkdir(exist_ok=True)
@@ -863,9 +849,7 @@ async def deploy_with_cicd(
 ) -> builtins.tuple[bool, str | None]:
     """Deploy service using CI/CD pipeline."""
     try:
-        execution = await manager.trigger_pipeline(
-            pipeline.config.name, commit_sha, triggered_by
-        )
+        execution = await manager.trigger_pipeline(pipeline.config.name, commit_sha, triggered_by)
 
         if not execution:
             return False, "Failed to trigger pipeline"

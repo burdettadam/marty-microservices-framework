@@ -118,9 +118,7 @@ class TerraformGenerator:
         if cloud_provider == CloudProvider.AWS:
             providers["aws"] = {
                 "region": region,
-                "default_tags": {
-                    "tags": {"ManagedBy": "Terraform", "Framework": "Marty"}
-                },
+                "default_tags": {"tags": {"ManagedBy": "Terraform", "Framework": "Marty"}},
             }
         elif cloud_provider == CloudProvider.AZURE:
             providers["azurerm"] = {"features": {}}
@@ -169,7 +167,9 @@ class TerraformGenerator:
         self, deployment_config: DeploymentConfig, cloud_provider: CloudProvider
     ) -> InfrastructureStack:
         """Generate infrastructure for microservice."""
-        stack_name = f"{deployment_config.service_name}-{deployment_config.target.environment.value}"
+        stack_name = (
+            f"{deployment_config.service_name}-{deployment_config.target.environment.value}"
+        )
 
         config = IaCConfig(
             provider=IaCProvider.TERRAFORM,
@@ -182,21 +182,13 @@ class TerraformGenerator:
         resources = []
 
         if cloud_provider == CloudProvider.AWS:
-            resources.extend(
-                self._generate_aws_microservice_resources(deployment_config)
-            )
+            resources.extend(self._generate_aws_microservice_resources(deployment_config))
         elif cloud_provider == CloudProvider.AZURE:
-            resources.extend(
-                self._generate_azure_microservice_resources(deployment_config)
-            )
+            resources.extend(self._generate_azure_microservice_resources(deployment_config))
         elif cloud_provider == CloudProvider.GCP:
-            resources.extend(
-                self._generate_gcp_microservice_resources(deployment_config)
-            )
+            resources.extend(self._generate_gcp_microservice_resources(deployment_config))
         elif cloud_provider == CloudProvider.KUBERNETES:
-            resources.extend(
-                self._generate_k8s_microservice_resources(deployment_config)
-            )
+            resources.extend(self._generate_k8s_microservice_resources(deployment_config))
 
         return InfrastructureStack(name=stack_name, config=config, resources=resources)
 
@@ -285,9 +277,7 @@ class TerraformGenerator:
                     "launch_type": "FARGATE",
                     "network_configuration": {
                         "subnets": "${var.private_subnet_ids}",
-                        "security_groups": [
-                            f"${{aws_security_group.{service_name}_sg.id}}"
-                        ],
+                        "security_groups": [f"${{aws_security_group.{service_name}_sg.id}}"],
                         "assign_public_ip": False,
                     },
                     "load_balancer": [
@@ -309,9 +299,7 @@ class TerraformGenerator:
                     "load_balancer_type": "application",
                     "scheme": "internal",
                     "subnets": "${var.private_subnet_ids}",
-                    "security_groups": [
-                        f"${{aws_security_group.{service_name}_alb_sg.id}}"
-                    ],
+                    "security_groups": [f"${{aws_security_group.{service_name}_alb_sg.id}}"],
                 },
             ),
             # Target Group
@@ -439,8 +427,7 @@ class TerraformGenerator:
                             {
                                 "name": service_name,
                                 "image": config.image,
-                                "cpu": float(config.resources.cpu_request.rstrip("m"))
-                                / 1000,
+                                "cpu": float(config.resources.cpu_request.rstrip("m")) / 1000,
                                 "memory": f"{config.resources.memory_request}i",
                                 "env": [
                                     {"name": k, "value": v}
@@ -454,9 +441,7 @@ class TerraformGenerator:
                     "ingress": {
                         "external_enabled": True,
                         "target_port": config.health_check.port,
-                        "traffic_weight": [
-                            {"percentage": 100, "latest_revision": True}
-                        ],
+                        "traffic_weight": [{"percentage": 100, "latest_revision": True}],
                     },
                 },
             ),
@@ -483,9 +468,7 @@ class TerraformGenerator:
                             "containers": [
                                 {
                                     "image": config.image,
-                                    "ports": [
-                                        {"container_port": config.health_check.port}
-                                    ],
+                                    "ports": [{"container_port": config.health_check.port}],
                                     "env": [
                                         {"name": k, "value": v}
                                         for k, v in config.environment_variables.items()
@@ -557,9 +540,7 @@ class TerraformGenerator:
                                     {
                                         "name": service_name,
                                         "image": config.image,
-                                        "ports": [
-                                            {"container_port": config.health_check.port}
-                                        ],
+                                        "ports": [{"container_port": config.health_check.port}],
                                         "env": [
                                             {"name": k, "value": v}
                                             for k, v in config.environment_variables.items()
@@ -778,9 +759,7 @@ class InfrastructureManager:
             logger.error(f"Failed to create infrastructure stack: {e}")
             return False
 
-    async def _create_terraform_stack(
-        self, stack: InfrastructureStack, stack_dir: Path
-    ) -> bool:
+    async def _create_terraform_stack(self, stack: InfrastructureStack, stack_dir: Path) -> bool:
         """Create Terraform stack."""
         # Generate provider configuration
         provider_config = self.terraform_generator.generate_provider_config(
@@ -861,15 +840,11 @@ class InfrastructureManager:
         }
 
         prefix = provider_prefixes.get(resource.provider, "")
-        resource_type = resource_types.get(resource.type, {}).get(
-            resource.provider, "resource"
-        )
+        resource_type = resource_types.get(resource.type, {}).get(resource.provider, "resource")
 
         return f"{prefix}_{resource_type}"
 
-    def _write_terraform_hcl(
-        self, config: builtins.dict[str, Any], file_handle
-    ) -> None:
+    def _write_terraform_hcl(self, config: builtins.dict[str, Any], file_handle) -> None:
         """Write Terraform HCL configuration."""
         # Simplified HCL writer - in production, use proper HCL library
         for key, value in config.items():
@@ -905,9 +880,7 @@ class InfrastructureManager:
             for item in value:
                 self._write_hcl_value(item, file_handle, indent)
 
-    async def _create_pulumi_stack(
-        self, stack: InfrastructureStack, stack_dir: Path
-    ) -> bool:
+    async def _create_pulumi_stack(self, stack: InfrastructureStack, stack_dir: Path) -> bool:
         """Create Pulumi stack."""
         # Generate Pulumi configuration
         pulumi_config = {
@@ -1020,9 +993,7 @@ class InfrastructureManager:
         except Exception as e:
             return False, f"Terraform deployment error: {e!s}"
 
-    async def _deploy_pulumi_stack(
-        self, stack_dir: Path
-    ) -> builtins.tuple[bool, str | None]:
+    async def _deploy_pulumi_stack(self, stack_dir: Path) -> builtins.tuple[bool, str | None]:
         """Deploy Pulumi stack."""
         try:
             # Install dependencies
@@ -1173,9 +1144,7 @@ class InfrastructureManager:
         except Exception as e:
             return False, f"Terraform destroy error: {e!s}"
 
-    async def _destroy_pulumi_stack(
-        self, stack_dir: Path
-    ) -> builtins.tuple[bool, str | None]:
+    async def _destroy_pulumi_stack(self, stack_dir: Path) -> builtins.tuple[bool, str | None]:
         """Destroy Pulumi stack."""
         try:
             destroy_process = await asyncio.create_subprocess_exec(
@@ -1204,9 +1173,7 @@ def create_microservice_infrastructure(
 ) -> InfrastructureStack:
     """Create infrastructure stack for microservice."""
     generator = TerraformGenerator()
-    return generator.generate_microservice_infrastructure(
-        deployment_config, cloud_provider
-    )
+    return generator.generate_microservice_infrastructure(deployment_config, cloud_provider)
 
 
 async def deploy_infrastructure(

@@ -41,9 +41,7 @@ class AuthenticationManager:
         self.refresh_token_expiry = timedelta(days=30)
 
         # Rate limiting
-        self.failed_attempts: builtins.dict[str, builtins.list[datetime]] = defaultdict(
-            list
-        )
+        self.failed_attempts: builtins.dict[str, builtins.list[datetime]] = defaultdict(list)
         self.locked_accounts: builtins.dict[str, datetime] = {}
 
         # Security policies
@@ -284,9 +282,7 @@ class AuthenticationManager:
         if len(self.failed_attempts[principal_id]) >= 5:
             self.locked_accounts[principal_id] = now + timedelta(minutes=30)
 
-    def validate_password_policy(
-        self, password: str
-    ) -> builtins.tuple[bool, builtins.list[str]]:
+    def validate_password_policy(self, password: str) -> builtins.tuple[bool, builtins.list[str]]:
         """Validate password against policy."""
         errors = []
 
@@ -295,14 +291,10 @@ class AuthenticationManager:
                 f"Password must be at least {self.password_policy['min_length']} characters"
             )
 
-        if self.password_policy["require_uppercase"] and not re.search(
-            r"[A-Z]", password
-        ):
+        if self.password_policy["require_uppercase"] and not re.search(r"[A-Z]", password):
             errors.append("Password must contain uppercase letters")
 
-        if self.password_policy["require_lowercase"] and not re.search(
-            r"[a-z]", password
-        ):
+        if self.password_policy["require_lowercase"] and not re.search(r"[a-z]", password):
             errors.append("Password must contain lowercase letters")
 
         if self.password_policy["require_numbers"] and not re.search(r"\d", password):

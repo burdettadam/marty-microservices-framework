@@ -23,6 +23,7 @@ class MockMetricsCollector:
     def start_timer(self, name: str, labels=None):
         return MockTimer()
 
+
 class MockTimer:
     def __enter__(self):
         return self
@@ -33,9 +34,11 @@ class MockTimer:
     def stop(self):
         pass
 
+
 class MockTracer:
     def start_span(self, name: str):
         return MockSpan()
+
 
 class MockSpan:
     def __enter__(self):
@@ -46,6 +49,7 @@ class MockSpan:
 
     def set_attribute(self, key: str, value):
         pass
+
 
 # Test fixtures
 @pytest.fixture
@@ -91,18 +95,20 @@ def mock_plugin_manager():
     manager.get_plugin = Mock(return_value=None)
     return manager
 
+
 @pytest.fixture
 def marty_config():
     """Create test Marty configuration."""
     try:
         from plugins.marty.plugin_config import MartyTrustPKIConfig
+
         return MartyTrustPKIConfig(
             trust_anchor_url="https://test-trust.example.com",
             pkd_url="https://test-pkd.example.com",
             document_signer_url="https://test-signer.example.com",
             signing_algorithms=["RSA-SHA256", "ECDSA-SHA256"],
             certificate_validation_enabled=True,
-            require_mutual_tls=True
+            require_mutual_tls=True,
         )
     except ImportError:
         # Return mock config if MartyTrustPKIConfig isn't available
@@ -112,8 +118,9 @@ def marty_config():
             "document_signer_url": "https://test-signer.example.com",
             "signing_algorithms": ["RSA-SHA256", "ECDSA-SHA256"],
             "certificate_validation_enabled": True,
-            "require_mutual_tls": True
+            "require_mutual_tls": True,
         }
+
 
 # Test Plugin Classes for Testing
 class MockPlugin(MMFPlugin):
@@ -127,9 +134,7 @@ class MockPlugin(MMFPlugin):
     @property
     def metadata(self) -> PluginMetadata:
         return PluginMetadata(
-            name="test-plugin",
-            version="1.0.0",
-            description="Test plugin for unit testing"
+            name="test-plugin", version="1.0.0", description="Test plugin for unit testing"
         )
 
     async def _initialize_plugin(self):
@@ -142,10 +147,8 @@ class MockPlugin(MMFPlugin):
         self.started = False
 
     async def get_health_status(self):
-        return {
-            "status": "healthy" if self.started else "stopped",
-            "initialized": self.initialized
-        }
+        return {"status": "healthy" if self.started else "stopped", "initialized": self.initialized}
+
 
 class FailingPlugin(MMFPlugin):
     """Plugin that fails during operations for testing error handling."""
@@ -157,9 +160,7 @@ class FailingPlugin(MMFPlugin):
     @property
     def metadata(self) -> PluginMetadata:
         return PluginMetadata(
-            name="failing-plugin",
-            version="1.0.0",
-            description="Plugin that fails for testing"
+            name="failing-plugin", version="1.0.0", description="Plugin that fails for testing"
         )
 
     async def _initialize_plugin(self):
@@ -174,6 +175,7 @@ class FailingPlugin(MMFPlugin):
     async def get_health_status(self):
         return {"status": "error", "error": "Plugin in error state"}
 
+
 class FailingStartPlugin(MMFPlugin):
     """Plugin that fails only during start for testing error handling."""
 
@@ -184,9 +186,7 @@ class FailingStartPlugin(MMFPlugin):
     @property
     def metadata(self) -> PluginMetadata:
         return PluginMetadata(
-            name="failing-start-plugin",
-            version="1.0.0",
-            description="Plugin that fails on start"
+            name="failing-start-plugin", version="1.0.0", description="Plugin that fails on start"
         )
 
     async def _initialize_plugin(self):
@@ -205,10 +205,12 @@ class FailingStartPlugin(MMFPlugin):
 # Keep TestPlugin for backward compatibility
 TestPlugin = MockPlugin
 
+
 # Configure pytest for async tests
 def pytest_configure(config):
     """Configure pytest for the plugin test suite."""
     config.addinivalue_line("markers", "asyncio: mark test as async")
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -216,6 +218,7 @@ def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
 
 @pytest.fixture
 def mock_mmf_services():
@@ -279,6 +282,7 @@ def mock_mmf_services():
 
     return services
 
+
 @pytest.fixture
 def test_plugin_directory(tmp_path):
     """Create a temporary directory structure for testing plugins."""
@@ -303,7 +307,7 @@ def test_plugin_directory(tmp_path):
     (sample_plugin / "manifest.json").write_text(manifest_content)
 
     # Create plugin module
-    plugin_content = '''
+    plugin_content = """
 from typing import Dict, Any
 
 class SamplePlugin:
@@ -328,11 +332,12 @@ class SamplePlugin:
 
 def create_plugin():
     return SamplePlugin()
-'''
+"""
 
     (sample_plugin / "plugin.py").write_text(plugin_content)
 
     return plugin_dir
+
 
 @pytest.fixture
 def test_config_directory(tmp_path):
@@ -342,13 +347,7 @@ def test_config_directory(tmp_path):
 
     # Create sample configurations
     configs = {
-        "base.json": {
-            "environment": "test",
-            "debug": True,
-            "plugins": {
-                "enabled": True
-            }
-        },
+        "base.json": {"environment": "test", "debug": True, "plugins": {"enabled": True}},
         "marty.json": {
             "enabled": True,
             "trust_anchor_url": "https://test-trust.example.com",
@@ -356,7 +355,7 @@ def test_config_directory(tmp_path):
             "document_signer_url": "https://test-signer.example.com",
             "signing_algorithms": ["RSA-SHA256", "ECDSA-SHA256"],
             "certificate_validation_enabled": True,
-            "require_mutual_tls": False
+            "require_mutual_tls": False,
         },
         "test-plugin.yaml": """
 enabled: true
@@ -369,13 +368,9 @@ list_setting:
 """,
         "development.json": {
             "log_level": "DEBUG",
-            "database": {
-                "url": "sqlite:///test.db"
-            },
-            "cache": {
-                "type": "memory"
-            }
-        }
+            "database": {"url": "sqlite:///test.db"},
+            "cache": {"type": "memory"},
+        },
     }
 
     import json
@@ -385,17 +380,18 @@ list_setting:
     for filename, config_data in configs.items():
         config_file = config_dir / filename
 
-        if filename.endswith('.json'):
-            with open(config_file, 'w') as f:
+        if filename.endswith(".json"):
+            with open(config_file, "w") as f:
                 json.dump(config_data, f, indent=2)
-        elif filename.endswith('.yaml') or filename.endswith('.yml'):
-            with open(config_file, 'w') as f:
+        elif filename.endswith(".yaml") or filename.endswith(".yml"):
+            with open(config_file, "w") as f:
                 if isinstance(config_data, str):
                     f.write(config_data)
                 else:
                     yaml.dump(config_data, f)
 
     return config_dir
+
 
 @pytest.fixture
 def plugin_test_data():
@@ -407,7 +403,7 @@ def plugin_test_data():
             "description": "Test plugin for unit testing",
             "author": "Test Author",
             "dependencies": ["dependency1"],
-            "optional_dependencies": ["optional1"]
+            "optional_dependencies": ["optional1"],
         },
         "service_definition": {
             "name": "test-service",
@@ -415,10 +411,10 @@ def plugin_test_data():
             "description": "Test service",
             "routes": {
                 "/api/test": {"methods": ["GET"], "handler": "test_handler"},
-                "/api/status": {"methods": ["GET"], "handler": "status_handler"}
+                "/api/status": {"methods": ["GET"], "handler": "status_handler"},
             },
             "dependencies": ["database"],
-            "health_check_path": "/health"
+            "health_check_path": "/health",
         },
         "marty_config": {
             "trust_anchor_url": "https://test-trust.example.com",
@@ -426,12 +422,12 @@ def plugin_test_data():
             "document_signer_url": "https://test-signer.example.com",
             "signing_algorithms": ["RSA-SHA256", "ECDSA-SHA256"],
             "certificate_validation_enabled": True,
-            "require_mutual_tls": True
+            "require_mutual_tls": True,
         },
         "test_certificates": {
             "valid_cert": "-----BEGIN CERTIFICATE-----\nMIICWjCCAcMCAg...\n-----END CERTIFICATE-----",
             "expired_cert": "-----BEGIN CERTIFICATE-----\nMIICWjCCAcMCAg...\n-----END CERTIFICATE-----",
-            "invalid_cert": "invalid certificate data"
+            "invalid_cert": "invalid certificate data",
         },
         "pki_test_data": {
             "document_to_sign": b"test document content for signing",
@@ -440,7 +436,7 @@ def plugin_test_data():
                 "certificate": "-----BEGIN CERTIFICATE-----...",
                 "issuer": "Test CA",
                 "valid_from": "2024-01-01",
-                "valid_to": "2025-01-01"
+                "valid_to": "2025-01-01",
             },
             "pkd_entry": {
                 "certificate_id": "cert_123",
@@ -448,16 +444,18 @@ def plugin_test_data():
                 "subject": "Test Subject",
                 "serial_number": "123456789",
                 "valid_from": "2024-01-01",
-                "valid_to": "2025-01-01"
-            }
-        }
+                "valid_to": "2025-01-01",
+            },
+        },
     }
+
 
 # Pytest markers for test categorization
 pytest.mark.unit = pytest.mark.unit
 pytest.mark.integration = pytest.mark.integration
 pytest.mark.performance = pytest.mark.performance
 pytest.mark.security = pytest.mark.security
+
 
 # Test collection configuration
 def pytest_collection_modifyitems(config, items):

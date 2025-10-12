@@ -186,7 +186,9 @@ class AuditEvent:
 
     def get_hash(self) -> str:
         """Get hash of event for integrity verification."""
-        event_string = f"{self.event_id}{self.timestamp.isoformat()}{self.event_type.value}{self.action}"
+        event_string = (
+            f"{self.event_id}{self.timestamp.isoformat()}{self.event_type.value}{self.action}"
+        )
         return hashlib.sha256(event_string.encode()).hexdigest()
 
 
@@ -247,9 +249,7 @@ class AuditEventBuilder:
             self._event.endpoint = endpoint
         return self
 
-    def resource(
-        self, resource_type: str, resource_id: str | None = None
-    ) -> "AuditEventBuilder":
+    def resource(self, resource_type: str, resource_id: str | None = None) -> "AuditEventBuilder":
         self._event.resource_type = resource_type
         self._event.resource_id = resource_id
         return self
@@ -340,9 +340,7 @@ class AuditEncryption:
         )
         return kdf.derive(key_material.encode())
 
-    def encrypt_sensitive_data(
-        self, data: builtins.dict[str, Any]
-    ) -> builtins.dict[str, Any]:
+    def encrypt_sensitive_data(self, data: builtins.dict[str, Any]) -> builtins.dict[str, Any]:
         """Encrypt sensitive fields in audit data."""
         if not data:
             return data
@@ -353,9 +351,7 @@ class AuditEncryption:
                 encrypted_data[f"{key}_encrypted"] = True
         return encrypted_data
 
-    def decrypt_sensitive_data(
-        self, data: builtins.dict[str, Any]
-    ) -> builtins.dict[str, Any]:
+    def decrypt_sensitive_data(self, data: builtins.dict[str, Any]) -> builtins.dict[str, Any]:
         """Decrypt sensitive fields in audit data."""
         if not data:
             return data

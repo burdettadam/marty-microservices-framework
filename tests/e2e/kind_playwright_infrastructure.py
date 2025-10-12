@@ -31,10 +31,12 @@ class KindClusterManager:
         self.kubectl_context = f"kind-{cluster_name}"
         self.docker_client = docker.from_env()
 
-    def create_cluster_config(self,
-                             control_plane_port: int = 30080,
-                             dashboard_port: int = 30081,
-                             metrics_port: int = 30082) -> Path:
+    def create_cluster_config(
+        self,
+        control_plane_port: int = 30080,
+        dashboard_port: int = 30081,
+        metrics_port: int = 30082,
+    ) -> Path:
         """Create Kind cluster configuration with proper port mappings."""
         config_content = {
             "kind": "Cluster",
@@ -50,36 +52,19 @@ nodeRegistration:
     node-labels: "ingress-ready=true" """
                     ],
                     "extraPortMappings": [
-                        {
-                            "containerPort": 80,
-                            "hostPort": control_plane_port,
-                            "protocol": "TCP"
-                        },
-                        {
-                            "containerPort": 8080,
-                            "hostPort": dashboard_port,
-                            "protocol": "TCP"
-                        },
-                        {
-                            "containerPort": 9090,
-                            "hostPort": metrics_port,
-                            "protocol": "TCP"
-                        }
-                    ]
+                        {"containerPort": 80, "hostPort": control_plane_port, "protocol": "TCP"},
+                        {"containerPort": 8080, "hostPort": dashboard_port, "protocol": "TCP"},
+                        {"containerPort": 9090, "hostPort": metrics_port, "protocol": "TCP"},
+                    ],
                 },
-                {
-                    "role": "worker",
-                    "labels": {"node-type": "worker"}
-                }
+                {"role": "worker", "labels": {"node-type": "worker"}},
             ],
-            "networking": {
-                "apiServerAddress": "127.0.0.1"
-            }
+            "networking": {"apiServerAddress": "127.0.0.1"},
         }
 
         # Write to temporary file
         config_file = Path(tempfile.mkdtemp()) / "kind-config.yaml"
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             yaml.dump(config_content, f)
 
         self.cluster_config_path = config_file
@@ -89,11 +74,7 @@ nodeRegistration:
         """Create Kind cluster and wait for it to be ready."""
         try:
             # Check if cluster already exists
-            result = subprocess.run(
-                ["kind", "get", "clusters"],
-                capture_output=True,
-                text=True
-            )
+            result = subprocess.run(["kind", "get", "clusters"], capture_output=True, text=True)
 
             if self.cluster_name in result.stdout:
                 print(f"Cluster {self.cluster_name} already exists, deleting first...")
@@ -105,10 +86,15 @@ nodeRegistration:
 
             print(f"Creating Kind cluster: {self.cluster_name}")
             create_cmd = [
-                "kind", "create", "cluster",
-                "--name", self.cluster_name,
-                "--config", str(self.cluster_config_path),
-                "--wait", f"{wait_timeout}s"
+                "kind",
+                "create",
+                "cluster",
+                "--name",
+                self.cluster_name,
+                "--config",
+                str(self.cluster_config_path),
+                "--wait",
+                f"{wait_timeout}s",
             ]
 
             result = subprocess.run(create_cmd, capture_output=True, text=True)
@@ -136,7 +122,7 @@ nodeRegistration:
             result = subprocess.run(
                 ["kind", "delete", "cluster", "--name", self.cluster_name],
                 capture_output=True,
-                text=True
+                text=True,
             )
 
             if result.returncode != 0:
@@ -170,8 +156,7 @@ nodeRegistration:
 
                 for node in nodes.items:
                     for condition in node.status.conditions:
-                        if (condition.type == "Ready" and
-                            condition.status == "True"):
+                        if condition.type == "Ready" and condition.status == "True":
                             ready_nodes += 1
                             break
 
@@ -196,10 +181,9 @@ class MicroserviceDeployer:
         self.cluster_manager = cluster_manager
         self.deployed_services: list[str] = []
 
-    async def deploy_test_service(self,
-                                 service_name: str = "test-microservice",
-                                 port: int = 8080,
-                                 replicas: int = 2) -> bool:
+    async def deploy_test_service(
+        self, service_name: str = "test-microservice", port: int = 8080, replicas: int = 2
+    ) -> bool:
         """Deploy a test microservice to the cluster."""
         try:
             # Create deployment YAML
@@ -211,16 +195,10 @@ class MicroserviceDeployer:
             core_v1 = client.CoreV1Api()
 
             # Create deployment
-            apps_v1.create_namespaced_deployment(
-                namespace="default",
-                body=deployment
-            )
+            apps_v1.create_namespaced_deployment(namespace="default", body=deployment)
 
             # Create service
-            core_v1.create_namespaced_service(
-                namespace="default",
-                body=service_yaml
-            )
+            core_v1.create_namespaced_service(namespace="default", body=service_yaml)
 
             # Wait for deployment to be ready
             await self._wait_for_deployment_ready(service_name)
@@ -242,7 +220,7 @@ class MicroserviceDeployer:
             "apiVersion": "v1",
             "kind": "ConfigMap",
             "metadata": {"name": "dashboard-html"},
-            "data": {"index.html": dashboard_html}
+            "data": {"index.html": dashboard_html},
         }
 
         # Create deployment that serves the HTML
@@ -256,22 +234,20 @@ class MicroserviceDeployer:
                 "template": {
                     "metadata": {"labels": {"app": "dashboard"}},
                     "spec": {
-                        "containers": [{
-                            "name": "nginx",
-                            "image": "nginx:alpine",
-                            "ports": [{"containerPort": 80}],
-                            "volumeMounts": [{
-                                "name": "html",
-                                "mountPath": "/usr/share/nginx/html"
-                            }]
-                        }],
-                        "volumes": [{
-                            "name": "html",
-                            "configMap": {"name": "dashboard-html"}
-                        }]
-                    }
-                }
-            }
+                        "containers": [
+                            {
+                                "name": "nginx",
+                                "image": "nginx:alpine",
+                                "ports": [{"containerPort": 80}],
+                                "volumeMounts": [
+                                    {"name": "html", "mountPath": "/usr/share/nginx/html"}
+                                ],
+                            }
+                        ],
+                        "volumes": [{"name": "html", "configMap": {"name": "dashboard-html"}}],
+                    },
+                },
+            },
         }
 
         # Create NodePort service
@@ -281,14 +257,9 @@ class MicroserviceDeployer:
             "metadata": {"name": "dashboard"},
             "spec": {
                 "selector": {"app": "dashboard"},
-                "ports": [{
-                    "port": 80,
-                    "targetPort": 80,
-                    "nodePort": 30081,
-                    "protocol": "TCP"
-                }],
-                "type": "NodePort"
-            }
+                "ports": [{"port": 80, "targetPort": 80, "nodePort": 30081, "protocol": "TCP"}],
+                "type": "NodePort",
+            },
         }
 
         try:
@@ -296,22 +267,13 @@ class MicroserviceDeployer:
             apps_v1 = client.AppsV1Api()
 
             # Create ConfigMap
-            core_v1.create_namespaced_config_map(
-                namespace="default",
-                body=configmap
-            )
+            core_v1.create_namespaced_config_map(namespace="default", body=configmap)
 
             # Create deployment
-            apps_v1.create_namespaced_deployment(
-                namespace="default",
-                body=deployment
-            )
+            apps_v1.create_namespaced_deployment(namespace="default", body=deployment)
 
             # Create service
-            core_v1.create_namespaced_service(
-                namespace="default",
-                body=service
-            )
+            core_v1.create_namespaced_service(namespace="default", body=service)
 
             # Wait for deployment
             await self._wait_for_deployment_ready("dashboard")
@@ -336,18 +298,20 @@ class MicroserviceDeployer:
                 "template": {
                     "metadata": {"labels": {"app": name}},
                     "spec": {
-                        "containers": [{
-                            "name": name,
-                            "image": "nginx:alpine",
-                            "ports": [{"containerPort": port}],
-                            "env": [
-                                {"name": "SERVICE_NAME", "value": name},
-                                {"name": "SERVICE_PORT", "value": str(port)}
-                            ]
-                        }]
-                    }
-                }
-            }
+                        "containers": [
+                            {
+                                "name": name,
+                                "image": "nginx:alpine",
+                                "ports": [{"containerPort": port}],
+                                "env": [
+                                    {"name": "SERVICE_NAME", "value": name},
+                                    {"name": "SERVICE_PORT", "value": str(port)},
+                                ],
+                            }
+                        ]
+                    },
+                },
+            },
         }
 
     def _create_service_yaml(self, name: str, port: int) -> dict:
@@ -358,13 +322,9 @@ class MicroserviceDeployer:
             "metadata": {"name": name},
             "spec": {
                 "selector": {"app": name},
-                "ports": [{
-                    "port": port,
-                    "targetPort": port,
-                    "protocol": "TCP"
-                }],
-                "type": "ClusterIP"
-            }
+                "ports": [{"port": port, "targetPort": port, "protocol": "TCP"}],
+                "type": "ClusterIP",
+            },
         }
 
     def _create_dashboard_html(self) -> str:
@@ -432,13 +392,12 @@ class MicroserviceDeployer:
 
         while time.time() - start_time < timeout:
             try:
-                deployment = apps_v1.read_namespaced_deployment(
-                    name=name,
-                    namespace="default"
-                )
+                deployment = apps_v1.read_namespaced_deployment(name=name, namespace="default")
 
-                if (deployment.status.ready_replicas and
-                    deployment.status.ready_replicas == deployment.spec.replicas):
+                if (
+                    deployment.status.ready_replicas
+                    and deployment.status.ready_replicas == deployment.spec.replicas
+                ):
                     print(f"✅ Deployment {name} is ready")
                     return
 
@@ -460,16 +419,10 @@ class MicroserviceDeployer:
             for service_name in self.deployed_services:
                 try:
                     # Delete deployment
-                    apps_v1.delete_namespaced_deployment(
-                        name=service_name,
-                        namespace="default"
-                    )
+                    apps_v1.delete_namespaced_deployment(name=service_name, namespace="default")
 
                     # Delete service
-                    core_v1.delete_namespaced_service(
-                        name=service_name,
-                        namespace="default"
-                    )
+                    core_v1.delete_namespaced_service(name=service_name, namespace="default")
 
                     print(f"✅ Cleaned up service: {service_name}")
 
@@ -478,10 +431,7 @@ class MicroserviceDeployer:
 
             # Clean up ConfigMaps
             try:
-                core_v1.delete_namespaced_config_map(
-                    name="dashboard-html",
-                    namespace="default"
-                )
+                core_v1.delete_namespaced_config_map(name="dashboard-html", namespace="default")
             except Exception as cleanup_error:
                 print(f"Warning: Could not remove dashboard ConfigMap: {cleanup_error}")
 
@@ -505,8 +455,7 @@ class PlaywrightTester:
         """Setup Playwright browser."""
         self.playwright = await async_playwright().start()
         self.browser = await self.playwright.chromium.launch(
-            headless=headless,
-            args=['--no-sandbox', '--disable-dev-shm-usage']
+            headless=headless, args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
         self.page = await self.browser.new_page()
 
@@ -519,7 +468,7 @@ class PlaywrightTester:
             "title": None,
             "services_count": 0,
             "refresh_button_works": False,
-            "screenshot_taken": False
+            "screenshot_taken": False,
         }
 
         try:
@@ -571,7 +520,7 @@ class PlaywrightTester:
             "url": url,
             "accessible": False,
             "status_code": None,
-            "response_time_ms": None
+            "response_time_ms": None,
         }
 
         try:
@@ -583,7 +532,9 @@ class PlaywrightTester:
             results["status_code"] = response.status
             results["response_time_ms"] = round((end_time - start_time) * 1000, 2)
 
-            print(f"✅ Service {service_name} health check: {response.status} ({results['response_time_ms']}ms)")
+            print(
+                f"✅ Service {service_name} health check: {response.status} ({results['response_time_ms']}ms)"
+            )
 
         except Exception as e:
             print(f"❌ Service {service_name} health check failed: {e}")
@@ -597,7 +548,7 @@ class PlaywrightTester:
         results = {
             "desktop": {"width": 1200, "height": 800, "screenshot": None},
             "tablet": {"width": 768, "height": 1024, "screenshot": None},
-            "mobile": {"width": 375, "height": 667, "screenshot": None}
+            "mobile": {"width": 375, "height": 667, "screenshot": None},
         }
 
         try:
@@ -606,15 +557,16 @@ class PlaywrightTester:
             for device, dimensions in results.items():
                 # Set viewport size
                 await self.page.set_viewport_size(
-                    width=dimensions["width"],
-                    height=dimensions["height"]
+                    width=dimensions["width"], height=dimensions["height"]
                 )
 
                 # Wait for layout adjustment
                 await asyncio.sleep(1)
 
                 # Take screenshot
-                screenshot_path = self.screenshots_dir / f"dashboard_{device}_{int(time.time())}.png"
+                screenshot_path = (
+                    self.screenshots_dir / f"dashboard_{device}_{int(time.time())}.png"
+                )
                 await self.page.screenshot(path=screenshot_path)
                 dimensions["screenshot"] = str(screenshot_path)
 
@@ -632,14 +584,13 @@ class PlaywrightTester:
             await self.page.close()
         if self.browser:
             await self.browser.close()
-        if hasattr(self, 'playwright'):
+        if hasattr(self, "playwright"):
             await self.playwright.stop()
 
 
 @asynccontextmanager
 async def kind_playwright_test_environment(
-    cluster_name: str = "e2e-test",
-    cleanup_on_exit: bool = True
+    cluster_name: str = "e2e-test", cleanup_on_exit: bool = True
 ):
     """
     Context manager for Kind + Playwright test environment.
@@ -703,11 +654,15 @@ async def run_basic_kind_playwright_test():
         print(f"Dashboard accessible: {dashboard_results['accessible']}")
         print(f"Services found: {dashboard_results['services_count']}")
         print(f"Refresh button works: {dashboard_results['refresh_button_works']}")
-        print(f"Screenshots taken: {len([r for r in responsive_results.values() if 'screenshot' in r])}")
+        print(
+            f"Screenshots taken: {len([r for r in responsive_results.values() if 'screenshot' in r])}"
+        )
 
-        return dashboard_results['accessible']
+        return dashboard_results["accessible"]
 
 
 if __name__ == "__main__":
     print("Kind + Playwright E2E Test Infrastructure")
-    print("Run: python -c 'from tests.e2e.kind_playwright_infrastructure import run_basic_kind_playwright_test; import asyncio; asyncio.run(run_basic_kind_playwright_test())'")
+    print(
+        "Run: python -c 'from tests.e2e.kind_playwright_infrastructure import run_basic_kind_playwright_test; import asyncio; asyncio.run(run_basic_kind_playwright_test())'"
+    )

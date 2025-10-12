@@ -323,9 +323,7 @@ class EventStream:
         """Get event by index."""
         return self.events[index]
 
-    def slice(
-        self, from_version: int = 0, to_version: int | None = None
-    ) -> "EventStream":
+    def slice(self, from_version: int = 0, to_version: int | None = None) -> "EventStream":
         """Get slice of events."""
         if to_version is None:
             sliced_events = self.events[from_version:]
@@ -363,9 +361,7 @@ class InMemoryEventBus(EventBus):
     """In-memory event bus implementation."""
 
     def __init__(self):
-        self._handlers: builtins.dict[str, builtins.list[EventHandler]] = defaultdict(
-            list
-        )
+        self._handlers: builtins.dict[str, builtins.list[EventHandler]] = defaultdict(list)
         self._global_handlers: builtins.list[EventHandler] = []
         self._lock = asyncio.Lock()
 

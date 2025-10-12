@@ -46,26 +46,19 @@ class GenericPluginConfig(PluginConfigSection):
     # Feature flags
     feature_flags: dict[str, bool] = Field(default_factory=dict, description="Feature flags")
     certificate_validation_enabled: bool = Field(
-        default=True,
-        description="Enable certificate validation"
+        default=True, description="Enable certificate validation"
     )
-    certificate_cache_size: int = Field(
-        default=1000,
-        description="Certificate cache size"
-    )
+    certificate_cache_size: int = Field(default=1000, description="Certificate cache size")
 
     # Security settings
-    require_mutual_tls: bool = Field(
-        default=False,
-        description="Require mutual TLS authentication"
-    )
+    require_mutual_tls: bool = Field(default=False, description="Require mutual TLS authentication")
     allowed_cipher_suites: list[str] = Field(
         default_factory=lambda: [
             "TLS_AES_256_GCM_SHA384",
             "TLS_CHACHA20_POLY1305_SHA256",
-            "TLS_AES_128_GCM_SHA256"
+            "TLS_AES_128_GCM_SHA256",
         ],
-        description="Allowed TLS cipher suites"
+        description="Allowed TLS cipher suites",
     )
 
 
@@ -76,25 +69,21 @@ class PluginConfig(BaseServiceConfig):
     plugins_enabled: bool = Field(default=True, description="Enable plugin system")
     plugin_discovery_paths: list[str] = Field(
         default_factory=lambda: ["./plugins", "/opt/mmf/plugins"],
-        description="Paths to search for plugins"
+        description="Paths to search for plugins",
     )
     plugin_config_dir: str = Field(
-        default="./config/plugins",
-        description="Directory for plugin configurations"
+        default="./config/plugins", description="Directory for plugin configurations"
     )
     plugin_auto_discovery: bool = Field(
-        default=True,
-        description="Automatically discover plugins in discovery paths"
+        default=True, description="Automatically discover plugins in discovery paths"
     )
     plugin_isolation_level: str = Field(
-        default="process",
-        description="Plugin isolation level: 'thread', 'process', or 'container'"
+        default="process", description="Plugin isolation level: 'thread', 'process', or 'container'"
     )
 
     # Plugin configurations
     plugins: dict[str, PluginConfigSection] = Field(
-        default_factory=dict,
-        description="Plugin-specific configurations"
+        default_factory=dict, description="Plugin-specific configurations"
     )
 
 
@@ -112,6 +101,7 @@ class PluginConfigProvider(ConfigProvider):
 
         if plugin_config_file.exists():
             import yaml
+
             with open(plugin_config_file) as f:
                 config = yaml.safe_load(f) or {}
 
@@ -131,6 +121,7 @@ class PluginConfigProvider(ConfigProvider):
             existing_config = {}
             if plugin_config_file.exists():
                 import yaml
+
                 with open(plugin_config_file) as f:
                     existing_config = yaml.safe_load(f) or {}
 
@@ -139,7 +130,8 @@ class PluginConfigProvider(ConfigProvider):
 
             # Save back to file
             import yaml
-            with open(plugin_config_file, 'w') as f:
+
+            with open(plugin_config_file, "w") as f:
                 yaml.dump(existing_config, f, default_flow_style=False)
 
             return True
@@ -156,7 +148,9 @@ class PluginConfigProvider(ConfigProvider):
 class PluginConfigManager:
     """Manages configurations for multiple plugins."""
 
-    def __init__(self, base_config_manager: ConfigManager, plugin_config_dir: str = "./config/plugins"):
+    def __init__(
+        self, base_config_manager: ConfigManager, plugin_config_dir: str = "./config/plugins"
+    ):
         self.base_config_manager = base_config_manager
         self.plugin_config_dir = Path(plugin_config_dir)
         self.plugin_configs: dict[str, ConfigManager] = {}
@@ -171,13 +165,12 @@ class PluginConfigManager:
         # Create dedicated config manager for this plugin
         plugin_provider = PluginConfigProvider(self.plugin_config_dir, plugin_name)
         self.plugin_configs[plugin_name] = ConfigManager(
-            config_class=config_class,
-            providers=[plugin_provider],
-            cache_ttl=300,
-            auto_reload=True
+            config_class=config_class, providers=[plugin_provider], cache_ttl=300, auto_reload=True
         )
 
-    async def get_plugin_config(self, plugin_name: str, config_key: str = "default") -> PluginConfigSection:
+    async def get_plugin_config(
+        self, plugin_name: str, config_key: str = "default"
+    ) -> PluginConfigSection:
         """Get configuration for a specific plugin."""
         if plugin_name not in self.plugin_configs:
             # Create default config manager for unknown plugins
@@ -185,7 +178,9 @@ class PluginConfigManager:
 
         return await self.plugin_configs[plugin_name].get_config(config_key)
 
-    async def load_plugin_config(self, plugin_name: str, config_class: type[PluginConfigSection]) -> PluginConfigSection:
+    async def load_plugin_config(
+        self, plugin_name: str, config_class: type[PluginConfigSection]
+    ) -> PluginConfigSection:
         """Load configuration for a specific plugin with a specified config class.
 
         Args:
@@ -228,7 +223,9 @@ class PluginConfigManager:
             logger.error(f"Plugin config validation failed for {plugin_name}: {e}")
             return False
 
-    async def update_plugin_config(self, plugin_name: str, config_key: str, config_data: dict[str, Any]) -> bool:
+    async def update_plugin_config(
+        self, plugin_name: str, config_key: str, config_data: dict[str, Any]
+    ) -> bool:
         """Update plugin configuration."""
         # Validate first
         if not await self.validate_plugin_config(plugin_name, config_data):
@@ -291,22 +288,16 @@ class PluginConfigManager:
 def create_plugin_config_manager(
     config_dir: str = "./config",
     plugin_config_dir: str = "./config/plugins",
-    providers: list[ConfigProvider] | None = None
+    providers: list[ConfigProvider] | None = None,
 ) -> PluginConfigManager:
     """Create a plugin configuration manager with default providers."""
     from .manager import EnvVarConfigProvider, FileConfigProvider
 
     if providers is None:
-        providers = [
-            FileConfigProvider(Path(config_dir)),
-            EnvVarConfigProvider("MMF")
-        ]
+        providers = [FileConfigProvider(Path(config_dir)), EnvVarConfigProvider("MMF")]
 
     base_config_manager = ConfigManager(
-        config_class=PluginConfig,
-        providers=providers,
-        cache_ttl=300,
-        auto_reload=True
+        config_class=PluginConfig, providers=providers, cache_ttl=300, auto_reload=True
     )
 
     return PluginConfigManager(base_config_manager, plugin_config_dir)

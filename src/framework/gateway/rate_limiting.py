@@ -204,9 +204,7 @@ class MemoryRateLimitStorage(RateLimitStorage):
         current_time = time.time()
         with self._lock:
             expired_keys = [
-                key
-                for key, (_, expires_at) in self._storage.items()
-                if current_time >= expires_at
+                key for key, (_, expires_at) in self._storage.items() if current_time >= expires_at
             ]
             for key in expired_keys:
                 del self._storage[key]
@@ -284,18 +282,14 @@ class RateLimiter(ABC):
         key_parts = []
 
         if self.config.include_ip:
-            ip = request.get_header("X-Forwarded-For") or request.get_header(
-                "X-Real-IP"
-            )
+            ip = request.get_header("X-Forwarded-For") or request.get_header("X-Real-IP")
             if ip:
                 # Take first IP in case of comma-separated list
                 ip = ip.split(",")[0].strip()
                 key_parts.append(f"ip:{ip}")
 
         if self.config.include_user_id:
-            user_id = request.get_header("X-User-ID") or request.get_header(
-                "Authorization"
-            )
+            user_id = request.get_header("X-User-ID") or request.get_header("Authorization")
             if user_id:
                 # Hash authorization header for privacy
                 if user_id.startswith("Bearer "):
@@ -445,8 +439,7 @@ class FixedWindowRateLimiter(RateLimiter):
 
         # Calculate current window
         window_start = (
-            int(request_time // self.config.window_size_seconds)
-            * self.config.window_size_seconds
+            int(request_time // self.config.window_size_seconds) * self.config.window_size_seconds
         )
 
         state = self.storage.get_state(key) or RateLimitState()
@@ -568,9 +561,7 @@ class SlidingWindowCounterRateLimiter(RateLimiter):
             # Allow request
             state.current_window_count += 1
             allowed = True
-            remaining = max(
-                0, int(self.config.requests_per_window - weighted_count - 1)
-            )
+            remaining = max(0, int(self.config.requests_per_window - weighted_count - 1))
         else:
             # Rate limit exceeded
             allowed = False
@@ -613,9 +604,7 @@ class RateLimitMiddleware:
 
         limiter_class = algorithm_map.get(self.config.algorithm)
         if not limiter_class:
-            raise ValueError(
-                f"Unsupported rate limiting algorithm: {self.config.algorithm}"
-            )
+            raise ValueError(f"Unsupported rate limiting algorithm: {self.config.algorithm}")
 
         return limiter_class(self.config, self.storage)
 
@@ -631,9 +620,7 @@ class RateLimitMiddleware:
                 # Schedule next cleanup
                 import threading
 
-                self._cleanup_timer = threading.Timer(
-                    self.config.cleanup_interval, cleanup
-                )
+                self._cleanup_timer = threading.Timer(self.config.cleanup_interval, cleanup)
                 self._cleanup_timer.daemon = True
                 self._cleanup_timer.start()
 
@@ -736,13 +723,9 @@ class RateLimitManager:
 
     def __init__(self):
         self.limiters: builtins.dict[str, RateLimitMiddleware] = {}
-        self.rules: builtins.list[
-            builtins.tuple[Callable[[GatewayRequest], bool], str]
-        ] = []
+        self.rules: builtins.list[builtins.tuple[Callable[[GatewayRequest], bool], str]] = []
 
-    def add_limiter(
-        self, name: str, config: RateLimitConfig, storage: RateLimitStorage = None
-    ):
+    def add_limiter(self, name: str, config: RateLimitConfig, storage: RateLimitStorage = None):
         """Add rate limiter with given name."""
         self.limiters[name] = RateLimitMiddleware(config, storage)
 

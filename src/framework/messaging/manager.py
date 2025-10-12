@@ -62,9 +62,7 @@ class MessagingConfig:
     backend_config: BackendConfig
 
     # Default settings
-    default_serialization: SerializationConfig = field(
-        default_factory=SerializationConfig
-    )
+    default_serialization: SerializationConfig = field(default_factory=SerializationConfig)
     default_routing: RoutingConfig = field(default_factory=RoutingConfig)
     default_dlq: DLQConfig = field(default_factory=DLQConfig)
 
@@ -148,9 +146,7 @@ class MessagingManager:
             self.router.add_engine("default", default_engine, is_default=True)
 
             # Initialize processing semaphore
-            self._processing_semaphore = asyncio.Semaphore(
-                self.config.max_concurrent_messages
-            )
+            self._processing_semaphore = asyncio.Semaphore(self.config.max_concurrent_messages)
 
             # Start monitoring tasks
             if self.config.enable_health_checks:
@@ -227,9 +223,7 @@ class MessagingManager:
         if self.config.auto_create_queues:
             return await self.create_queue(config)
 
-        raise ValueError(
-            f"Queue {config.name} does not exist and auto_create_queues is disabled"
-        )
+        raise ValueError(f"Queue {config.name} does not exist and auto_create_queues is disabled")
 
     async def delete_queue(self, queue_name: str, if_empty: bool = False) -> bool:
         """Delete a queue."""
@@ -321,9 +315,7 @@ class MessagingManager:
 
     # Consumer Management
 
-    async def create_consumer(
-        self, config: ConsumerConfig, handler: MessageHandler
-    ) -> Consumer:
+    async def create_consumer(self, config: ConsumerConfig, handler: MessageHandler) -> Consumer:
         """Create a message consumer."""
         if not self.backend:
             raise RuntimeError("Backend not initialized")
@@ -431,9 +423,7 @@ class MessagingManager:
             producer = next(iter(self.producers.values()))
         else:
             # Create default producer
-            config = ProducerConfig(
-                name="default", routing_key=routing_key, exchange=exchange
-            )
+            config = ProducerConfig(name="default", routing_key=routing_key, exchange=exchange)
             producer = await self.create_producer(config)
 
         # Create message
@@ -528,9 +518,7 @@ class MessagingManager:
         else:
             raise ValueError(f"Routing engine {engine_name} not found")
 
-    def add_routing_engine(
-        self, name: str, config: RoutingConfig, is_default: bool = False
-    ):
+    def add_routing_engine(self, name: str, config: RoutingConfig, is_default: bool = False):
         """Add routing engine."""
         engine = RoutingEngine(config)
         self.router.add_engine(name, engine, is_default)
@@ -602,9 +590,7 @@ class MessagingManager:
                 "state": self.state.value,
                 "uptime": uptime,
                 "backend_type": self.config.backend_config.backend_type.value,
-                "backend_connected": self.backend.is_connected
-                if self.backend
-                else False,
+                "backend_connected": self.backend.is_connected if self.backend else False,
                 **self._stats,
             },
             "producers": producer_stats,
@@ -696,9 +682,7 @@ async def create_simple_messaging_manager(
     return manager
 
 
-def create_messaging_config_from_dict(
-    config_dict: builtins.dict[str, Any]
-) -> MessagingConfig:
+def create_messaging_config_from_dict(config_dict: builtins.dict[str, Any]) -> MessagingConfig:
     """Create messaging config from dictionary."""
     backend_config = BackendConfig(**config_dict.get("backend", {}))
 

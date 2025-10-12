@@ -112,26 +112,16 @@ class RepositoryPatternGenerator(CodePatternGenerator):
 
         for domain_object in spec.domain_objects:
             # Generate interface
-            interface_code = self._generate_repository_interface(
-                domain_object, spec, context
-            )
-            files[
-                f"repositories/{domain_object.lower()}_repository.py"
-            ] = interface_code
+            interface_code = self._generate_repository_interface(domain_object, spec, context)
+            files[f"repositories/{domain_object.lower()}_repository.py"] = interface_code
 
             # Generate implementation
-            impl_code = self._generate_repository_implementation(
-                domain_object, spec, context
-            )
-            files[
-                f"repositories/impl/{domain_object.lower()}_repository_impl.py"
-            ] = impl_code
+            impl_code = self._generate_repository_implementation(domain_object, spec, context)
+            files[f"repositories/impl/{domain_object.lower()}_repository_impl.py"] = impl_code
 
             # Generate unit tests
             test_code = self._generate_repository_tests(domain_object, spec, context)
-            files[
-                f"tests/repositories/test_{domain_object.lower()}_repository.py"
-            ] = test_code
+            files[f"tests/repositories/test_{domain_object.lower()}_repository.py"] = test_code
 
         return files
 
@@ -576,9 +566,7 @@ class FactoryPatternGenerator(CodePatternGenerator):
 
         # Generate concrete factories
         for factory_type in spec.configuration.get("factory_types", ["default"]):
-            concrete_factory = self._generate_concrete_factory(
-                factory_type, spec, context
-            )
+            concrete_factory = self._generate_concrete_factory(factory_type, spec, context)
             files[f"factories/{factory_type}_factory.py"] = concrete_factory
 
         return files
@@ -700,9 +688,7 @@ class {{ factory_type.title() }}Factory(AbstractFactory):
 '''
         )
 
-        return template.render(
-            factory_type=factory_type, domain_objects=spec.domain_objects
-        )
+        return template.render(factory_type=factory_type, domain_objects=spec.domain_objects)
 
 
 class BuilderPatternGenerator(CodePatternGenerator):
@@ -927,9 +913,7 @@ class AdvancedCodeGenerator:
 
         raise ValueError(f"No class definition found in {model_file}")
 
-    def _extract_domain_model(
-        self, class_node: ast.ClassDef, source: str
-    ) -> DomainModel:
+    def _extract_domain_model(self, class_node: ast.ClassDef, source: str) -> DomainModel:
         """Extract domain model information from AST."""
         model_name = class_node.name
         attributes = {}
@@ -945,10 +929,7 @@ class AdvancedCodeGenerator:
                 attributes[attr_name] = attr_type
 
                 # Check for relationships (simple heuristic)
-                if (
-                    "relationship" in attr_type.lower()
-                    or "foreignkey" in attr_type.lower()
-                ):
+                if "relationship" in attr_type.lower() or "foreignkey" in attr_type.lower():
                     relationships[attr_name] = attr_type
 
             elif isinstance(node, ast.FunctionDef):
@@ -970,21 +951,13 @@ class AdvancedCodeGenerator:
         created_files = []
 
         if style == ArchitecturalStyle.LAYERED:
-            created_files.extend(
-                self._generate_layered_architecture(service_name, output_dir)
-            )
+            created_files.extend(self._generate_layered_architecture(service_name, output_dir))
         elif style == ArchitecturalStyle.HEXAGONAL:
-            created_files.extend(
-                self._generate_hexagonal_architecture(service_name, output_dir)
-            )
+            created_files.extend(self._generate_hexagonal_architecture(service_name, output_dir))
         elif style == ArchitecturalStyle.CLEAN:
-            created_files.extend(
-                self._generate_clean_architecture(service_name, output_dir)
-            )
+            created_files.extend(self._generate_clean_architecture(service_name, output_dir))
         elif style == ArchitecturalStyle.CQRS_ES:
-            created_files.extend(
-                self._generate_cqrs_es_architecture(service_name, output_dir)
-            )
+            created_files.extend(self._generate_cqrs_es_architecture(service_name, output_dir))
 
         return created_files
 
@@ -1112,9 +1085,7 @@ class AdvancedCodeGenerator:
             template_content = template_content.replace(placeholder, replacement)
 
         # Apply regex replacements
-        for pattern, replacement in customizations.get(
-            "regex_replacements", {}
-        ).items():
+        for pattern, replacement in customizations.get("regex_replacements", {}).items():
             template_content = re.sub(pattern, replacement, template_content)
 
         # Apply Jinja2 rendering with variables
@@ -1131,9 +1102,7 @@ def create_pattern_specification(
     """Convenience function to create a pattern specification."""
     return CodeGenerationSpec(
         pattern=pattern,
-        architectural_style=kwargs.get(
-            "architectural_style", ArchitecturalStyle.LAYERED
-        ),
+        architectural_style=kwargs.get("architectural_style", ArchitecturalStyle.LAYERED),
         complexity=kwargs.get("complexity", CodeComplexity.MODERATE),
         domain_objects=domain_objects,
         interfaces=kwargs.get("interfaces", []),

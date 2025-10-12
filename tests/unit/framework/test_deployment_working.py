@@ -40,7 +40,7 @@ class TestDeploymentConfiguration:
             provider=InfrastructureProvider.KUBERNETES,
             region="us-west-2",
             cluster="main-cluster",
-            namespace="production"
+            namespace="production",
         )
 
         assert target.name == "production-cluster"
@@ -59,7 +59,7 @@ class TestDeploymentConfiguration:
             memory_limit="1Gi",
             replicas=3,
             min_replicas=2,
-            max_replicas=10
+            max_replicas=10,
         )
 
         assert resources.cpu_request == "200m"
@@ -79,7 +79,7 @@ class TestDeploymentConfiguration:
             period=15,
             timeout=10,
             failure_threshold=5,
-            success_threshold=2
+            success_threshold=2,
         )
 
         assert health_check.path == "/api/health"
@@ -95,7 +95,7 @@ class TestDeploymentConfiguration:
         target = DeploymentTarget(
             name="staging",
             environment=EnvironmentType.STAGING,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
         config = DeploymentConfig(
@@ -105,7 +105,7 @@ class TestDeploymentConfiguration:
             target=target,
             strategy=DeploymentStrategy.BLUE_GREEN,
             environment_variables={"DB_HOST": "localhost", "LOG_LEVEL": "INFO"},
-            labels={"app": "user-service", "version": "1.2.3"}
+            labels={"app": "user-service", "version": "1.2.3"},
         )
 
         assert config.service_name == "user-service"
@@ -125,20 +125,14 @@ class TestDeploymentLifecycle:
         target = DeploymentTarget(
             name="test",
             environment=EnvironmentType.TESTING,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
         config = DeploymentConfig(
-            service_name="test-service",
-            version="1.0.0",
-            image="test-service:1.0.0",
-            target=target
+            service_name="test-service", version="1.0.0", image="test-service:1.0.0", target=target
         )
 
-        deployment = Deployment(
-            id="deployment-123",
-            config=config
-        )
+        deployment = Deployment(id="deployment-123", config=config)
 
         assert deployment.id == "deployment-123"
         assert deployment.config == config
@@ -153,20 +147,14 @@ class TestDeploymentLifecycle:
         target = DeploymentTarget(
             name="test",
             environment=EnvironmentType.TESTING,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
         config = DeploymentConfig(
-            service_name="test-service",
-            version="1.0.0",
-            image="test-service:1.0.0",
-            target=target
+            service_name="test-service", version="1.0.0", image="test-service:1.0.0", target=target
         )
 
-        deployment = Deployment(
-            id="deployment-123",
-            config=config
-        )
+        deployment = Deployment(id="deployment-123", config=config)
 
         # Add events
         deployment.add_event("STARTED", "Deployment started", level="info")
@@ -185,20 +173,14 @@ class TestDeploymentLifecycle:
         target = DeploymentTarget(
             name="test",
             environment=EnvironmentType.TESTING,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
         config = DeploymentConfig(
-            service_name="test-service",
-            version="1.0.0",
-            image="test-service:1.0.0",
-            target=target
+            service_name="test-service", version="1.0.0", image="test-service:1.0.0", target=target
         )
 
-        deployment = Deployment(
-            id="deployment-123",
-            config=config
-        )
+        deployment = Deployment(id="deployment-123", config=config)
 
         # Test status transitions
         assert deployment.status == DeploymentStatus.PENDING
@@ -223,7 +205,7 @@ class TestDeploymentStrategies:
         target = DeploymentTarget(
             name="production",
             environment=EnvironmentType.PRODUCTION,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
         config = DeploymentConfig(
@@ -231,13 +213,10 @@ class TestDeploymentStrategies:
             version="2.0.0",
             image="web-service:2.0.0",
             target=target,
-            strategy=DeploymentStrategy.ROLLING_UPDATE
+            strategy=DeploymentStrategy.ROLLING_UPDATE,
         )
 
-        deployment = Deployment(
-            id="rolling-deploy-1",
-            config=config
-        )
+        deployment = Deployment(id="rolling-deploy-1", config=config)
 
         assert deployment.config.strategy == DeploymentStrategy.ROLLING_UPDATE
         deployment.add_event("ROLLING_UPDATE_STARTED", "Starting rolling update")
@@ -248,7 +227,7 @@ class TestDeploymentStrategies:
         target = DeploymentTarget(
             name="production",
             environment=EnvironmentType.PRODUCTION,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
         config = DeploymentConfig(
@@ -256,13 +235,10 @@ class TestDeploymentStrategies:
             version="3.0.0",
             image="api-service:3.0.0",
             target=target,
-            strategy=DeploymentStrategy.BLUE_GREEN
+            strategy=DeploymentStrategy.BLUE_GREEN,
         )
 
-        deployment = Deployment(
-            id="blue-green-deploy-1",
-            config=config
-        )
+        deployment = Deployment(id="blue-green-deploy-1", config=config)
 
         assert deployment.config.strategy == DeploymentStrategy.BLUE_GREEN
         deployment.add_event("BLUE_GREEN_STARTED", "Starting blue-green deployment")
@@ -277,14 +253,10 @@ class TestDeploymentStrategies:
         target = DeploymentTarget(
             name="production",
             environment=EnvironmentType.PRODUCTION,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
-        resources = ResourceRequirements(
-            replicas=10,
-            min_replicas=2,
-            max_replicas=20
-        )
+        resources = ResourceRequirements(replicas=10, min_replicas=2, max_replicas=20)
 
         config = DeploymentConfig(
             service_name="payment-service",
@@ -292,13 +264,10 @@ class TestDeploymentStrategies:
             image="payment-service:1.5.0",
             target=target,
             strategy=DeploymentStrategy.CANARY,
-            resources=resources
+            resources=resources,
         )
 
-        deployment = Deployment(
-            id="canary-deploy-1",
-            config=config
-        )
+        deployment = Deployment(id="canary-deploy-1", config=config)
 
         assert deployment.config.strategy == DeploymentStrategy.CANARY
         assert deployment.config.resources.replicas == 10
@@ -321,7 +290,7 @@ class TestInfrastructureProviders:
             provider=InfrastructureProvider.KUBERNETES,
             region="us-east-1",
             cluster="production-cluster",
-            namespace="microservices"
+            namespace="microservices",
         )
 
         assert target.provider == InfrastructureProvider.KUBERNETES
@@ -336,7 +305,10 @@ class TestInfrastructureProviders:
             provider=InfrastructureProvider.AWS_EKS,
             region="us-west-2",
             cluster="production-eks",
-            metadata={"account_id": "123456789012", "role_arn": "arn:aws:iam::123456789012:role/EKSRole"}
+            metadata={
+                "account_id": "123456789012",
+                "role_arn": "arn:aws:iam::123456789012:role/EKSRole",
+            },
         )
 
         assert target.provider == InfrastructureProvider.AWS_EKS
@@ -351,7 +323,7 @@ class TestInfrastructureProviders:
             provider=InfrastructureProvider.AZURE_AKS,
             region="eastus",
             cluster="production-aks",
-            metadata={"subscription_id": "sub-123", "resource_group": "production-rg"}
+            metadata={"subscription_id": "sub-123", "resource_group": "production-rg"},
         )
 
         assert target.provider == InfrastructureProvider.AZURE_AKS
@@ -366,7 +338,7 @@ class TestInfrastructureProviders:
             provider=InfrastructureProvider.GCP_GKE,
             region="us-central1",
             cluster="production-gke",
-            metadata={"project_id": "my-project", "zone": "us-central1-a"}
+            metadata={"project_id": "my-project", "zone": "us-central1-a"},
         )
 
         assert target.provider == InfrastructureProvider.GCP_GKE
@@ -383,7 +355,7 @@ class TestDeploymentUtilities:
             name="test-cluster",
             environment=EnvironmentType.TESTING,
             cluster="test-k8s",
-            namespace="testing"
+            namespace="testing",
         )
 
         assert target.name == "test-cluster"
@@ -397,7 +369,7 @@ class TestDeploymentUtilities:
         target = DeploymentTarget(
             name="staging",
             environment=EnvironmentType.STAGING,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
         config = create_deployment_config(
@@ -405,7 +377,7 @@ class TestDeploymentUtilities:
             version="2.1.0",
             image="notification-service:2.1.0",
             target=target,
-            strategy=DeploymentStrategy.ROLLING_UPDATE
+            strategy=DeploymentStrategy.ROLLING_UPDATE,
         )
 
         assert config.service_name == "notification-service"
@@ -423,7 +395,7 @@ class TestDeploymentManager:
         manager = DeploymentManager()
 
         assert manager is not None
-        assert hasattr(manager, 'deployments')
+        assert hasattr(manager, "deployments")
 
     @pytest.mark.asyncio
     async def test_deployment_registration(self):
@@ -433,14 +405,11 @@ class TestDeploymentManager:
         target = DeploymentTarget(
             name="test",
             environment=EnvironmentType.TESTING,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
         config = DeploymentConfig(
-            service_name="test-service",
-            version="1.0.0",
-            image="test-service:1.0.0",
-            target=target
+            service_name="test-service", version="1.0.0", image="test-service:1.0.0", target=target
         )
 
         # Create mock provider
@@ -464,14 +433,14 @@ class TestDeploymentManager:
         target = DeploymentTarget(
             name="test",
             environment=EnvironmentType.TESTING,
-            provider=InfrastructureProvider.KUBERNETES
+            provider=InfrastructureProvider.KUBERNETES,
         )
 
         config = DeploymentConfig(
             service_name="status-test-service",
             version="1.0.0",
             image="status-test-service:1.0.0",
-            target=target
+            target=target,
         )
 
         # Create mock provider
@@ -506,7 +475,7 @@ class TestDeploymentIntegration:
             name="integration-cluster",
             environment=EnvironmentType.STAGING,
             cluster="staging-k8s",
-            namespace="integration"
+            namespace="integration",
         )
 
         # Create configuration
@@ -515,15 +484,10 @@ class TestDeploymentIntegration:
             cpu_limit="2000m",
             memory_request="1Gi",
             memory_limit="4Gi",
-            replicas=3
+            replicas=3,
         )
 
-        health_check = HealthCheck(
-            path="/api/health",
-            port=8080,
-            initial_delay=30,
-            period=10
-        )
+        health_check = HealthCheck(path="/api/health", port=8080, initial_delay=30, period=10)
 
         DeploymentConfig(
             service_name="integration-service",
@@ -534,7 +498,7 @@ class TestDeploymentIntegration:
             resources=resources,
             health_check=health_check,
             environment_variables={"ENV": "staging", "LOG_LEVEL": "DEBUG"},
-            labels={"app": "integration-service", "tier": "backend"}
+            labels={"app": "integration-service", "tier": "backend"},
         )
 
         # Create deployment
@@ -547,7 +511,7 @@ class TestDeploymentIntegration:
             resources=resources,
             health_check=health_check,
             environment_variables={"ENV": "staging", "LOG_LEVEL": "DEBUG"},
-            labels={"app": "integration-service", "tier": "backend"}
+            labels={"app": "integration-service", "tier": "backend"},
         )
 
         # Create mock provider and register it
@@ -601,7 +565,7 @@ class TestDeploymentIntegration:
                 environment=env_type,
                 provider=InfrastructureProvider.KUBERNETES,
                 cluster=cluster_name,
-                namespace=env_type.value
+                namespace=env_type.value,
             )
 
             config = DeploymentConfig(
@@ -609,7 +573,7 @@ class TestDeploymentIntegration:
                 version="1.0.0",
                 image="multi-env-service:1.0.0",
                 target=target,
-                environment_variables={"ENV": env_type.value}
+                environment_variables={"ENV": env_type.value},
             )
 
             # Deploy the configuration

@@ -21,7 +21,6 @@ framework_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(framework_path))
 
 
-
 class TestFullPluginLifecycle:
     """Test complete plugin lifecycle from discovery to shutdown."""
 
@@ -44,14 +43,15 @@ class TestFullPluginLifecycle:
             "author": "Test Suite",
             "entry_point": "plugin.py",
             "dependencies": [],
-            "optional_dependencies": []
+            "optional_dependencies": [],
         }
 
         import json
+
         (test_plugin_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
 
         # Create plugin implementation
-        plugin_code = '''
+        plugin_code = """
 from typing import Dict, Any
 
 class TestIntegrationPlugin:
@@ -76,13 +76,14 @@ class TestIntegrationPlugin:
 
 def create_plugin():
     return TestIntegrationPlugin()
-'''
+"""
 
         (test_plugin_dir / "plugin.py").write_text(plugin_code)
 
         # Test plugin discovery
         try:
             from framework.plugins.discovery import DirectoryPluginDiscoverer
+
             discoverer = DirectoryPluginDiscoverer(plugin_dir)
             plugins = discoverer.discover()
 
@@ -107,7 +108,7 @@ def create_plugin():
             metadata = PluginMetadata(
                 name="integration-test-plugin",
                 version="1.0.0",
-                description="Integration test plugin"
+                description="Integration test plugin",
             )
 
             await manager.register_plugin("integration-test-plugin", plugin, metadata)
@@ -125,6 +126,7 @@ def create_plugin():
         except ImportError:
             # Mock the integration test
             assert True  # Test structure validated
+
 
 class TestServiceRegistrationIntegration:
     """Test service registration and routing integration."""
@@ -160,9 +162,7 @@ class TestServiceRegistrationIntegration:
             service_def = ServiceDefinition(
                 name="test-integration-service",
                 version="1.0.0",
-                routes={
-                    "/api/test": {"methods": ["GET"], "handler": "test_handler"}
-                }
+                routes={"/api/test": {"methods": ["GET"], "handler": "test_handler"}},
             )
 
             service = TestIntegrationService()
@@ -218,8 +218,8 @@ class TestServiceRegistrationIntegration:
                 version="1.0.0",
                 routes={
                     "/api/users": {"methods": ["GET", "POST"], "handler": "handle_users"},
-                    "/api/health": {"methods": ["GET"], "handler": "health_check"}
-                }
+                    "/api/health": {"methods": ["GET"], "handler": "health_check"},
+                },
             )
 
             service = MultiRouteService()
@@ -238,12 +238,14 @@ class TestServiceRegistrationIntegration:
             # Mock the integration test
             assert True  # Test structure validated
 
+
 class TestMMFInfrastructureIntegration:
     """Test integration with MMF infrastructure services."""
 
     @pytest.mark.asyncio
     async def test_database_integration(self, mock_context):
         """Test plugin integration with MMF database service."""
+
         class DatabaseIntegratedService:
             def __init__(self):
                 self.context = None
@@ -265,15 +267,13 @@ class TestMMFInfrastructureIntegration:
                 self.started = True
 
             async def store_data(self, plugin_name: str, data_value: str):
-                await self.context.database.insert("plugin_data", {
-                    "plugin_name": plugin_name,
-                    "data_value": data_value
-                })
+                await self.context.database.insert(
+                    "plugin_data", {"plugin_name": plugin_name, "data_value": data_value}
+                )
 
             async def get_data(self, plugin_name: str):
                 return await self.context.database.query_one(
-                    "SELECT * FROM plugin_data WHERE plugin_name = ?",
-                    (plugin_name,)
+                    "SELECT * FROM plugin_data WHERE plugin_name = ?", (plugin_name,)
                 )
 
         service = DatabaseIntegratedService()
@@ -290,6 +290,7 @@ class TestMMFInfrastructureIntegration:
     @pytest.mark.asyncio
     async def test_cache_integration(self, mock_context):
         """Test plugin integration with MMF cache service."""
+
         class CacheIntegratedService:
             def __init__(self):
                 self.context = None
@@ -327,6 +328,7 @@ class TestMMFInfrastructureIntegration:
     @pytest.mark.asyncio
     async def test_security_integration(self, mock_context):
         """Test plugin integration with MMF security service."""
+
         class SecurityIntegratedService:
             def __init__(self):
                 self.context = None
@@ -341,11 +343,7 @@ class TestMMFInfrastructureIntegration:
                 # Sign data
                 signature = await self.context.security.sign_data(data, key_id)
 
-                return {
-                    "data": data,
-                    "signature": signature,
-                    "key_info": key_info
-                }
+                return {"data": data, "signature": signature, "key_info": key_info}
 
             async def verify_operation(self, data: bytes, signature: bytes, key_id: str):
                 return await self.context.security.verify_signature(data, signature, key_id)
@@ -367,6 +365,7 @@ class TestMMFInfrastructureIntegration:
     @pytest.mark.asyncio
     async def test_observability_integration(self, mock_context):
         """Test plugin integration with MMF observability service."""
+
         class ObservabilityIntegratedService:
             def __init__(self):
                 self.context = None
@@ -381,13 +380,13 @@ class TestMMFInfrastructureIntegration:
             async def tracked_operation(self, operation_name: str):
                 # Increment operation counter
                 self.metrics.increment_counter(
-                    "plugin_operations_total",
-                    labels={"operation": operation_name}
+                    "plugin_operations_total", labels={"operation": operation_name}
                 )
 
                 # Time the operation
-                with self.metrics.start_timer("plugin_operation_duration",
-                                            labels={"operation": operation_name}):
+                with self.metrics.start_timer(
+                    "plugin_operation_duration", labels={"operation": operation_name}
+                ):
                     # Trace the operation
                     with self.tracer.start_span(f"plugin_operation_{operation_name}") as span:
                         span.set_attribute("operation.name", operation_name)
@@ -408,6 +407,7 @@ class TestMMFInfrastructureIntegration:
         mock_context.observability.get_metrics_collector.assert_called_once()
         mock_context.observability.get_tracer.assert_called_once()
 
+
 class TestConfigurationIntegration:
     """Test configuration integration across the plugin system."""
 
@@ -420,11 +420,7 @@ class TestConfigurationIntegration:
 
         # Create plugin configuration files
         plugin_configs = {
-            "test-plugin.json": {
-                "enabled": True,
-                "setting1": "value1",
-                "setting2": 42
-            },
+            "test-plugin.json": {"enabled": True, "setting1": "value1", "setting2": 42},
             "marty.json": {
                 "enabled": True,
                 "trust_anchor_url": "https://test-trust.example.com",
@@ -432,19 +428,21 @@ class TestConfigurationIntegration:
                 "document_signer_url": "https://test-signer.example.com",
                 "signing_algorithms": ["RSA-SHA256"],
                 "certificate_validation_enabled": True,
-                "require_mutual_tls": False
-            }
+                "require_mutual_tls": False,
+            },
         }
 
         import json
+
         for filename, config_data in plugin_configs.items():
             config_file = config_dir / filename
-            with open(config_file, 'w') as f:
+            with open(config_file, "w") as f:
                 json.dump(config_data, f, indent=2)
 
         # Test configuration loading (mocked)
         try:
             from framework.config.plugin_config import create_plugin_config_manager
+
             config_manager = create_plugin_config_manager(config_dir)
             assert config_manager is not None
         except ImportError:
@@ -459,31 +457,30 @@ class TestConfigurationIntegration:
 
         # Create base and environment-specific configurations
         configs = {
-            "app.json": {
-                "base_setting": "base_value",
-                "environment": "base"
-            },
+            "app.json": {"base_setting": "base_value", "environment": "base"},
             "app.development.json": {
                 "environment": "development",
                 "debug": True,
-                "log_level": "DEBUG"
+                "log_level": "DEBUG",
             },
             "app.production.json": {
                 "environment": "production",
                 "debug": False,
                 "log_level": "INFO",
-                "security_enhanced": True
-            }
+                "security_enhanced": True,
+            },
         }
 
         import json
+
         for filename, config_data in configs.items():
             config_file = config_dir / filename
-            with open(config_file, 'w') as f:
+            with open(config_file, "w") as f:
                 json.dump(config_data, f, indent=2)
 
         # Configuration loading would be handled by the actual implementation
         assert True  # Test structure validated
+
 
 class TestErrorHandlingIntegration:
     """Test error handling across the integrated plugin system."""
@@ -491,6 +488,7 @@ class TestErrorHandlingIntegration:
     @pytest.mark.asyncio
     async def test_plugin_failure_isolation(self, mock_context):
         """Test that plugin failures don't affect other plugins."""
+
         class FailingPlugin:
             async def initialize(self, context):
                 raise RuntimeError("Plugin initialization failed")
@@ -531,6 +529,7 @@ class TestErrorHandlingIntegration:
     @pytest.mark.asyncio
     async def test_service_failure_recovery(self, mock_context):
         """Test service failure recovery mechanisms."""
+
         class RecoverableService:
             def __init__(self):
                 self.context = None
@@ -565,6 +564,7 @@ class TestErrorHandlingIntegration:
         # Third attempt should succeed
         await service.start()
         assert service.started
+
 
 class TestPerformanceIntegration:
     """Test performance characteristics of the integrated system."""
@@ -613,28 +613,20 @@ class TestPerformanceIntegration:
         plugins = [TestPlugin() for _ in range(3)]
 
         # Initialize all plugins concurrently
-        await asyncio.gather(*[
-            plugin.initialize(mock_context) for plugin in plugins
-        ])
+        await asyncio.gather(*[plugin.initialize(mock_context) for plugin in plugins])
 
         # Start all plugins concurrently
-        await asyncio.gather(*[
-            plugin.start() for plugin in plugins
-        ])
+        await asyncio.gather(*[plugin.start() for plugin in plugins])
 
         # Check health of all plugins concurrently
-        health_results = await asyncio.gather(*[
-            plugin.get_health_status() for plugin in plugins
-        ])
+        health_results = await asyncio.gather(*[plugin.get_health_status() for plugin in plugins])
 
         # Verify all plugins are healthy
         for health in health_results:
             assert health["status"] == "healthy"
 
         # Stop all plugins concurrently
-        await asyncio.gather(*[
-            plugin.stop() for plugin in plugins
-        ])
+        await asyncio.gather(*[plugin.stop() for plugin in plugins])
 
         # Verify all plugins stopped
         for plugin in plugins:

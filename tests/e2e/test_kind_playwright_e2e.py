@@ -42,14 +42,12 @@ class TestKindPlaywrightE2E:
             "responsive_tests": {},
             "service_health_tests": [],
             "screenshots_taken": 0,
-            "overall_success": False
+            "overall_success": False,
         }
 
         async with kind_playwright_test_environment(
-            cluster_name="full-e2e-test",
-            cleanup_on_exit=True
+            cluster_name="full-e2e-test", cleanup_on_exit=True
         ) as (cluster, deployer, tester):
-
             try:
                 # Step 1: Verify cluster is ready
                 test_results["cluster_created"] = True
@@ -67,9 +65,7 @@ class TestKindPlaywrightE2E:
                 # Deploy additional test services
                 for i, service_name in enumerate(["user-service", "order-service"]):
                     service_deployed = await deployer.deploy_test_service(
-                        service_name=service_name,
-                        port=8080 + i,
-                        replicas=1
+                        service_name=service_name, port=8080 + i, replicas=1
                     )
                     if service_deployed:
                         test_results["services_deployed"].append(service_name)
@@ -97,33 +93,42 @@ class TestKindPlaywrightE2E:
                 responsive_results = await tester.test_responsive_design(port=30081)
                 test_results["responsive_tests"] = responsive_results
 
-                screenshots_count = len([
-                    r for r in responsive_results.values()
-                    if isinstance(r, dict) and r.get("screenshot")
-                ])
+                screenshots_count = len(
+                    [
+                        r
+                        for r in responsive_results.values()
+                        if isinstance(r, dict) and r.get("screenshot")
+                    ]
+                )
                 test_results["screenshots_taken"] = screenshots_count
                 print(f"✅ Responsive design tests completed ({screenshots_count} screenshots)")
 
                 # Step 5: Validate test results
                 test_results["overall_success"] = (
-                    test_results["cluster_created"] and
-                    len(test_results["services_deployed"]) >= 3 and
-                    test_results["dashboard_tests"].get("accessible", False) and
-                    test_results["screenshots_taken"] >= 3
+                    test_results["cluster_created"]
+                    and len(test_results["services_deployed"]) >= 3
+                    and test_results["dashboard_tests"].get("accessible", False)
+                    and test_results["screenshots_taken"] >= 3
                 )
 
                 # Print comprehensive results
                 print("\n📊 Test Results Summary:")
                 print(f"Cluster created: {test_results['cluster_created']}")
                 print(f"Services deployed: {len(test_results['services_deployed'])}")
-                print(f"Dashboard accessible: {test_results['dashboard_tests'].get('accessible', False)}")
+                print(
+                    f"Dashboard accessible: {test_results['dashboard_tests'].get('accessible', False)}"
+                )
                 print(f"Screenshots taken: {test_results['screenshots_taken']}")
                 print(f"Overall success: {test_results['overall_success']}")
 
                 # Assert key requirements
                 assert test_results["cluster_created"], "Kind cluster creation failed"
-                assert len(test_results["services_deployed"]) >= 1, "No services deployed successfully"
-                assert test_results["dashboard_tests"].get("accessible", False), "Dashboard not accessible"
+                assert len(test_results["services_deployed"]) >= 1, (
+                    "No services deployed successfully"
+                )
+                assert test_results["dashboard_tests"].get("accessible", False), (
+                    "Dashboard not accessible"
+                )
                 assert test_results["screenshots_taken"] > 0, "No screenshots taken"
 
                 print("\n🎉 Kind + Playwright E2E Test PASSED!")
@@ -143,10 +148,8 @@ class TestKindPlaywrightE2E:
         print("\n🎯 Testing Dashboard Functionality Only")
 
         async with kind_playwright_test_environment(
-            cluster_name="dashboard-test",
-            cleanup_on_exit=True
+            cluster_name="dashboard-test", cleanup_on_exit=True
         ) as (cluster, deployer, tester):
-
             # Deploy only dashboard
             dashboard_deployed = await deployer.deploy_dashboard_service()
             assert dashboard_deployed, "Failed to deploy dashboard"
@@ -174,15 +177,11 @@ class TestKindPlaywrightE2E:
         print("\n📈 Testing Service Scaling and Monitoring")
 
         async with kind_playwright_test_environment(
-            cluster_name="scaling-test",
-            cleanup_on_exit=True
+            cluster_name="scaling-test", cleanup_on_exit=True
         ) as (cluster, deployer, tester):
-
             # Deploy scalable service
             service_deployed = await deployer.deploy_test_service(
-                service_name="scalable-service",
-                port=8080,
-                replicas=1
+                service_name="scalable-service", port=8080, replicas=1
             )
             assert service_deployed, "Failed to deploy scalable service"
 
@@ -211,10 +210,8 @@ class TestKindPlaywrightE2E:
         print("\n🔍 Testing Visual Regression Detection")
 
         async with kind_playwright_test_environment(
-            cluster_name="visual-test",
-            cleanup_on_exit=True
+            cluster_name="visual-test", cleanup_on_exit=True
         ) as (cluster, deployer, tester):
-
             # Deploy dashboard
             dashboard_deployed = await deployer.deploy_dashboard_service()
             assert dashboard_deployed, "Failed to deploy dashboard"
@@ -265,15 +262,11 @@ class TestKindClusterManagement:
     async def test_service_deployment(self):
         """Test service deployment functionality."""
         async with kind_playwright_test_environment(
-            cluster_name="deployment-test",
-            cleanup_on_exit=True
+            cluster_name="deployment-test", cleanup_on_exit=True
         ) as (cluster, deployer, tester):
-
             # Test service deployment
             deployed = await deployer.deploy_test_service(
-                service_name="test-service",
-                port=8080,
-                replicas=1
+                service_name="test-service", port=8080, replicas=1
             )
             assert deployed, "Service deployment failed"
             assert "test-service" in deployer.deployed_services
@@ -321,4 +314,6 @@ async def run_manual_e2e_test():
 if __name__ == "__main__":
     print("Kind + Playwright E2E Tests")
     print("Run with: pytest tests/e2e/test_kind_playwright_e2e.py -v -s")
-    print("Or manual test: python -c 'import asyncio; from tests.e2e.test_kind_playwright_e2e import run_manual_e2e_test; asyncio.run(run_manual_e2e_test())'")
+    print(
+        "Or manual test: python -c 'import asyncio; from tests.e2e.test_kind_playwright_e2e import run_manual_e2e_test; asyncio.run(run_manual_e2e_test())'"
+    )

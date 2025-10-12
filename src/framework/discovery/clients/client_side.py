@@ -30,9 +30,7 @@ class ClientSideDiscovery(ServiceDiscoveryClient):
         start_time = time.time()
 
         try:
-            cached_instances = await self.cache.get(
-                query, lambda: self._fetch_from_registry(query)
-            )
+            cached_instances = await self.cache.get(query, lambda: self._fetch_from_registry(query))
 
             if cached_instances is not None:
                 self._stats["cache_hits"] += 1
@@ -53,9 +51,7 @@ class ClientSideDiscovery(ServiceDiscoveryClient):
             self._stats["cache_misses"] += 1
             instances = await self._fetch_from_registry(query)
 
-            await self.cache.put(
-                query, instances, lambda: self._fetch_from_registry(query)
-            )
+            await self.cache.put(query, instances, lambda: self._fetch_from_registry(query))
 
             resolution_time = time.time() - start_time
             self.record_resolution(True, resolution_time)
@@ -74,9 +70,7 @@ class ClientSideDiscovery(ServiceDiscoveryClient):
             logger.error("Service discovery failed for %s: %s", query.service_name, e)
             raise
 
-    async def _fetch_from_registry(
-        self, query: ServiceQuery
-    ) -> builtins.list[ServiceInstance]:
+    async def _fetch_from_registry(self, query: ServiceQuery) -> builtins.list[ServiceInstance]:
         """Fetch instances from the service registry."""
         all_instances = await self.registry.discover(query.service_name)
         return [instance for instance in all_instances if query.matches_instance(instance)]
@@ -87,9 +81,7 @@ class ClientSideDiscovery(ServiceDiscoveryClient):
         callback: Callable[[builtins.list[ServiceInstance]], None],
     ):
         """Watch service for changes (stubbed until registries support streaming)."""
-        logger.warning(
-            "Service watching not fully implemented - callback stored but not activated"
-        )
+        logger.warning("Service watching not fully implemented - callback stored but not activated")
         if service_name not in self._watchers:
             self._watchers[service_name] = callback
 

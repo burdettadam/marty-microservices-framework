@@ -251,7 +251,6 @@ __all__ = [
     "MessagePriority",
     "MessageQueue",
     "MessageStats",
-
     # Event streaming components
     "Aggregate",
     "EventProcessor",
@@ -266,13 +265,11 @@ __all__ = [
     "StreamEventBus",
     "StreamEventHandler",
     "StreamProjection",
-
     # Legacy event system
     "BaseEvent",
     "EventBus",
     "EventHandler",
     "EventMetadata",
-
     # Backend implementations
     "BackendConfig",
     "BackendFactory",
@@ -280,7 +277,6 @@ __all__ = [
     "MessageBackend",
     "RabbitMQBackend",
     "RedisBackend",
-
     # Communication patterns
     "Consumer",
     "Producer",
@@ -290,7 +286,6 @@ __all__ = [
     "ProducerConfig",
     "PublishSubscribePattern",
     "RoutingPattern",
-
     # Core infrastructure
     "ExchangeConfig",
     "ExchangeType",
@@ -298,17 +293,14 @@ __all__ = [
     "MessageExchange",
     "MessageHeaders",
     "MessageStatus",
-
     # Dead letter queue
     "DLQConfig",
     "DLQManager",
     "DLQMessage",
     "RetryStrategy",
-
     # Management
     "MessagingConfig",
     "MessagingManager",
-
     # Middleware
     "AuthenticationMiddleware",
     "CompressionMiddleware",
@@ -316,13 +308,11 @@ __all__ = [
     "MetricsMiddleware",
     "MiddlewareChain",
     "ValidationMiddleware",
-
     # Routing
     "MessageRouter",
     "RoutingConfig",
     "RoutingEngine",
     "RoutingRule",
-
     # Serialization
     "AvroSerializer",
     "JSONSerializer",
@@ -330,16 +320,13 @@ __all__ = [
     "PickleSerializer",
     "ProtobufSerializer",
     "SerializationError",
-
     # Factory functions
     "create_event_manager",
     "create_message_queue",
     "create_messaging_config_from_dict",
-
     # Context managers
     "event_streaming_context",
     "message_queue_context",
-
     # Utility functions
     "domain_event",
     "get_event_manager",

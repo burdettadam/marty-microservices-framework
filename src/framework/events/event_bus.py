@@ -128,9 +128,7 @@ class EventBus(ABC):
     """Abstract event bus interface."""
 
     @abstractmethod
-    async def publish(
-        self, event: BaseEvent, metadata: EventMetadata | None = None
-    ) -> None:
+    async def publish(self, event: BaseEvent, metadata: EventMetadata | None = None) -> None:
         """Publish an event."""
         ...
 
@@ -163,9 +161,7 @@ class InMemoryEventBus(EventBus):
         self._function_handlers: dict[str, list[Callable]] = {}
         self._running = False
 
-    async def publish(
-        self, event: BaseEvent, metadata: EventMetadata | None = None
-    ) -> None:
+    async def publish(self, event: BaseEvent, metadata: EventMetadata | None = None) -> None:
         """Publish an event immediately."""
         if not self._running:
             logger.warning("Event bus not running, event will be processed immediately")
@@ -223,9 +219,7 @@ class InMemoryEventBus(EventBus):
         """Unsubscribe an event handler."""
         for event_type in handler.event_types:
             if event_type in self._handlers:
-                self._handlers[event_type] = [
-                    h for h in self._handlers[event_type] if h != handler
-                ]
+                self._handlers[event_type] = [h for h in self._handlers[event_type] if h != handler]
         logger.info("Unsubscribed handler %s", handler.__class__.__name__)
 
     async def start(self) -> None:
@@ -249,9 +243,7 @@ class TransactionalOutboxEventBus(EventBus):
         self._processor_task: asyncio.Task | None = None
         self._processing_interval = 5.0  # seconds
 
-    async def publish(
-        self, event: BaseEvent, metadata: EventMetadata | None = None
-    ) -> None:
+    async def publish(self, event: BaseEvent, metadata: EventMetadata | None = None) -> None:
         """Publish an event to the outbox."""
         async with self._get_session() as session:
             # Serialize event data
@@ -284,9 +276,7 @@ class TransactionalOutboxEventBus(EventBus):
         """Unsubscribe an event handler."""
         for event_type in handler.event_types:
             if event_type in self._handlers:
-                self._handlers[event_type] = [
-                    h for h in self._handlers[event_type] if h != handler
-                ]
+                self._handlers[event_type] = [h for h in self._handlers[event_type] if h != handler]
         logger.info("Unsubscribed handler %s", handler.__class__.__name__)
 
     async def start(self) -> None:
@@ -348,9 +338,7 @@ class TransactionalOutboxEventBus(EventBus):
             for outbox_event in events:
                 await self._process_single_event(session, outbox_event)
 
-    async def _process_single_event(
-        self, session: AsyncSession, outbox_event: OutboxEvent
-    ) -> None:
+    async def _process_single_event(self, session: AsyncSession, outbox_event: OutboxEvent) -> None:
         """Process a single outbox event."""
         try:
             # Mark as processing
@@ -360,9 +348,7 @@ class TransactionalOutboxEventBus(EventBus):
             # Get handlers for this event type
             handlers = self._handlers.get(outbox_event.event_type, [])
             if not handlers:
-                logger.warning(
-                    "No handlers for event type: %s", outbox_event.event_type
-                )
+                logger.warning("No handlers for event type: %s", outbox_event.event_type)
                 outbox_event.status = EventStatus.COMPLETED.value
                 outbox_event.processed_at = datetime.now(timezone.utc)
                 await session.commit()
@@ -400,9 +386,7 @@ class TransactionalOutboxEventBus(EventBus):
             outbox_event.error_message = str(e)
             await session.commit()
 
-    def _reconstruct_event(
-        self, event_type: str, event_data: dict[str, Any]
-    ) -> BaseEvent:
+    def _reconstruct_event(self, event_type: str, event_data: dict[str, Any]) -> BaseEvent:
         """Reconstruct event from data."""
         # This is a simplified reconstruction - in practice you'd have a registry
         # of event types to classes
@@ -449,7 +433,9 @@ def register_event(event_class: type[BaseEvent]) -> type[BaseEvent]:
 class Event(BaseEvent):
     """Generic event for simple use cases."""
 
-    def __init__(self, id: str | None = None, type: str | None = None, data: dict | None = None, **kwargs):
+    def __init__(
+        self, id: str | None = None, type: str | None = None, data: dict | None = None, **kwargs
+    ):
         super().__init__(event_id=id, **kwargs)
         if type:
             self.event_type = type
@@ -505,9 +491,7 @@ class DomainEvent(BaseEvent):
 class SystemEvent(BaseEvent):
     """System-level event."""
 
-    def __init__(
-        self, source: str, action: str, details: dict[str, Any] | None = None, **kwargs
-    ):
+    def __init__(self, source: str, action: str, details: dict[str, Any] | None = None, **kwargs):
         super().__init__(**kwargs)
         self.source = source
         self.action = action
@@ -544,9 +528,7 @@ async def publish_domain_event(
     **kwargs,
 ) -> None:
     """Publish a domain event."""
-    event = DomainEvent(
-        aggregate_id=aggregate_id, aggregate_type=aggregate_type, **kwargs
-    )
+    event = DomainEvent(aggregate_id=aggregate_id, aggregate_type=aggregate_type, **kwargs)
     await event_bus.publish(event, metadata)
 
 

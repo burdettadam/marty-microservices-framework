@@ -232,9 +232,7 @@ if FASTAPI_AVAILABLE:
             return {"status": "healthy"}
 
         @app.get("/api/users/{user_id}")
-        async def get_user(
-            user_id: str, current_user: dict = Depends(get_current_user)
-        ):
+        async def get_user(user_id: str, current_user: dict = Depends(get_current_user)):
             # Simulate user retrieval
             if user_id == "999":
                 raise HTTPException(status_code=404, detail="User not found")
@@ -288,9 +286,7 @@ if FASTAPI_AVAILABLE:
             return {"id": user_id, "status": "updated"}
 
         @app.delete("/api/users/{user_id}")
-        async def delete_user(
-            user_id: str, current_user: dict = Depends(get_current_user)
-        ):
+        async def delete_user(user_id: str, current_user: dict = Depends(get_current_user)):
             # Simulate user deletion
             audit_logger = audit_context.get_audit_logger()
             if audit_logger:

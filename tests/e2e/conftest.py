@@ -39,11 +39,7 @@ class PerformanceMetrics:
     @property
     def avg_response_time(self) -> float:
         """Calculate average response time."""
-        return (
-            sum(self.response_times) / len(self.response_times)
-            if self.response_times
-            else 0.0
-        )
+        return sum(self.response_times) / len(self.response_times) if self.response_times else 0.0
 
     @property
     def p95_response_time(self) -> float:
@@ -92,9 +88,9 @@ class PerformanceAnalyzer:
     """Analyzes performance metrics and identifies bottlenecks."""
 
     def __init__(self):
-        self.metrics_history: builtins.dict[
-            str, builtins.list[PerformanceMetrics]
-        ] = defaultdict(list)
+        self.metrics_history: builtins.dict[str, builtins.list[PerformanceMetrics]] = defaultdict(
+            list
+        )
         self.bottlenecks: builtins.list[BottleneckAnalysis] = []
         self.audit_events: builtins.list[AuditEvent] = []
 
@@ -143,10 +139,7 @@ class PerformanceAnalyzer:
             )
 
         # Memory bottleneck analysis
-        if (
-            metrics.memory_usage
-            and max(metrics.memory_usage) > self.thresholds["memory_usage"]
-        ):
+        if metrics.memory_usage and max(metrics.memory_usage) > self.thresholds["memory_usage"]:
             bottlenecks.append(
                 BottleneckAnalysis(
                     service_name=service_name,
@@ -231,9 +224,7 @@ class PerformanceAnalyzer:
                     [b for b in self.bottlenecks if b.severity == "critical"]
                 ),
                 "total_audit_events": len(self.audit_events),
-                "error_events": len(
-                    [e for e in self.audit_events if e.severity == "error"]
-                ),
+                "error_events": len([e for e in self.audit_events if e.severity == "error"]),
             },
             "bottlenecks": [
                 {
@@ -262,9 +253,7 @@ class PerformanceAnalyzer:
             "metrics_summary": {
                 service: {
                     "total_measurements": len(metrics_list),
-                    "avg_cpu": sum(
-                        m.cpu_usage[0] if m.cpu_usage else 0 for m in metrics_list
-                    )
+                    "avg_cpu": sum(m.cpu_usage[0] if m.cpu_usage else 0 for m in metrics_list)
                     / len(metrics_list)
                     if metrics_list
                     else 0,
@@ -322,15 +311,8 @@ async def performance_test_case():
         RequestSpec,
     )
 
-    request_spec = RequestSpec(
-        method="GET",
-        url="http://localhost:8000/health"
-    )
-    load_config = LoadConfiguration(
-        pattern=LoadPattern.CONSTANT,
-        max_users=10,
-        duration=30
-    )
+    request_spec = RequestSpec(method="GET", url="http://localhost:8000/health")
+    load_config = LoadConfiguration(pattern=LoadPattern.CONSTANT, max_users=10, duration=30)
     test_case = PerformanceTestCase("test_performance", request_spec, load_config)
     yield test_case
 
@@ -360,9 +342,7 @@ class TimeoutMonitor:
         self.timeout_threshold = timeout_threshold
         self.timeout_events: builtins.list[builtins.dict[str, Any]] = []
 
-    async def monitor_operation(
-        self, operation_name: str, operation_func, *args, **kwargs
-    ):
+    async def monitor_operation(self, operation_name: str, operation_func, *args, **kwargs):
         """Monitor an operation for timeouts."""
         start_time = time.time()
 
@@ -405,12 +385,8 @@ class TimeoutMonitor:
         """Get timeout monitoring report."""
         return {
             "total_operations": len(self.timeout_events),
-            "timeouts": len(
-                [e for e in self.timeout_events if e["status"] == "timeout"]
-            ),
-            "slow_operations": len(
-                [e for e in self.timeout_events if e["status"] == "slow"]
-            ),
+            "timeouts": len([e for e in self.timeout_events if e["status"] == "timeout"]),
+            "slow_operations": len([e for e in self.timeout_events if e["status"] == "slow"]),
             "events": self.timeout_events,
         }
 
@@ -422,6 +398,7 @@ def timeout_monitor():
 
 
 # Real infrastructure fixtures for E2E tests
+
 
 # Configure Docker client for testcontainers
 def configure_docker_client():

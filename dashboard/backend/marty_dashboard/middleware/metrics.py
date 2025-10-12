@@ -56,13 +56,9 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             duration = time.time() - start_time
 
             # Record metrics
-            http_requests_total.labels(
-                method=method, endpoint=path, status_code=status_code
-            ).inc()
+            http_requests_total.labels(method=method, endpoint=path, status_code=status_code).inc()
 
-            http_request_duration_seconds.labels(method=method, endpoint=path).observe(
-                duration
-            )
+            http_request_duration_seconds.labels(method=method, endpoint=path).observe(duration)
 
             # Decrement in-progress counter
             http_requests_in_progress.dec()

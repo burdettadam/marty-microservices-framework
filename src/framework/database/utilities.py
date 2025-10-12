@@ -22,9 +22,7 @@ class DatabaseUtilities:
     def _validate_table_name(self, table_name: str) -> str:
         """Validate and sanitize table name to prevent SQL injection."""
         # Only allow alphanumeric characters, underscores, and periods
-        if not re.match(
-            r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$", table_name
-        ):
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?$", table_name):
             raise ValueError(f"Invalid table name: {table_name}")
         return table_name
 
@@ -85,9 +83,7 @@ class DatabaseUtilities:
                 # Get connection count (if supported)
                 if self.db_manager.config.db_type.value == "postgresql":
                     result = await session.execute(
-                        text(
-                            "SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"
-                        )
+                        text("SELECT count(*) FROM pg_stat_activity WHERE state = 'active'")
                     )
                     active_connections = result.scalar()
                     info["active_connections"] = active_connections
@@ -154,9 +150,7 @@ class DatabaseUtilities:
 
         async with self.db_manager.get_session() as session:
             try:
-                await session.execute(
-                    text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
-                )
+                await session.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}"))
                 await session.commit()
                 logger.info("Created schema: %s", schema_name)
                 return True
@@ -174,9 +168,7 @@ class DatabaseUtilities:
         async with self.db_manager.get_session() as session:
             try:
                 cascade_clause = "CASCADE" if cascade else "RESTRICT"
-                await session.execute(
-                    text(f"DROP SCHEMA IF EXISTS {schema_name} {cascade_clause}")
-                )
+                await session.execute(text(f"DROP SCHEMA IF EXISTS {schema_name} {cascade_clause}"))
                 await session.commit()
                 logger.info("Dropped schema: %s", schema_name)
                 return True
@@ -258,9 +250,7 @@ class DatabaseUtilities:
                 logger.error("Error analyzing table stats for %s: %s", table_name, e)
                 raise
 
-    async def backup_table(
-        self, table_name: str, backup_table_name: str | None = None
-    ) -> str:
+    async def backup_table(self, table_name: str, backup_table_name: str | None = None) -> str:
         """Create a backup copy of a table."""
         if not backup_table_name:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -295,9 +285,7 @@ class DatabaseUtilities:
                 await session.rollback()
                 raise
 
-    async def truncate_table(
-        self, table_name: str, restart_identity: bool = True
-    ) -> bool:
+    async def truncate_table(self, table_name: str, restart_identity: bool = True) -> bool:
         """Truncate a table."""
         async with self.db_manager.get_session() as session:
             try:
@@ -305,12 +293,8 @@ class DatabaseUtilities:
                 quoted_table = self._quote_identifier(table_name)
 
                 if self.db_manager.config.db_type.value == "postgresql":
-                    restart_clause = (
-                        "RESTART IDENTITY" if restart_identity else "CONTINUE IDENTITY"
-                    )
-                    await session.execute(
-                        text(f"TRUNCATE TABLE {quoted_table} {restart_clause}")
-                    )
+                    restart_clause = "RESTART IDENTITY" if restart_identity else "CONTINUE IDENTITY"
+                    await session.execute(text(f"TRUNCATE TABLE {quoted_table} {restart_clause}"))
                 else:
                     # Use Core delete when possible (non-PostgreSQL path uses generic DELETE)
                     tbl = self._reflect_table(table_name)
@@ -330,9 +314,7 @@ class DatabaseUtilities:
     ) -> int:
         """Clean up soft-deleted records older than specified days."""
         if not hasattr(model_class, "deleted_at"):
-            raise ValueError(
-                f"Model {model_class.__name__} does not support soft deletion"
-            )
+            raise ValueError(f"Model {model_class.__name__} does not support soft deletion")
 
         cutoff_date = datetime.utcnow() - timedelta(days=older_than_days)
         # Some ORMs provide __tablename__ as InstrumentedAttribute; cast to str safely
@@ -348,9 +330,13 @@ class DatabaseUtilities:
                 tbl = self._reflect_table(table_name)  # table_name is str here
                 # Build expression using column attributes to avoid raw SQL
                 if not hasattr(tbl.c, "deleted_at"):
-                    raise ValueError("Table does not support soft deletion (missing deleted_at column)")
-                count_expr = select(func.count()).select_from(tbl).where(
-                    tbl.c.deleted_at.is_not(None), tbl.c.deleted_at < text(":cutoff_date")
+                    raise ValueError(
+                        "Table does not support soft deletion (missing deleted_at column)"
+                    )
+                count_expr = (
+                    select(func.count())
+                    .select_from(tbl)
+                    .where(tbl.c.deleted_at.is_not(None), tbl.c.deleted_at < text(":cutoff_date"))
                 )
                 count_result = await session.execute(count_expr, {"cutoff_date": cutoff_date})
 
@@ -364,16 +350,12 @@ class DatabaseUtilities:
                     await session.execute(delete_stmt, {"cutoff_date": cutoff_date})
 
                     await session.commit()
-                    logger.info(
-                        "Cleaned up %d soft-deleted records from %s", count, table_name
-                    )
+                    logger.info("Cleaned up %d soft-deleted records from %s", count, table_name)
 
                 return count
 
             except Exception as e:
-                logger.error(
-                    "Error cleaning soft-deleted records from %s: %s", table_name, e
-                )
+                logger.error("Error cleaning soft-deleted records from %s: %s", table_name, e)
                 await session.rollback()
                 raise
 
@@ -433,9 +415,7 @@ class DatabaseUtilities:
                     if len(parts) >= 3:
                         days = int(parts[-1])
                         if dry_run:
-                            results[
-                                operation
-                            ] = f"Would clean records older than {days} days"
+                            results[operation] = f"Would clean records older than {days} days"
                         else:
                             # This would need model class resolution
                             results[operation] = "Clean operation not implemented yet"
@@ -494,9 +474,7 @@ async def cleanup_all_soft_deleted(
                 count = await utils.clean_soft_deleted(model_class, older_than_days)
                 service_results[model_class.__name__] = count
             except Exception as e:
-                logger.error(
-                    "Error cleaning %s in %s: %s", model_class.__name__, service_name, e
-                )
+                logger.error("Error cleaning %s in %s: %s", model_class.__name__, service_name, e)
                 service_results[model_class.__name__] = -1
 
         results[service_name] = service_results

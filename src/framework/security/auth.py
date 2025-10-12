@@ -76,9 +76,7 @@ class BaseAuthenticator(ABC):
         self.service_name = config.service_name
 
     @abstractmethod
-    async def authenticate(
-        self, credentials: builtins.dict[str, Any]
-    ) -> AuthenticationResult:
+    async def authenticate(self, credentials: builtins.dict[str, Any]) -> AuthenticationResult:
         """Authenticate a user with provided credentials."""
 
     @abstractmethod
@@ -95,9 +93,7 @@ class JWTAuthenticator(BaseAuthenticator):
             raise ValueError("JWT configuration is required")
         self.jwt_config = config.jwt_config
 
-    async def authenticate(
-        self, credentials: builtins.dict[str, Any]
-    ) -> AuthenticationResult:
+    async def authenticate(self, credentials: builtins.dict[str, Any]) -> AuthenticationResult:
         """Authenticate with username/password and return JWT."""
         # This would typically validate against a user store
         # For now, we'll implement a basic validation
@@ -123,9 +119,7 @@ class JWTAuthenticator(BaseAuthenticator):
 
         token = self._create_token(user)
 
-        return AuthenticationResult(
-            success=True, user=user, metadata={"access_token": token}
-        )
+        return AuthenticationResult(success=True, user=user, metadata={"access_token": token})
 
     async def validate_token(self, token: str) -> AuthenticationResult:
         """Validate a JWT token."""
@@ -183,9 +177,7 @@ class JWTAuthenticator(BaseAuthenticator):
             "metadata": user.metadata,
         }
 
-        return jwt.encode(
-            payload, self.jwt_config.secret_key, algorithm=self.jwt_config.algorithm
-        )
+        return jwt.encode(payload, self.jwt_config.secret_key, algorithm=self.jwt_config.algorithm)
 
 
 class APIKeyAuthenticator(BaseAuthenticator):
@@ -198,9 +190,7 @@ class APIKeyAuthenticator(BaseAuthenticator):
         self.api_key_config = config.api_key_config
         self._api_keys = set(self.api_key_config.valid_keys)
 
-    async def authenticate(
-        self, credentials: builtins.dict[str, Any]
-    ) -> AuthenticationResult:
+    async def authenticate(self, credentials: builtins.dict[str, Any]) -> AuthenticationResult:
         """Authenticate with API key."""
         api_key = credentials.get("api_key")
 
@@ -270,16 +260,12 @@ class MTLSAuthenticator(BaseAuthenticator):
                 raise ValueError("CA certificate path is required")
 
             with open(ca_cert_path, "rb") as cert_file:
-                self._ca_cert = x509.load_pem_x509_certificate(
-                    cert_file.read(), default_backend()
-                )
+                self._ca_cert = x509.load_pem_x509_certificate(cert_file.read(), default_backend())
         except Exception as e:
             logger.error(f"Failed to load CA certificate: {e}")
             raise CertificateValidationError(f"Failed to load CA certificate: {e}")
 
-    async def authenticate(
-        self, credentials: builtins.dict[str, Any]
-    ) -> AuthenticationResult:
+    async def authenticate(self, credentials: builtins.dict[str, Any]) -> AuthenticationResult:
         """Authenticate with client certificate."""
         cert_der = credentials.get("client_cert")
 
@@ -337,10 +323,7 @@ class MTLSAuthenticator(BaseAuthenticator):
             # Verify issuer if configured
             if self.mtls_config.allowed_issuers:
                 issuer_name = cert.issuer.rfc4514_string()
-                if not any(
-                    allowed in issuer_name
-                    for allowed in self.mtls_config.allowed_issuers
-                ):
+                if not any(allowed in issuer_name for allowed in self.mtls_config.allowed_issuers):
                     return AuthenticationResult(
                         success=False,
                         error="Certificate issuer not allowed",

@@ -103,12 +103,7 @@ class ServiceRegistry:
                         {"service_name": service_name, "host": host, "port": port},
                     )
 
-                    logging.info(
-                        "Deregistered service: %s at %s:%s",
-                        service_name,
-                        host,
-                        port
-                    )
+                    logging.info("Deregistered service: %s at %s:%s", service_name, host, port)
                     return True
 
         except Exception as e:

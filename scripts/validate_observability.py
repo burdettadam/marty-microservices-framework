@@ -86,9 +86,7 @@ def validate_prometheus_configs() -> builtins.list[str]:
             else:
                 for group in rules["groups"]:
                     if "rules" not in group:
-                        errors.append(
-                            f"Alert group {group.get('name', 'unknown')} missing 'rules'"
-                        )
+                        errors.append(f"Alert group {group.get('name', 'unknown')} missing 'rules'")
 
         except yaml.YAMLError as e:
             errors.append(f"Invalid alert_rules.yml: {e}")

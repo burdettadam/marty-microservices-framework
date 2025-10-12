@@ -374,9 +374,7 @@ class SOXComplianceTemplates:
                 }
             ],
             procedures=[],
-            regulatory_references=[
-                "SOX Section 404 - Management Assessment of Internal Controls"
-            ],
+            regulatory_references=["SOX Section 404 - Management Assessment of Internal Controls"],
             risk_level="High",
             compliance_frequency="continuous",
             responsible_roles=[
@@ -427,9 +425,7 @@ class PCIDSSComplianceTemplates:
                 }
             ],
             procedures=[],
-            regulatory_references=[
-                "PCI DSS Requirement 3 - Protect stored cardholder data"
-            ],
+            regulatory_references=["PCI DSS Requirement 3 - Protect stored cardholder data"],
             risk_level="Critical",
             compliance_frequency="continuous",
             responsible_roles=["Payment Security Manager", "Security Engineer"],
@@ -467,9 +463,7 @@ class ISO27001ComplianceTemplates:
             ],
             controls=[],
             procedures=[],
-            regulatory_references=[
-                "ISO/IEC 27001:2013 - Information security management systems"
-            ],
+            regulatory_references=["ISO/IEC 27001:2013 - Information security management systems"],
             risk_level="High",
             compliance_frequency="annually",
             responsible_roles=[
@@ -505,17 +499,13 @@ class CompliancePolicyLibrary:
         sox_policies = [SOXComplianceTemplates.get_change_management_policy()]
 
         # PCI DSS Policies
-        pci_policies = [
-            PCIDSSComplianceTemplates.get_cardholder_data_protection_policy()
-        ]
+        pci_policies = [PCIDSSComplianceTemplates.get_cardholder_data_protection_policy()]
 
         # ISO 27001 Policies
         iso_policies = [ISO27001ComplianceTemplates.get_information_security_policy()]
 
         # Add all policies to library
-        all_policies = (
-            gdpr_policies + hipaa_policies + sox_policies + pci_policies + iso_policies
-        )
+        all_policies = gdpr_policies + hipaa_policies + sox_policies + pci_policies + iso_policies
 
         for policy in all_policies:
             self.policies[policy.policy_id] = policy
@@ -526,13 +516,9 @@ class CompliancePolicyLibrary:
         """Get policy by ID"""
         return self.policies.get(policy_id)
 
-    def get_policies_by_framework(
-        self, framework: str
-    ) -> builtins.list[CompliancePolicy]:
+    def get_policies_by_framework(self, framework: str) -> builtins.list[CompliancePolicy]:
         """Get all policies for a specific framework"""
-        return [
-            policy for policy in self.policies.values() if policy.framework == framework
-        ]
+        return [policy for policy in self.policies.values() if policy.framework == framework]
 
     def get_all_policies(self) -> builtins.list[CompliancePolicy]:
         """Get all policies"""

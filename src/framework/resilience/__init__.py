@@ -141,7 +141,6 @@ __all__ = [
     "timeout_async",
     "with_fallback",
     "with_timeout",
-
     # Enhanced resilience patterns (from Marty)
     "AdvancedRetryConfig",
     "AdvancedRetryManager",

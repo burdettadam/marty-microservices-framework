@@ -303,9 +303,7 @@ class RedisCache(CacheBackendInterface):
 
     def __init__(self, config: CacheConfig):
         if not REDIS_AVAILABLE:
-            raise ImportError(
-                "Redis is not available. Please install redis: pip install redis"
-            )
+            raise ImportError("Redis is not available. Please install redis: pip install redis")
 
         self.config = config
         self.redis: Any | None = None  # Type as Any to avoid typing issues
@@ -359,9 +357,7 @@ class RedisCache(CacheBackendInterface):
             self.stats.misses += 1
             return None
 
-        except (
-            Exception
-        ) as e:  # Catch all exceptions since RedisError might not be available
+        except Exception as e:  # Catch all exceptions since RedisError might not be available
             logger.error(f"Redis get error for key {key}: {e}")
             self.stats.errors += 1
             return None
@@ -506,9 +502,7 @@ class CacheManager(Generic[T]):
         value = await self.get(key)
 
         if value is None:
-            value = (
-                await factory() if asyncio.iscoroutinefunction(factory) else factory()
-            )
+            value = await factory() if asyncio.iscoroutinefunction(factory) else factory()
             await self.set(key, value, ttl)
 
         return value

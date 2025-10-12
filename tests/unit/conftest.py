@@ -83,11 +83,12 @@ def mock_cache():
 @pytest.fixture
 def patch_external_dependencies():
     """Patch common external dependencies for unit tests."""
-    with patch('redis.asyncio.from_url') as mock_redis, \
-         patch('asyncpg.connect') as mock_pg, \
-         patch('aiokafka.AIOKafkaProducer') as mock_kafka_producer, \
-         patch('aiokafka.AIOKafkaConsumer') as mock_kafka_consumer:
-
+    with (
+        patch("redis.asyncio.from_url") as mock_redis,
+        patch("asyncpg.connect") as mock_pg,
+        patch("aiokafka.AIOKafkaProducer") as mock_kafka_producer,
+        patch("aiokafka.AIOKafkaConsumer") as mock_kafka_consumer,
+    ):
         # Configure mocks
         mock_redis.return_value = MagicMock()
         mock_pg.return_value = MagicMock()
@@ -95,10 +96,10 @@ def patch_external_dependencies():
         mock_kafka_consumer.return_value = MagicMock()
 
         yield {
-            'redis': mock_redis,
-            'postgres': mock_pg,
-            'kafka_producer': mock_kafka_producer,
-            'kafka_consumer': mock_kafka_consumer,
+            "redis": mock_redis,
+            "postgres": mock_pg,
+            "kafka_producer": mock_kafka_producer,
+            "kafka_consumer": mock_kafka_consumer,
         }
 
 
@@ -114,7 +115,9 @@ def create_mock_service(name: str = "test-service", version: str = "1.0.0"):
     return service
 
 
-def create_mock_request(method: str = "GET", path: str = "/", headers: dict = None, body: Any = None):
+def create_mock_request(
+    method: str = "GET", path: str = "/", headers: dict = None, body: Any = None
+):
     """Create a mock HTTP request."""
     request = MagicMock()
     request.method = method

@@ -393,9 +393,7 @@ class IstioTrafficManager(TrafficManagerBase):
 
         for dest in route.destinations:
             # Normalize weights to sum to 100
-            normalized_weight = (
-                int((dest.weight / total_weight) * 100) if total_weight > 0 else 0
-            )
+            normalized_weight = int((dest.weight / total_weight) * 100) if total_weight > 0 else 0
 
             destination = {
                 "destination": {"host": dest.host, "port": {"number": dest.port}},
@@ -436,9 +434,7 @@ class IstioTrafficManager(TrafficManagerBase):
             },
         }
 
-    def _create_destination_rule(
-        self, destination: TrafficDestination
-    ) -> builtins.dict[str, Any]:
+    def _create_destination_rule(self, destination: TrafficDestination) -> builtins.dict[str, Any]:
         """Create Istio Destination Rule manifest"""
 
         return {
@@ -459,9 +455,7 @@ class IstioTrafficManager(TrafficManagerBase):
             },
         }
 
-    def _create_policy_destination_rule(
-        self, policy: TrafficPolicy
-    ) -> builtins.dict[str, Any]:
+    def _create_policy_destination_rule(self, policy: TrafficPolicy) -> builtins.dict[str, Any]:
         """Create Destination Rule with traffic policy"""
 
         traffic_policy = {}
@@ -584,9 +578,7 @@ class IstioTrafficManager(TrafficManagerBase):
         if policy.retry_policy:
             rp = policy.retry_policy
             if "attempts" in rp and rp["attempts"] < 1:
-                validation["errors"].append(
-                    f"Policy {policy.name} retry attempts must be >= 1"
-                )
+                validation["errors"].append(f"Policy {policy.name} retry attempts must be >= 1")
                 validation["valid"] = False
 
         return validation
@@ -738,9 +730,7 @@ class NginxTrafficManager(TrafficManagerBase):
         for route_name, route in self.routes.items():
             if not route.destinations:
                 validation_results["valid"] = False
-                validation_results["errors"].append(
-                    f"Route {route_name} has no destinations"
-                )
+                validation_results["errors"].append(f"Route {route_name} has no destinations")
 
         return validation_results
 
@@ -799,9 +789,7 @@ class NginxTrafficManager(TrafficManagerBase):
             "spec": {"rules": rules},
         }
 
-    def _create_upstream_configmap(
-        self, route: TrafficRoute
-    ) -> builtins.dict[str, Any]:
+    def _create_upstream_configmap(self, route: TrafficRoute) -> builtins.dict[str, Any]:
         """Create ConfigMap for NGINX upstream configuration"""
 
         # Build upstream configuration
@@ -839,9 +827,7 @@ upstream {route.name} {{
             else:
                 raise e
 
-    async def _apply_configmap(
-        self, core_v1: client.CoreV1Api, configmap: builtins.dict[str, Any]
-    ):
+    async def _apply_configmap(self, core_v1: client.CoreV1Api, configmap: builtins.dict[str, Any]):
         """Apply ConfigMap to Kubernetes"""
 
         try:
@@ -900,9 +886,7 @@ class TrafficOrchestrator:
         self.managers: builtins.dict[TrafficBackend, TrafficManagerBase] = {}
 
         # Initialize primary manager
-        self.managers[primary_backend] = TrafficManagerFactory.create_manager(
-            primary_backend
-        )
+        self.managers[primary_backend] = TrafficManagerFactory.create_manager(primary_backend)
 
         # Traffic operations
         self.active_splits: builtins.dict[str, builtins.dict[str, Any]] = {}
@@ -1019,12 +1003,8 @@ class TrafficOrchestrator:
 
         # Calculate averages
         if backend_count > 0:
-            aggregated_metrics["summary"]["avg_success_rate"] = (
-                total_success_rate / backend_count
-            )
-            aggregated_metrics["summary"]["avg_response_time"] = (
-                total_response_time / backend_count
-            )
+            aggregated_metrics["summary"]["avg_success_rate"] = total_success_rate / backend_count
+            aggregated_metrics["summary"]["avg_response_time"] = total_response_time / backend_count
 
         return aggregated_metrics
 
@@ -1054,9 +1034,9 @@ class TrafficOrchestrator:
                 validation_results["summary"]["total_routes"] += backend_validation.get(
                     "routes_checked", 0
                 )
-                validation_results["summary"][
-                    "total_policies"
-                ] += backend_validation.get("policies_checked", 0)
+                validation_results["summary"]["total_policies"] += backend_validation.get(
+                    "policies_checked", 0
+                )
                 validation_results["summary"]["total_errors"] += len(
                     backend_validation.get("errors", [])
                 )

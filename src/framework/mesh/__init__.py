@@ -35,17 +35,14 @@ __all__ = [
     "TrafficPolicy",
     "ServiceEndpoint",
     "LoadBalancingConfig",
-
     # Service discovery
     "ServiceRegistry",
     "ServiceDiscoveryClient",
     "ServiceHealthChecker",
-
     # Load balancing
     "LoadBalancer",
     "TrafficSplitter",
     "LoadBalancingAlgorithm",
-
     # Traffic management
     "TrafficManager",
     "RouteMatch",

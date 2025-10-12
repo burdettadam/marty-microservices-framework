@@ -18,10 +18,7 @@ class TestFrameworkIntegration:
     """Integration tests for complete framework workflows."""
 
     async def test_message_to_event_flow(
-        self,
-        real_message_bus,
-        real_event_bus,
-        real_metrics_collector
+        self, real_message_bus, real_event_bus, real_metrics_collector
     ):
         """Test message processing that triggers events."""
         processed_events = []
@@ -34,7 +31,7 @@ class TestFrameworkIntegration:
         real_event_bus.register_handler(
             name="user-created-handler",
             event_type="user.created",
-            handler_func=user_created_handler
+            handler_func=user_created_handler,
         )
 
         # Set up message handler that publishes events
@@ -47,16 +44,14 @@ class TestFrameworkIntegration:
                 id=f"event-{message.id}",
                 type="user.created",
                 data=user_data,
-                correlation_id=message.correlation_id
+                correlation_id=message.correlation_id,
             )
 
             await real_event_bus.publish(event)
             return True
 
         real_message_bus.register_handler(
-            name="create-user-handler",
-            message_type="user.create",
-            handler_func=create_user_handler
+            name="create-user-handler", message_type="user.create", handler_func=create_user_handler
         )
 
         # Start buses
@@ -68,7 +63,7 @@ class TestFrameworkIntegration:
             id="msg-123",
             type="user.create",
             data={"name": "John Doe", "email": "john@example.com"},
-            correlation_id="correlation-123"
+            correlation_id="correlation-123",
         )
 
         await real_message_bus.publish(message)
@@ -95,11 +90,7 @@ class TestFrameworkIntegration:
         await real_message_bus.stop()
         await real_event_bus.stop()
 
-    async def test_database_transaction_with_events(
-        self,
-        real_database_connection,
-        real_event_bus
-    ):
+    async def test_database_transaction_with_events(self, real_database_connection, real_event_bus):
         """Test database operations with event publishing."""
         published_events = []
 
@@ -109,7 +100,7 @@ class TestFrameworkIntegration:
         real_event_bus.register_handler(
             name="order-placed-handler",
             event_type="order.placed",
-            handler_func=order_placed_handler
+            handler_func=order_placed_handler,
         )
 
         await real_event_bus.start()
@@ -118,25 +109,22 @@ class TestFrameworkIntegration:
         async with real_database_connection.transaction() as tx:
             # Insert order
             order_id = await tx.execute(
-                "INSERT INTO orders (customer_id, total) VALUES ($1, $2) RETURNING id",
-                123, 99.99
+                "INSERT INTO orders (customer_id, total) VALUES ($1, $2) RETURNING id", 123, 99.99
             )
 
             # Insert order items
             await tx.execute(
                 "INSERT INTO order_items (order_id, product_id, quantity) VALUES ($1, $2, $3)",
-                order_id, 456, 2
+                order_id,
+                456,
+                2,
             )
 
             # Publish event within transaction
             event = Event(
                 id=f"order-{order_id}",
                 type="order.placed",
-                data={
-                    "order_id": order_id,
-                    "customer_id": 123,
-                    "total": 99.99
-                }
+                data={"order_id": order_id, "customer_id": 123, "total": 99.99},
             )
 
             await real_event_bus.publish(event)
@@ -158,10 +146,7 @@ class TestFrameworkIntegration:
         await real_event_bus.stop()
 
     async def test_saga_pattern_implementation(
-        self,
-        real_message_bus,
-        real_event_bus,
-        real_database_connection
+        self, real_message_bus, real_event_bus, real_database_connection
     ):
         """Test saga pattern implementation with compensation."""
         saga_steps = []
@@ -210,7 +195,9 @@ class TestFrameworkIntegration:
                 # Create order in database
                 await self.db.execute(
                     "INSERT INTO orders (customer_id, total, status) VALUES ($1, $2, $3)",
-                    order_data["customer_id"], order_data["total"], "completed"
+                    order_data["customer_id"],
+                    order_data["total"],
+                    "completed",
                 )
 
             async def _compensate(self, order_data):
@@ -238,7 +225,7 @@ class TestFrameworkIntegration:
         real_event_bus.register_handler(
             name="saga-handler",
             event_type="order.requested",
-            handler_func=saga.handle_order_requested
+            handler_func=saga.handle_order_requested,
         )
 
         await real_event_bus.start()
@@ -251,8 +238,8 @@ class TestFrameworkIntegration:
                 "customer_id": 123,
                 "product_id": 456,
                 "total": 99.99,
-                "payment_method": "credit_card"
-            }
+                "payment_method": "credit_card",
+            },
         )
 
         await real_event_bus.publish(success_event)
@@ -276,8 +263,8 @@ class TestFrameworkIntegration:
                 "customer_id": 123,
                 "product_id": 999,  # Out of stock
                 "total": 99.99,
-                "payment_method": "credit_card"
-            }
+                "payment_method": "credit_card",
+            },
         )
 
         await real_event_bus.publish(failure_event)
@@ -288,11 +275,7 @@ class TestFrameworkIntegration:
 
         await real_event_bus.stop()
 
-    async def test_circuit_breaker_pattern(
-        self,
-        real_message_bus,
-        real_event_bus
-    ):
+    async def test_circuit_breaker_pattern(self, real_message_bus, real_event_bus):
         """Test circuit breaker pattern for resilience."""
         call_attempts = []
         circuit_states = []
@@ -326,9 +309,9 @@ class TestFrameworkIntegration:
 
             def _should_attempt_reset(self):
                 import time
+
                 return (
-                    self.last_failure_time and
-                    time.time() - self.last_failure_time >= self.timeout
+                    self.last_failure_time and time.time() - self.last_failure_time >= self.timeout
                 )
 
             def _on_success(self):
@@ -337,6 +320,7 @@ class TestFrameworkIntegration:
 
             def _on_failure(self):
                 import time
+
                 self.failure_count += 1
                 self.last_failure_time = time.time()
 
@@ -380,10 +364,7 @@ class TestFrameworkIntegration:
         assert "HALF_OPEN" in circuit_states
 
     async def test_cqrs_pattern_implementation(
-        self,
-        real_database_connection,
-        real_event_bus,
-        real_message_bus
+        self, real_database_connection, real_event_bus, real_message_bus
     ):
         """Test CQRS pattern with command/query separation."""
         command_results = []
@@ -400,14 +381,19 @@ class TestFrameworkIntegration:
                 # Write to command store
                 user_id = await self.db.execute(
                     "INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id",
-                    command_data["name"], command_data["email"]
+                    command_data["name"],
+                    command_data["email"],
                 )
 
                 # Publish event
                 event = Event(
                     id=f"user-created-{user_id}",
                     type="user.created",
-                    data={"user_id": user_id, "name": command_data["name"], "email": command_data["email"]}
+                    data={
+                        "user_id": user_id,
+                        "name": command_data["name"],
+                        "email": command_data["email"],
+                    },
                 )
 
                 await self.event_bus.publish(event)
@@ -421,9 +407,7 @@ class TestFrameworkIntegration:
 
             async def get_user(self, user_id):
                 # Read from query store (could be different from command store)
-                user = await self.db.fetch_one(
-                    "SELECT * FROM users WHERE id = $1", user_id
-                )
+                user = await self.db.fetch_one("SELECT * FROM users WHERE id = $1", user_id)
                 query_results.append(user)
                 return user
 
@@ -444,23 +428,15 @@ class TestFrameworkIntegration:
         queries = UserQueries(real_database_connection)
 
         real_event_bus.register_handler(
-            name="read-model-updater",
-            event_type="user.created",
-            handler_func=update_read_model
+            name="read-model-updater", event_type="user.created", handler_func=update_read_model
         )
 
         await real_event_bus.start()
 
         # Execute commands
-        user_id1 = await commands.create_user({
-            "name": "John Doe",
-            "email": "john@example.com"
-        })
+        user_id1 = await commands.create_user({"name": "John Doe", "email": "john@example.com"})
 
-        user_id2 = await commands.create_user({
-            "name": "Jane Smith",
-            "email": "jane@example.com"
-        })
+        user_id2 = await commands.create_user({"name": "Jane Smith", "email": "jane@example.com"})
 
         await asyncio.sleep(0.3)
 
@@ -480,11 +456,7 @@ class TestFrameworkIntegration:
 
         await real_event_bus.stop()
 
-    async def test_event_sourcing_pattern(
-        self,
-        real_database_connection,
-        real_event_bus
-    ):
+    async def test_event_sourcing_pattern(self, real_database_connection, real_event_bus):
         """Test event sourcing pattern implementation."""
         stored_events = []
 
@@ -495,10 +467,13 @@ class TestFrameworkIntegration:
             async def save_events(self, aggregate_id, events, expected_version):
                 async with self.db.transaction() as tx:
                     # Check version for optimistic concurrency
-                    current_version = await tx.fetch_val(
-                        "SELECT COALESCE(MAX(version), 0) FROM events WHERE aggregate_id = $1",
-                        aggregate_id
-                    ) or 0
+                    current_version = (
+                        await tx.fetch_val(
+                            "SELECT COALESCE(MAX(version), 0) FROM events WHERE aggregate_id = $1",
+                            aggregate_id,
+                        )
+                        or 0
+                    )
 
                     if current_version != expected_version:
                         raise Exception("Concurrency conflict")
@@ -508,14 +483,18 @@ class TestFrameworkIntegration:
                         version = expected_version + i + 1
                         await tx.execute(
                             "INSERT INTO events (aggregate_id, version, event_type, event_data, timestamp) VALUES ($1, $2, $3, $4, NOW())",
-                            aggregate_id, version, event.type, json.dumps(event.data)
+                            aggregate_id,
+                            version,
+                            event.type,
+                            json.dumps(event.data),
                         )
                         stored_events.append(event)
 
             async def load_events(self, aggregate_id, from_version=0):
                 rows = await self.db.fetch_all(
                     "SELECT * FROM events WHERE aggregate_id = $1 AND version > $2 ORDER BY version",
-                    aggregate_id, from_version
+                    aggregate_id,
+                    from_version,
                 )
 
                 events = []
@@ -523,7 +502,7 @@ class TestFrameworkIntegration:
                     event = Event(
                         id=f"event-{row['id']}",
                         type=row["event_type"],
-                        data=json.loads(row["event_data"])
+                        data=json.loads(row["event_data"]),
                     )
                     events.append(event)
 
@@ -544,7 +523,7 @@ class TestFrameworkIntegration:
                 event = Event(
                     id=f"deposit-{self.account_id}-{len(self.uncommitted_events)}",
                     type="money.deposited",
-                    data={"account_id": self.account_id, "amount": amount}
+                    data={"account_id": self.account_id, "amount": amount},
                 )
 
                 self._apply_event(event)
@@ -559,7 +538,7 @@ class TestFrameworkIntegration:
                 event = Event(
                     id=f"withdraw-{self.account_id}-{len(self.uncommitted_events)}",
                     type="money.withdrawn",
-                    data={"account_id": self.account_id, "amount": amount}
+                    data={"account_id": self.account_id, "amount": amount},
                 )
 
                 self._apply_event(event)
@@ -591,9 +570,7 @@ class TestFrameworkIntegration:
 
         # Save events
         await event_store.save_events(
-            account.account_id,
-            account.uncommitted_events,
-            account.version
+            account.account_id, account.uncommitted_events, account.version
         )
         account.mark_committed()
 
@@ -616,7 +593,7 @@ class TestFrameworkIntegration:
         real_redis_client,
         real_message_bus,
         real_event_bus,
-        real_metrics_collector
+        real_metrics_collector,
     ):
         """Test complete microservice workflow with all components."""
         workflow_steps = []
@@ -632,9 +609,7 @@ class TestFrameworkIntegration:
 
             # Cache customer data
             await real_redis_client.set(
-                f"customer:{order_data['customer_id']}",
-                json.dumps({"status": "active"}),
-                ex=3600
+                f"customer:{order_data['customer_id']}", json.dumps({"status": "active"}), ex=3600
             )
 
             # Publish domain event
@@ -642,7 +617,7 @@ class TestFrameworkIntegration:
                 id=f"order-requested-{message.id}",
                 type="order.requested",
                 data=order_data,
-                correlation_id=message.correlation_id
+                correlation_id=message.correlation_id,
             )
 
             await real_event_bus.publish(event)
@@ -671,7 +646,10 @@ class TestFrameworkIntegration:
                 # Save order to database
                 order_id = await real_database_connection.execute(
                     "INSERT INTO orders (customer_id, product_id, quantity, status) VALUES ($1, $2, $3, $4) RETURNING id",
-                    order_data["customer_id"], order_data["product_id"], quantity, "confirmed"
+                    order_data["customer_id"],
+                    order_data["product_id"],
+                    quantity,
+                    "confirmed",
                 )
 
                 # Publish order confirmed event
@@ -679,7 +657,7 @@ class TestFrameworkIntegration:
                     id=f"order-confirmed-{order_id}",
                     type="order.confirmed",
                     data={**order_data, "order_id": order_id},
-                    correlation_id=event.correlation_id
+                    correlation_id=event.correlation_id,
                 )
 
                 await real_event_bus.publish(confirmed_event)
@@ -689,7 +667,7 @@ class TestFrameworkIntegration:
                     id=f"order-rejected-{event.id}",
                     type="order.rejected",
                     data={**order_data, "reason": "insufficient_inventory"},
-                    correlation_id=event.correlation_id
+                    correlation_id=event.correlation_id,
                 )
 
                 await real_event_bus.publish(rejected_event)
@@ -702,13 +680,12 @@ class TestFrameworkIntegration:
             notification_data = {
                 "customer_id": event.data["customer_id"],
                 "order_id": event.data["order_id"],
-                "message": "Your order has been confirmed"
+                "message": "Your order has been confirmed",
             }
 
             # Store notification in cache
             await real_redis_client.lpush(
-                f"notifications:{event.data['customer_id']}",
-                json.dumps(notification_data)
+                f"notifications:{event.data['customer_id']}", json.dumps(notification_data)
             )
 
         # Step 4: Metrics handler
@@ -720,32 +697,30 @@ class TestFrameworkIntegration:
             real_metrics_collector.record_histogram(
                 "order.processing_time",
                 0.5,  # Simulated processing time
-                {"order_type": "standard"}
+                {"order_type": "standard"},
             )
 
         # Register all handlers
         real_message_bus.register_handler(
             name="create-order-handler",
             message_type="order.create",
-            handler_func=handle_create_order_request
+            handler_func=handle_create_order_request,
         )
 
         real_event_bus.register_handler(
             name="order-requested-handler",
             event_type="order.requested",
-            handler_func=handle_order_requested
+            handler_func=handle_order_requested,
         )
 
         real_event_bus.register_handler(
             name="order-confirmed-handler",
             event_type="order.confirmed",
-            handler_func=handle_order_confirmed
+            handler_func=handle_order_confirmed,
         )
 
         real_event_bus.register_handler(
-            name="metrics-handler",
-            event_type="order.*",
-            handler_func=handle_order_events
+            name="metrics-handler", event_type="order.*", handler_func=handle_order_events
         )
 
         # Start all components
@@ -756,12 +731,8 @@ class TestFrameworkIntegration:
         order_message = Message(
             id="order-msg-123",
             type="order.create",
-            data={
-                "customer_id": 123,
-                "product_id": 456,
-                "quantity": 2
-            },
-            correlation_id="workflow-123"
+            data={"customer_id": 123, "product_id": 456, "quantity": 2},
+            correlation_id="workflow-123",
         )
 
         await real_message_bus.publish(order_message)
@@ -774,7 +745,7 @@ class TestFrameworkIntegration:
             "api_request_received",
             "business_logic_executed",
             "notification_sent",
-            "metrics_recorded"
+            "metrics_recorded",
         ]
 
         for step in expected_steps:

@@ -108,9 +108,7 @@ class BulkheadPool(ABC):
         with self._lock:
             self._total_requests += 1
             self._active_requests += 1
-            self._max_concurrent_reached = max(
-                self._max_concurrent_reached, self._active_requests
-            )
+            self._max_concurrent_reached = max(self._max_concurrent_reached, self._active_requests)
 
     def _record_request_end(self, success: bool):
         """Record end of request."""
@@ -135,9 +133,7 @@ class BulkheadPool(ABC):
         """Get bulkhead statistics."""
         with self._lock:
             avg_wait_time = (
-                self._total_wait_time / self._total_requests
-                if self._total_requests > 0
-                else 0.0
+                self._total_wait_time / self._total_requests if self._total_requests > 0 else 0.0
             )
 
             return {
@@ -156,9 +152,7 @@ class BulkheadPool(ABC):
                     self._successful_requests
                     / max(1, self._total_requests - self._rejected_requests)
                 ),
-                "rejection_rate": (
-                    self._rejected_requests / max(1, self._total_requests)
-                ),
+                "rejection_rate": (self._rejected_requests / max(1, self._total_requests)),
             }
 
 
@@ -294,9 +288,7 @@ class ThreadPoolBulkhead(BulkheadPool):
                 self._active_futures.add(future)
 
             try:
-                result = await asyncio.wait_for(
-                    future, timeout=self.config.timeout_seconds
-                )
+                result = await asyncio.wait_for(future, timeout=self.config.timeout_seconds)
                 wait_time = time.time() - start_time
                 self._record_wait_time(wait_time)
                 self._record_request_end(True)
@@ -402,9 +394,7 @@ class BulkheadManager:
                 raise ValueError(f"Unsupported bulkhead type: {config.bulkhead_type}")
 
             self._bulkheads[name] = bulkhead
-            logger.info(
-                f"Created bulkhead '{name}' with capacity {config.max_concurrent}"
-            )
+            logger.info(f"Created bulkhead '{name}' with capacity {config.max_concurrent}")
             return bulkhead
 
     def get_bulkhead(self, name: str) -> BulkheadPool | None:
@@ -425,9 +415,7 @@ class BulkheadManager:
     def get_all_stats(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Get statistics for all bulkheads."""
         with self._lock:
-            return {
-                name: bulkhead.get_stats() for name, bulkhead in self._bulkheads.items()
-            }
+            return {name: bulkhead.get_stats() for name, bulkhead in self._bulkheads.items()}
 
     def shutdown_all(self):
         """Shutdown all bulkheads."""

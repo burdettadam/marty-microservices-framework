@@ -40,11 +40,7 @@ class EventPublisher:
     - Kafka integration with retry and error handling
     """
 
-    def __init__(
-        self,
-        config: EventConfig | EventPublisherConfig,
-        database_session=None
-    ):
+    def __init__(self, config: EventConfig | EventPublisherConfig, database_session=None):
         """
         Initialize the event publisher.
 
@@ -73,9 +69,7 @@ class EventPublisher:
                 await self._producer.start()
                 self._started = True
 
-                logger.info(
-                    f"Event publisher started for service: {self.config.service_name}"
-                )
+                logger.info(f"Event publisher started for service: {self.config.service_name}")
 
             except Exception as e:
                 logger.error(f"Failed to start event publisher: {e}")
@@ -92,9 +86,7 @@ class EventPublisher:
                 self._producer = None
             self._started = False
 
-            logger.info(
-                f"Event publisher stopped for service: {self.config.service_name}"
-            )
+            logger.info(f"Event publisher stopped for service: {self.config.service_name}")
 
     async def publish_audit_event(
         self,
@@ -103,7 +95,7 @@ class EventPublisher:
         resource_type: str,
         resource_id: str | None = None,
         metadata: EventMetadata | None = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Publish an audit event for compliance and security tracking.
@@ -124,7 +116,7 @@ class EventPublisher:
             action=action,
             resource_type=resource_type,
             resource_id=resource_id,
-            **kwargs
+            **kwargs,
         )
 
         if metadata is None:
@@ -137,7 +129,7 @@ class EventPublisher:
             event_type=event_type.value,
             payload=audit_data.dict(),
             metadata=metadata,
-            key=resource_id
+            key=resource_id,
         )
 
     async def publish_notification_event(
@@ -148,7 +140,7 @@ class EventPublisher:
         subject: str,
         message: str,
         metadata: EventMetadata | None = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Publish a notification event for user or system notifications.
@@ -171,7 +163,7 @@ class EventPublisher:
             recipient_ids=recipient_ids,
             subject=subject,
             message=message,
-            **kwargs
+            **kwargs,
         )
 
         if metadata is None:
@@ -184,7 +176,7 @@ class EventPublisher:
             event_type=event_type.value,
             payload=notification_data.dict(),
             metadata=metadata,
-            key=recipient_type
+            key=recipient_type,
         )
 
     async def publish_domain_event(
@@ -194,7 +186,7 @@ class EventPublisher:
         event_type: str,
         event_data: dict[str, Any],
         metadata: EventMetadata | None = None,
-        **kwargs
+        **kwargs,
     ) -> str:
         """
         Publish a domain event for business logic.
@@ -215,7 +207,7 @@ class EventPublisher:
             aggregate_id=aggregate_id,
             event_type=event_type,
             event_data=event_data,
-            **kwargs
+            **kwargs,
         )
 
         if metadata is None:
@@ -225,7 +217,7 @@ class EventPublisher:
         topic_name = self.config.domain_topic_pattern.format(
             service=self.config.service_name,
             aggregate=aggregate_type.lower(),
-            event_type=event_type.lower()
+            event_type=event_type.lower(),
         )
         topic = self._get_topic_name(topic_name)
 
@@ -234,7 +226,7 @@ class EventPublisher:
             event_type=event_type,
             payload=domain_data.dict(),
             metadata=metadata,
-            key=aggregate_id
+            key=aggregate_id,
         )
 
     async def publish_custom_event(
@@ -243,7 +235,7 @@ class EventPublisher:
         event_type: str,
         payload: dict[str, Any],
         metadata: EventMetadata | None = None,
-        key: str | None = None
+        key: str | None = None,
     ) -> str:
         """
         Publish a custom event to a specific topic.
@@ -264,11 +256,7 @@ class EventPublisher:
         full_topic = self._get_topic_name(topic)
 
         return await self._publish_event(
-            topic=full_topic,
-            event_type=event_type,
-            payload=payload,
-            metadata=metadata,
-            key=key
+            topic=full_topic, event_type=event_type, payload=payload, metadata=metadata, key=key
         )
 
     async def _publish_event(
@@ -277,7 +265,7 @@ class EventPublisher:
         event_type: str,
         payload: dict[str, Any],
         metadata: EventMetadata,
-        key: str | None = None
+        key: str | None = None,
     ) -> str:
         """
         Internal method to publish an event.
@@ -292,39 +280,25 @@ class EventPublisher:
         Returns:
             Event ID
         """
-        event_envelope = {
-            "metadata": metadata.dict(),
-            "event_type": event_type,
-            "payload": payload
-        }
+        event_envelope = {"metadata": metadata.dict(), "event_type": event_type, "payload": payload}
 
         if self.config.use_outbox_pattern and self.database_session:
-            return await self._publish_via_outbox(
-                topic, event_envelope, key, metadata.event_id
-            )
+            return await self._publish_via_outbox(topic, event_envelope, key, metadata.event_id)
         else:
-            return await self._publish_direct(
-                topic, event_envelope, key, metadata.event_id
-            )
+            return await self._publish_direct(topic, event_envelope, key, metadata.event_id)
 
     async def _publish_direct(
-        self,
-        topic: str,
-        event_envelope: dict[str, Any],
-        key: str | None,
-        event_id: str
+        self, topic: str, event_envelope: dict[str, Any], key: str | None, event_id: str
     ) -> str:
         """Publish event directly to Kafka."""
         await self.start()
 
         try:
-            serialized_value = json.dumps(event_envelope, default=str).encode('utf-8')
-            serialized_key = key.encode('utf-8') if key else None
+            serialized_value = json.dumps(event_envelope, default=str).encode("utf-8")
+            serialized_key = key.encode("utf-8") if key else None
 
             future = await self._producer.send(
-                topic=topic,
-                value=serialized_value,
-                key=serialized_key
+                topic=topic, value=serialized_value, key=serialized_key
             )
 
             # Wait for the message to be sent
@@ -343,26 +317,19 @@ class EventPublisher:
             raise EventPublishingError(f"Failed to publish event: {e}", event_id, e)
 
     async def _publish_via_outbox(
-        self,
-        topic: str,
-        event_envelope: dict[str, Any],
-        key: str | None,
-        event_id: str
+        self, topic: str, event_envelope: dict[str, Any], key: str | None, event_id: str
     ) -> str:
         """Publish event via outbox pattern."""
         try:
             # Import here to avoid circular dependencies
             from ..database.outbox import OutboxRepository
 
-            serialized_payload = json.dumps(event_envelope, default=str).encode('utf-8')
-            serialized_key = key.encode('utf-8') if key else None
+            serialized_payload = json.dumps(event_envelope, default=str).encode("utf-8")
+            serialized_key = key.encode("utf-8") if key else None
 
             outbox = OutboxRepository(self.database_session)
             await outbox.enqueue(
-                topic=topic,
-                payload=serialized_payload,
-                key=serialized_key,
-                event_id=event_id
+                topic=topic, payload=serialized_payload, key=serialized_key, event_id=event_id
             )
 
             logger.debug(f"Event {event_id} queued in outbox for topic {topic}")
@@ -373,14 +340,13 @@ class EventPublisher:
             raise EventPublishingError(f"Failed to queue event in outbox: {e}", event_id, e)
 
     def _create_default_metadata(
-        self,
-        priority: EventPriority = EventPriority.NORMAL
+        self, priority: EventPriority = EventPriority.NORMAL
     ) -> EventMetadata:
         """Create default event metadata."""
         return EventMetadata(
             service_name=self.config.service_name,
-            service_version=getattr(self.config, 'service_version', '1.0.0'),
-            priority=priority
+            service_version=getattr(self.config, "service_version", "1.0.0"),
+            priority=priority,
         )
 
     def _get_topic_name(self, topic: str) -> str:
@@ -391,27 +357,29 @@ class EventPublisher:
 
     def _get_kafka_config(self) -> dict[str, Any]:
         """Get Kafka producer configuration."""
-        if hasattr(self.config, 'get_kafka_config'):
+        if hasattr(self.config, "get_kafka_config"):
             return self.config.get_kafka_config()
 
         # Fallback for EventConfig
         config = {
             "bootstrap_servers": self.config.kafka_brokers,
             "security_protocol": self.config.kafka_security_protocol,
-            "acks": getattr(self.config, 'producer_acks', 'all'),
-            "retries": getattr(self.config, 'producer_retries', 3),
-            "request_timeout_ms": getattr(self.config, 'producer_timeout_ms', 30000),
-            "compression_type": getattr(self.config, 'producer_compression_type', 'snappy'),
+            "acks": getattr(self.config, "producer_acks", "all"),
+            "retries": getattr(self.config, "producer_retries", 3),
+            "request_timeout_ms": getattr(self.config, "producer_timeout_ms", 30000),
+            "compression_type": getattr(self.config, "producer_compression_type", "snappy"),
             "value_serializer": lambda v: v,  # We handle serialization ourselves
-            "key_serializer": lambda k: k,    # We handle serialization ourselves
+            "key_serializer": lambda k: k,  # We handle serialization ourselves
         }
 
         if self.config.kafka_sasl_mechanism:
-            config.update({
-                "sasl_mechanism": self.config.kafka_sasl_mechanism,
-                "sasl_plain_username": self.config.kafka_sasl_username,
-                "sasl_plain_password": self.config.kafka_sasl_password,
-            })
+            config.update(
+                {
+                    "sasl_mechanism": self.config.kafka_sasl_mechanism,
+                    "sasl_plain_username": self.config.kafka_sasl_username,
+                    "sasl_plain_password": self.config.kafka_sasl_password,
+                }
+            )
 
         return config
 
@@ -421,8 +389,7 @@ _event_publisher: EventPublisher | None = None
 
 
 def get_event_publisher(
-    config: EventConfig | EventPublisherConfig | None = None,
-    database_session=None
+    config: EventConfig | EventPublisherConfig | None = None, database_session=None
 ) -> EventPublisher:
     """
     Get or create the global event publisher instance.

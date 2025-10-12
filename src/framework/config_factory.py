@@ -50,20 +50,10 @@ def validate_config_structure(config_path: Path) -> dict[str, Any]:
     Returns:
         Dictionary with validation results
     """
-    results = {
-        "valid": True,
-        "errors": [],
-        "warnings": [],
-        "files_found": []
-    }
+    results = {"valid": True, "errors": [], "warnings": [], "files_found": []}
 
     # Check for expected config files
-    expected_files = [
-        "base.yaml",
-        "development.yaml",
-        "testing.yaml",
-        "production.yaml"
-    ]
+    expected_files = ["base.yaml", "development.yaml", "testing.yaml", "production.yaml"]
 
     for filename in expected_files:
         file_path = config_path / filename

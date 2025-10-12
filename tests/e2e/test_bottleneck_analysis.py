@@ -48,8 +48,7 @@ class TestBottleneckAnalysis:
             simulation_plugin.config.update(
                 {
                     "complexity_multiplier": load_level,
-                    "error_rate": 0.1
-                    + (load_level * 0.02),  # Increase error rate with load
+                    "error_rate": 0.1 + (load_level * 0.02),  # Increase error rate with load
                     "background_task_count": load_level,
                 }
             )
@@ -65,9 +64,7 @@ class TestBottleneckAnalysis:
             simulation_tasks = []
             for i in range(load_level):
                 task = asyncio.create_task(
-                    self._generate_simulation_workload(
-                        simulation_plugin, f"sim_{i}", test_duration
-                    )
+                    self._generate_simulation_workload(simulation_plugin, f"sim_{i}", test_duration)
                 )
                 simulation_tasks.append(task)
 
@@ -93,9 +90,7 @@ class TestBottleneckAnalysis:
                 print(f"⚠️  Some tasks failed with load level {load_level}: {e}")
 
             # Analyze results for this load level
-            load_results = await self._analyze_load_level_results(
-                performance_analyzer, load_level
-            )
+            load_results = await self._analyze_load_level_results(performance_analyzer, load_level)
             results[f"load_level_{load_level}"] = load_results
 
             print(f"✅ Completed load level {load_level} analysis")
@@ -114,12 +109,10 @@ class TestBottleneckAnalysis:
         print(f"\\n📋 Report saved to: {report_file}")
 
         # Assertions to verify test functionality
-        assert len(results) == len(
-            load_levels
-        ), "Should have results for all load levels"
-        assert any(
-            load_results["bottlenecks"] for load_results in results.values()
-        ), "Should detect some bottlenecks under high load"
+        assert len(results) == len(load_levels), "Should have results for all load levels"
+        assert any(load_results["bottlenecks"] for load_results in results.values()), (
+            "Should detect some bottlenecks under high load"
+        )
 
         # Print summary
         self._print_test_summary(report)
@@ -154,9 +147,7 @@ class TestBottleneckAnalysis:
 
             await asyncio.sleep(1)  # Monitor every second
 
-    async def _generate_simulation_workload(
-        self, plugin, task_name: str, duration: int
-    ):
+    async def _generate_simulation_workload(self, plugin, task_name: str, duration: int):
         """Generate workload using simulation plugin."""
         start_time = time.time()
         operation_count = 0
@@ -218,9 +209,7 @@ class TestBottleneckAnalysis:
         service_name = f"load_level_{load_level}"
 
         # Get recent bottlenecks for this service
-        recent_bottlenecks = [
-            b for b in analyzer.bottlenecks if b.service_name == service_name
-        ]
+        recent_bottlenecks = [b for b in analyzer.bottlenecks if b.service_name == service_name]
 
         # Get recent audit events
         recent_events = [e for e in analyzer.audit_events if e.service == service_name]
@@ -229,16 +218,14 @@ class TestBottleneckAnalysis:
         metrics_list = analyzer.metrics_history.get(service_name, [])
 
         if metrics_list:
-            avg_cpu = sum(
-                m.cpu_usage[0] if m.cpu_usage else 0 for m in metrics_list
-            ) / len(metrics_list)
+            avg_cpu = sum(m.cpu_usage[0] if m.cpu_usage else 0 for m in metrics_list) / len(
+                metrics_list
+            )
             avg_memory = sum(
                 m.memory_usage[0] if m.memory_usage else 0 for m in metrics_list
             ) / len(metrics_list)
             max_cpu = max(max(m.cpu_usage) if m.cpu_usage else 0 for m in metrics_list)
-            max_memory = max(
-                max(m.memory_usage) if m.memory_usage else 0 for m in metrics_list
-            )
+            max_memory = max(max(m.memory_usage) if m.memory_usage else 0 for m in metrics_list)
         else:
             avg_cpu = avg_memory = max_cpu = max_memory = 0
 
@@ -264,9 +251,7 @@ class TestBottleneckAnalysis:
             "error_events": len([e for e in recent_events if e.severity == "error"]),
         }
 
-    def _generate_bottleneck_report(
-        self, results: dict, analyzer: PerformanceAnalyzer
-    ) -> dict:
+    def _generate_bottleneck_report(self, results: dict, analyzer: PerformanceAnalyzer) -> dict:
         """Generate comprehensive bottleneck analysis report."""
 
         # Identify trend patterns
@@ -290,9 +275,7 @@ class TestBottleneckAnalysis:
             },
             "performance_trends": {
                 "cpu_usage_by_load": dict(zip(load_levels, cpu_trend, strict=False)),
-                "memory_usage_by_load": dict(
-                    zip(load_levels, memory_trend, strict=False)
-                ),
+                "memory_usage_by_load": dict(zip(load_levels, memory_trend, strict=False)),
                 "bottlenecks_by_load": {
                     level: len(results[f"load_level_{level}"]["bottlenecks"])
                     for level in load_levels
@@ -312,9 +295,7 @@ class TestBottleneckAnalysis:
                     if b.severity in ["critical", "high"]
                 ],
                 "bottleneck_types": {
-                    bt: len(
-                        [b for b in analyzer.bottlenecks if b.bottleneck_type == bt]
-                    )
+                    bt: len([b for b in analyzer.bottlenecks if b.bottleneck_type == bt])
                     for bt in ["cpu", "memory", "response_time", "error_rate"]
                 },
             },
@@ -328,12 +309,8 @@ class TestBottleneckAnalysis:
 
         cpu_bottlenecks = [b for b in bottlenecks if b.bottleneck_type == "cpu"]
         memory_bottlenecks = [b for b in bottlenecks if b.bottleneck_type == "memory"]
-        response_bottlenecks = [
-            b for b in bottlenecks if b.bottleneck_type == "response_time"
-        ]
-        error_bottlenecks = [
-            b for b in bottlenecks if b.bottleneck_type == "error_rate"
-        ]
+        response_bottlenecks = [b for b in bottlenecks if b.bottleneck_type == "response_time"]
+        error_bottlenecks = [b for b in bottlenecks if b.bottleneck_type == "error_rate"]
 
         if cpu_bottlenecks:
             recommendations.append(

@@ -20,7 +20,7 @@ class TestFrameworkConfig:
         """Test configuration creation with default values."""
         config = BaseServiceConfig()
 
-        assert hasattr(config, 'service_name')
+        assert hasattr(config, "service_name")
         # Check for actual properties that exist in BaseServiceConfig
 
     def test_config_creation_with_custom_values(self):
@@ -30,7 +30,7 @@ class TestFrameworkConfig:
             environment="test",
             debug=True,
             log_level="DEBUG",
-            port=9000
+            port=9000,
         )
 
         assert config.service_name == "test-service"
@@ -46,7 +46,7 @@ class TestFrameworkConfig:
             "environment": "production",
             "debug": False,
             "log_level": "WARNING",
-            "port": 8443
+            "port": 8443,
         }
 
         config = FrameworkConfig.from_dict(config_dict)
@@ -59,10 +59,7 @@ class TestFrameworkConfig:
 
     def test_config_from_dict_partial(self):
         """Test configuration from dictionary with partial values."""
-        config_dict = {
-            "service_name": "partial-service",
-            "debug": True
-        }
+        config_dict = {"service_name": "partial-service", "debug": True}
 
         config = FrameworkConfig.from_dict(config_dict)
 
@@ -75,13 +72,16 @@ class TestFrameworkConfig:
         assert config.log_level == "INFO"
         assert config.port == 8080
 
-    @patch.dict(os.environ, {
-        "SERVICE_NAME": "env-service",
-        "ENVIRONMENT": "staging",
-        "DEBUG": "true",
-        "LOG_LEVEL": "ERROR",
-        "PORT": "8081"
-    })
+    @patch.dict(
+        os.environ,
+        {
+            "SERVICE_NAME": "env-service",
+            "ENVIRONMENT": "staging",
+            "DEBUG": "true",
+            "LOG_LEVEL": "ERROR",
+            "PORT": "8081",
+        },
+    )
     def test_config_from_environment(self):
         """Test configuration loading from environment variables."""
         config = FrameworkConfig.from_environment()
@@ -92,11 +92,7 @@ class TestFrameworkConfig:
         assert config.log_level == "ERROR"
         assert config.port == 8081
 
-    @patch.dict(os.environ, {
-        "SERVICE_NAME": "env-service",
-        "DEBUG": "false",
-        "PORT": "invalid"
-    })
+    @patch.dict(os.environ, {"SERVICE_NAME": "env-service", "DEBUG": "false", "PORT": "invalid"})
     def test_config_from_environment_with_invalid_values(self):
         """Test configuration handling of invalid environment values."""
         config = FrameworkConfig.from_environment()
@@ -108,11 +104,7 @@ class TestFrameworkConfig:
 
     def test_config_validation_valid(self):
         """Test configuration validation with valid values."""
-        config = FrameworkConfig(
-            service_name="valid-service",
-            environment="production",
-            port=8080
-        )
+        config = FrameworkConfig(service_name="valid-service", environment="production", port=8080)
 
         # Should not raise any exceptions
         config.validate()
@@ -142,7 +134,7 @@ class TestFrameworkConfig:
             environment="test",
             debug=True,
             log_level="DEBUG",
-            port=9000
+            port=9000,
         )
 
         config_dict = config.to_dict()
@@ -152,7 +144,7 @@ class TestFrameworkConfig:
             "environment": "test",
             "debug": True,
             "log_level": "DEBUG",
-            "port": 9000
+            "port": 9000,
         }
 
         assert config_dict == expected
@@ -161,11 +153,7 @@ class TestFrameworkConfig:
         """Test configuration update with new values."""
         config = FrameworkConfig(service_name="original")
 
-        config.update({
-            "service_name": "updated",
-            "debug": True,
-            "port": 9000
-        })
+        config.update({"service_name": "updated", "debug": True, "port": 9000})
 
         assert config.service_name == "updated"
         assert config.debug is True
@@ -173,16 +161,9 @@ class TestFrameworkConfig:
 
     def test_config_merge(self):
         """Test configuration merging with another config."""
-        config1 = FrameworkConfig(
-            service_name="service1",
-            debug=True
-        )
+        config1 = FrameworkConfig(service_name="service1", debug=True)
 
-        config2 = FrameworkConfig(
-            service_name="service2",
-            environment="production",
-            port=9000
-        )
+        config2 = FrameworkConfig(service_name="service2", environment="production", port=9000)
 
         merged = config1.merge(config2)
 
@@ -202,16 +183,13 @@ class TestFrameworkConfig:
         assert config.service_name == "file-service"
         assert config.debug is True
 
-    @patch("builtins.open", mock_open(read_data='service_name: yaml-service\ndebug: true'))
+    @patch("builtins.open", mock_open(read_data="service_name: yaml-service\ndebug: true"))
     def test_config_from_file_yaml(self, temp_dir):
         """Test configuration loading from YAML file."""
         config_file = temp_dir / "config.yaml"
 
-        with patch('yaml.safe_load') as mock_yaml:
-            mock_yaml.return_value = {
-                "service_name": "yaml-service",
-                "debug": True
-            }
+        with patch("yaml.safe_load") as mock_yaml:
+            mock_yaml.return_value = {"service_name": "yaml-service", "debug": True}
 
             config = FrameworkConfig.from_file(str(config_file))
 
@@ -237,10 +215,7 @@ class TestFrameworkConfig:
 
     def test_config_contains_sensitive_data_handling(self):
         """Test that sensitive configuration data is handled properly."""
-        config = FrameworkConfig(
-            database_password="secret123",
-            api_key="key456"
-        )
+        config = FrameworkConfig(database_password="secret123", api_key="key456")
 
         # Ensure sensitive data is not exposed in string representation
         repr_str = repr(config)
@@ -258,18 +233,21 @@ class TestFrameworkConfig:
         with pytest.raises((AttributeError, ValueError)):
             config.service_name = "changed"
 
-    @pytest.mark.parametrize("env_value,expected", [
-        ("true", True),
-        ("True", True),
-        ("TRUE", True),
-        ("1", True),
-        ("false", False),
-        ("False", False),
-        ("FALSE", False),
-        ("0", False),
-        ("", False),
-        ("invalid", False),
-    ])
+    @pytest.mark.parametrize(
+        "env_value,expected",
+        [
+            ("true", True),
+            ("True", True),
+            ("TRUE", True),
+            ("1", True),
+            ("false", False),
+            ("False", False),
+            ("FALSE", False),
+            ("0", False),
+            ("", False),
+            ("invalid", False),
+        ],
+    )
     def test_boolean_environment_parsing(self, env_value, expected):
         """Test boolean parsing from environment variables."""
         with patch.dict(os.environ, {"DEBUG": env_value}):

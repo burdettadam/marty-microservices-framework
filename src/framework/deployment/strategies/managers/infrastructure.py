@@ -18,9 +18,9 @@ class InfrastructureManager:
     def __init__(self):
         """Initialize infrastructure manager."""
         self.environments: builtins.dict[str, Any] = {}
-        self.service_instances: builtins.dict[
-            str, builtins.list[builtins.dict[str, Any]]
-        ] = defaultdict(list)
+        self.service_instances: builtins.dict[str, builtins.list[builtins.dict[str, Any]]] = (
+            defaultdict(list)
+        )
 
     async def prepare_environment(
         self,
@@ -29,9 +29,7 @@ class InfrastructureManager:
         env_type: EnvironmentType,
     ) -> builtins.dict[str, Any]:
         """Prepare deployment environment."""
-        environment_id = (
-            f"{target.environment.value}_{env_type.value}_{int(time.time())}"
-        )
+        environment_id = f"{target.environment.value}_{env_type.value}_{int(time.time())}"
 
         environment = {
             "environment_id": environment_id,
@@ -50,9 +48,7 @@ class InfrastructureManager:
         environment["status"] = "ready"
         return environment
 
-    async def deploy_service(
-        self, environment: builtins.dict[str, Any], version: ServiceVersion
-    ):
+    async def deploy_service(self, environment: builtins.dict[str, Any], version: ServiceVersion):
         """Deploy service to environment."""
         # Simulate service deployment
         await asyncio.sleep(2)
@@ -98,9 +94,7 @@ class InfrastructureManager:
 
         return instances
 
-    async def wait_for_instances_ready(
-        self, instances: builtins.list[builtins.dict[str, Any]]
-    ):
+    async def wait_for_instances_ready(self, instances: builtins.list[builtins.dict[str, Any]]):
         """Wait for instances to be ready."""
         # Simulate readiness check
         await asyncio.sleep(2)
@@ -137,17 +131,13 @@ class InfrastructureManager:
         """Deploy multiple versions in parallel."""
         tasks = []
         for version in versions:
-            env = await self.prepare_environment(
-                target, version, EnvironmentType.PRODUCTION
-            )
+            env = await self.prepare_environment(target, version, EnvironmentType.PRODUCTION)
             task = asyncio.create_task(self.deploy_service(env, version))
             tasks.append(task)
 
         await asyncio.gather(*tasks)
 
-    async def stop_all_instances(
-        self, target: DeploymentTarget, version: ServiceVersion
-    ):
+    async def stop_all_instances(self, target: DeploymentTarget, version: ServiceVersion):
         """Stop all instances of a version."""
         # Simulate stopping instances
         await asyncio.sleep(1)

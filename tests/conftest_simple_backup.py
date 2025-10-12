@@ -16,7 +16,7 @@ TEST_CONFIG = {
     "environment": "test",
     "debug": True,
     "log_level": "DEBUG",
-    "service_name": "test-service"
+    "service_name": "test-service",
 }
 
 
@@ -27,6 +27,7 @@ def temp_dir():
     yield temp_path
 
     import shutil
+
     if temp_path.exists():
         shutil.rmtree(temp_path)
 
@@ -112,11 +113,7 @@ def setup_test_environment():
 
     # Set test environment variables
     original_env = {}
-    test_env_vars = {
-        "ENVIRONMENT": "test",
-        "DEBUG": "true",
-        "LOG_LEVEL": "DEBUG"
-    }
+    test_env_vars = {"ENVIRONMENT": "test", "DEBUG": "true", "LOG_LEVEL": "DEBUG"}
 
     for key, value in test_env_vars.items():
         original_env[key] = os.environ.get(key)

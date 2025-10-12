@@ -94,14 +94,16 @@ async def real_redis_client(redis_container: RedisContainer):
 
 
 @pytest.fixture
-async def real_event_bus(kafka_container: KafkaContainer, test_service_name: str) -> AsyncGenerator[EventBus, None]:
+async def real_event_bus(
+    kafka_container: KafkaContainer, test_service_name: str
+) -> AsyncGenerator[EventBus, None]:
     """Provide a real event bus with Kafka for integration tests."""
     bootstrap_servers = [f"localhost:{kafka_container.get_exposed_port(9093)}"]
 
     event_bus = EventBus(
         service_name=test_service_name,
         bootstrap_servers=bootstrap_servers,
-        consumer_group=f"{test_service_name}-integration-test"
+        consumer_group=f"{test_service_name}-integration-test",
     )
 
     try:
@@ -112,19 +114,18 @@ async def real_event_bus(kafka_container: KafkaContainer, test_service_name: str
 
 
 @pytest.fixture
-async def real_message_bus(kafka_container: KafkaContainer, test_service_name: str) -> AsyncGenerator[MessageBus, None]:
+async def real_message_bus(
+    kafka_container: KafkaContainer, test_service_name: str
+) -> AsyncGenerator[MessageBus, None]:
     """Provide a real message bus with Kafka for integration tests."""
     bootstrap_servers = [f"localhost:{kafka_container.get_exposed_port(9093)}"]
 
     config = {
         "kafka_bootstrap_servers": bootstrap_servers,
-        "kafka_consumer_group": f"{test_service_name}-integration-test"
+        "kafka_consumer_group": f"{test_service_name}-integration-test",
     }
 
-    message_bus = MessageBus(
-        service_name=test_service_name,
-        config=config
-    )
+    message_bus = MessageBus(service_name=test_service_name, config=config)
 
     try:
         await message_bus.start()
@@ -146,11 +147,7 @@ async def service_mesh_environment():
     """Setup a minimal service mesh environment for testing."""
     # This would setup service discovery, load balancing, etc.
     # For now, return a mock environment
-    mesh_env = {
-        "services": [],
-        "load_balancer": None,
-        "service_registry": {}
-    }
+    mesh_env = {"services": [], "load_balancer": None, "service_registry": {}}
     yield mesh_env
 
 
@@ -174,7 +171,7 @@ async def wait_for_message_consumption(consumer, expected_count: int, timeout: f
     """Wait for a specific number of messages to be consumed."""
     elapsed = 0.0
     while elapsed < timeout:
-        if hasattr(consumer, 'message_count') and consumer.message_count >= expected_count:
+        if hasattr(consumer, "message_count") and consumer.message_count >= expected_count:
             return True
         await asyncio.sleep(0.1)
         elapsed += 0.1

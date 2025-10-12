@@ -169,9 +169,7 @@ class PrometheusCollector(MetricsCollector):
                 raise ValueError(f"Unsupported metric type: {definition.metric_type}")
 
             self.metrics[definition.name] = metric
-            logger.info(
-                f"Registered {definition.metric_type.value} metric: {definition.name}"
-            )
+            logger.info(f"Registered {definition.metric_type.value} metric: {definition.name}")
 
     async def collect_metric(
         self, name: str, value: int | float, labels: builtins.dict[str, str] = None
@@ -305,9 +303,7 @@ class InMemoryCollector(MetricsCollector):
         key = f"{name}:{label_key}"
         return self.counters.get(key, 0.0)
 
-    def get_gauge(
-        self, name: str, labels: builtins.dict[str, str] = None
-    ) -> float | None:
+    def get_gauge(self, name: str, labels: builtins.dict[str, str] = None) -> float | None:
         """Get gauge value."""
         label_key = self._make_label_key(labels)
         key = f"{name}:{label_key}"
@@ -500,9 +496,7 @@ class DistributedTracer:
                 f"Distributed tracing configured for {service_name} with Jaeger endpoint: {jaeger_endpoint}"
             )
         else:
-            logger.info(
-                f"Distributed tracing configured for {service_name} (no Jaeger export)"
-            )
+            logger.info(f"Distributed tracing configured for {service_name} (no Jaeger export)")
 
     @asynccontextmanager
     async def trace_operation(
@@ -641,9 +635,7 @@ class MonitoringManager:
 
     async def record_error(self, error_type: str) -> None:
         """Record an error metric."""
-        await self.collector.increment_counter(
-            "errors_total", {"error_type": error_type}
-        )
+        await self.collector.increment_counter("errors_total", {"error_type": error_type})
 
     async def set_active_connections(self, count: int) -> None:
         """Set the number of active connections."""
@@ -685,14 +677,9 @@ class MonitoringManager:
 
         # Determine overall status
         overall_status = HealthStatus.HEALTHY
-        if any(
-            result.status == HealthStatus.UNHEALTHY
-            for result in health_results.values()
-        ):
+        if any(result.status == HealthStatus.UNHEALTHY for result in health_results.values()):
             overall_status = HealthStatus.UNHEALTHY
-        elif any(
-            result.status == HealthStatus.DEGRADED for result in health_results.values()
-        ):
+        elif any(result.status == HealthStatus.DEGRADED for result in health_results.values()):
             overall_status = HealthStatus.DEGRADED
 
         return {
@@ -713,8 +700,7 @@ class MonitoringManager:
                 "error_count": self.service_metrics.error_count,
                 "active_connections": self.service_metrics.active_connections,
                 "avg_request_duration": (
-                    self.service_metrics.request_duration_sum
-                    / self.service_metrics.request_count
+                    self.service_metrics.request_duration_sum / self.service_metrics.request_count
                     if self.service_metrics.request_count > 0
                     else 0
                 ),
@@ -756,9 +742,7 @@ def initialize_monitoring(
     else:
         collector = InMemoryCollector()
         if use_prometheus:
-            logger.warning(
-                "Prometheus requested but not available, using in-memory collector"
-            )
+            logger.warning("Prometheus requested but not available, using in-memory collector")
 
     # Create monitoring manager
     manager = MonitoringManager(service_name, collector)

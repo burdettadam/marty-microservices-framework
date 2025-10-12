@@ -94,31 +94,23 @@ def test_message_creation():
     """Test that Message objects can be created with proper parameters."""
     try:
         # Test basic message creation
-        message = Message(
-            body={"action": "process", "data": {"user_id": 123}}
-        )
+        message = Message(body={"action": "process", "data": {"user_id": 123}})
         assert message is not None
         assert message.id is not None  # Auto-generated ID
         assert message.body["action"] == "process"
 
         # Test message without explicit body
-        simple_message = Message(
-            body="simple text message"
-        )
+        simple_message = Message(body="simple text message")
         assert simple_message is not None
         assert simple_message.id is not None and len(simple_message.id) > 0
 
         # Test message with custom headers
         from src.framework.messaging.core import MessageHeaders, MessagePriority
+
         custom_headers = MessageHeaders(
-            correlation_id="corr-123",
-            routing_key="user.created",
-            priority=MessagePriority.HIGH
+            correlation_id="corr-123", routing_key="user.created", priority=MessagePriority.HIGH
         )
-        headers_message = Message(
-            body={"test": "data"},
-            headers=custom_headers
-        )
+        headers_message = Message(body={"test": "data"}, headers=custom_headers)
         assert headers_message is not None
         assert headers_message.correlation_id == "corr-123"
         assert headers_message.routing_key == "user.created"
@@ -135,7 +127,7 @@ def test_retry_config_creation():
             max_attempts=5,
             strategy=RetryStrategy.EXPONENTIAL_BACKOFF,
             initial_delay=2.0,
-            max_delay=600.0
+            max_delay=600.0,
         )
         assert config is not None
         assert config.max_attempts == 5
@@ -160,9 +152,7 @@ def test_dlq_manager_basic_functionality():
         # Create configurations
         retry_config = RetryConfig(max_attempts=2)
         dlq_config = DLQConfig(
-            dlq_suffix=".test.dlq",
-            retry_suffix=".test.retry",
-            retry_config=retry_config
+            dlq_suffix=".test.dlq", retry_suffix=".test.retry", retry_config=retry_config
         )
         assert dlq_config is not None
         assert dlq_config.dlq_suffix == ".test.dlq"
@@ -183,10 +173,7 @@ async def test_retry_strategy_delay_calculation():
     try:
         # Test immediate retry strategy
         immediate_config = DLQConfig(
-            retry_config=RetryConfig(
-                strategy=RetryStrategy.IMMEDIATE,
-                max_attempts=3
-            )
+            retry_config=RetryConfig(strategy=RetryStrategy.IMMEDIATE, max_attempts=3)
         )
         assert immediate_config is not None
         assert immediate_config.retry_config.strategy == RetryStrategy.IMMEDIATE
@@ -197,7 +184,7 @@ async def test_retry_strategy_delay_calculation():
                 strategy=RetryStrategy.EXPONENTIAL_BACKOFF,
                 max_attempts=5,
                 initial_delay=1.0,
-                backoff_multiplier=2.0
+                backoff_multiplier=2.0,
             )
         )
         assert exponential_config is not None
@@ -208,10 +195,7 @@ async def test_retry_strategy_delay_calculation():
 
         # Test linear backoff strategy
         linear_config = DLQConfig(
-            retry_config=RetryConfig(
-                strategy=RetryStrategy.LINEAR_BACKOFF,
-                initial_delay=0.5
-            )
+            retry_config=RetryConfig(strategy=RetryStrategy.LINEAR_BACKOFF, initial_delay=0.5)
         )
         assert linear_config is not None
         assert linear_config.retry_config.strategy == RetryStrategy.LINEAR_BACKOFF
@@ -229,7 +213,7 @@ def test_discover_messaging_strategy_classes():
         # Find strategy-related classes in DLQ module
         dlq_classes = []
         for name in dir(dlq_module):
-            if not name.startswith('_'):
+            if not name.startswith("_"):
                 obj = getattr(dlq_module, name)
                 if isinstance(obj, type):
                     dlq_classes.append(name)
@@ -239,7 +223,7 @@ def test_discover_messaging_strategy_classes():
         # Find core classes
         core_classes = []
         for name in dir(core_module):
-            if not name.startswith('_'):
+            if not name.startswith("_"):
                 obj = getattr(core_module, name)
                 if isinstance(obj, type):
                     core_classes.append(name)
@@ -247,8 +231,11 @@ def test_discover_messaging_strategy_classes():
         print(f"Core module classes: {core_classes}")
 
         # Should find some strategy-related classes
-        strategy_classes = [name for name in dlq_classes + core_classes
-                          if 'Strategy' in name or 'Config' in name or 'Manager' in name]
+        strategy_classes = [
+            name
+            for name in dlq_classes + core_classes
+            if "Strategy" in name or "Config" in name or "Manager" in name
+        ]
         print(f"Strategy-related classes: {strategy_classes}")
 
         assert len(strategy_classes) > 0, "Should find at least some strategy classes"
@@ -274,13 +261,11 @@ async def test_messaging_strategy_integration():
             strategy=RetryStrategy.EXPONENTIAL_BACKOFF,
             max_retries=2,
             initial_delay=0.1,  # Short delays for testing
-            max_delay=1.0
+            max_delay=1.0,
         )
 
         dlq_config = DLQConfig(
-            enabled=True,
-            max_retry_attempts=2,
-            retry_strategy=RetryStrategy.EXPONENTIAL_BACKOFF
+            enabled=True, max_retry_attempts=2, retry_strategy=RetryStrategy.EXPONENTIAL_BACKOFF
         )
 
         # Mock backend
@@ -291,9 +276,7 @@ async def test_messaging_strategy_integration():
 
         # Create test message
         message = Message(
-            id="integration-test-123",
-            type="integration.test",
-            data={"test": "integration"}
+            id="integration-test-123", type="integration.test", data={"test": "integration"}
         )
 
         # Test message processing workflow (without actual backend calls)

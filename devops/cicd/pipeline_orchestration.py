@@ -152,9 +152,7 @@ class PipelineOrchestrator:
 
         print(f"✅ Pipeline validation passed: {pipeline.name}")
 
-    def _check_circular_dependencies(
-        self, stages: builtins.list[PipelineStageDefinition]
-    ):
+    def _check_circular_dependencies(self, stages: builtins.list[PipelineStageDefinition]):
         """Check for circular dependencies in stage definitions"""
 
         def has_circular_dependency(stage_name: str, visited: set, path: set) -> bool:
@@ -180,9 +178,7 @@ class PipelineOrchestrator:
         for stage in stages:
             if stage.name not in visited:
                 if has_circular_dependency(stage.name, visited, set()):
-                    raise ValueError(
-                        f"Circular dependency detected involving stage: {stage.name}"
-                    )
+                    raise ValueError(f"Circular dependency detected involving stage: {stage.name}")
 
     async def execute_pipeline(
         self,
@@ -199,9 +195,7 @@ class PipelineOrchestrator:
             raise ValueError(f"Pipeline not found: {pipeline_name}")
 
         pipeline_definition = self.pipelines[pipeline_name]
-        execution_id = (
-            f"{pipeline_name}_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
-        )
+        execution_id = f"{pipeline_name}_{int(datetime.now().timestamp())}_{uuid.uuid4().hex[:8]}"
 
         # Create execution record
         execution = PipelineExecution(
@@ -233,9 +227,7 @@ class PipelineOrchestrator:
             execution.status = PipelineStatus.FAILED
             execution.error_message = str(e)
             execution.completed_at = datetime.now()
-            execution.duration = (
-                execution.completed_at - execution.started_at
-            ).total_seconds()
+            execution.duration = (execution.completed_at - execution.started_at).total_seconds()
             print(f"❌ Pipeline execution failed: {execution_id} - {e}")
 
         return execution_id
@@ -282,9 +274,7 @@ class PipelineOrchestrator:
                 if pending_stages:
                     # Dependency deadlock or all remaining stages have failed dependencies
                     execution.status = PipelineStatus.FAILED
-                    execution.error_message = (
-                        "Pipeline deadlock: no stages ready to execute"
-                    )
+                    execution.error_message = "Pipeline deadlock: no stages ready to execute"
                     break
                 # All stages completed
                 break
@@ -292,9 +282,7 @@ class PipelineOrchestrator:
             # Execute ready stages in parallel
             stage_tasks = []
             for stage in ready_stages:
-                task = self._execute_stage(
-                    execution, stage, pipeline, environment_overrides
-                )
+                task = self._execute_stage(execution, stage, pipeline, environment_overrides)
                 stage_tasks.append((stage.name, task))
 
             # Wait for stage completion
@@ -318,9 +306,7 @@ class PipelineOrchestrator:
                         print(f"❌ Stage failed: {stage_name}")
 
                         # Check if stage failure should stop pipeline
-                        stage_def = next(
-                            s for s in pipeline.stages if s.name == stage_name
-                        )
+                        stage_def = next(s for s in pipeline.stages if s.name == stage_name)
                         if not stage_def.allow_failure:
                             execution.status = PipelineStatus.FAILED
                             execution.error_message = f"Stage failed: {stage_name}"
@@ -354,16 +340,12 @@ class PipelineOrchestrator:
 
         # Complete execution
         execution.completed_at = datetime.now()
-        execution.duration = (
-            execution.completed_at - execution.started_at
-        ).total_seconds()
+        execution.duration = (execution.completed_at - execution.started_at).total_seconds()
 
         # Update metrics
         metrics = self.metrics[execution.execution_id]
         metrics.total_duration = execution.duration
-        metrics.success_rate = (
-            1.0 if execution.status == PipelineStatus.SUCCEEDED else 0.0
-        )
+        metrics.success_rate = 1.0 if execution.status == PipelineStatus.SUCCEEDED else 0.0
 
         print(
             f"🏁 Pipeline execution completed: {execution.execution_id} - {execution.status.value}"
@@ -424,9 +406,7 @@ class PipelineOrchestrator:
             # Update stage duration
             stage_end = datetime.now()
             stage_duration = (stage_end - stage_start).total_seconds()
-            self.metrics[execution.execution_id].stage_durations[
-                stage.name
-            ] = stage_duration
+            self.metrics[execution.execution_id].stage_durations[stage.name] = stage_duration
 
             return result
 
@@ -484,9 +464,7 @@ class PipelineOrchestrator:
         # Update metrics
         metrics = self.metrics[execution.execution_id]
         if "coverage_percentage" in test_result:
-            metrics.code_coverage = max(
-                metrics.code_coverage, test_result["coverage_percentage"]
-            )
+            metrics.code_coverage = max(metrics.code_coverage, test_result["coverage_percentage"])
 
         if test_result["status"] in ["passed", "completed"]:
             return {"status": "success", "message": "Tests passed"}
@@ -742,9 +720,7 @@ class PipelineOrchestrator:
 
             # Wait for completion with timeout
             try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(), timeout=timeout
-                )
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
             except asyncio.TimeoutError:
                 process.kill()
                 return {"returncode": -1, "stdout": "", "stderr": "Command timed out"}
@@ -811,16 +787,12 @@ class PipelineOrchestrator:
 
         execution.status = PipelineStatus.CANCELLED
         execution.completed_at = datetime.now()
-        execution.duration = (
-            execution.completed_at - execution.started_at
-        ).total_seconds()
+        execution.duration = (execution.completed_at - execution.started_at).total_seconds()
 
         print(f"🛑 Pipeline execution cancelled: {execution_id}")
         return True
 
-    def get_pipeline_metrics(
-        self, pipeline_name: str, days: int = 30
-    ) -> builtins.dict[str, Any]:
+    def get_pipeline_metrics(self, pipeline_name: str, days: int = 30) -> builtins.dict[str, Any]:
         """Get aggregated pipeline metrics"""
 
         # Filter executions for the pipeline within time range
@@ -828,10 +800,7 @@ class PipelineOrchestrator:
         relevant_executions = [
             execution
             for execution in self.executions.values()
-            if (
-                execution.pipeline_name == pipeline_name
-                and execution.started_at >= cutoff_date
-            )
+            if (execution.pipeline_name == pipeline_name and execution.started_at >= cutoff_date)
         ]
 
         if not relevant_executions:
@@ -852,11 +821,10 @@ class PipelineOrchestrator:
         success_rate = successful_executions / total_executions
 
         # Duration metrics
-        completed_executions = [
-            e for e in relevant_executions if e.duration is not None
-        ]
+        completed_executions = [e for e in relevant_executions if e.duration is not None]
         avg_duration = (
-            sum(e.duration for e in completed_executions if e.duration is not None) / len(completed_executions)
+            sum(e.duration for e in completed_executions if e.duration is not None)
+            / len(completed_executions)
             if completed_executions
             else 0.0
         )
@@ -1009,9 +977,7 @@ async def demo_pipeline_orchestration():
         .with_timeout(3600)
         .with_environment(CI="true", NODE_ENV="test", DOCKER_BUILDKIT="1")
         # Source stage
-        .add_stage(
-            "checkout", PipelineStage.SOURCE, commands=["git checkout ${BRANCH}"]
-        )
+        .add_stage("checkout", PipelineStage.SOURCE, commands=["git checkout ${BRANCH}"])
         # Build stage
         .add_build_stage(
             "build",
@@ -1104,9 +1070,7 @@ async def demo_pipeline_orchestration():
             ),
             depends_on=["deploy_staging"],
         )
-        .add_deploy_stage(
-            "deploy_production", depends_on=["e2e_tests"], conditions=["branch:main"]
-        )
+        .add_deploy_stage("deploy_production", depends_on=["e2e_tests"], conditions=["branch:main"])
         .build()
     )
 

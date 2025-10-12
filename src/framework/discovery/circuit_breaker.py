@@ -96,9 +96,7 @@ class CircuitBreakerMetrics:
     slow_requests: int = 0
 
     # Window statistics
-    recent_requests: builtins.list[bool] = field(
-        default_factory=list
-    )  # True for success
+    recent_requests: builtins.list[bool] = field(default_factory=list)  # True for success
     recent_response_times: builtins.list[float] = field(default_factory=list)
     window_start_time: float = field(default_factory=time.time)
 
@@ -312,9 +310,7 @@ class CircuitBreaker:
                         self.name, old_state, new_state, self.metrics
                     )
                 else:
-                    self.config.state_change_callback(
-                        self.name, old_state, new_state, self.metrics
-                    )
+                    self.config.state_change_callback(self.name, old_state, new_state, self.metrics)
             except Exception as e:
                 logger.error("State change callback failed: %s", e)
 
@@ -384,10 +380,7 @@ class CircuitBreaker:
 
         # Remove data points outside time window
         cutoff_time = current_time - self.config.time_window_size
-        while (
-            self.metrics.recent_requests
-            and self.metrics.window_start_time < cutoff_time
-        ):
+        while self.metrics.recent_requests and self.metrics.window_start_time < cutoff_time:
             self.metrics.recent_requests.pop(0)
             self.metrics.recent_response_times.pop(0)
             self.metrics.window_start_time = current_time
@@ -489,10 +482,7 @@ class CircuitBreakerManager:
 
     def get_all_stats(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """Get statistics for all circuit breakers."""
-        return {
-            name: breaker.get_stats()
-            for name, breaker in self._circuit_breakers.items()
-        }
+        return {name: breaker.get_stats() for name, breaker in self._circuit_breakers.items()}
 
     def get_open_circuit_breakers(self) -> builtins.list[str]:
         """Get list of open circuit breakers."""
@@ -546,9 +536,7 @@ global_circuit_breaker_manager = CircuitBreakerManager()
 
 
 # Convenience functions
-def get_circuit_breaker(
-    name: str, config: CircuitBreakerConfig | None = None
-) -> CircuitBreaker:
+def get_circuit_breaker(name: str, config: CircuitBreakerConfig | None = None) -> CircuitBreaker:
     """Get circuit breaker from global manager."""
     return global_circuit_breaker_manager.get_circuit_breaker(name, config)
 
@@ -559,9 +547,7 @@ def get_all_circuit_breaker_stats() -> builtins.dict[str, builtins.dict[str, Any
 
 
 # Pre-configured circuit breaker configs
-AGGRESSIVE_CONFIG = CircuitBreakerConfig(
-    failure_threshold=3, timeout=30.0, half_open_max_calls=2
-)
+AGGRESSIVE_CONFIG = CircuitBreakerConfig(failure_threshold=3, timeout=30.0, half_open_max_calls=2)
 
 CONSERVATIVE_CONFIG = CircuitBreakerConfig(
     failure_threshold=10, timeout=120.0, half_open_max_calls=5, success_threshold=5

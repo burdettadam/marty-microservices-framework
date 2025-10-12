@@ -247,9 +247,7 @@ class RateLimiter:
             # Fail open - allow request if rate limiting fails
             return True, {}
 
-    def _get_applicable_rule(
-        self, endpoint: str | None, user_id: str | None
-    ) -> RateLimitRule:
+    def _get_applicable_rule(self, endpoint: str | None, user_id: str | None) -> RateLimitRule:
         """Get the most specific applicable rule."""
         # User-specific rules take precedence
         if user_id and user_id in self.user_rules:
@@ -309,9 +307,7 @@ def rate_limit(
                 if request:
                     # Use client IP as default identifier
                     identifier = (
-                        getattr(request.client, "host", "unknown")
-                        if request.client
-                        else "unknown"
+                        getattr(request.client, "host", "unknown") if request.client else "unknown"
                     )
                 else:
                     identifier = "default"
@@ -321,11 +317,7 @@ def rate_limit(
             if per_user:
                 user = kwargs.get("user") or kwargs.get("current_user")
                 request = kwargs.get("request")
-                if (
-                    request
-                    and hasattr(request, "state")
-                    and hasattr(request.state, "user")
-                ):
+                if request and hasattr(request, "state") and hasattr(request.state, "user"):
                     user = request.state.user
 
                 if user and hasattr(user, "user_id"):

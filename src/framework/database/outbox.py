@@ -51,7 +51,7 @@ class OutboxRepository:
         payload: bytes,
         key: bytes | None = None,
         event_id: str | None = None,
-        max_retries: int = 3
+        max_retries: int = 3,
     ) -> str:
         """
         Enqueue an event in the outbox.
@@ -68,14 +68,11 @@ class OutboxRepository:
         """
         if event_id is None:
             import uuid
+
             event_id = str(uuid.uuid4())
 
         outbox_event = OutboxEvent(
-            event_id=event_id,
-            topic=topic,
-            payload=payload,
-            key=key,
-            max_retries=max_retries
+            event_id=event_id, topic=topic, payload=payload, key=key, max_retries=max_retries
         )
 
         self.session.add(outbox_event)

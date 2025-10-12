@@ -57,9 +57,7 @@ class PerformanceReportGenerator:
 
         # Bottleneck analysis charts
         if bottleneck_report:
-            chart_files.update(
-                await self._generate_bottleneck_charts(bottleneck_report)
-            )
+            chart_files.update(await self._generate_bottleneck_charts(bottleneck_report))
 
         # Timeout analysis charts
         if timeout_report:
@@ -100,9 +98,7 @@ class PerformanceReportGenerator:
             },
             "executive_summary": executive_summary,
             "test_results_summary": {
-                "bottleneck_analysis": self._summarize_bottleneck_results(
-                    bottleneck_report
-                ),
+                "bottleneck_analysis": self._summarize_bottleneck_results(bottleneck_report),
                 "timeout_detection": self._summarize_timeout_results(timeout_report),
                 "audit_analysis": self._summarize_audit_results(audit_report),
                 "visual_testing": self._summarize_visual_results(visual_report),
@@ -208,9 +204,7 @@ class PerformanceReportGenerator:
 
         # Bottleneck Types Distribution
         if "bottleneck_analysis" in bottleneck_report:
-            bottleneck_types = bottleneck_report["bottleneck_analysis"].get(
-                "bottleneck_types", {}
-            )
+            bottleneck_types = bottleneck_report["bottleneck_analysis"].get("bottleneck_types", {})
 
             if bottleneck_types:
                 fig, ax = plt.subplots(figsize=(10, 6))
@@ -238,9 +232,7 @@ class PerformanceReportGenerator:
                         )
 
                 plt.tight_layout()
-                bottleneck_dist_chart = (
-                    self.charts_dir / "bottleneck_types_distribution.png"
-                )
+                bottleneck_dist_chart = self.charts_dir / "bottleneck_types_distribution.png"
                 plt.savefig(bottleneck_dist_chart, dpi=300, bbox_inches="tight")
                 plt.close()
                 charts["bottleneck_distribution"] = str(bottleneck_dist_chart)
@@ -278,9 +270,7 @@ class PerformanceReportGenerator:
                 color="#e74c3c",
             )
             ax1.fill_between(phases, timeout_rates, alpha=0.3, color="#e74c3c")
-            ax1.set_title(
-                "Timeout Rate Progression Across Test Phases", fontweight="bold"
-            )
+            ax1.set_title("Timeout Rate Progression Across Test Phases", fontweight="bold")
             ax1.set_xlabel("Test Phase")
             ax1.set_ylabel("Timeout Rate (%)")
             ax1.grid(True, alpha=0.3)
@@ -349,18 +339,14 @@ class PerformanceReportGenerator:
                 )
 
             plt.tight_layout()
-            cb_effectiveness_chart = (
-                self.charts_dir / "circuit_breaker_effectiveness.png"
-            )
+            cb_effectiveness_chart = self.charts_dir / "circuit_breaker_effectiveness.png"
             plt.savefig(cb_effectiveness_chart, dpi=300, bbox_inches="tight")
             plt.close()
             charts["circuit_breaker_effectiveness"] = str(cb_effectiveness_chart)
 
         return charts
 
-    async def _generate_audit_charts(
-        self, audit_report: builtins.dict
-    ) -> builtins.dict[str, str]:
+    async def _generate_audit_charts(self, audit_report: builtins.dict) -> builtins.dict[str, str]:
         """Generate charts for audit analysis."""
         charts = {}
 
@@ -447,18 +433,13 @@ class PerformanceReportGenerator:
 
             fig, ax = plt.subplots(figsize=(12, 6))
 
-            check_names = [
-                check["check"].replace("_", " ").title() for check in compliance_checks
-            ]
+            check_names = [check["check"].replace("_", " ").title() for check in compliance_checks]
             check_status = [
                 "Passed" if check["passed"] else "Failed" for check in compliance_checks
             ]
 
             # Create color map
-            colors = [
-                "#27ae60" if status == "Passed" else "#e74c3c"
-                for status in check_status
-            ]
+            colors = ["#27ae60" if status == "Passed" else "#e74c3c" for status in check_status]
 
             bars = ax.barh(check_names, [1] * len(check_names), color=colors, alpha=0.7)
             ax.set_title("Compliance Checks Status", fontweight="bold")
@@ -588,9 +569,7 @@ class PerformanceReportGenerator:
 
         # Bottleneck Summary (Top Left)
         ax_bottleneck = fig.add_subplot(gs[0, 0])
-        self._create_mini_chart(
-            ax_bottleneck, "Bottleneck Analysis", test_scores["Bottleneck"]
-        )
+        self._create_mini_chart(ax_bottleneck, "Bottleneck Analysis", test_scores["Bottleneck"])
 
         # Visual Testing Summary (Top Right)
         ax_visual = fig.add_subplot(gs[0, 2])
@@ -630,9 +609,7 @@ class PerformanceReportGenerator:
 
             metrics = ["Completeness", "Traceability"]
             scores = [completeness, traceability]
-            ax_audit.bar(
-                metrics, scores, color=["#9b59b6", "#1abc9c"], alpha=0.7
-            )
+            ax_audit.bar(metrics, scores, color=["#9b59b6", "#1abc9c"], alpha=0.7)
             ax_audit.set_title("Audit Quality", fontweight="bold")
             ax_audit.set_ylabel("Score %")
             ax_audit.set_ylim(0, 100)
@@ -700,9 +677,7 @@ class PerformanceReportGenerator:
         ax.set_title(title, fontweight="bold")
         ax.set_ylim(0, 100)
         ax.set_ylabel("%")
-        ax.text(
-            0, score + 2, f"{score:.0f}%", ha="center", va="bottom", fontweight="bold"
-        )
+        ax.text(0, score + 2, f"{score:.0f}%", ha="center", va="bottom", fontweight="bold")
 
     async def _generate_recommendations_matrix(
         self, bottleneck_report, timeout_report, audit_report, visual_report
@@ -758,9 +733,7 @@ class PerformanceReportGenerator:
         y_labels = []
 
         for priority in priority_order:
-            priority_recs = [
-                r for r in all_recommendations if r["priority"] == priority
-            ]
+            priority_recs = [r for r in all_recommendations if r["priority"] == priority]
             if priority_recs:
                 for rec in priority_recs:
                     matrix_data.append(rec["action_count"])
@@ -774,9 +747,7 @@ class PerformanceReportGenerator:
             ax.set_yticks(range(len(matrix_data)))
             ax.set_yticklabels(y_labels, fontsize=10)
             ax.set_xlabel("Number of Actions Required")
-            ax.set_title(
-                "Recommendations Priority Matrix", fontweight="bold", fontsize=14
-            )
+            ax.set_title("Recommendations Priority Matrix", fontweight="bold", fontsize=14)
             ax.grid(True, alpha=0.3, axis="x")
 
             # Add value labels
@@ -804,9 +775,7 @@ class PerformanceReportGenerator:
 
         # Bottleneck score (inverse of issues)
         if bottleneck_report and "summary" in bottleneck_report:
-            critical_bottlenecks = bottleneck_report["summary"].get(
-                "critical_bottlenecks", 0
-            )
+            critical_bottlenecks = bottleneck_report["summary"].get("critical_bottlenecks", 0)
             bottleneck_score = max(0, 100 - (critical_bottlenecks * 20))
             scores.append(bottleneck_score)
 
@@ -845,15 +814,12 @@ class PerformanceReportGenerator:
             if "success_rate" in report["test_summary"]:
                 return report["test_summary"]["success_rate"]
             if "overall_timeout_rate" in report["test_summary"]:
-                return max(
-                    0, 100 - (report["test_summary"]["overall_timeout_rate"] * 5)
-                )
+                return max(0, 100 - (report["test_summary"]["overall_timeout_rate"] * 5))
 
         if "audit_quality_metrics" in report:
             quality = report["audit_quality_metrics"]
             return (
-                quality.get("completeness_score", 0)
-                + quality.get("traceability_score", 0)
+                quality.get("completeness_score", 0) + quality.get("traceability_score", 0)
             ) * 50
 
         return 75  # Default decent score
@@ -883,9 +849,7 @@ class PerformanceReportGenerator:
 
         # Audit critical issues
         if audit_report and "compliance_report" in audit_report:
-            compliance_checks = audit_report["compliance_report"].get(
-                "compliance_checks", []
-            )
+            compliance_checks = audit_report["compliance_report"].get("compliance_checks", [])
             failed_checks = [c for c in compliance_checks if not c["passed"]]
             if failed_checks:
                 issues.append(f"{len(failed_checks)} compliance checks failed")
@@ -970,9 +934,7 @@ class PerformanceReportGenerator:
         if bottleneck_report and "bottleneck_analysis" in bottleneck_report:
             cpu_bottlenecks = [
                 b
-                for b in bottleneck_report["bottleneck_analysis"].get(
-                    "critical_bottlenecks", []
-                )
+                for b in bottleneck_report["bottleneck_analysis"].get("critical_bottlenecks", [])
                 if b.get("type") == "cpu"
             ]
             has_cpu_bottleneck = len(cpu_bottlenecks) > 0
@@ -1005,9 +967,7 @@ class PerformanceReportGenerator:
                         )
                     ]
 
-                    common_services = set(services_with_errors) & set(
-                        bottlenecked_services
-                    )
+                    common_services = set(services_with_errors) & set(bottlenecked_services)
                     if common_services:
                         insights.append(
                             {
@@ -1040,9 +1000,7 @@ class PerformanceReportGenerator:
 
         # Prioritize and deduplicate
         priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-        all_recommendations.sort(
-            key=lambda x: priority_order.get(x.get("priority", "low"), 3)
-        )
+        all_recommendations.sort(key=lambda x: priority_order.get(x.get("priority", "low"), 3))
 
         # Group similar recommendations
         consolidated = {}
@@ -1067,12 +1025,8 @@ class PerformanceReportGenerator:
 
         # Remove duplicates and limit actions
         for category in consolidated:
-            consolidated[category]["actions"] = list(
-                set(consolidated[category]["actions"])
-            )[:5]
-            consolidated[category]["sources"] = list(
-                set(consolidated[category]["sources"])
-            )
+            consolidated[category]["actions"] = list(set(consolidated[category]["actions"]))[:5]
+            consolidated[category]["sources"] = list(set(consolidated[category]["sources"]))
 
         return list(consolidated.values())
 
@@ -1091,14 +1045,10 @@ class PerformanceReportGenerator:
             status_message = "System demonstrates excellent performance and reliability"
         elif overall_score >= 60:
             status = "good"
-            status_message = (
-                "System shows good performance with some areas for improvement"
-            )
+            status_message = "System shows good performance with some areas for improvement"
         else:
             status = "needs_attention"
-            status_message = (
-                "System requires immediate attention to address performance issues"
-            )
+            status_message = "System requires immediate attention to address performance issues"
 
         # Count critical issues
         critical_issues = self._collect_critical_issues(
@@ -1117,9 +1067,7 @@ class PerformanceReportGenerator:
                 "visual_testing": visual_report is not None,
             },
             "key_findings": critical_issues[:3],  # Top 3 critical issues
-            "recommended_next_steps": self._get_next_steps(
-                overall_score, critical_issues
-            ),
+            "recommended_next_steps": self._get_next_steps(overall_score, critical_issues),
         }
 
     def _get_next_steps(self, overall_score, critical_issues):
@@ -1360,7 +1308,7 @@ class PerformanceReportGenerator:
         if exec_summary["critical_issues_count"] > 0:
             critical_issues_html = f"""
                 <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px; padding: 15px; margin: 20px 0;">
-                    <h4 style="color: #721c24; margin-top: 0;">⚠️ {exec_summary['critical_issues_count']} Critical Issues Detected</h4>
+                    <h4 style="color: #721c24; margin-top: 0;">⚠️ {exec_summary["critical_issues_count"]} Critical Issues Detected</h4>
                     <p>Immediate attention required for optimal system performance.</p>
                 </div>
             """
@@ -1372,23 +1320,18 @@ class PerformanceReportGenerator:
 
         # Format next steps
         next_steps_html = "\\n".join(
-            [
-                f"<li>{step}</li>"
-                for step in exec_summary.get("recommended_next_steps", [])
-            ]
+            [f"<li>{step}</li>" for step in exec_summary.get("recommended_next_steps", [])]
         )
 
         # Format test result cards
         test_results_html = ""
         for test_name, results in comprehensive_report["test_results_summary"].items():
             status = results.get("status", "unknown")
-            status_class = (
-                "status-good" if status == "completed" else "status-needs_attention"
-            )
+            status_class = "status-good" if status == "completed" else "status-needs_attention"
 
             test_results_html += f"""
                 <div class="test-card">
-                    <h3>{test_name.replace('_', ' ').title()}</h3>
+                    <h3>{test_name.replace("_", " ").title()}</h3>
                     <span class="status-badge {status_class}">{status}</span>
                     <div style="margin-top: 15px;">
                         {self._format_test_details(results)}
@@ -1403,7 +1346,7 @@ class PerformanceReportGenerator:
             chart_filename = Path(chart_path).name
             charts_html += f"""
                 <div class="chart-item">
-                    <h4>{chart_name.replace('_', ' ').title()}</h4>
+                    <h4>{chart_name.replace("_", " ").title()}</h4>
                     <img src="charts/{chart_filename}" alt="{chart_name}">
                 </div>
             """
@@ -1415,13 +1358,13 @@ class PerformanceReportGenerator:
             priority = rec.get("priority", "medium")
             recommendations_html += f"""
                 <div class="recommendation-item priority-{priority}">
-                    <h4>{rec.get('category', 'General')}
+                    <h4>{rec.get("category", "General")}
                         <span class="status-badge status-{priority}">{priority}</span>
                     </h4>
                     <ul>
-                        {"".join([f"<li>{action}</li>" for action in rec.get('actions', [])])}
+                        {"".join([f"<li>{action}</li>" for action in rec.get("actions", [])])}
                     </ul>
-                    <small><em>Sources: {', '.join(rec.get('sources', []))}</em></small>
+                    <small><em>Sources: {", ".join(rec.get("sources", []))}</em></small>
                 </div>
             """
 
@@ -1455,17 +1398,11 @@ class PerformanceReportGenerator:
                 if isinstance(value, int | float):
                     details.append(f"<strong>{formatted_key}:</strong> {value}")
                 elif isinstance(value, list):
-                    details.append(
-                        f"<strong>{formatted_key}:</strong> {len(value)} items"
-                    )
+                    details.append(f"<strong>{formatted_key}:</strong> {len(value)} items")
                 else:
                     details.append(f"<strong>{formatted_key}:</strong> {value}")
 
-        return (
-            "<br>".join(details)
-            if details
-            else "<p>No additional details available</p>"
-        )
+        return "<br>".join(details) if details else "<p>No additional details available</p>"
 
 
 # Integration test function

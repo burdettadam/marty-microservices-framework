@@ -14,6 +14,7 @@ os.environ["SERVICE_NAME"] = "example-service"
 os.environ["KAFKA_BROKERS"] = "localhost:9092"
 os.environ["EVENT_TOPIC_PREFIX"] = "marty"
 
+
 async def main():
     """Simple example of using the event publishing system."""
 
@@ -44,8 +45,8 @@ async def main():
             operation_details={
                 "created_by": "system",
                 "timestamp": datetime.utcnow().isoformat(),
-                "example_data": {"key": "value"}
-            }
+                "example_data": {"key": "value"},
+            },
         )
         print(f"✅ Audit event published: {audit_event_id}")
 
@@ -57,7 +58,7 @@ async def main():
             recipient_ids=["admin-1", "admin-2"],
             subject="System Example Alert",
             message="This is an example system alert notification.",
-            channels=["email", "webhook"]
+            channels=["email", "webhook"],
         )
         print(f"✅ Notification event published: {notification_event_id}")
 
@@ -71,11 +72,8 @@ async def main():
                 "name": "Example Resource",
                 "status": "active",
                 "created_at": datetime.utcnow().isoformat(),
-                "properties": {
-                    "color": "blue",
-                    "size": "medium"
-                }
-            }
+                "properties": {"color": "blue", "size": "medium"},
+            },
         )
         print(f"✅ Domain event published: {domain_event_id}")
 
@@ -87,13 +85,9 @@ async def main():
             payload={
                 "event_source": "example_script",
                 "event_time": datetime.utcnow().isoformat(),
-                "custom_data": {
-                    "metric": "performance",
-                    "value": 42,
-                    "unit": "ms"
-                }
+                "custom_data": {"metric": "performance", "value": 42, "unit": "ms"},
             },
-            key="example-123"
+            key="example-123",
         )
         print(f"✅ Custom event published: {custom_event_id}")
 
@@ -143,12 +137,12 @@ async def decorator_example():
                 event_type=AuditEventType.DATA_CREATED,
                 action="create_resource",
                 resource_type="example_resource",
-                resource_id_field="resource_id"
+                resource_id_field="resource_id",
             )
             @domain_event(
                 aggregate_type="example_resource",
                 event_type="resource_created",
-                aggregate_id_field="resource_id"
+                aggregate_id_field="resource_id",
             )
             async def create_resource(self, resource_id: str, resource_data: dict):
                 """Method with automatic event publishing via decorators."""
@@ -163,7 +157,7 @@ async def decorator_example():
             @publish_on_success(
                 topic="operations.events",
                 event_type="operation_completed",
-                key_field="operation_id"
+                key_field="operation_id",
             )
             async def perform_operation(self, operation_id: str, operation_type: str):
                 """Method with success event publishing."""
@@ -179,8 +173,7 @@ async def decorator_example():
 
         print("Creating resource with decorators...")
         result = await service.create_resource(
-            "resource-456",
-            {"name": "Example Resource", "type": "demo"}
+            "resource-456", {"name": "Example Resource", "type": "demo"}
         )
         print(f"✅ Resource created: {result}")
 

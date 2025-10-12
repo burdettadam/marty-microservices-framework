@@ -101,7 +101,9 @@ class ResilienceManager:
         self._total_operations = 0
         self._successful_operations = 0
         self._failed_operations = 0
-        self._pattern_usage: builtins.dict[ResiliencePattern, int] = dict.fromkeys(ResiliencePattern, 0)
+        self._pattern_usage: builtins.dict[ResiliencePattern, int] = dict.fromkeys(
+            ResiliencePattern, 0
+        )
 
     def get_or_create_circuit_breaker(self, name: str) -> CircuitBreaker:
         """Get or create circuit breaker."""
@@ -126,9 +128,7 @@ class ResilienceManager:
         self._total_operations += 1
 
         if self.config.log_patterns:
-            logger.info(
-                "Executing operation '%s' with resilience patterns", operation_name
-            )
+            logger.info("Executing operation '%s' with resilience patterns", operation_name)
 
         try:
             result = await self._execute_with_ordered_patterns(
@@ -178,9 +178,7 @@ class ResilienceManager:
             if pattern == ResiliencePattern.FALLBACK:
                 continue  # Fallback is handled separately
 
-            current_func = await self._wrap_with_pattern(
-                current_func, pattern, operation_name
-            )
+            current_func = await self._wrap_with_pattern(current_func, pattern, operation_name)
 
         return await current_func()
 
@@ -287,9 +285,7 @@ def initialize_resilience(
     return _resilience_manager
 
 
-def resilience_pattern(
-    config: ResilienceConfig | None = None, operation_name: str | None = None
-):
+def resilience_pattern(config: ResilienceConfig | None = None, operation_name: str | None = None):
     """
     Decorator to add comprehensive resilience patterns to functions.
 
@@ -309,9 +305,7 @@ def resilience_pattern(
 
             @wraps(func)
             async def async_wrapper(*args, **kwargs) -> T:
-                return await manager.execute_with_patterns(
-                    func, op_name, *args, **kwargs
-                )
+                return await manager.execute_with_patterns(func, op_name, *args, **kwargs)
 
             return async_wrapper
 

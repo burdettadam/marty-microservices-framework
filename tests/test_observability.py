@@ -10,9 +10,7 @@ from observability.metrics import MetricsCollector, MetricsConfig
 
 @pytest.fixture
 def kafka_config():
-    return KafkaConfig(
-        bootstrap_servers=["localhost:9092"], consumer_group_id="test-group"
-    )
+    return KafkaConfig(bootstrap_servers=["localhost:9092"], consumer_group_id="test-group")
 
 
 @pytest.fixture
@@ -138,9 +136,7 @@ class TestObservabilityIntegration:
     @pytest.mark.asyncio
     async def test_metrics_and_events_integration(self, metrics_collector):
         # Test that metrics can track event-related operations
-        KafkaConfig(
-            bootstrap_servers=["localhost:9092"], consumer_group_id="test-integration"
-        )
+        KafkaConfig(bootstrap_servers=["localhost:9092"], consumer_group_id="test-integration")
 
         # Record event publishing metric
         metrics_collector.record_event_published("test.event", "test.topic")

@@ -204,19 +204,13 @@ class DLQManager:
         self.backend = backend
 
         # State
-        self._dlq_messages: builtins.dict[
-            str, DLQMessage
-        ] = {}  # Message ID -> DLQMessage
-        self._retry_tasks: builtins.dict[
-            str, asyncio.Task
-        ] = {}  # Message ID -> Retry task
+        self._dlq_messages: builtins.dict[str, DLQMessage] = {}  # Message ID -> DLQMessage
+        self._retry_tasks: builtins.dict[str, asyncio.Task] = {}  # Message ID -> Retry task
         self._stats = DLQStats()
 
         # Monitoring
         self._last_stats_update = time.time()
-        self._stats_window_messages: builtins.list[
-            float
-        ] = []  # Timestamps for throughput calc
+        self._stats_window_messages: builtins.list[float] = []  # Timestamps for throughput calc
 
     async def handle_failed_message(
         self, message: Message, exception: Exception, original_queue: str
@@ -263,9 +257,7 @@ class DLQManager:
             logger.error(f"Error handling failed message {message.id}: {e}")
             return False
 
-    def _get_or_create_dlq_message(
-        self, message: Message, original_queue: str
-    ) -> DLQMessage:
+    def _get_or_create_dlq_message(self, message: Message, original_queue: str) -> DLQMessage:
         """Get or create DLQ message wrapper."""
         if message.id not in self._dlq_messages:
             dlq_message = DLQMessage(message)
@@ -274,9 +266,7 @@ class DLQManager:
 
         return self._dlq_messages[message.id]
 
-    async def _handle_retry_then_dlq(
-        self, dlq_message: DLQMessage, exception: Exception
-    ) -> bool:
+    async def _handle_retry_then_dlq(self, dlq_message: DLQMessage, exception: Exception) -> bool:
         """Handle retry then DLQ policy."""
         retry_config = self.config.retry_config
 
@@ -361,9 +351,7 @@ class DLQManager:
         except asyncio.CancelledError:
             logger.info(f"Retry cancelled for message {dlq_message.message.id}")
         except Exception as e:
-            logger.error(
-                f"Error during retry for message {dlq_message.message.id}: {e}"
-            )
+            logger.error(f"Error during retry for message {dlq_message.message.id}: {e}")
             await self._send_to_dlq(dlq_message)
 
     async def _send_to_dlq(self, dlq_message: DLQMessage) -> bool:
@@ -447,9 +435,7 @@ class DLQManager:
         # Update retry statistics
         if dlq_message.retry_attempts > 0:
             all_retry_attempts = [
-                msg.retry_attempts
-                for msg in self._dlq_messages.values()
-                if msg.retry_attempts > 0
+                msg.retry_attempts for msg in self._dlq_messages.values() if msg.retry_attempts > 0
             ]
             all_retry_attempts.append(dlq_message.retry_attempts)
 
@@ -468,9 +454,7 @@ class DLQManager:
 
         # Keep only last 60 seconds for throughput calculation
         window_start = current_time - 60
-        self._stats_window_messages = [
-            t for t in self._stats_window_messages if t >= window_start
-        ]
+        self._stats_window_messages = [t for t in self._stats_window_messages if t >= window_start]
 
         self._stats.dlq_throughput = len(self._stats_window_messages) / 60.0
 
@@ -574,9 +558,7 @@ class DLQManager:
                 # Acknowledge to remove from queue
                 await self.backend.ack(message)
 
-            self._stats.current_dlq_size = max(
-                0, self._stats.current_dlq_size - purged_count
-            )
+            self._stats.current_dlq_size = max(0, self._stats.current_dlq_size - purged_count)
 
             logger.info(f"Purged {purged_count} messages from DLQ {dlq_queue}")
             return purged_count
@@ -595,13 +577,9 @@ class DLQManager:
                 self._stats.max_retry_attempts = max(retry_attempts)
 
         # Calculate success rate
-        total_processed = (
-            self._stats.total_retried_messages + self._stats.total_dlq_messages
-        )
+        total_processed = self._stats.total_retried_messages + self._stats.total_dlq_messages
         if total_processed > 0:
-            self._stats.retry_success_rate = (
-                self._stats.total_retried_messages / total_processed
-            )
+            self._stats.retry_success_rate = self._stats.total_retried_messages / total_processed
 
         return self._stats
 

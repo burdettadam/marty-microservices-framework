@@ -56,27 +56,24 @@ class ExampleMartyService:
                 recovery_timeout=30.0,
                 failure_rate_threshold=0.5,
                 minimum_throughput=5,
-            )
+            ),
         )
 
         # Set up graceful degradation
         self.degradation_manager = GracefulDegradationManager()
         self.degradation_manager.add_fallback_provider(
-            "user_cache",
-            DefaultValueProvider({"id": "unknown", "name": "Anonymous User"})
+            "user_cache", DefaultValueProvider({"id": "unknown", "name": "Anonymous User"})
         )
         self.degradation_manager.add_feature_toggle(
-            "premium_features",
-            FeatureToggle("premium_features", enabled=True)
+            "premium_features", FeatureToggle("premium_features", enabled=True)
         )
 
         # Set up testing framework
         self.test_runner = EnhancedTestRunner(service_name)
 
-        self.logger.log_service_startup({
-            "version": "1.0.0",
-            "features": ["resilience", "logging", "testing"]
-        })
+        self.logger.log_service_startup(
+            {"version": "1.0.0", "features": ["resilience", "logging", "testing"]}
+        )
 
     async def call_external_service(self, user_id: str) -> dict[str, Any]:
         """Example external service call with comprehensive resilience."""
@@ -88,6 +85,7 @@ class ExampleMartyService:
 
             # Simulate occasional failures for demonstration
             import random
+
             if random.random() < 0.2:  # 20% failure rate
                 raise ConnectionError("External service unavailable")
 
@@ -134,8 +132,7 @@ class ExampleMartyService:
         except Exception as e:
             # Graceful degradation - return cached/default value
             fallback_user = self.degradation_manager.get_fallback_value(
-                "user_cache",
-                {"user_id": user_id}
+                "user_cache", {"user_id": user_id}
             )
 
             self.logger.log_request_end(
@@ -161,7 +158,7 @@ class ExampleMartyService:
             "features": {
                 name: toggle.is_enabled()
                 for name, toggle in self.degradation_manager.feature_toggles.items()
-            }
+            },
         }
 
     async def run_comprehensive_tests(self) -> dict[str, Any]:
@@ -183,8 +180,7 @@ class ExampleMartyService:
                 return await self.call_external_service("test_user")
 
         contract_results = await self.test_runner.run_contract_tests(
-            contract_config,
-            contract_test_function
+            contract_config, contract_test_function
         )
 
         # Chaos engineering tests
@@ -193,8 +189,7 @@ class ExampleMartyService:
             return await self.call_external_service("chaos_test_user")
 
         chaos_results = await self.test_runner.run_chaos_tests(
-            chaos_target,
-            "external_service_chaos_test"
+            chaos_target, "external_service_chaos_test"
         )
 
         # Performance testing
@@ -301,15 +296,19 @@ async def main():
 
     print("\n🧪 3. Running comprehensive test suite...")
     test_results = await service.run_comprehensive_tests()
-    print(f"   Tests completed: {test_results['contract_tests']} contract, "
-          f"{test_results['chaos_tests']} chaos")
+    print(
+        f"   Tests completed: {test_results['contract_tests']} contract, "
+        f"{test_results['chaos_tests']} chaos"
+    )
     print(f"   Quality gates passed: {test_results['quality_gates']}")
     print(f"   Recommendations: {test_results['recommendations']}")
 
     print("\n💥 4. Demonstrating chaos engineering...")
     chaos_results = await service.demonstrate_chaos_testing()
     print(f"   Network delay test: {'✅' if chaos_results['network_delay']['success'] else '❌'}")
-    print(f"   Service failure test: {'✅' if chaos_results['service_failure']['success'] else '❌'}")
+    print(
+        f"   Service failure test: {'✅' if chaos_results['service_failure']['success'] else '❌'}"
+    )
 
     print("\n✅ Demo completed! The enhanced MMF provides:")
     print("   • Advanced resilience patterns (retry, circuit breaker, degradation)")

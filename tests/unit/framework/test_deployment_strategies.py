@@ -20,6 +20,7 @@ try:
         DeploymentTarget,
         ServiceVersion,
     )
+
     DEPLOYMENT_AVAILABLE = True
 except ImportError as e:
     print(f"Deployment imports not available: {e}")
@@ -31,6 +32,7 @@ try:
     from src.framework.mesh.discovery.registry import ServiceRegistry
     from src.framework.mesh.load_balancing import LoadBalancer
     from src.framework.mesh.service_mesh import ServiceDiscoveryConfig, ServiceEndpoint
+
     SERVICE_MESH_AVAILABLE = True
 except ImportError as e:
     print(f"Service mesh imports not available: {e}")
@@ -62,7 +64,9 @@ class TestDeploymentOrchestrationWorkflows:
         return target
 
     @pytest.mark.asyncio
-    async def test_blue_green_deployment_workflow(self, orchestrator, mock_service_version, mock_deployment_target):
+    async def test_blue_green_deployment_workflow(
+        self, orchestrator, mock_service_version, mock_deployment_target
+    ):
         """Test complete blue-green deployment workflow."""
         # Configure deployment
         config = Mock()
@@ -83,9 +87,7 @@ class TestDeploymentOrchestrationWorkflows:
 
         # Execute deployment
         deployment = await orchestrator.deploy(
-            version=mock_service_version,
-            target=mock_deployment_target,
-            config=config
+            version=mock_service_version, target=mock_deployment_target, config=config
         )
 
         # Verify deployment was successful
@@ -95,7 +97,9 @@ class TestDeploymentOrchestrationWorkflows:
         assert len(deployment.phases_completed) > 0
 
     @pytest.mark.asyncio
-    async def test_canary_deployment_workflow(self, orchestrator, mock_service_version, mock_deployment_target):
+    async def test_canary_deployment_workflow(
+        self, orchestrator, mock_service_version, mock_deployment_target
+    ):
         """Test canary deployment with gradual traffic shifting."""
         config = Mock()
         config.strategy = DeploymentStrategy.CANARY
@@ -111,9 +115,7 @@ class TestDeploymentOrchestrationWorkflows:
         orchestrator.deploy.return_value = deployment_result
 
         deployment = await orchestrator.deploy(
-            version=mock_service_version,
-            target=mock_deployment_target,
-            config=config
+            version=mock_service_version, target=mock_deployment_target, config=config
         )
 
         # Verify canary deployment behavior
@@ -121,7 +123,9 @@ class TestDeploymentOrchestrationWorkflows:
         assert deployment.status == DeploymentStatus.SUCCESS
 
     @pytest.mark.asyncio
-    async def test_deployment_rollback_workflow(self, orchestrator, mock_service_version, mock_deployment_target):
+    async def test_deployment_rollback_workflow(
+        self, orchestrator, mock_service_version, mock_deployment_target
+    ):
         """Test deployment rollback functionality."""
         # Create a failed deployment scenario
         config = Mock()
@@ -135,9 +139,7 @@ class TestDeploymentOrchestrationWorkflows:
         orchestrator.deploy.return_value = deployment_result
 
         deployment = await orchestrator.deploy(
-            version=mock_service_version,
-            target=mock_deployment_target,
-            config=config
+            version=mock_service_version, target=mock_deployment_target, config=config
         )
 
         # Verify automatic rollback occurred
@@ -161,10 +163,7 @@ class TestServiceDiscoveryWorkflows:
     def discovery_config(self):
         """Create service discovery configuration."""
         return ServiceDiscoveryConfig(
-            health_check_interval=30,
-            healthy_threshold=2,
-            unhealthy_threshold=3,
-            timeout_seconds=5
+            health_check_interval=30, healthy_threshold=2, unhealthy_threshold=3, timeout_seconds=5
         )
 
     @pytest.fixture
@@ -180,7 +179,7 @@ class TestServiceDiscoveryWorkflows:
             host="localhost",
             port=8080,
             protocol="http",
-            health_check_path="/health"
+            health_check_path="/health",
         )
 
     def test_service_registration_and_discovery(self, service_registry, test_endpoint):
@@ -200,7 +199,9 @@ class TestServiceDiscoveryWorkflows:
         assert count == 1
 
     @pytest.mark.asyncio
-    async def test_health_checking_workflow(self, discovery_config, service_registry, test_endpoint):
+    async def test_health_checking_workflow(
+        self, discovery_config, service_registry, test_endpoint
+    ):
         """Test health checking behavior with configurable thresholds."""
         health_checker = HealthChecker(discovery_config)
 
@@ -208,7 +209,7 @@ class TestServiceDiscoveryWorkflows:
         service_registry.register_service(test_endpoint)
 
         # Mock HTTP responses for health checks
-        with patch('aiohttp.ClientSession.get') as mock_get:
+        with patch("aiohttp.ClientSession.get") as mock_get:
             # Mock healthy response
             mock_response = AsyncMock()
             mock_response.status = 200
@@ -250,7 +251,7 @@ def test_behavior_driven_testing_approach():
         "Canary deployment should gradually shift traffic",
         "Rolling deployment should update instances incrementally",
         "Rollback should restore previous version",
-        "Health checks should validate deployment success"
+        "Health checks should validate deployment success",
     ]
 
     for behavior in expected_behaviors:

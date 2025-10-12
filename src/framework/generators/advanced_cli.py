@@ -94,9 +94,7 @@ class ServiceConfiguration:
 
     # Infrastructure integration
     dependencies: builtins.list[ServiceDependency] = field(default_factory=list)
-    infrastructure_components: builtins.set[InfrastructureComponent] = field(
-        default_factory=set
-    )
+    infrastructure_components: builtins.set[InfrastructureComponent] = field(default_factory=set)
 
     # Service-specific settings
     grpc_port: int = 50051
@@ -220,15 +218,9 @@ class InfrastructureDependencyResolver:
 
     # Component dependencies (what requires what)
     COMPONENT_DEPENDENCIES = {
-        InfrastructureComponent.GRPC_FACTORY: [
-            InfrastructureComponent.CONFIG_MANAGEMENT
-        ],
-        InfrastructureComponent.OBSERVABILITY: [
-            InfrastructureComponent.CONFIG_MANAGEMENT
-        ],
-        InfrastructureComponent.ADVANCED_CONFIG: [
-            InfrastructureComponent.CONFIG_MANAGEMENT
-        ],
+        InfrastructureComponent.GRPC_FACTORY: [InfrastructureComponent.CONFIG_MANAGEMENT],
+        InfrastructureComponent.OBSERVABILITY: [InfrastructureComponent.CONFIG_MANAGEMENT],
+        InfrastructureComponent.ADVANCED_CONFIG: [InfrastructureComponent.CONFIG_MANAGEMENT],
         InfrastructureComponent.CACHE_LAYER: [
             InfrastructureComponent.CONFIG_MANAGEMENT,
             InfrastructureComponent.ADVANCED_CONFIG,
@@ -316,8 +308,7 @@ class AdvancedServiceGenerator:
         # Basic service information
         service_name = questionary.text(
             "🏷️  Service name (kebab-case):",
-            validate=lambda x: len(x) > 0
-            and x.replace("-", "").replace("_", "").isalnum(),
+            validate=lambda x: len(x) > 0 and x.replace("-", "").replace("_", "").isalnum(),
         ).ask()
 
         service_type = questionary.select(
@@ -387,15 +378,9 @@ class AdvancedServiceGenerator:
         phase3_choices = questionary.checkbox(
             "Select Phase 3 Deployment Components:",
             choices=[
-                questionary.Choice(
-                    "☸️  Kubernetes Manifests", InfrastructureComponent.KUBERNETES
-                ),
-                questionary.Choice(
-                    "⛵ Helm Charts", InfrastructureComponent.HELM_CHARTS
-                ),
-                questionary.Choice(
-                    "🕸️  Service Mesh (Istio)", InfrastructureComponent.SERVICE_MESH
-                ),
+                questionary.Choice("☸️  Kubernetes Manifests", InfrastructureComponent.KUBERNETES),
+                questionary.Choice("⛵ Helm Charts", InfrastructureComponent.HELM_CHARTS),
+                questionary.Choice("🕸️  Service Mesh (Istio)", InfrastructureComponent.SERVICE_MESH),
             ],
             default=[
                 InfrastructureComponent.KUBERNETES,
@@ -478,9 +463,7 @@ class AdvancedServiceGenerator:
             TextColumn("[progress.description]{task.description}"),
             console=self.console,
         ) as progress:
-            task = progress.add_task(
-                "Resolving infrastructure dependencies...", total=None
-            )
+            task = progress.add_task("Resolving infrastructure dependencies...", total=None)
 
             # Resolve dependencies
             config.dependencies = self.dependency_resolver.resolve_dependencies(
@@ -532,19 +515,13 @@ class AdvancedServiceGenerator:
             progress.update(task1, description="✅ Core files generated")
 
             # Generate infrastructure integration
-            task2 = progress.add_task(
-                "Generating infrastructure integration...", total=None
-            )
-            self._generate_infrastructure_integration(
-                config, template_vars, service_dir
-            )
+            task2 = progress.add_task("Generating infrastructure integration...", total=None)
+            self._generate_infrastructure_integration(config, template_vars, service_dir)
             progress.update(task2, description="✅ Infrastructure integration generated")
 
             # Generate deployment manifests
             if InfrastructureComponent.KUBERNETES in config.infrastructure_components:
-                task3 = progress.add_task(
-                    "Generating Kubernetes manifests...", total=None
-                )
+                task3 = progress.add_task("Generating Kubernetes manifests...", total=None)
                 self._generate_k8s_manifests(config, template_vars, service_dir)
                 progress.update(task3, description="✅ Kubernetes manifests generated")
 
@@ -561,9 +538,7 @@ class AdvancedServiceGenerator:
 
         return service_dir
 
-    def _prepare_template_vars(
-        self, config: ServiceConfiguration
-    ) -> builtins.dict[str, Any]:
+    def _prepare_template_vars(self, config: ServiceConfiguration) -> builtins.dict[str, Any]:
         """Prepare template variables from configuration."""
         # Convert service name to various formats
         service_package = config.name.replace("-", "_")
@@ -644,9 +619,7 @@ class AdvancedServiceGenerator:
 
         # Generate files from templates
         for template_file in template_dir.glob("*.j2"):
-            template = self.env.get_template(
-                f"{config.type.value}/{template_file.name}"
-            )
+            template = self.env.get_template(f"{config.type.value}/{template_file.name}")
             rendered_content = template.render(**template_vars)
 
             # Determine output file
@@ -724,10 +697,10 @@ metadata:
 
         # Generate Chart.yaml
         chart_yaml = f"""apiVersion: v2
-name: {template_vars['service_package']}
-description: {template_vars['service_description']}
-version: {template_vars['service_version']}
-appVersion: {template_vars['service_version']}
+name: {template_vars["service_package"]}
+description: {template_vars["service_description"]}
+version: {template_vars["service_version"]}
+appVersion: {template_vars["service_version"]}
 type: application
 dependencies:
   - name: marty-framework
@@ -747,7 +720,7 @@ dependencies:
         github_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate GitHub Actions workflow
-        workflow_yaml = f"""name: {template_vars['service_name']} CI/CD
+        workflow_yaml = f"""name: {template_vars["service_name"]} CI/CD
 
 on:
   push:
@@ -779,9 +752,7 @@ jobs:
             workflow_yaml, encoding="utf-8"
         )
 
-    def display_generation_summary(
-        self, config: ServiceConfiguration, service_dir: Path
-    ) -> None:
+    def display_generation_summary(self, config: ServiceConfiguration, service_dir: Path) -> None:
         """Display generation summary."""
         self.console.print(
             f"\n[bold green]🎉 Service '{config.name}' generated successfully![/bold green]"
@@ -804,9 +775,7 @@ jobs:
             table.add_row("Helm Charts", "✅ Generated", str(service_dir / "helm"))
 
         table.add_row("CI/CD Pipeline", "✅ Generated", str(service_dir / ".github"))
-        table.add_row(
-            "Dependencies", "✅ Configured", str(service_dir / "infrastructure")
-        )
+        table.add_row("Dependencies", "✅ Configured", str(service_dir / "infrastructure"))
 
         self.console.print(table)
 

@@ -130,9 +130,7 @@ class AccessPolicy:
     def matches_request(self, request: AccessRequest) -> bool:
         """Check if policy matches access request"""
         # Match source identity
-        if not self._matches_selector(
-            request.source_identity.to_dict(), self.source_selector
-        ):
+        if not self._matches_selector(request.source_identity.to_dict(), self.source_selector):
             return False
 
         # Match target
@@ -200,9 +198,7 @@ class AccessPolicy:
         current_time = now.strftime("%H:%M")
         return start_time <= current_time <= end_time
 
-    def _check_rate_limit(
-        self, request: AccessRequest, condition: builtins.dict[str, Any]
-    ) -> bool:
+    def _check_rate_limit(self, request: AccessRequest, condition: builtins.dict[str, Any]) -> bool:
         """Check rate limiting conditions"""
         # This would typically integrate with a rate limiting service
         # For now, return True (implementation depends on rate limiter backend)
@@ -238,9 +234,7 @@ class CertificateManager:
                 ["service", "type"],
             )
 
-    def generate_root_ca(
-        self, ca_name: str = "Marty Root CA"
-    ) -> builtins.tuple[bytes, bytes]:
+    def generate_root_ca(self, ca_name: str = "Marty Root CA") -> builtins.tuple[bytes, bytes]:
         """Generate root CA certificate and private key"""
         # Generate private key
         private_key = rsa.generate_private_key(
@@ -299,9 +293,7 @@ class CertificateManager:
 
         # Serialize certificate and key
         cert_pem = cert.public_bytes(Encoding.PEM)
-        key_pem = private_key.private_bytes(
-            Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
-        )
+        key_pem = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
 
         if EXTERNAL_DEPS_AVAILABLE:
             self.cert_operations.labels(operation="generate_ca", status="success").inc()
@@ -393,9 +385,7 @@ class CertificateManager:
 
         # Serialize certificate and key
         cert_pem = cert.public_bytes(Encoding.PEM)
-        key_pem = private_key.private_bytes(
-            Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()
-        )
+        key_pem = private_key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
 
         # Store certificate info
         cert_id = f"{service_name}.{namespace}"
@@ -411,12 +401,8 @@ class CertificateManager:
         }
 
         if EXTERNAL_DEPS_AVAILABLE:
-            self.cert_operations.labels(
-                operation="generate_service", status="success"
-            ).inc()
-            self.cert_validity.labels(service=cert_id, type="service").set(
-                validity_days
-            )
+            self.cert_operations.labels(operation="generate_service", status="success").inc()
+            self.cert_validity.labels(service=cert_id, type="service").set(validity_days)
 
         return cert_pem, key_pem
 
@@ -467,9 +453,7 @@ class CertificateManager:
         else:
             dns_names = None
 
-        new_cert, new_key = self.generate_service_certificate(
-            service_name, namespace, dns_names
-        )
+        new_cert, new_key = self.generate_service_certificate(service_name, namespace, dns_names)
 
         if EXTERNAL_DEPS_AVAILABLE:
             self.cert_operations.labels(operation="rotate", status="success").inc()
@@ -611,9 +595,7 @@ class ZeroTrustPolicyEngine:
                     return decision, policy
 
             # No policy matched, default deny
-            default_policy = next(
-                (p for p in self.policies if p.policy_id == "default-deny"), None
-            )
+            default_policy = next((p for p in self.policies if p.policy_id == "default-deny"), None)
             self._log_access_decision(request, AccessDecision.DENY, default_policy)
 
             if EXTERNAL_DEPS_AVAILABLE:
@@ -691,15 +673,11 @@ class ZeroTrustPolicyEngine:
 
         if service_name:
             filtered_log = [
-                entry
-                for entry in filtered_log
-                if entry["source_service"] == service_name
+                entry for entry in filtered_log if entry["source_service"] == service_name
             ]
 
         if decision:
-            filtered_log = [
-                entry for entry in filtered_log if entry["decision"] == decision.value
-            ]
+            filtered_log = [entry for entry in filtered_log if entry["decision"] == decision.value]
 
         # Return most recent entries
         return filtered_log[-limit:]
@@ -790,9 +768,7 @@ class ZeroTrustManager:
         """Onboard new service to zero-trust architecture"""
 
         # Generate service certificate
-        cert_pem, key_pem = self.cert_manager.generate_service_certificate(
-            service_name, namespace
-        )
+        cert_pem, key_pem = self.cert_manager.generate_service_certificate(service_name, namespace)
 
         # Create service identity
         identity = ServiceIdentity(
@@ -832,9 +808,7 @@ class ZeroTrustManager:
         cert_validation = self.cert_manager.validate_certificate(source_cert)
         if not cert_validation["valid"]:
             if EXTERNAL_DEPS_AVAILABLE:
-                self.security_events.labels(
-                    event_type="invalid_certificate", severity="high"
-                ).inc()
+                self.security_events.labels(event_type="invalid_certificate", severity="high").inc()
             return False, AccessDecision.DENY, None
 
         # Find source identity
@@ -848,9 +822,7 @@ class ZeroTrustManager:
 
         if not source_identity or not source_identity.is_valid():
             if EXTERNAL_DEPS_AVAILABLE:
-                self.security_events.labels(
-                    event_type="unknown_identity", severity="high"
-                ).inc()
+                self.security_events.labels(event_type="unknown_identity", severity="high").inc()
             return False, AccessDecision.DENY, None
 
         # Create access request
@@ -869,9 +841,7 @@ class ZeroTrustManager:
         # Log security event
         if decision == AccessDecision.DENY:
             if EXTERNAL_DEPS_AVAILABLE:
-                self.security_events.labels(
-                    event_type="access_denied", severity="medium"
-                ).inc()
+                self.security_events.labels(event_type="access_denied", severity="medium").inc()
 
         return (
             decision in [AccessDecision.ALLOW, AccessDecision.AUDIT],
@@ -1029,9 +999,7 @@ async def main():
     print(f"Zero-trust enabled: {status['zero_trust_enabled']}")
     print(f"Active certificates: {status['total_certificates']}")
     print(f"Active identities: {status['active_identities']}")
-    print(
-        f"Total policy evaluations: {status['policy_statistics']['total_evaluations']}"
-    )
+    print(f"Total policy evaluations: {status['policy_statistics']['total_evaluations']}")
 
     # Show access log
     access_log = zt_manager.policy_engine.get_access_log(limit=5)

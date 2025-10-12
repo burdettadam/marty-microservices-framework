@@ -7,7 +7,7 @@ import os
 import sys
 
 # Add the project root to the Python path
-project_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..')
+project_root = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
 sys.path.insert(0, project_root)
 
 try:
@@ -29,5 +29,6 @@ try:
 except ImportError as e:
     print(f"❌ Import error: {e}")
     import traceback
+
     traceback.print_exc()
     sys.exit(1)

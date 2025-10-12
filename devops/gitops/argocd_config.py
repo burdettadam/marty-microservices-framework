@@ -57,9 +57,7 @@ class ArgoCDApplication:
     retry_backoff_factor: int = 2
 
     # Ignorances
-    ignore_differences: builtins.list[builtins.dict[str, Any]] = field(
-        default_factory=list
-    )
+    ignore_differences: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     def to_yaml(self) -> str:
         """Convert to ArgoCD Application YAML"""
@@ -125,11 +123,7 @@ class ArgoCDApplication:
             app_spec["spec"]["source"]["helm"] = helm_config
 
         # Add Kustomize configuration
-        if (
-            self.kustomize_images
-            or self.kustomize_name_prefix
-            or self.kustomize_name_suffix
-        ):
+        if self.kustomize_images or self.kustomize_name_prefix or self.kustomize_name_suffix:
             kustomize_config = {}
 
             if self.kustomize_images:
@@ -165,9 +159,7 @@ class ArgoCDProject:
     destinations: builtins.list[builtins.dict[str, str]] = field(default_factory=list)
 
     # Cluster resource whitelist
-    cluster_resource_whitelist: builtins.list[builtins.dict[str, str]] = field(
-        default_factory=list
-    )
+    cluster_resource_whitelist: builtins.list[builtins.dict[str, str]] = field(default_factory=list)
 
     # Namespace resource whitelist
     namespace_resource_whitelist: builtins.list[builtins.dict[str, str]] = field(
@@ -628,14 +620,10 @@ slack:
 
         return configurations
 
-    def save_configurations(
-        self, configs: builtins.dict[str, str], subdirectory: str = ""
-    ):
+    def save_configurations(self, configs: builtins.dict[str, str], subdirectory: str = ""):
         """Save configurations to files"""
 
-        output_path = (
-            self.output_dir / subdirectory if subdirectory else self.output_dir
-        )
+        output_path = self.output_dir / subdirectory if subdirectory else self.output_dir
         output_path.mkdir(parents=True, exist_ok=True)
 
         for filename, content in configs.items():

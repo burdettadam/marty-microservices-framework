@@ -14,7 +14,7 @@ from .enhanced_circuit_breaker import EnhancedCircuitBreakerConfig
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 async def async_call_with_resilience(
@@ -23,7 +23,7 @@ async def async_call_with_resilience(
     retry_config: AdvancedRetryConfig | None = None,
     circuit_breaker_config: EnhancedCircuitBreakerConfig | None = None,
     circuit_breaker_name: str = "default",
-    **kwargs
+    **kwargs,
 ) -> T:
     """Execute an async function with comprehensive resilience patterns."""
     # Set up default configurations
@@ -34,6 +34,7 @@ async def async_call_with_resilience(
     circuit_breaker = None
     if circuit_breaker_config is not None:
         from .enhanced_circuit_breaker import get_circuit_breaker
+
         circuit_breaker = get_circuit_breaker(circuit_breaker_name, circuit_breaker_config)
 
     async def resilient_call() -> T:
@@ -44,10 +45,7 @@ async def async_call_with_resilience(
             return await func(*args, **kwargs)
 
     # Execute with retry policy
-    retry_result = await async_retry_with_advanced_policy(
-        resilient_call,
-        config=retry_config
-    )
+    retry_result = await async_retry_with_advanced_policy(resilient_call, config=retry_config)
 
     if retry_result.success:
         return retry_result.result

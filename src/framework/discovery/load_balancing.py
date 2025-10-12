@@ -177,9 +177,7 @@ class LoadBalancer(ABC):
         fallback_config = LoadBalancingConfig(strategy=self.config.fallback_strategy)
         return create_load_balancer(fallback_config)
 
-    def record_request(
-        self, instance: ServiceInstance, success: bool, response_time: float
-    ):
+    def record_request(self, instance: ServiceInstance, success: bool, response_time: float):
         """Record request result for metrics."""
         self._stats["total_requests"] += 1
 
@@ -200,15 +198,11 @@ class LoadBalancer(ABC):
         """Get load balancer statistics."""
         avg_response_time = 0.0
         if self._stats["total_requests"] > 0:
-            avg_response_time = (
-                self._stats["total_response_time"] / self._stats["total_requests"]
-            )
+            avg_response_time = self._stats["total_response_time"] / self._stats["total_requests"]
 
         success_rate = 0.0
         if self._stats["total_requests"] > 0:
-            success_rate = (
-                self._stats["successful_requests"] / self._stats["total_requests"]
-            )
+            success_rate = self._stats["successful_requests"] / self._stats["total_requests"]
 
         return {
             **self._stats,
@@ -246,23 +240,15 @@ class RoundRobinBalancer(LoadBalancer):
 
         return instance
 
-    async def _get_sticky_instance(
-        self, context: LoadBalancingContext
-    ) -> ServiceInstance | None:
+    async def _get_sticky_instance(self, context: LoadBalancingContext) -> ServiceInstance | None:
         """Get instance based on sticky session configuration."""
-        if (
-            self.config.sticky_sessions == StickySessionType.SOURCE_IP
-            and context.client_ip
-        ):
+        if self.config.sticky_sessions == StickySessionType.SOURCE_IP and context.client_ip:
             # Hash client IP to instance
             hash_value = hashlib.sha256(context.client_ip.encode()).hexdigest()
             index = int(hash_value, 16) % len(self._instances)
             return self._instances[index]
 
-        if (
-            self.config.sticky_sessions == StickySessionType.COOKIE
-            and context.session_id
-        ):
+        if self.config.sticky_sessions == StickySessionType.COOKIE and context.session_id:
             # Hash session ID to instance
             hash_value = hashlib.sha256(context.session_id.encode()).hexdigest()
             index = int(hash_value, 16) % len(self._instances)
@@ -588,9 +574,7 @@ class AdaptiveBalancer(LoadBalancer):
 
         for i, performance_list in self._strategy_performance.items():
             if len(performance_list) >= 10:  # Minimum samples
-                avg_response_time = sum(performance_list[-50:]) / min(
-                    50, len(performance_list)
-                )
+                avg_response_time = sum(performance_list[-50:]) / min(50, len(performance_list))
 
                 if avg_response_time < best_performance:
                     best_performance = avg_response_time
@@ -612,9 +596,7 @@ class AdaptiveBalancer(LoadBalancer):
                 )
                 self._current_strategy = best_strategy
 
-    def record_request(
-        self, instance: ServiceInstance, success: bool, response_time: float
-    ):
+    def record_request(self, instance: ServiceInstance, success: bool, response_time: float):
         """Record request result for adaptive learning."""
         super().record_request(instance, success, response_time)
 
@@ -719,15 +701,11 @@ class LoadBalancingMiddleware:
                         >= self.load_balancer.config.circuit_breaker_failure_threshold
                     ):
                         instance.circuit_breaker_open = True
-                        logger.warning(
-                            "Circuit breaker opened for instance: %s", instance
-                        )
+                        logger.warning("Circuit breaker opened for instance: %s", instance)
 
                 # Retry on next instance if not last attempt
                 if attempt < max_retries:
-                    logger.warning(
-                        "Request failed, retrying with different instance: %s", e
-                    )
+                    logger.warning("Request failed, retrying with different instance: %s", e)
                     await asyncio.sleep(self.load_balancer.config.retry_delay)
                     continue
 

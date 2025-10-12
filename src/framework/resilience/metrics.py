@@ -15,13 +15,14 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, TypeVar
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
 
 class MetricType(Enum):
     """Types of metrics that can be collected."""
+
     COUNTER = "counter"
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
@@ -31,6 +32,7 @@ class MetricType(Enum):
 
 class MetricStatus(Enum):
     """Status of metric collection."""
+
     ACTIVE = "active"
     PAUSED = "paused"
     STOPPED = "stopped"
@@ -39,6 +41,7 @@ class MetricStatus(Enum):
 @dataclass
 class MetricValue:
     """A single metric value with timestamp."""
+
     value: float
     timestamp: float
     labels: dict[str, str] = field(default_factory=dict)
@@ -47,12 +50,13 @@ class MetricValue:
 @dataclass
 class MetricSummary:
     """Summary statistics for a metric."""
+
     name: str
     metric_type: MetricType
     count: int = 0
     sum: float = 0.0
-    min: float = float('inf')
-    max: float = float('-inf')
+    min: float = float("inf")
+    max: float = float("-inf")
     avg: float = 0.0
     p50: float = 0.0
     p95: float = 0.0
@@ -136,9 +140,7 @@ class Histogram:
         with self._lock:
             if not self._values:
                 return MetricSummary(
-                    name=self.name,
-                    metric_type=MetricType.HISTOGRAM,
-                    last_updated=time.time()
+                    name=self.name, metric_type=MetricType.HISTOGRAM, last_updated=time.time()
                 )
 
             values = list(self._values)
@@ -153,9 +155,13 @@ class Histogram:
                 max=max(values),
                 avg=statistics.mean(values),
                 p50=statistics.median(values),
-                p95=sorted_values[int(len(sorted_values) * 0.95)] if len(sorted_values) > 1 else sorted_values[0],
-                p99=sorted_values[int(len(sorted_values) * 0.99)] if len(sorted_values) > 1 else sorted_values[0],
-                last_updated=time.time()
+                p95=sorted_values[int(len(sorted_values) * 0.95)]
+                if len(sorted_values) > 1
+                else sorted_values[0],
+                p99=sorted_values[int(len(sorted_values) * 0.99)]
+                if len(sorted_values) > 1
+                else sorted_values[0],
+                last_updated=time.time(),
             )
 
     def reset(self) -> None:
@@ -376,7 +382,7 @@ class MetricsCollector:
                         "request_duration": metrics.request_duration.get_summary(),
                         "request_rate": metrics.request_rate.get_rate(),
                         "error_rate": metrics.error_rate.get_rate(),
-                    }
+                    },
                 }
                 summaries[component_name] = component_summary
 
@@ -400,11 +406,11 @@ class MetricsCollector:
                 # Reset all counters and histograms
                 for attr_name in dir(metrics):
                     attr = getattr(metrics, attr_name)
-                    if hasattr(attr, 'reset'):
+                    if hasattr(attr, "reset"):
                         attr.reset()
 
             for metric in self._custom_metrics.values():
-                if hasattr(metric, 'reset'):
+                if hasattr(metric, "reset"):
                     metric.reset()
 
     def enable_collection(self) -> None:
@@ -460,23 +466,29 @@ def create_timer(name: str, description: str = "") -> Timer:
 # Decorator for automatic timing
 def timed(metric_name: str = ""):
     """Decorator to automatically time function execution."""
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         timer_name = metric_name or f"{func.__module__}.{func.__name__}"
         timer = create_timer(timer_name, f"Execution time for {func.__name__}")
 
         def wrapper(*args, **kwargs) -> T:
             return timer.time(func, *args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 def async_timed(metric_name: str = ""):
     """Decorator to automatically time async function execution."""
+
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         timer_name = metric_name or f"{func.__module__}.{func.__name__}"
         timer = create_timer(timer_name, f"Execution time for {func.__name__}")
 
         async def wrapper(*args, **kwargs) -> Any:
             return await timer.time_async(func(*args, **kwargs))
+
         return wrapper
+
     return decorator

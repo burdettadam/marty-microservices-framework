@@ -43,7 +43,6 @@ __all__ = [
     "EnvironmentType",
     "FeatureFlagType",
     "ValidationResult",
-
     # Models
     "DeploymentTarget",
     "ServiceVersion",
@@ -53,11 +52,9 @@ __all__ = [
     "DeploymentEvent",
     "RollbackConfiguration",
     "Deployment",
-
     # Orchestrator
     "DeploymentOrchestrator",
     "create_deployment_orchestrator",
-
     # Managers
     "InfrastructureManager",
     "TrafficManager",

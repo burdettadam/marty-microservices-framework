@@ -49,9 +49,7 @@ class TrafficSplitter:
         self.split_rules: builtins.dict[str, builtins.dict[str, int]] = {}
 
     def select_version_endpoints(
-        self,
-        service_name: str,
-        available_endpoints: builtins.list[ServiceEndpoint]
+        self, service_name: str, available_endpoints: builtins.list[ServiceEndpoint]
     ) -> builtins.list[ServiceEndpoint]:
         """Select endpoints based on version."""
         return available_endpoints  # Simplified implementation
@@ -79,15 +77,14 @@ class TrafficManager:
         """Remove routing rule."""
         if service_name in self.routing_rules:
             self.routing_rules[service_name] = [
-                rule for rule in self.routing_rules[service_name]
-                if rule.rule_id != rule_id
+                rule for rule in self.routing_rules[service_name] if rule.rule_id != rule_id
             ]
 
     def route_request(
         self,
         service_name: str,
         request_context: builtins.dict[str, Any],
-        available_endpoints: builtins.list[ServiceEndpoint]
+        available_endpoints: builtins.list[ServiceEndpoint],
     ) -> ServiceEndpoint | None:
         """Route request based on rules and load balancing."""
         # Apply traffic splitting first
@@ -109,9 +106,7 @@ class TrafficManager:
         return endpoints[0] if endpoints else None
 
     def _find_matching_rules(
-        self,
-        service_name: str,
-        request_context: builtins.dict[str, Any]
+        self, service_name: str, request_context: builtins.dict[str, Any]
     ) -> builtins.list[TrafficRule]:
         """Find matching routing rules for request."""
         if service_name not in self.routing_rules:
@@ -124,11 +119,7 @@ class TrafficManager:
 
         return matching_rules
 
-    def _rule_matches(
-        self,
-        rule: TrafficRule,
-        request_context: builtins.dict[str, Any]
-    ) -> bool:
+    def _rule_matches(self, rule: TrafficRule, request_context: builtins.dict[str, Any]) -> bool:
         """Check if rule matches request context."""
         # Simplified matching logic
         for condition in rule.match_conditions:
@@ -149,9 +140,6 @@ class TrafficManager:
     def get_traffic_statistics(self) -> builtins.dict[str, Any]:
         """Get traffic management statistics."""
         return {
-            "routing_rules": {
-                service: len(rules)
-                for service, rules in self.routing_rules.items()
-            },
+            "routing_rules": {service: len(rules) for service, rules in self.routing_rules.items()},
             "traffic_split_rules": self.traffic_splitter.split_rules,
         }

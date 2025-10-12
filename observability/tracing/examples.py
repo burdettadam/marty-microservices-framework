@@ -174,9 +174,7 @@ class TracedFastAPIService:
                 "order_id": order_id,
                 "trace_id": trace_id,
                 "span_id": span_id,
-                "jaeger_url": f"http://jaeger:16686/trace/{trace_id}"
-                if trace_id
-                else None,
+                "jaeger_url": f"http://jaeger:16686/trace/{trace_id}" if trace_id else None,
             }
 
     async def _get_user_from_db(self, user_id: str) -> UserModel | None:
@@ -190,9 +188,7 @@ class TracedFastAPIService:
             if user_id == "404":
                 return None
 
-            return UserModel(
-                id=user_id, name=f"User {user_id}", email=f"user{user_id}@example.com"
-            )
+            return UserModel(id=user_id, name=f"User {user_id}", email=f"user{user_id}@example.com")
 
     async def _validate_user(self, user_id: str):
         """Validate user exists"""
@@ -212,9 +208,7 @@ class TracedFastAPIService:
             self.tracing.add_span_event("order.created", {"order_id": order_id})
             return order_id
 
-    async def _process_payment(
-        self, order_id: str, amount: float
-    ) -> builtins.dict[str, Any]:
+    async def _process_payment(self, order_id: str, amount: float) -> builtins.dict[str, Any]:
         """Simulate external payment service call"""
         async with self.tracing.trace_async_operation(
             "external.payment_service.process",
@@ -348,9 +342,7 @@ class TracingIntegrationHelper:
     """
 
     @staticmethod
-    def propagate_trace_context(
-        source_headers: builtins.dict[str, str]
-    ) -> builtins.dict[str, str]:
+    def propagate_trace_context(source_headers: builtins.dict[str, str]) -> builtins.dict[str, str]:
         """Extract trace context from headers and prepare for propagation"""
         propagator = TraceContextTextMapPropagator()
 
@@ -381,9 +373,7 @@ class TracingIntegrationHelper:
         return headers
 
     @staticmethod
-    def add_user_context_to_trace(
-        user_id: str, user_role: str = None, user_email: str = None
-    ):
+    def add_user_context_to_trace(user_id: str, user_role: str = None, user_email: str = None):
         """Add user context to current trace"""
         current_span = trace.get_current_span()
         if current_span and current_span.is_recording():
@@ -394,9 +384,7 @@ class TracingIntegrationHelper:
                 current_span.set_attribute("user.email", user_email)
 
     @staticmethod
-    def add_business_context_to_trace(
-        operation_type: str, entity_id: str, entity_type: str
-    ):
+    def add_business_context_to_trace(operation_type: str, entity_id: str, entity_type: str):
         """Add business context to current trace"""
         current_span = trace.get_current_span()
         if current_span and current_span.is_recording():

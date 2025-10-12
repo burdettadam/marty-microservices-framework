@@ -234,9 +234,7 @@ class ServiceKillAction(ChaosAction):
                             proc.terminate()
 
                         self.killed_processes.append(proc.pid)
-                        logger.info(
-                            f"Killed process {proc.pid} for service {target.service_name}"
-                        )
+                        logger.info(f"Killed process {proc.pid} for service {target.service_name}")
 
                     except psutil.NoSuchProcess:
                         logger.warning(f"Process {proc.pid} already terminated")
@@ -253,9 +251,7 @@ class ServiceKillAction(ChaosAction):
         # In real scenarios, the orchestrator should restart killed services
         self.killed_processes.clear()
         self.active = False
-        logger.info(
-            "Service kill recovery completed (orchestrator should restart services)"
-        )
+        logger.info("Service kill recovery completed (orchestrator should restart services)")
         return True
 
     def _find_processes(self, service_name: str) -> builtins.list[psutil.Process]:
@@ -265,8 +261,7 @@ class ServiceKillAction(ChaosAction):
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
                 if service_name.lower() in proc.info["name"].lower() or any(
-                    service_name.lower() in arg.lower()
-                    for arg in proc.info["cmdline"] or []
+                    service_name.lower() in arg.lower() for arg in proc.info["cmdline"] or []
                 ):
                     processes.append(proc)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -355,9 +350,7 @@ class ResourceExhaustionAction(ChaosAction):
     async def _stress_memory(self, intensity: float):
         """Stress memory resources."""
         available_memory = psutil.virtual_memory().available
-        memory_to_allocate = int(
-            available_memory * intensity * 0.8
-        )  # 80% to avoid system crash
+        memory_to_allocate = int(available_memory * intensity * 0.8)  # 80% to avoid system crash
 
         def memory_stress():
             try:
@@ -383,9 +376,7 @@ class ResourceExhaustionAction(ChaosAction):
         thread.start()
         self.stress_threads.append(thread)
 
-        logger.info(
-            f"Started memory stress allocating {memory_to_allocate / (1024*1024):.1f}MB"
-        )
+        logger.info(f"Started memory stress allocating {memory_to_allocate / (1024 * 1024):.1f}MB")
 
     async def _stress_io(self, intensity: float):
         """Stress I/O resources."""
@@ -457,9 +448,7 @@ class ChaosActionFactory:
 class SteadyStateProbe:
     """Probe for checking system steady state."""
 
-    def __init__(
-        self, name: str, probe_func: Callable, tolerance: builtins.dict[str, Any]
-    ):
+    def __init__(self, name: str, probe_func: Callable, tolerance: builtins.dict[str, Any]):
         self.name = name
         self.probe_func = probe_func
         self.tolerance = tolerance
@@ -554,9 +543,7 @@ class ChaosTestCase(TestCase):
             if not injection_success:
                 raise Exception("Failed to inject chaos")
 
-            experiment_log.append(
-                f"✓ Chaos injected: {self.experiment.chaos_type.value}"
-            )
+            experiment_log.append(f"✓ Chaos injected: {self.experiment.chaos_type.value}")
 
             # Phase 3: Monitor during chaos
             experiment_log.append("Phase 3: Monitoring during chaos injection")
@@ -574,18 +561,14 @@ class ChaosTestCase(TestCase):
                 steady_state_during = await self._check_steady_state()
                 if not steady_state_during:
                     steady_state_violations += 1
-                    experiment_log.append(
-                        f"! Steady state violation at cycle {cycle + 1}"
-                    )
+                    experiment_log.append(f"! Steady state violation at cycle {cycle + 1}")
 
             # Phase 4: Recover from chaos
             experiment_log.append("Phase 4: Recovering from chaos")
 
             recovery_success = await self.action.recover()
             if not recovery_success:
-                experiment_log.append(
-                    "! Recovery failed, manual intervention may be required"
-                )
+                experiment_log.append("! Recovery failed, manual intervention may be required")
             else:
                 experiment_log.append("✓ Recovery completed")
 
@@ -680,9 +663,7 @@ class ChaosTestCase(TestCase):
             results.append(is_valid)
 
             if not is_valid:
-                logger.warning(
-                    f"Steady state probe failed: {probe.name}, value: {value}"
-                )
+                logger.warning(f"Steady state probe failed: {probe.name}, value: {value}")
 
         return all(results)
 
@@ -819,9 +800,7 @@ def create_network_delay_experiment(
     )
 
 
-def create_service_kill_experiment(
-    service_name: str, duration: int = 60
-) -> ChaosExperiment:
+def create_service_kill_experiment(service_name: str, duration: int = 60) -> ChaosExperiment:
     """Create a service kill chaos experiment."""
     return (
         ChaosExperimentBuilder("Service Kill Experiment")
@@ -840,7 +819,7 @@ def create_cpu_stress_experiment(
     """Create a CPU stress chaos experiment."""
     return (
         ChaosExperimentBuilder("CPU Stress Experiment")
-        .description(f"Stress CPU resources with {intensity*100}% intensity")
+        .description(f"Stress CPU resources with {intensity * 100}% intensity")
         .chaos_type(ChaosType.RESOURCE_EXHAUSTION)
         .target(service_name)
         .duration(duration)
@@ -856,7 +835,7 @@ def create_memory_stress_experiment(
     """Create a memory stress chaos experiment."""
     return (
         ChaosExperimentBuilder("Memory Stress Experiment")
-        .description(f"Stress memory resources with {intensity*100}% intensity")
+        .description(f"Stress memory resources with {intensity * 100}% intensity")
         .chaos_type(ChaosType.RESOURCE_EXHAUSTION)
         .target(service_name)
         .duration(duration)

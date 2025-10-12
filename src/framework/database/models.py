@@ -56,9 +56,7 @@ class BaseModel(DeclarativeBase):
 
         return result
 
-    def update_from_dict(
-        self, data: builtins.dict[str, Any], exclude: set | None = None
-    ) -> None:
+    def update_from_dict(self, data: builtins.dict[str, Any], exclude: set | None = None) -> None:
         """Update model instance from dictionary."""
         exclude = exclude or set()
 
@@ -112,13 +110,9 @@ class TimestampMixin:
 class AuditMixin:
     """Mixin for adding audit fields."""
 
-    created_by = Column(
-        String(255), nullable=True, doc="User ID who created the record"
-    )
+    created_by = Column(String(255), nullable=True, doc="User ID who created the record")
 
-    updated_by = Column(
-        String(255), nullable=True, doc="User ID who last updated the record"
-    )
+    updated_by = Column(String(255), nullable=True, doc="User ID who last updated the record")
 
     created_ip = Column(
         String(45),  # IPv6 length
@@ -154,9 +148,7 @@ class SoftDeleteMixin:
         doc="Timestamp when the record was soft deleted",
     )
 
-    deleted_by = Column(
-        String(255), nullable=True, doc="User ID who soft deleted the record"
-    )
+    deleted_by = Column(String(255), nullable=True, doc="User ID who soft deleted the record")
 
     def soft_delete(self, deleted_by: str | None = None) -> None:
         """Soft delete the record."""

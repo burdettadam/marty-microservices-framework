@@ -62,7 +62,9 @@ class SecurityHeadersConfig:
 
     # Content Security Policy
     csp_enabled: bool = True
-    csp_policy: str = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    csp_policy: str = (
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    )
     csp_report_only: bool = False
 
     # HSTS
@@ -115,9 +117,7 @@ class ValidationConfig:
     normalize_unicode: bool = True
 
     # Custom validation
-    custom_validators: builtins.list[Callable[[str], bool]] = field(
-        default_factory=list
-    )
+    custom_validators: builtins.list[Callable[[str], bool]] = field(default_factory=list)
 
 
 @dataclass
@@ -233,19 +233,13 @@ class SQLInjectionValidator(SecurityValidator):
     def __init__(self):
         self.sql_patterns = [
             re.compile(r"\b(union\s+select|select\s+.*\s+from)\b", re.IGNORECASE),
-            re.compile(
-                r"\b(insert\s+into|update\s+.*\s+set|delete\s+from)\b", re.IGNORECASE
-            ),
-            re.compile(
-                r"\b(drop\s+table|create\s+table|alter\s+table)\b", re.IGNORECASE
-            ),
+            re.compile(r"\b(insert\s+into|update\s+.*\s+set|delete\s+from)\b", re.IGNORECASE),
+            re.compile(r"\b(drop\s+table|create\s+table|alter\s+table)\b", re.IGNORECASE),
             re.compile(r"\b(exec\s*\(|execute\s*\(|sp_executesql)\b", re.IGNORECASE),
             re.compile(r"(\%27)|(\')|(\-\-)|(\%23)|(#)", re.IGNORECASE),
             re.compile(r"(\%3B)|(;)", re.IGNORECASE),
             re.compile(r"\b(or\s+1\s*=\s*1|and\s+1\s*=\s*1)\b", re.IGNORECASE),
-            re.compile(
-                r"\b(having\s+.*\s+count|group\s+by\s+.*\s+having)\b", re.IGNORECASE
-            ),
+            re.compile(r"\b(having\s+.*\s+count|group\s+by\s+.*\s+having)\b", re.IGNORECASE),
         ]
 
     def validate(
@@ -337,9 +331,7 @@ class CORSHandler:
         # Handle actual requests
         return self._handle_actual_request(request, origin)
 
-    def _handle_preflight(
-        self, request: GatewayRequest, origin: str
-    ) -> GatewayResponse:
+    def _handle_preflight(self, request: GatewayRequest, origin: str) -> GatewayResponse:
         """Handle CORS preflight request."""
         from .core import GatewayResponse
 
@@ -391,9 +383,7 @@ class CORSHandler:
 
         # Set exposed headers
         if self.config.expose_headers:
-            cors_headers["Access-Control-Expose-Headers"] = ", ".join(
-                self.config.expose_headers
-            )
+            cors_headers["Access-Control-Expose-Headers"] = ", ".join(self.config.expose_headers)
 
         # Vary header
         if self.config.vary_origin and origin:
@@ -509,9 +499,7 @@ class InputValidator:
 
         return events
 
-    def _validate_headers(
-        self, request: GatewayRequest
-    ) -> builtins.list[SecurityEvent]:
+    def _validate_headers(self, request: GatewayRequest) -> builtins.list[SecurityEvent]:
         """Validate request headers."""
         events = []
 
@@ -542,9 +530,7 @@ class InputValidator:
 
         return events
 
-    def _validate_query_params(
-        self, request: GatewayRequest
-    ) -> builtins.list[SecurityEvent]:
+    def _validate_query_params(self, request: GatewayRequest) -> builtins.list[SecurityEvent]:
         """Validate query parameters."""
         events = []
 
@@ -625,9 +611,7 @@ class InputValidator:
             return events
 
         # Check content type
-        content_type = (
-            request.get_header("Content-Type", "").split(";")[0].strip().lower()
-        )
+        content_type = request.get_header("Content-Type", "").split(";")[0].strip().lower()
         if content_type and content_type not in self.config.allowed_content_types:
             events.append(
                 self._create_event(
@@ -645,9 +629,7 @@ class InputValidator:
         threats = self._validate_string(body_str)
         for threat in threats:
             events.append(
-                self._create_event(
-                    threat, "HIGH", request, {"body_sample": body_str[:200]}
-                )
+                self._create_event(threat, "HIGH", request, {"body_sample": body_str[:200]})
             )
 
         return events
@@ -708,9 +690,7 @@ class SecurityMiddleware:
         self.cors_config = cors_config or CORSConfig()
         self.headers_config = headers_config or SecurityHeadersConfig()
         self.validation_config = validation_config or ValidationConfig()
-        self.attack_prevention_config = (
-            attack_prevention_config or AttackPreventionConfig()
-        )
+        self.attack_prevention_config = attack_prevention_config or AttackPreventionConfig()
 
         self.cors_handler = CORSHandler(self.cors_config)
         self.headers_handler = SecurityHeadersHandler(self.headers_config)
@@ -738,9 +718,7 @@ class SecurityMiddleware:
                     return self._create_security_response(blocked_events[0])
 
             # Store CORS headers for response
-            self.cors_handler._handle_actual_request(
-                request, request.get_header("Origin")
-            )
+            self.cors_handler._handle_actual_request(request, request.get_header("Origin"))
 
             return None  # Continue processing
 
@@ -800,9 +778,7 @@ class SecurityMiddleware:
         # Rate limit attacks
         if self.attack_prevention_config.attack_rate_limit:
             current_time = time.time()
-            window_start = (
-                current_time - self.attack_prevention_config.attack_window_size
-            )
+            window_start = current_time - self.attack_prevention_config.attack_window_size
 
             # Clean old entries
             if source_ip in self.attack_counts:
@@ -828,9 +804,7 @@ class SecurityMiddleware:
         """Create security block response."""
         from .core import GatewayResponse
 
-        response = GatewayResponse(
-            status_code=403, body=b"Forbidden: Security policy violation"
-        )
+        response = GatewayResponse(status_code=403, body=b"Forbidden: Security policy violation")
 
         self.headers_handler.add_security_headers(response)
 
@@ -845,9 +819,7 @@ def create_basic_security() -> SecurityMiddleware:
 
 def create_strict_security() -> SecurityMiddleware:
     """Create strict security middleware."""
-    cors_config = CORSConfig(
-        allow_origins=["https://example.com"], allow_credentials=False
-    )
+    cors_config = CORSConfig(allow_origins=["https://example.com"], allow_credentials=False)
 
     headers_config = SecurityHeadersConfig(
         csp_policy="default-src 'self'; script-src 'self'; style-src 'self'",
@@ -868,8 +840,6 @@ def create_strict_security() -> SecurityMiddleware:
 
 def create_permissive_cors() -> SecurityMiddleware:
     """Create security middleware with permissive CORS."""
-    cors_config = CORSConfig(
-        allow_origins=["*"], allow_credentials=True, allow_headers=["*"]
-    )
+    cors_config = CORSConfig(allow_origins=["*"], allow_credentials=True, allow_headers=["*"])
 
     return SecurityMiddleware(cors_config=cors_config)

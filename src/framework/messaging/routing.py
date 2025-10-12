@@ -215,9 +215,7 @@ class RoutingEngine:
                 self._cache_hits += 1
                 targets = self._routing_cache[cache_key]
                 if self.config.log_routing_decisions:
-                    logger.debug(
-                        "Cache hit for message routing: %s -> %s", message.id, targets
-                    )
+                    logger.debug("Cache hit for message routing: %s -> %s", message.id, targets)
                 return targets
 
             self._cache_misses += 1
@@ -226,10 +224,7 @@ class RoutingEngine:
             targets = self._route_through_rules(message)
 
             # Cache result
-            if (
-                self.config.enable_caching
-                and len(self._routing_cache) < self.config.max_cache_size
-            ):
+            if self.config.enable_caching and len(self._routing_cache) < self.config.max_cache_size:
                 self._routing_cache[cache_key] = targets
                 self._cache_timestamps[cache_key] = time.time()
 
@@ -313,9 +308,7 @@ class RoutingEngine:
             return False
 
         except Exception as e:
-            logger.error(
-                "Error evaluating rule %s for message %s: %s", rule.name, message.id, e
-            )
+            logger.error("Error evaluating rule %s for message %s: %s", rule.name, message.id, e)
             return False
 
     def _match_direct(self, rule: RoutingRule, message: Message) -> bool:
@@ -347,9 +340,7 @@ class RoutingEngine:
         regex_pattern = regex_pattern.replace("#", r".*")
         regex_pattern = f"^{regex_pattern}$"
 
-        compiled_pattern = self._get_compiled_pattern(
-            f"{rule.name}_topic", regex_pattern
-        )
+        compiled_pattern = self._get_compiled_pattern(f"{rule.name}_topic", regex_pattern)
         return bool(compiled_pattern.match(routing_key))
 
     def _match_headers(self, rule: RoutingRule, message: Message) -> bool:
@@ -384,9 +375,7 @@ class RoutingEngine:
                 if not content.endswith(expected_value):
                     return False
             elif key == "regex":
-                pattern = self._get_compiled_pattern(
-                    f"{rule.name}_content", expected_value
-                )
+                pattern = self._get_compiled_pattern(f"{rule.name}_content", expected_value)
                 if not pattern.search(content):
                     return False
 
@@ -422,9 +411,7 @@ class RoutingEngine:
             self._compiled_patterns[cache_key] = re.compile(pattern)
         return self._compiled_patterns[cache_key]
 
-    def _get_rule_targets(
-        self, rule: RoutingRule, message: Message
-    ) -> builtins.list[str]:
+    def _get_rule_targets(self, rule: RoutingRule, message: Message) -> builtins.list[str]:
         """Get targets for a matched rule."""
         if rule.routing_type == RoutingType.CUSTOM and rule.custom_router:
             return rule.custom_router(message)
@@ -536,9 +523,7 @@ class MessageRouter:
             if self._default_engine == name:
                 self._default_engine = next(iter(self._engines), None)
 
-    def route(
-        self, message: Message, engine_name: str | None = None
-    ) -> builtins.list[str]:
+    def route(self, message: Message, engine_name: str | None = None) -> builtins.list[str]:
         """Route a message using specified or default engine."""
         engine_name = engine_name or self._default_engine
 

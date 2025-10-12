@@ -163,9 +163,7 @@ class CryptographyManager:
 
         # Return base64 encoded encrypted data with key version
         key_version = self.key_versions[key_id]
-        return base64.b64encode(f"{key_version}:".encode() + encrypted_data).decode(
-            "utf-8"
-        )
+        return base64.b64encode(f"{key_version}:".encode() + encrypted_data).decode("utf-8")
 
     def decrypt_data(self, encrypted_data: str, key_id: str = "default") -> str:
         """Decrypt data using specified key."""
@@ -213,9 +211,7 @@ class CryptographyManager:
         private_key = self.signing_keys[key_id]
         signature = private_key.sign(
             data,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            ),
+            padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
             hashes.SHA256(),
         )
 
@@ -259,9 +255,7 @@ class CryptographyManager:
     def verify_password(self, password: str, hashed_password: str) -> bool:
         """Verify password against hash."""
         try:
-            return bcrypt.checkpw(
-                password.encode("utf-8"), hashed_password.encode("utf-8")
-            )
+            return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
         except Exception:
             return False
 
@@ -278,9 +272,7 @@ class CryptographyManager:
         self.encryption_keys[key_id] = Fernet.generate_key()
 
         # Schedule next rotation
-        self.key_rotation_schedule[key_id] = datetime.now(timezone.utc) + timedelta(
-            days=90
-        )
+        self.key_rotation_schedule[key_id] = datetime.now(timezone.utc) + timedelta(days=90)
 
     def should_rotate_key(self, key_id: str) -> bool:
         """Check if key should be rotated."""
@@ -311,9 +303,7 @@ class AuthenticationManager:
         self.refresh_token_expiry = timedelta(days=30)
 
         # Rate limiting
-        self.failed_attempts: builtins.dict[str, builtins.list[datetime]] = defaultdict(
-            list
-        )
+        self.failed_attempts: builtins.dict[str, builtins.list[datetime]] = defaultdict(list)
         self.locked_accounts: builtins.dict[str, datetime] = {}
 
         # Security policies
@@ -554,9 +544,7 @@ class AuthenticationManager:
         if len(self.failed_attempts[principal_id]) >= 5:
             self.locked_accounts[principal_id] = now + timedelta(minutes=30)
 
-    def validate_password_policy(
-        self, password: str
-    ) -> builtins.tuple[bool, builtins.list[str]]:
+    def validate_password_policy(self, password: str) -> builtins.tuple[bool, builtins.list[str]]:
         """Validate password against policy."""
         errors = []
 
@@ -565,14 +553,10 @@ class AuthenticationManager:
                 f"Password must be at least {self.password_policy['min_length']} characters"
             )
 
-        if self.password_policy["require_uppercase"] and not re.search(
-            r"[A-Z]", password
-        ):
+        if self.password_policy["require_uppercase"] and not re.search(r"[A-Z]", password):
             errors.append("Password must contain uppercase letters")
 
-        if self.password_policy["require_lowercase"] and not re.search(
-            r"[a-z]", password
-        ):
+        if self.password_policy["require_lowercase"] and not re.search(r"[a-z]", password):
             errors.append("Password must contain lowercase letters")
 
         if self.password_policy["require_numbers"] and not re.search(r"\d", password):
@@ -603,9 +587,9 @@ class AuthorizationManager:
         self.policy_engine = PolicyEngine()
 
         # Access control lists
-        self.resource_acls: builtins.dict[
-            str, builtins.dict[str, builtins.set[str]]
-        ] = defaultdict(lambda: defaultdict(set))
+        self.resource_acls: builtins.dict[str, builtins.dict[str, builtins.set[str]]] = defaultdict(
+            lambda: defaultdict(set)
+        )
 
         # Initialize default roles and permissions
         self._initialize_default_rbac()
@@ -717,9 +701,7 @@ class AuthorizationManager:
         # For now, we'll just track the assignment
         return True
 
-    def check_permission(
-        self, principal: SecurityPrincipal, resource: str, action: str
-    ) -> bool:
+    def check_permission(self, principal: SecurityPrincipal, resource: str, action: str) -> bool:
         """Check if principal has permission to perform action on resource."""
         try:
             # Check direct permissions
@@ -745,9 +727,7 @@ class AuthorizationManager:
             print(f"Permission check error: {e}")
             return False
 
-    def _get_effective_permissions(
-        self, roles: builtins.list[str]
-    ) -> builtins.set[str]:
+    def _get_effective_permissions(self, roles: builtins.list[str]) -> builtins.set[str]:
         """Get effective permissions from roles including inheritance."""
         effective_permissions = set()
 
@@ -780,9 +760,7 @@ class AuthorizationManager:
 
         return self.policy_engine.evaluate_policies(self.policies, context)
 
-    def _check_acl_permission(
-        self, principal_id: str, resource: str, action: str
-    ) -> bool:
+    def _check_acl_permission(self, principal_id: str, resource: str, action: str) -> bool:
         """Check access control list permissions."""
         if resource in self.resource_acls:
             acl = self.resource_acls[resource]
@@ -857,9 +835,7 @@ class PolicyEngine:
 
         return False
 
-    def _get_context_value(
-        self, attribute: str, context: builtins.dict[str, Any]
-    ) -> Any:
+    def _get_context_value(self, attribute: str, context: builtins.dict[str, Any]) -> Any:
         """Get value from context using dot notation."""
         keys = attribute.split(".")
         value = context
@@ -897,16 +873,14 @@ class SecretsManager:
         self,
         secret_id: str,
         secret_value: str,
-    # secret_type optional; None will be stored as metadata only avoiding hardcoded default pattern
-    secret_type: str | None = None,
-    metadata: builtins.dict[str, Any] | None = None,
+        # secret_type optional; None will be stored as metadata only avoiding hardcoded default pattern
+        secret_type: str | None = None,
+        metadata: builtins.dict[str, Any] | None = None,
     ) -> bool:
         """Store a secret securely."""
         try:
             # Encrypt the secret
-            encrypted_value = self.crypto_manager.encrypt_data(
-                secret_value, f"secret_{secret_id}"
-            )
+            encrypted_value = self.crypto_manager.encrypt_data(secret_value, f"secret_{secret_id}")
 
             # Store encrypted secret
             self.secrets[secret_id] = {
@@ -936,9 +910,7 @@ class SecretsManager:
 
             # Decrypt and return secret
             encrypted_value = self.secrets[secret_id]["value"]
-            return self.crypto_manager.decrypt_data(
-                encrypted_value, f"secret_{secret_id}"
-            )
+            return self.crypto_manager.decrypt_data(encrypted_value, f"secret_{secret_id}")
 
         except Exception as e:
             print(f"Error retrieving secret: {e}")
@@ -951,15 +923,11 @@ class SecretsManager:
                 return False
 
             # Encrypt new value
-            encrypted_value = self.crypto_manager.encrypt_data(
-                new_value, f"secret_{secret_id}"
-            )
+            encrypted_value = self.crypto_manager.encrypt_data(new_value, f"secret_{secret_id}")
 
             # Update secret
             self.secrets[secret_id]["value"] = encrypted_value
-            self.secrets[secret_id]["updated_at"] = datetime.now(
-                timezone.utc
-            ).isoformat()
+            self.secrets[secret_id]["updated_at"] = datetime.now(timezone.utc).isoformat()
             self.secrets[secret_id]["version"] += 1
 
             # Log access
@@ -999,9 +967,7 @@ class SecretsManager:
             return True
         return False
 
-    def set_rotation_policy(
-        self, secret_id: str, policy: builtins.dict[str, Any]
-    ) -> bool:
+    def set_rotation_policy(self, secret_id: str, policy: builtins.dict[str, Any]) -> bool:
         """Set rotation policy for a secret."""
         try:
             self.rotation_policies[secret_id] = {
@@ -1205,10 +1171,7 @@ class SecurityScanner:
                 vuln_info = known_vulns[package_name]
 
                 # Simplified version checking
-                if any(
-                    version.startswith(v.replace("< ", ""))
-                    for v in vuln_info["versions"]
-                ):
+                if any(version.startswith(v.replace("< ", "")) for v in vuln_info["versions"]):
                     vulnerability = SecurityVulnerability(
                         vulnerability_id=str(uuid.uuid4()),
                         title=f"Vulnerable Dependency: {package_name}",
@@ -1262,12 +1225,8 @@ class SecurityScanner:
             "total_vulnerabilities": len(self.vulnerabilities),
             "by_severity": dict(by_severity),
             "by_component": dict(by_component),
-            "open_vulnerabilities": len(
-                [v for v in self.vulnerabilities if v.status == "open"]
-            ),
-            "fixed_vulnerabilities": len(
-                [v for v in self.vulnerabilities if v.status == "fixed"]
-            ),
+            "open_vulnerabilities": len([v for v in self.vulnerabilities if v.status == "open"]),
+            "fixed_vulnerabilities": len([v for v in self.vulnerabilities if v.status == "fixed"]),
         }
 
 
@@ -1333,9 +1292,7 @@ class SecurityHardeningFramework:
             resource="auth_system",
             action="authenticate",
             result="success" if token else "failure",
-            threat_level=SecurityThreatLevel.LOW
-            if token
-            else SecurityThreatLevel.MEDIUM,
+            threat_level=SecurityThreatLevel.LOW if token else SecurityThreatLevel.MEDIUM,
         )
 
         return token
@@ -1366,9 +1323,7 @@ class SecurityHardeningFramework:
             resource=resource,
             action=action,
             result="success" if authorized else "blocked",
-            threat_level=SecurityThreatLevel.LOW
-            if authorized
-            else SecurityThreatLevel.MEDIUM,
+            threat_level=SecurityThreatLevel.LOW if authorized else SecurityThreatLevel.MEDIUM,
         )
 
         return authorized
@@ -1389,16 +1344,12 @@ class SecurityHardeningFramework:
 
         # Scan configuration
         if "config" in scan_targets:
-            config_vulns = self.security_scanner.scan_configuration(
-                scan_targets["config"]
-            )
+            config_vulns = self.security_scanner.scan_configuration(scan_targets["config"])
             results["configuration"] = config_vulns
 
         # Scan dependencies
         if "dependencies" in scan_targets:
-            dep_vulns = self.security_scanner.scan_dependencies(
-                scan_targets["dependencies"]
-            )
+            dep_vulns = self.security_scanner.scan_dependencies(scan_targets["dependencies"])
             results["dependencies"] = dep_vulns
 
         return results
@@ -1453,7 +1404,7 @@ class SecurityHardeningFramework:
         action: str,
         result: str,
         threat_level: SecurityThreatLevel,
-    details: builtins.dict[str, Any] | None = None,
+        details: builtins.dict[str, Any] | None = None,
     ):
         """Log security event for audit and monitoring."""
         event = SecurityEvent(

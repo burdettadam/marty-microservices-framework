@@ -40,7 +40,7 @@ class UnifiedMartyService:
             return create_unified_config(
                 service_name=self.service_name,
                 environment=self.environment,
-                config_path=Path("config")
+                config_path=Path("config"),
             )
         except Exception as e:
             print(f"Failed to load unified config: {e}")
@@ -48,10 +48,11 @@ class UnifiedMartyService:
             try:
                 from framework.config import Environment as MMFEnvironment
                 from framework.config import ServiceConfig
+
                 return ServiceConfig(
                     service_name=self.service_name,
                     environment=MMFEnvironment(self.environment),
-                    config_path=Path("config")
+                    config_path=Path("config"),
                 )
             except Exception as e2:
                 print(f"Failed to load MMF config: {e2}")
@@ -114,7 +115,9 @@ class UnifiedMartyService:
         # Database config
         db_config = self.get_database_config()
         if db_config:
-            print(f"Database: {getattr(db_config, 'host', 'unknown')}:{getattr(db_config, 'port', 'unknown')}")
+            print(
+                f"Database: {getattr(db_config, 'host', 'unknown')}:{getattr(db_config, 'port', 'unknown')}"
+            )
             print(f"Database name: {getattr(db_config, 'database', 'unknown')}")
 
         # Security config
@@ -137,7 +140,9 @@ class UnifiedMartyService:
 
         trust_config = self.get_trust_store_config()
         if trust_config:
-            print(f"Certificate store: {getattr(trust_config.trust_anchor, 'certificate_store_path', 'unknown')}")
+            print(
+                f"Certificate store: {getattr(trust_config.trust_anchor, 'certificate_store_path', 'unknown')}"
+            )
             print(f"PKD service: {getattr(trust_config.pkd, 'service_url', 'not configured')}")
 
 
@@ -146,12 +151,7 @@ def main():
     print("=== Marty Service Configuration Migration Example ===")
 
     # Example services that could be migrated
-    services = [
-        "document_signer",
-        "trust_anchor",
-        "csca_service",
-        "pkd_service"
-    ]
+    services = ["document_signer", "trust_anchor", "csca_service", "pkd_service"]
 
     for service_name in services:
         print(f"\\n--- Testing {service_name} ---")

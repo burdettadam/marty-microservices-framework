@@ -152,9 +152,7 @@ class MetricsCollector:
 
     def __init__(self):
         self.raw_metrics: builtins.list[ResponseMetric] = []
-        self.real_time_metrics = deque(
-            maxlen=1000
-        )  # Last 1000 requests for real-time monitoring
+        self.real_time_metrics = deque(maxlen=1000)  # Last 1000 requests for real-time monitoring
         self.lock = threading.Lock()
         self.start_time: float | None = None
         self.end_time: float | None = None
@@ -183,12 +181,8 @@ class MetricsCollector:
 
             # Basic counts
             metrics.total_requests = len(self.raw_metrics)
-            metrics.successful_requests = sum(
-                1 for m in self.raw_metrics if m.error is None
-            )
-            metrics.failed_requests = (
-                metrics.total_requests - metrics.successful_requests
-            )
+            metrics.successful_requests = sum(1 for m in self.raw_metrics if m.error is None)
+            metrics.failed_requests = metrics.total_requests - metrics.successful_requests
             metrics.error_rate = (
                 metrics.failed_requests / metrics.total_requests
                 if metrics.total_requests > 0
@@ -196,9 +190,7 @@ class MetricsCollector:
             )
 
             # Response time metrics
-            response_times = [
-                m.response_time for m in self.raw_metrics if m.error is None
-            ]
+            response_times = [m.response_time for m in self.raw_metrics if m.error is None]
             if response_times:
                 metrics.response_times = response_times
                 metrics.min_response_time = min(response_times)
@@ -230,17 +222,13 @@ class MetricsCollector:
 
             return metrics
 
-    def get_real_time_metrics(
-        self, window_seconds: int = 10
-    ) -> builtins.dict[str, Any]:
+    def get_real_time_metrics(self, window_seconds: int = 10) -> builtins.dict[str, Any]:
         """Get real-time metrics for the last N seconds."""
         with self.lock:
             current_time = time.time()
             cutoff_time = current_time - window_seconds
 
-            recent_metrics = [
-                m for m in self.real_time_metrics if m.timestamp >= cutoff_time
-            ]
+            recent_metrics = [m for m in self.real_time_metrics if m.timestamp >= cutoff_time]
 
             if not recent_metrics:
                 return {"rps": 0, "avg_response_time": 0, "error_rate": 0}
@@ -249,9 +237,7 @@ class MetricsCollector:
 
             rps = len(recent_metrics) / window_seconds
             avg_response_time = (
-                statistics.mean([m.response_time for m in successful])
-                if successful
-                else 0
+                statistics.mean([m.response_time for m in successful]) if successful else 0
             )
             error_rate = (len(recent_metrics) - len(successful)) / len(recent_metrics)
 
@@ -310,9 +296,7 @@ class LoadGenerator:
             elif self.load_config.pattern == LoadPattern.WAVE:
                 await self._run_wave_load()
             else:
-                raise ValueError(
-                    f"Unsupported load pattern: {self.load_config.pattern}"
-                )
+                raise ValueError(f"Unsupported load pattern: {self.load_config.pattern}")
 
         finally:
             self.metrics_collector.stop_collection()
@@ -346,9 +330,7 @@ class LoadGenerator:
 
         # Start users gradually
         for user_id in range(max_users):
-            task = asyncio.create_task(
-                self._user_session(user_id, ramp_duration + hold_duration)
-            )
+            task = asyncio.create_task(self._user_session(user_id, ramp_duration + hold_duration))
             self.active_tasks.append(task)
 
             if user_id < max_users - 1:  # Don't wait after the last user
@@ -377,23 +359,17 @@ class LoadGenerator:
         for step in range(steps + 1):
             # Start new users for this step
             if step > 0:
-                new_users = (
-                    users_per_step if step < steps else (max_users - current_users)
-                )
+                new_users = users_per_step if step < steps else (max_users - current_users)
                 for user_id in range(current_users, current_users + new_users):
                     task = asyncio.create_task(
-                        self._user_session(
-                            user_id, hold_duration - (step * step_duration)
-                        )
+                        self._user_session(user_id, hold_duration - (step * step_duration))
                     )
                     self.active_tasks.append(task)
                 current_users += new_users
             else:
                 # Start initial users
                 for user_id in range(initial_users):
-                    task = asyncio.create_task(
-                        self._user_session(user_id, hold_duration)
-                    )
+                    task = asyncio.create_task(self._user_session(user_id, hold_duration))
                     self.active_tasks.append(task)
 
             if step < steps:
@@ -445,9 +421,7 @@ class LoadGenerator:
 
         for cycle in range(wave_cycles):
             # Ramp up
-            for user_count in range(
-                min_users, max_users + 1, (max_users - min_users) // 10
-            ):
+            for user_count in range(min_users, max_users + 1, (max_users - min_users) // 10):
                 # Adjust user count
                 current_task_count = len([t for t in self.active_tasks if not t.done()])
 
@@ -455,15 +429,11 @@ class LoadGenerator:
                     # Add users
                     for user_id in range(current_task_count, user_count):
                         task = asyncio.create_task(
-                            self._user_session(
-                                user_id, wave_duration - (cycle * cycle_duration)
-                            )
+                            self._user_session(user_id, wave_duration - (cycle * cycle_duration))
                         )
                         self.active_tasks.append(task)
 
-                await asyncio.sleep(
-                    cycle_duration / 20
-                )  # Small interval for smooth wave
+                await asyncio.sleep(cycle_duration / 20)  # Small interval for smooth wave
 
             # Hold peak briefly
             await asyncio.sleep(cycle_duration / 4)
@@ -479,9 +449,7 @@ class LoadGenerator:
         start_time = time.time()
         iteration = 0
 
-        while (
-            not self.stop_event.is_set() and (time.time() - start_time) < max_duration
-        ):
+        while not self.stop_event.is_set() and (time.time() - start_time) < max_duration:
             # Check iteration limit
             if (
                 self.load_config.iterations_per_user
@@ -610,9 +578,7 @@ class PerformanceTestCase(TestCase):
                 status = TestStatus.FAILED
                 severity = TestSeverity.HIGH
                 failed_criteria = [k for k, v in criteria_results.items() if not v]
-                error_message = (
-                    f"Performance criteria failed: {', '.join(failed_criteria)}"
-                )
+                error_message = f"Performance criteria failed: {', '.join(failed_criteria)}"
 
             return TestResult(
                 test_id=self.id,
@@ -641,8 +607,7 @@ class PerformanceTestCase(TestCase):
                     "load_configuration": {
                         "pattern": self.load_config.pattern.value,
                         "max_users": self.load_config.max_users,
-                        "duration": self.load_config.duration
-                        or self.load_config.hold_duration,
+                        "duration": self.load_config.duration or self.load_config.hold_duration,
                     },
                 },
             )
@@ -662,36 +627,30 @@ class PerformanceTestCase(TestCase):
                 severity=TestSeverity.CRITICAL,
             )
 
-    def _evaluate_criteria(
-        self, metrics: PerformanceMetrics
-    ) -> builtins.dict[str, bool]:
+    def _evaluate_criteria(self, metrics: PerformanceMetrics) -> builtins.dict[str, bool]:
         """Evaluate performance criteria."""
         results = {}
 
         # Check response time criteria
         if "max_response_time" in self.performance_criteria:
             results["max_response_time"] = (
-                metrics.max_response_time
-                <= self.performance_criteria["max_response_time"]
+                metrics.max_response_time <= self.performance_criteria["max_response_time"]
             )
 
         if "avg_response_time" in self.performance_criteria:
             results["avg_response_time"] = (
-                metrics.avg_response_time
-                <= self.performance_criteria["avg_response_time"]
+                metrics.avg_response_time <= self.performance_criteria["avg_response_time"]
             )
 
         if "p95_response_time" in self.performance_criteria:
             results["p95_response_time"] = (
-                metrics.p95_response_time
-                <= self.performance_criteria["p95_response_time"]
+                metrics.p95_response_time <= self.performance_criteria["p95_response_time"]
             )
 
         # Check throughput criteria
         if "min_requests_per_second" in self.performance_criteria:
             results["min_requests_per_second"] = (
-                metrics.requests_per_second
-                >= self.performance_criteria["min_requests_per_second"]
+                metrics.requests_per_second >= self.performance_criteria["min_requests_per_second"]
             )
 
         # Check error rate criteria
@@ -741,9 +700,7 @@ class PerformanceReportGenerator:
                 "status": result.status.value,
                 "execution_time": result.execution_time,
                 "performance_metrics": result.artifacts.get("performance_metrics", {}),
-                "criteria_results": result.metrics.custom_metrics.get(
-                    "criteria_results", {}
-                )
+                "criteria_results": result.metrics.custom_metrics.get("criteria_results", {})
                 if result.metrics
                 else {},
             }
@@ -761,9 +718,7 @@ class PerformanceReportGenerator:
 
         return report_path
 
-    def _generate_summary(
-        self, test_results: builtins.list[TestResult]
-    ) -> builtins.dict[str, Any]:
+    def _generate_summary(self, test_results: builtins.list[TestResult]) -> builtins.dict[str, Any]:
         """Generate test summary."""
         total_tests = len(test_results)
         passed_tests = len([r for r in test_results if r.status == TestStatus.PASSED])
@@ -771,9 +726,7 @@ class PerformanceReportGenerator:
 
         # Aggregate metrics
         total_requests = sum(
-            r.metrics.custom_metrics.get("total_requests", 0)
-            for r in test_results
-            if r.metrics
+            r.metrics.custom_metrics.get("total_requests", 0) for r in test_results if r.metrics
         )
 
         avg_rps = (
@@ -781,8 +734,7 @@ class PerformanceReportGenerator:
                 [
                     r.metrics.custom_metrics.get("requests_per_second", 0)
                     for r in test_results
-                    if r.metrics
-                    and r.metrics.custom_metrics.get("requests_per_second", 0) > 0
+                    if r.metrics and r.metrics.custom_metrics.get("requests_per_second", 0) > 0
                 ]
             )
             if test_results
@@ -793,16 +745,12 @@ class PerformanceReportGenerator:
             "total_tests": total_tests,
             "passed_tests": passed_tests,
             "failed_tests": failed_tests,
-            "success_rate": (passed_tests / total_tests * 100)
-            if total_tests > 0
-            else 0,
+            "success_rate": (passed_tests / total_tests * 100) if total_tests > 0 else 0,
             "total_requests": total_requests,
             "average_rps": avg_rps,
         }
 
-    def _generate_visualizations(
-        self, test_results: builtins.list[TestResult], report_name: str
-    ):
+    def _generate_visualizations(self, test_results: builtins.list[TestResult], report_name: str):
         """Generate performance visualizations."""
         try:
             # Response time distribution
@@ -838,14 +786,10 @@ class PerformanceReportGenerator:
 
         import os
 
-        plt.savefig(
-            os.path.join(self.output_dir, f"{report_name}_response_time_dist.png")
-        )
+        plt.savefig(os.path.join(self.output_dir, f"{report_name}_response_time_dist.png"))
         plt.close()
 
-    def _plot_throughput_over_time(
-        self, test_results: builtins.list[TestResult], report_name: str
-    ):
+    def _plot_throughput_over_time(self, test_results: builtins.list[TestResult], report_name: str):
         """Plot throughput over time."""
         plt.figure(figsize=(12, 6))
 
@@ -893,15 +837,9 @@ class PerformanceReportGenerator:
         for result in test_results:
             if result.metrics:
                 test_names.append(result.name.replace("Performance Test: ", ""))
-                avg_response_times.append(
-                    result.metrics.custom_metrics.get("avg_response_time", 0)
-                )
-                rps_values.append(
-                    result.metrics.custom_metrics.get("requests_per_second", 0)
-                )
-                error_rates.append(
-                    result.metrics.custom_metrics.get("error_rate", 0) * 100
-                )
+                avg_response_times.append(result.metrics.custom_metrics.get("avg_response_time", 0))
+                rps_values.append(result.metrics.custom_metrics.get("requests_per_second", 0))
+                error_rates.append(result.metrics.custom_metrics.get("error_rate", 0) * 100)
 
         if test_names:
             fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 10))

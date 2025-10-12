@@ -19,10 +19,13 @@ from typing import Any
 # Temporarily define these here until we resolve imports
 class DomainEvent:
     """Placeholder for DomainEvent from event_sourcing module."""
+
     pass
+
 
 class EventStore:
     """Placeholder for EventStore from event_sourcing module."""
+
     pass
 
 
@@ -90,9 +93,7 @@ class ProjectionManager:
         """Initialize projection manager."""
         self.event_store = event_store
         self.projections: builtins.dict[str, builtins.dict[str, Any]] = {}
-        self.projection_handlers: builtins.dict[
-            str, builtins.list[Callable]
-        ] = defaultdict(list)
+        self.projection_handlers: builtins.dict[str, builtins.list[Callable]] = defaultdict(list)
         self.projection_checkpoints: builtins.dict[str, datetime] = {}
 
         # Projection tasks
@@ -159,9 +160,7 @@ class ProjectionManager:
                 # Update checkpoint
                 self.projection_checkpoints[projection_name] = event.timestamp
 
-    async def _apply_event_to_projection(
-        self, projection_name: str, event: DomainEvent
-    ):
+    async def _apply_event_to_projection(self, projection_name: str, event: DomainEvent):
         """Apply event to specific projection."""
         handlers = self.projection_handlers.get(event.event_type, [])
 
@@ -283,9 +282,7 @@ class ReadModelStore:
         return False
 
     async def query_read_models(
-        self,
-        model_type: str | None = None,
-        filters: builtins.dict[str, Any] | None = None
+        self, model_type: str | None = None, filters: builtins.dict[str, Any] | None = None
     ) -> builtins.list[ReadModel]:
         """Query read models with filters."""
         models = self.models.values()

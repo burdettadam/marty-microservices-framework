@@ -143,9 +143,7 @@ class DeploymentPipeline:
     environments: builtins.list[EnvironmentConfig]
 
     # Deployment configuration
-    strategy_per_env: builtins.dict[str, DeploymentStrategy] = field(
-        default_factory=dict
-    )
+    strategy_per_env: builtins.dict[str, DeploymentStrategy] = field(default_factory=dict)
     approval_required: builtins.dict[str, bool] = field(default_factory=dict)
     auto_promote: builtins.dict[str, bool] = field(default_factory=dict)
 
@@ -208,9 +206,7 @@ class PipelineExecution:
             **asdict(self),
             "triggered_by": self.triggered_by.value,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
 
 
@@ -255,9 +251,7 @@ class FeatureFlagManager:
 
         print(f"🏳️ Created feature flag: {flag_name}")
 
-    def set_flag_value(
-        self, flag_name: str, value: bool, environment: str | None = None
-    ):
+    def set_flag_value(self, flag_name: str, value: bool, environment: str | None = None):
         """Set feature flag value"""
 
         if flag_name not in self.flags:
@@ -370,9 +364,7 @@ class FeatureFlagManager:
         # Calculate success rate
         evaluations = flag["metrics"]["evaluations"]
         if evaluations > 0:
-            flag["metrics"]["true_rate"] = (
-                flag["metrics"]["true_evaluations"] / evaluations
-            )
+            flag["metrics"]["true_rate"] = flag["metrics"]["true_evaluations"] / evaluations
         else:
             flag["metrics"]["true_rate"] = 0.0
 
@@ -433,9 +425,7 @@ class HealthMonitor:
 
                 if not db_result["success"]:
                     result["overall_healthy"] = False
-                    result["alerts"].append(
-                        f"Database connectivity failed for {target}"
-                    )
+                    result["alerts"].append(f"Database connectivity failed for {target}")
 
             # Performance metrics check
             if check_config.get("performance_check", {}).get("enabled", True):
@@ -571,15 +561,13 @@ class HealthMonitor:
                 return {"success": True, "message": "Cache connectivity verified"}
             return {
                 "success": True,
-                "message": f'Custom check {config.get("name", "unknown")} passed',
+                "message": f"Custom check {config.get('name', 'unknown')} passed",
             }
 
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def get_health_summary(
-        self, target: str, hours: int = 24
-    ) -> builtins.dict[str, Any]:
+    def get_health_summary(self, target: str, hours: int = 24) -> builtins.dict[str, Any]:
         """Get health summary for target over specified period"""
 
         cutoff_time = datetime.now() - timedelta(hours=hours)
@@ -603,9 +591,7 @@ class HealthMonitor:
             }
 
         total_checks = len(relevant_checks)
-        successful_checks = sum(
-            1 for check in relevant_checks if check["overall_healthy"]
-        )
+        successful_checks = sum(1 for check in relevant_checks if check["overall_healthy"])
 
         # Calculate average response time
         response_times = []
@@ -614,9 +600,7 @@ class HealthMonitor:
             if "response_time" in http_check:
                 response_times.append(http_check["response_time"])
 
-        avg_response_time = (
-            sum(response_times) / len(response_times) if response_times else 0.0
-        )
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0.0
 
         return {
             "target": target,
@@ -709,9 +693,7 @@ class DeploymentAutomationEngine:
                         description=f"Feature flag for {pipeline.application_name}",
                     )
 
-                self.feature_flag_manager.set_flag_value(
-                    flag_name, flag_value, env_config.name
-                )
+                self.feature_flag_manager.set_flag_value(flag_name, flag_value, env_config.name)
 
     async def execute_pipeline(
         self,
@@ -798,9 +780,7 @@ class DeploymentAutomationEngine:
             if len(execution.completed_stages) == len(pipeline.environments):
                 execution.status = "succeeded"
                 execution.completed_at = datetime.now()
-                print(
-                    f"🎉 Pipeline execution completed successfully: {execution.execution_id}"
-                )
+                print(f"🎉 Pipeline execution completed successfully: {execution.execution_id}")
 
             # Update metrics
             if METRICS_AVAILABLE:
@@ -809,9 +789,7 @@ class DeploymentAutomationEngine:
                 ).inc()
 
                 if execution.completed_at:
-                    duration = (
-                        execution.completed_at - execution.started_at
-                    ).total_seconds()
+                    duration = (execution.completed_at - execution.started_at).total_seconds()
                     self.deployment_duration.observe(duration)
 
         except Exception as e:
@@ -867,9 +845,7 @@ class DeploymentAutomationEngine:
                 )
 
             # Get deployment strategy
-            strategy = pipeline.strategy_per_env.get(
-                env_config.name, DeploymentStrategy.ROLLING
-            )
+            strategy = pipeline.strategy_per_env.get(env_config.name, DeploymentStrategy.ROLLING)
 
             # Execute deployment
             deployment_operation = await self.deployment_orchestrator.deploy(
@@ -882,9 +858,7 @@ class DeploymentAutomationEngine:
             )
 
             # Store operation reference
-            execution.deployment_operations[
-                env_config.name
-            ] = deployment_operation.operation_id
+            execution.deployment_operations[env_config.name] = deployment_operation.operation_id
 
             # Wait for deployment completion
             while deployment_operation.status == "running":
@@ -997,9 +971,7 @@ class DeploymentAutomationEngine:
                 "timeout": 1000,
             }
 
-        health_result = await self.health_monitor.perform_health_check(
-            target, health_config
-        )
+        health_result = await self.health_monitor.perform_health_check(target, health_config)
 
         print(
             f"🏥 Health check for {env_config.name}: {'✅' if health_result['overall_healthy'] else '❌'}"
@@ -1056,18 +1028,14 @@ class DeploymentAutomationEngine:
             1 for exec_data in recent_executions if exec_data.status == "succeeded"
         )
 
-        success_rate = (
-            successful_executions / total_executions if total_executions > 0 else 0.0
-        )
+        success_rate = successful_executions / total_executions if total_executions > 0 else 0.0
 
         return {
             "pipeline": pipeline.to_dict(),
             "total_executions": total_executions,
             "successful_executions": successful_executions,
             "success_rate": success_rate,
-            "recent_executions": [
-                exec_data.to_dict() for exec_data in recent_executions[:10]
-            ],
+            "recent_executions": [exec_data.to_dict() for exec_data in recent_executions[:10]],
             "feature_flags": {
                 flag_name: self.feature_flag_manager.get_flag_status(flag_name)
                 for env_config in pipeline.environments
@@ -1195,9 +1163,7 @@ async def main():
     # Evaluate flags for different environments
     for env_name in ["development", "staging", "production"]:
         new_ui = ff_manager.evaluate_flag("new_ui_enabled", environment=env_name)
-        experimental = ff_manager.evaluate_flag(
-            "experimental_api", environment=env_name
-        )
+        experimental = ff_manager.evaluate_flag("experimental_api", environment=env_name)
 
         print(f"{env_name}: new_ui={new_ui}, experimental_api={experimental}")
 
@@ -1211,9 +1177,7 @@ async def main():
     if execution_status:
         print(f"Execution ID: {execution_status['execution_id']}")
         print(f"Completed stages: {execution_status['completed_stages']}")
-        print(
-            f"Deployment operations: {list(execution_status['deployment_operations'].keys())}"
-        )
+        print(f"Deployment operations: {list(execution_status['deployment_operations'].keys())}")
 
 
 if __name__ == "__main__":

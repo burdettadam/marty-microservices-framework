@@ -68,8 +68,7 @@ class JWTAuthenticator:
         to_encode = {
             "sub": user_id,
             "roles": roles,
-            "exp": datetime.utcnow()
-            + timedelta(hours=self.config.jwt_expiration_hours),
+            "exp": datetime.utcnow() + timedelta(hours=self.config.jwt_expiration_hours),
             "iat": datetime.utcnow(),
             "type": "access_token",
         }
@@ -341,9 +340,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers[
-            "Strict-Transport-Security"
-        ] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Content-Security-Policy"] = "default-src 'self'"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         return response
@@ -375,9 +372,7 @@ def require_roles(required_roles: builtins.list[str]):
             # Check if user has required roles
             if not any(role in user_roles for role in required_roles):
                 # Log authorization failure
-                config = SecurityConfig(
-                    jwt_secret_key="dummy"
-                )  # This should be injected properly
+                config = SecurityConfig(jwt_secret_key="dummy")  # This should be injected properly
                 auditor = SecurityAuditor(config)
                 await auditor.log_authorization(
                     user_id, request.url.path, required_roles, user_roles, False
@@ -389,9 +384,7 @@ def require_roles(required_roles: builtins.list[str]):
                 )
 
             # Log successful authorization
-            config = SecurityConfig(
-                jwt_secret_key="dummy"
-            )  # This should be injected properly
+            config = SecurityConfig(jwt_secret_key="dummy")  # This should be injected properly
             auditor = SecurityAuditor(config)
             await auditor.log_authorization(
                 user_id, request.url.path, required_roles, user_roles, True
@@ -437,9 +430,7 @@ def setup_security_logging():
     audit_logger.setLevel(logging.INFO)
 
     # Create formatter for audit logs
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # Create file handler for audit logs
     handler = logging.FileHandler("logs/security_audit.log")

@@ -182,9 +182,7 @@ class TemplateMatcher(RouteMatcher):
             str, builtins.tuple[Pattern, builtins.list[str]]
         ] = {}
 
-    def _compile_template(
-        self, template: str
-    ) -> builtins.tuple[Pattern, builtins.list[str]]:
+    def _compile_template(self, template: str) -> builtins.tuple[Pattern, builtins.list[str]]:
         """Compile template pattern with parameter names."""
         if template not in self._compiled_patterns:
             # Convert template to regex pattern
@@ -199,9 +197,7 @@ class TemplateMatcher(RouteMatcher):
                 param_names.append(param_name)
 
                 # Replace with named regex group
-                pattern = pattern.replace(
-                    f"{{{param_name}}}", f"(?P<{param_name}>[^/]+)"
-                )
+                pattern = pattern.replace(f"{{{param_name}}}", f"(?P<{param_name}>[^/]+)")
 
             # Escape other regex characters
             pattern = pattern.replace(".", r"\.")
@@ -381,9 +377,7 @@ class HeaderRouter:
         self.header_routes: builtins.dict[str, builtins.dict[str, PathRouter]] = {}
         self.default_router: PathRouter | None = None
 
-    def add_header_router(
-        self, header_name: str, header_value: str, router: PathRouter
-    ):
+    def add_header_router(self, header_name: str, header_value: str, router: PathRouter):
         """Add router for specific header value."""
         if header_name not in self.header_routes:
             self.header_routes[header_name] = {}
@@ -480,14 +474,10 @@ class CompositeRouter:
 
     def __init__(self, config: RoutingConfig):
         self.config = config
-        self.routers: builtins.list[
-            PathRouter | HostRouter | HeaderRouter | WeightedRouter
-        ] = []
+        self.routers: builtins.list[PathRouter | HostRouter | HeaderRouter | WeightedRouter] = []
         self.fallback_router: PathRouter | None = None
 
-    def add_router(
-        self, router: PathRouter | HostRouter | HeaderRouter | WeightedRouter
-    ):
+    def add_router(self, router: PathRouter | HostRouter | HeaderRouter | WeightedRouter):
         """Add router to composite."""
         self.routers.append(router)
 
@@ -517,9 +507,7 @@ class Router:
     def __init__(self, config: RoutingConfig | None = None):
         self.config = config or RoutingConfig()
         self.composite_router = CompositeRouter(self.config)
-        self._route_cache: builtins.dict[
-            str, builtins.tuple[Route, builtins.dict[str, str]]
-        ] = {}
+        self._route_cache: builtins.dict[str, builtins.tuple[Route, builtins.dict[str, str]]] = {}
 
         # Initialize default routers
         self._setup_default_routers()
@@ -554,18 +542,14 @@ class Router:
         self.composite_router.add_router(host_router)
         self._clear_cache()
 
-    def add_header_router(
-        self, header_name: str, header_value: str, router: PathRouter
-    ):
+    def add_header_router(self, header_name: str, header_value: str, router: PathRouter):
         """Add header-based routing."""
         header_router = HeaderRouter(self.config)
         header_router.add_header_router(header_name, header_value, router)
         self.composite_router.add_router(header_router)
         self._clear_cache()
 
-    def add_weighted_router(
-        self, routers: builtins.list[builtins.tuple[PathRouter, float]]
-    ):
+    def add_weighted_router(self, routers: builtins.list[builtins.tuple[PathRouter, float]]):
         """Add weighted routing for canary/A/B testing."""
         weighted_router = WeightedRouter(self.config)
         for router, weight in routers:
@@ -781,9 +765,7 @@ class RouterBuilder:
         self._config.canary_header = header
         return self
 
-    def ab_testing(
-        self, enabled: bool = True, header: str = "X-AB-Test"
-    ) -> "RouterBuilder":
+    def ab_testing(self, enabled: bool = True, header: str = "X-AB-Test") -> "RouterBuilder":
         """Enable A/B testing."""
         self._config.enable_ab_testing = enabled
         self._config.ab_test_header = header

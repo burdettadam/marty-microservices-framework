@@ -74,9 +74,7 @@ class FeatureFlag:
     flag_type: FeatureFlagType
     enabled: bool = False
     value: Any = None
-    targeting_rules: builtins.list[builtins.dict[str, Any]] = field(
-        default_factory=list
-    )
+    targeting_rules: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     tags: builtins.list[str] = field(default_factory=list)
@@ -103,9 +101,7 @@ class RollbackConfiguration:
     automatic_triggers: builtins.list[str] = field(default_factory=list)
     max_rollback_time: int = 1800  # 30 minutes
     preserve_traffic_split: bool = False
-    rollback_validation: builtins.list[DeploymentValidation] = field(
-        default_factory=list
-    )
+    rollback_validation: builtins.list[DeploymentValidation] = field(default_factory=list)
 
 
 @dataclass

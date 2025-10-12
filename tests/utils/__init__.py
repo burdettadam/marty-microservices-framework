@@ -29,5 +29,5 @@ __all__ = [
     "create_test_message",
     "create_test_event",
     "create_test_service",
-    "cleanup_test_service"
+    "cleanup_test_service",
 ]

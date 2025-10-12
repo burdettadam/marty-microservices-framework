@@ -254,9 +254,7 @@ class SLICollector:
             print(f"Error collecting SLI for {slo.name}: {e}")
             return None
 
-    async def _collect_availability_sli(
-        self, slo: SLODefinition
-    ) -> SLIMeasurement | None:
+    async def _collect_availability_sli(self, slo: SLODefinition) -> SLIMeasurement | None:
         """Collect availability SLI"""
         # Example: Calculate uptime from successful vs failed requests
         query = (
@@ -295,9 +293,7 @@ class SLICollector:
             return SLIMeasurement(timestamp=datetime.now(), value=value)
         return None
 
-    async def _collect_error_rate_sli(
-        self, slo: SLODefinition
-    ) -> SLIMeasurement | None:
+    async def _collect_error_rate_sli(self, slo: SLODefinition) -> SLIMeasurement | None:
         """Collect error rate SLI"""
         query = (
             slo.sli.query
@@ -317,9 +313,7 @@ class SLICollector:
             return SLIMeasurement(timestamp=datetime.now(), value=value)
         return None
 
-    async def _collect_throughput_sli(
-        self, slo: SLODefinition
-    ) -> SLIMeasurement | None:
+    async def _collect_throughput_sli(self, slo: SLODefinition) -> SLIMeasurement | None:
         """Collect throughput SLI"""
         query = (
             slo.sli.query
@@ -345,9 +339,7 @@ class SLICollector:
             return SLIMeasurement(timestamp=datetime.now(), value=value)
         return None
 
-    async def _query_prometheus(
-        self, query: str
-    ) -> builtins.list[builtins.dict[str, Any]] | None:
+    async def _query_prometheus(self, query: str) -> builtins.list[builtins.dict[str, Any]] | None:
         """Query Prometheus and return results"""
         if not MONITORING_AVAILABLE:
             # Simulate data for testing
@@ -490,18 +482,18 @@ class SLOTracker:
 
         # Update metrics
         if MONITORING_AVAILABLE:
-            self.slo_compliance_gauge.labels(
-                slo_name=slo_name, service=slo.service_name
-            ).set(compliance)
+            self.slo_compliance_gauge.labels(slo_name=slo_name, service=slo.service_name).set(
+                compliance
+            )
 
             budget = self.error_budgets[slo_name]
-            self.error_budget_gauge.labels(
-                slo_name=slo_name, service=slo.service_name
-            ).set(budget.budget_remaining)
+            self.error_budget_gauge.labels(slo_name=slo_name, service=slo.service_name).set(
+                budget.budget_remaining
+            )
 
-            self.burn_rate_gauge.labels(
-                slo_name=slo_name, service=slo.service_name
-            ).set(budget.burn_rate)
+            self.burn_rate_gauge.labels(slo_name=slo_name, service=slo.service_name).set(
+                budget.burn_rate
+            )
 
         return {
             "slo_name": slo_name,
@@ -543,27 +535,19 @@ class SLOTracker:
         if current_compliance < target:
             # We're below target, consuming error budget
             shortfall = target - current_compliance
-            budget.budget_consumed = min(
-                budget.total_budget, budget.budget_consumed + shortfall
-            )
+            budget.budget_consumed = min(budget.total_budget, budget.budget_consumed + shortfall)
             budget.budget_remaining = budget.total_budget - budget.budget_consumed
 
         # Calculate burn rate (budget consumed per hour)
-        time_diff = (
-            datetime.now() - budget.last_updated
-        ).total_seconds() / 3600  # hours
+        time_diff = (datetime.now() - budget.last_updated).total_seconds() / 3600  # hours
         if time_diff > 0:
-            consumption_rate = (
-                shortfall / time_diff if current_compliance < target else 0
-            )
+            consumption_rate = shortfall / time_diff if current_compliance < target else 0
             budget.burn_rate = consumption_rate
 
             # Project budget exhaustion
             if budget.burn_rate > 0:
                 hours_to_exhaustion = budget.budget_remaining / budget.burn_rate
-                budget.projected_exhaustion = datetime.now() + timedelta(
-                    hours=hours_to_exhaustion
-                )
+                budget.projected_exhaustion = datetime.now() + timedelta(hours=hours_to_exhaustion)
             else:
                 budget.projected_exhaustion = None
 
@@ -589,9 +573,7 @@ class SLOTracker:
 
             elif alert.alert_type == "budget_exhaustion":
                 # Check if budget consumption exceeds threshold
-                consumption_percentage = (
-                    budget.budget_consumed / budget.total_budget
-                ) * 100
+                consumption_percentage = (budget.budget_consumed / budget.total_budget) * 100
                 should_trigger = consumption_percentage >= alert.threshold
 
             elif alert.alert_type == "target_breach":
@@ -603,10 +585,8 @@ class SLOTracker:
             # Trigger alert if conditions met and not in cooldown
             if should_trigger:
                 cooldown_minutes = 60 if alert.severity == "critical" else 180
-                if (
-                    alert.last_triggered is None
-                    or current_time - alert.last_triggered
-                    >= timedelta(minutes=cooldown_minutes)
+                if alert.last_triggered is None or current_time - alert.last_triggered >= timedelta(
+                    minutes=cooldown_minutes
                 ):
                     await self._trigger_alert(alert, budget)
                     alert.last_triggered = current_time
@@ -741,9 +721,7 @@ class SLOManager:
                     if result:
                         status = result.get("status", "unknown")
                         compliance = result.get("compliance", 0)
-                        print(
-                            f"SLO {slo_name}: {compliance:.2f}% compliance - {status}"
-                        )
+                        print(f"SLO {slo_name}: {compliance:.2f}% compliance - {status}")
 
                 # Wait for next collection
                 await asyncio.sleep(self.collection_interval)

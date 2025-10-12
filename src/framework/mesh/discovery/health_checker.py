@@ -81,9 +81,7 @@ class HealthChecker:
                         health_info["consecutive_failures"] = 0
 
                         # Mark as healthy if we have enough successes
-                        if (
-                            health_info["consecutive_successes"] >= self.config.healthy_threshold
-                        ):
+                        if health_info["consecutive_successes"] >= self.config.healthy_threshold:
                             was_unhealthy = not health_info.get("healthy", False)
                             health_info["healthy"] = True
 
@@ -162,7 +160,9 @@ class HealthChecker:
                                 e,
                             )
 
-    def get_health_status(self, registry, service_name: str | None = None) -> builtins.dict[str, Any]:
+    def get_health_status(
+        self, registry, service_name: str | None = None
+    ) -> builtins.dict[str, Any]:
         """Get health status for services."""
         with registry._lock:
             if service_name:

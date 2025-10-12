@@ -53,9 +53,7 @@ class LogEvent:
         try:
             data = json.loads(log_line)
             return cls(
-                timestamp=datetime.fromisoformat(
-                    data.get("timestamp", datetime.now().isoformat())
-                ),
+                timestamp=datetime.fromisoformat(data.get("timestamp", datetime.now().isoformat())),
                 level=data.get("level", "INFO"),
                 service_name=data.get("service_name", "unknown"),
                 message=data.get("message", ""),
@@ -197,9 +195,7 @@ class LogAnalyzer:
                 "Security events",
                 ["service", "event_type"],
             ),
-            "active_services": Gauge(
-                "marty_active_services", "Number of active services"
-            ),
+            "active_services": Gauge("marty_active_services", "Number of active services"),
         }
 
     async def _ensure_redis_connection(self):
@@ -320,20 +316,13 @@ class LogAnalyzer:
                     ).observe(duration_seconds)
 
                 # Store for analysis
-                self.service_metrics[event.service_name]["response_times"].append(
-                    duration_ms
-                )
+                self.service_metrics[event.service_name]["response_times"].append(duration_ms)
 
                 # Keep only recent data (last 1000 entries)
-                if (
-                    len(self.service_metrics[event.service_name]["response_times"])
-                    > 1000
-                ):
-                    self.service_metrics[event.service_name][
-                        "response_times"
-                    ] = self.service_metrics[event.service_name]["response_times"][
-                        -1000:
-                    ]
+                if len(self.service_metrics[event.service_name]["response_times"]) > 1000:
+                    self.service_metrics[event.service_name]["response_times"] = (
+                        self.service_metrics[event.service_name]["response_times"][-1000:]
+                    )
 
             except (ValueError, TypeError):
                 pass
@@ -395,9 +384,7 @@ class LogAnalyzer:
             if event_type == "transaction" and business_data.get("amount"):
                 await self._process_revenue_event(event, business_data)
 
-    async def _process_revenue_event(
-        self, event: LogEvent, business_data: builtins.dict[str, Any]
-    ):
+    async def _process_revenue_event(self, event: LogEvent, business_data: builtins.dict[str, Any]):
         """Process revenue-generating events"""
         revenue_data = {
             "service": event.service_name,
@@ -428,9 +415,7 @@ class LogAnalyzer:
         if MONITORING_AVAILABLE and hasattr(self, "metrics"):
             self.metrics["active_services"].set(len(current_services))
 
-    def get_service_performance_summary(
-        self, service_name: str
-    ) -> builtins.dict[str, Any]:
+    def get_service_performance_summary(self, service_name: str) -> builtins.dict[str, Any]:
         """Get performance summary for a service"""
         response_times = self.service_metrics[service_name]["response_times"]
 
@@ -520,6 +505,7 @@ class LogStreamProcessor:
 
         self.running = True
         import redis.asyncio as redis_client
+
         redis = redis_client.from_url(
             f"redis://{self.analyzer.redis_host}:{self.analyzer.redis_port}"
         )

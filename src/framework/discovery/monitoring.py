@@ -198,9 +198,7 @@ class MetricsCollector:
             combined_labels = {**self._labels, **(labels or {})}
             metric.add_point(current_value + value, combined_labels)
 
-    def set_gauge(
-        self, name: str, value: float, labels: builtins.dict[str, str] | None = None
-    ):
+    def set_gauge(self, name: str, value: float, labels: builtins.dict[str, str] | None = None):
         """Set gauge metric value."""
         if not self._collection_enabled:
             return
@@ -210,9 +208,7 @@ class MetricsCollector:
             combined_labels = {**self._labels, **(labels or {})}
             metric.add_point(value, combined_labels)
 
-    def record_value(
-        self, name: str, value: float, labels: builtins.dict[str, str] | None = None
-    ):
+    def record_value(self, name: str, value: float, labels: builtins.dict[str, str] | None = None):
         """Record value for histogram/timer metric."""
         if not self._collection_enabled:
             return
@@ -303,9 +299,7 @@ class DiscoveryMetrics:
             "cache_misses_total", "Total number of cache misses", MetricUnit.COUNT
         )
 
-        self.collector.create_gauge(
-            "cache_size", "Current cache size", MetricUnit.COUNT
-        )
+        self.collector.create_gauge("cache_size", "Current cache size", MetricUnit.COUNT)
 
         # Load balancing metrics
         self.collector.create_counter(
@@ -362,9 +356,7 @@ class DiscoveryMetrics:
             "circuit_breaker_trips", "Circuit breaker trips", MetricUnit.COUNT
         )
 
-    def record_discovery_request(
-        self, success: bool, duration: float, service_name: str
-    ):
+    def record_discovery_request(self, success: bool, duration: float, service_name: str):
         """Record service discovery request metrics."""
         labels = {"service": service_name}
 
@@ -375,9 +367,7 @@ class DiscoveryMetrics:
         else:
             self.collector.increment("discovery_requests_failed", 1.0, labels)
 
-        self.collector.record_value(
-            "discovery_request_duration", duration * 1000, labels
-        )
+        self.collector.record_value("discovery_request_duration", duration * 1000, labels)
 
     def record_cache_operation(self, hit: bool, service_name: str):
         """Record cache operation metrics."""
@@ -393,17 +383,13 @@ class DiscoveryMetrics:
         self.collector.set_gauge("discovered_services_count", total_services)
         self.collector.set_gauge("healthy_services_count", healthy_services)
 
-    def record_load_balancer_selection(
-        self, duration: float, instance_id: str, algorithm: str
-    ):
+    def record_load_balancer_selection(self, duration: float, instance_id: str, algorithm: str):
         """Record load balancer selection metrics."""
         labels = {"instance": instance_id, "algorithm": algorithm}
 
         self.collector.increment("load_balancer_requests_total", 1.0, labels)
         self.collector.increment("load_balancer_selections_total", 1.0, labels)
-        self.collector.record_value(
-            "load_balancer_selection_duration", duration * 1000, labels
-        )
+        self.collector.record_value("load_balancer_selection_duration", duration * 1000, labels)
 
     def record_health_check(
         self, success: bool, duration: float, service_name: str, check_type: str
@@ -433,9 +419,7 @@ class DiscoveryMetrics:
         self.collector.increment("circuit_breaker_state_changes", 1.0, labels)
 
         if new_state == "open":
-            self.collector.increment(
-                "circuit_breaker_trips", 1.0, {"breaker": breaker_name}
-            )
+            self.collector.increment("circuit_breaker_trips", 1.0, {"breaker": breaker_name})
 
 
 class MetricsExporter(ABC):
@@ -473,9 +457,7 @@ class PrometheusExporter(MetricsExporter):
         # Store or serve the metrics for Prometheus scraping
         return prometheus_format
 
-    def _convert_to_prometheus_format(
-        self, metrics: builtins.dict[str, MetricSeries]
-    ) -> str:
+    def _convert_to_prometheus_format(self, metrics: builtins.dict[str, MetricSeries]) -> str:
         """Convert metrics to Prometheus format."""
         lines = []
 
@@ -544,9 +526,7 @@ class LoggingExporter(MetricsExporter):
 class InfluxDBExporter(MetricsExporter):
     """InfluxDB metrics exporter."""
 
-    def __init__(
-        self, url: str, database: str, username: str = None, password: str = None
-    ):
+    def __init__(self, url: str, database: str, username: str = None, password: str = None):
         self.url = url
         self.database = database
         self.username = username

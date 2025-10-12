@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 class PluginStatus(Enum):
     """Plugin lifecycle status."""
+
     UNLOADED = "unloaded"
     LOADING = "loading"
     LOADED = "loaded"
@@ -50,6 +51,7 @@ class PluginError(Exception):
 @dataclass
 class PluginMetadata:
     """Plugin metadata and configuration."""
+
     name: str
     version: str
     description: str = ""
@@ -75,17 +77,19 @@ class PluginContext:
     while maintaining proper abstraction and lifecycle management.
     """
 
-    def __init__(self,
-                 config,
-                 config_manager: Optional["PluginConfigManager"] = None,
-                 database_manager=None,
-                 event_bus=None,
-                 security_manager=None,
-                 observability_manager=None,
-                 cache_manager=None,
-                 http_client=None,
-                 workflow_engine=None,
-                 resilience_manager=None):
+    def __init__(
+        self,
+        config,
+        config_manager: Optional["PluginConfigManager"] = None,
+        database_manager=None,
+        event_bus=None,
+        security_manager=None,
+        observability_manager=None,
+        cache_manager=None,
+        http_client=None,
+        workflow_engine=None,
+        resilience_manager=None,
+    ):
         self.config = config
         self.config_manager = config_manager
         self.database = database_manager
@@ -106,10 +110,10 @@ class PluginContext:
             return await self.config_manager.get_plugin_config(plugin_name, config_key)
 
         # Fallback to legacy config format
-        if hasattr(self.config, 'plugins'):
+        if hasattr(self.config, "plugins"):
             for plugin_config in self.config.plugins:
-                if plugin_config.get('name') == plugin_name:
-                    return plugin_config.get('config', {})
+                if plugin_config.get("name") == plugin_name:
+                    return plugin_config.get("config", {})
         return {}
 
     async def get_base_config(self, config_key: str = "default") -> Any:
@@ -120,10 +124,10 @@ class PluginContext:
 
     def get_plugin_config_sync(self, plugin_name: str) -> dict[str, Any]:
         """Get configuration specific to a plugin (synchronous legacy method)."""
-        if hasattr(self.config, 'plugins'):
+        if hasattr(self.config, "plugins"):
             for plugin_config in self.config.plugins:
-                if plugin_config.get('name') == plugin_name:
-                    return plugin_config.get('config', {})
+                if plugin_config.get("name") == plugin_name:
+                    return plugin_config.get("config", {})
         return {}
 
     def set_plugin_data(self, plugin_name: str, key: str, value: Any) -> None:
@@ -160,8 +164,9 @@ class MMFPlugin(ABC):
     def context(self) -> PluginContext:
         """Access to MMF context (only available after initialization)."""
         if not self._context:
-            raise PluginError("Plugin context not available before initialization",
-                            self.metadata.name)
+            raise PluginError(
+                "Plugin context not available before initialization", self.metadata.name
+            )
         return self._context
 
     @property
@@ -266,7 +271,9 @@ class PluginManager:
             self._logger.error(f"Failed to load plugin {plugin_name}: {e}")
             raise PluginError(f"Failed to load plugin {plugin_name}: {e}")
 
-    async def register_plugin(self, plugin_name: str, plugin: MMFPlugin, metadata: PluginMetadata | None = None) -> None:
+    async def register_plugin(
+        self, plugin_name: str, plugin: MMFPlugin, metadata: PluginMetadata | None = None
+    ) -> None:
         """Register a plugin instance.
 
         Args:
@@ -339,10 +346,7 @@ class PluginManager:
             try:
                 health_status[plugin_name] = await plugin.get_health_status()
             except Exception as e:
-                health_status[plugin_name] = {
-                    "status": "error",
-                    "error": str(e)
-                }
+                health_status[plugin_name] = {"status": "error", "error": str(e)}
         return health_status
 
     async def unload_plugin(self, plugin_name: str) -> None:
@@ -405,15 +409,17 @@ class PluginManager:
         info = []
         for _plugin_name, plugin in self.plugins.items():
             metadata = plugin.metadata
-            info.append({
-                "name": metadata.name,
-                "version": metadata.version,
-                "description": metadata.description,
-                "author": metadata.author,
-                "status": plugin.status.value,
-                "dependencies": metadata.dependencies,
-                "optional_dependencies": metadata.optional_dependencies
-            })
+            info.append(
+                {
+                    "name": metadata.name,
+                    "version": metadata.version,
+                    "description": metadata.description,
+                    "author": metadata.author,
+                    "status": plugin.status.value,
+                    "dependencies": metadata.dependencies,
+                    "optional_dependencies": metadata.optional_dependencies,
+                }
+            )
         return info
 
     def get_plugin_status(self, plugin_name: str) -> PluginStatus | None:
@@ -452,7 +458,7 @@ class PluginManager:
         if missing_deps:
             raise PluginError(
                 f"Plugin {plugin.metadata.name} has missing dependencies: {missing_deps}",
-                plugin.metadata.name
+                plugin.metadata.name,
             )
 
 
@@ -468,12 +474,12 @@ def create_plugin_context(config, **services) -> PluginContext:
     """
     return PluginContext(
         config=config,
-        database_manager=services.get('database'),
-        event_bus=services.get('event_bus'),
-        security_manager=services.get('security'),
-        observability_manager=services.get('observability'),
-        cache_manager=services.get('cache'),
-        http_client=services.get('http_client'),
-        workflow_engine=services.get('workflow_engine'),
-        resilience_manager=services.get('resilience')
+        database_manager=services.get("database"),
+        event_bus=services.get("event_bus"),
+        security_manager=services.get("security"),
+        observability_manager=services.get("observability"),
+        cache_manager=services.get("cache"),
+        http_client=services.get("http_client"),
+        workflow_engine=services.get("workflow_engine"),
+        resilience_manager=services.get("resilience"),
     )

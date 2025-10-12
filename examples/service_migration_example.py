@@ -13,6 +13,7 @@ from typing import Any
 # Before: Original Marty Document Signer (Standalone)
 # ===================================================
 
+
 class OriginalDocumentSigner:
     """
     Original Marty Document Signer implementation with custom infrastructure.
@@ -97,7 +98,7 @@ class OriginalDocumentSigner:
             return {
                 "signature": signature,
                 "algorithm": algorithm,
-                "timestamp": signature_record["timestamp"]
+                "timestamp": signature_record["timestamp"],
             }
 
         except Exception as e:
@@ -184,7 +185,9 @@ class ModernDocumentSignerService:
     @requires_auth(roles=["document_signer"], permissions=["sign_documents"])
     @track_metrics(metric_name="document_sign_requests", timing=True, counter=True)
     @trace_operation(operation_name="sign_document", log_inputs=False, log_outputs=False)
-    async def sign_document(self, document_data: bytes, algorithm: str | None = None) -> dict[str, Any]:
+    async def sign_document(
+        self, document_data: bytes, algorithm: str | None = None
+    ) -> dict[str, Any]:
         """
         Sign document using MMF infrastructure.
 
@@ -202,9 +205,7 @@ class ModernDocumentSignerService:
 
         # Use MMF security service for signing
         signature = await self.context.security.sign_data(
-            data=document_data,
-            key_id="document_signer",
-            algorithm=algorithm
+            data=document_data, key_id="document_signer", algorithm=algorithm
         )
 
         # Use MMF database service for audit record
@@ -213,13 +214,10 @@ class ModernDocumentSignerService:
             "signature": signature,
             "algorithm": algorithm,
             "timestamp": datetime.utcnow(),
-            "signer_id": "document_signer_service"
+            "signer_id": "document_signer_service",
         }
 
-        await self.context.database.insert(
-            "signature_records",
-            signature_record
-        )
+        await self.context.database.insert("signature_records", signature_record)
 
         # Publish event via MMF message bus
         if self.context.message_bus:
@@ -228,15 +226,15 @@ class ModernDocumentSignerService:
                 {
                     "document_hash": signature_record["document_hash"],
                     "algorithm": algorithm,
-                    "timestamp": signature_record["timestamp"].isoformat()
-                }
+                    "timestamp": signature_record["timestamp"].isoformat(),
+                },
             )
 
         return {
             "signature": signature,
             "algorithm": algorithm,
             "timestamp": signature_record["timestamp"].isoformat(),
-            "signer_id": signature_record["signer_id"]
+            "signer_id": signature_record["signer_id"],
         }
 
     @track_metrics(metric_name="document_verify_requests", timing=True)
@@ -249,7 +247,7 @@ class ModernDocumentSignerService:
             data=document_data,
             signature=signature_info["signature"],
             key_id="document_signer",
-            algorithm=signature_info["algorithm"]
+            algorithm=signature_info["algorithm"],
         )
 
         # Optional: Check against stored signature records
@@ -258,7 +256,7 @@ class ModernDocumentSignerService:
             stored_record = await self.context.database.query_one(
                 "SELECT * FROM signature_records WHERE document_hash = $1 AND algorithm = $2",
                 document_hash,
-                signature_info["algorithm"]
+                signature_info["algorithm"],
             )
 
             if stored_record:
@@ -270,6 +268,7 @@ class ModernDocumentSignerService:
 
 # Migration Comparison and Benefits
 # =================================
+
 
 class MigrationComparison:
     """Demonstrates the benefits of migrating to MMF plugin architecture."""
@@ -317,6 +316,7 @@ class MigrationComparison:
 # Migration Strategy Example
 # =========================
 
+
 async def demonstrate_migration_process():
     """Demonstrate the step-by-step migration process."""
 
@@ -342,7 +342,7 @@ async def demonstrate_migration_process():
         pkd_url="https://pkd.example.com",
         document_signer_url="https://signer.example.com",
         signing_algorithms=["RSA-SHA256", "ECDSA-SHA256"],
-        certificate_validation_enabled=True
+        certificate_validation_enabled=True,
     )
 
     # Step 3: Initialize Modern Service
@@ -356,10 +356,7 @@ async def demonstrate_migration_process():
     test_document = b"This is a test document for migration demo"
 
     # Sign document using modern service
-    signature_result = await modern_signer.sign_document(
-        test_document,
-        "RSA-SHA256"
-    )
+    signature_result = await modern_signer.sign_document(test_document, "RSA-SHA256")
     print(f"Document signed: {signature_result['algorithm']}")
 
     # Verify signature
@@ -374,30 +371,45 @@ async def demonstrate_migration_process():
 
 # Mock services for demonstration
 class MockDatabaseService:
-    async def execute_ddl(self, sql: str): pass
-    async def insert(self, table: str, data: dict): pass
-    async def query_one(self, sql: str, *params): return None
+    async def execute_ddl(self, sql: str):
+        pass
+
+    async def insert(self, table: str, data: dict):
+        pass
+
+    async def query_one(self, sql: str, *params):
+        return None
+
 
 class MockSecurityService:
-    async def get_key_info(self, key_id: str): return {"id": key_id}
+    async def get_key_info(self, key_id: str):
+        return {"id": key_id}
+
     async def sign_data(self, data: bytes, key_id: str, algorithm: str):
         return b"mock_signature"
+
     async def verify_signature(self, data: bytes, signature: bytes, key_id: str, algorithm: str):
         return True
 
+
 class MockMessageBus:
-    async def publish(self, topic: str, data: dict): pass
+    async def publish(self, topic: str, data: dict):
+        pass
+
 
 class MockObservabilityService:
-    def get_metrics_collector(self): return None
-    def get_tracer(self): return None
+    def get_metrics_collector(self):
+        return None
+
+    def get_tracer(self):
+        return None
 
 
 if __name__ == "__main__":
     # Show comparison
     MigrationComparison.compare_implementations()
 
-    print("\n" + "="*60 + "\n")
+    print("\n" + "=" * 60 + "\n")
 
     # Demonstrate migration
     import hashlib

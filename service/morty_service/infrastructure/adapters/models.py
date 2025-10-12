@@ -29,9 +29,7 @@ class TaskModel(Base):
         PostgresUUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True
     )
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(
-        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
     version = Column(Integer, nullable=False, default=1)
 
@@ -39,9 +37,7 @@ class TaskModel(Base):
     assignee = relationship("UserModel", back_populates="assigned_tasks", lazy="select")
 
     def __repr__(self):
-        return (
-            f"<TaskModel(id={self.id}, title='{self.title}', status='{self.status}')>"
-        )
+        return f"<TaskModel(id={self.id}, title='{self.title}', status='{self.status}')>"
 
 
 class UserModel(Base):
@@ -56,9 +52,7 @@ class UserModel(Base):
     phone = Column(String(50), nullable=True)
     active = Column(Boolean, nullable=False, default=True, index=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(
-        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     version = Column(Integer, nullable=False, default=1)
 
     # Relationships

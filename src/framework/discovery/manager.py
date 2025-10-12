@@ -211,15 +211,11 @@ class ServiceDiscoveryManager:
 
                 logger.info("Registered service instance: %s", instance.instance_id)
                 return True
-            logger.error(
-                "Failed to register service instance: %s", instance.instance_id
-            )
+            logger.error("Failed to register service instance: %s", instance.instance_id)
             return False
 
         except Exception as e:
-            logger.error(
-                "Error registering service instance %s: %s", instance.instance_id, e
-            )
+            logger.error("Error registering service instance %s: %s", instance.instance_id, e)
             return False
 
     async def deregister_service(self, instance_id: str) -> bool:
@@ -274,9 +270,7 @@ class ServiceDiscoveryManager:
 
                 # Record metrics
                 duration = time.time() - start_time
-                self._discovery_metrics.record_discovery_request(
-                    True, duration, query.service_name
-                )
+                self._discovery_metrics.record_discovery_request(True, duration, query.service_name)
 
                 return instance
             self._stats["failed_discoveries"] += 1
@@ -285,15 +279,11 @@ class ServiceDiscoveryManager:
         except Exception as e:
             self._stats["failed_discoveries"] += 1
             duration = time.time() - start_time
-            self._discovery_metrics.record_discovery_request(
-                False, duration, query.service_name
-            )
+            self._discovery_metrics.record_discovery_request(False, duration, query.service_name)
             logger.error("Service discovery failed for %s: %s", query.service_name, e)
             return None
 
-    async def get_service_instances(
-        self, service_name: str
-    ) -> builtins.list[ServiceInstance]:
+    async def get_service_instances(self, service_name: str) -> builtins.list[ServiceInstance]:
         """Get all instances for a service."""
         if self.state != DiscoveryManagerState.RUNNING:
             raise RuntimeError(f"Manager not running: {self.state}")
@@ -349,9 +339,7 @@ class ServiceDiscoveryManager:
             "discovery_client": self._discovery_client.get_stats()
             if self._discovery_client
             else {},
-            "load_balancer": self._load_balancer.get_stats()
-            if self._load_balancer
-            else {},
+            "load_balancer": self._load_balancer.get_stats() if self._load_balancer else {},
             "health_monitor": self._health_monitor.get_all_health_status()
             if self._health_monitor
             else {},
@@ -367,9 +355,7 @@ class ServiceDiscoveryManager:
     async def _initialize_registries(self):
         """Initialize service registries."""
         # Initialize primary registry
-        self._primary_registry = await self._create_registry(
-            self.config.primary_registry_type
-        )
+        self._primary_registry = await self._create_registry(self.config.primary_registry_type)
 
         # Initialize backup registries
         for registry_type in self.config.backup_registry_types:
@@ -377,9 +363,7 @@ class ServiceDiscoveryManager:
                 registry = await self._create_registry(registry_type)
                 self._backup_registries.append(registry)
             except Exception as e:
-                logger.warning(
-                    "Failed to initialize backup registry %s: %s", registry_type, e
-                )
+                logger.warning("Failed to initialize backup registry %s: %s", registry_type, e)
 
     async def _create_registry(self, registry_type: str) -> ServiceRegistry:
         """Create service registry instance."""
@@ -402,9 +386,7 @@ class ServiceDiscoveryManager:
     async def _initialize_discovery_client(self):
         """Initialize discovery client."""
         discovery_config = self.config.discovery_config or DiscoveryConfig()
-        self._discovery_client = ClientSideDiscovery(
-            self._primary_registry, discovery_config
-        )
+        self._discovery_client = ClientSideDiscovery(self._primary_registry, discovery_config)
 
     async def _initialize_health_monitoring(self):
         """Initialize health monitoring."""
@@ -416,9 +398,7 @@ class ServiceDiscoveryManager:
         """Initialize circuit breakers."""
         if self.config.circuit_breaker_enabled:
             if self.config.circuit_breaker_config:
-                self._circuit_breaker_manager.set_default_config(
-                    self.config.circuit_breaker_config
-                )
+                self._circuit_breaker_manager.set_default_config(self.config.circuit_breaker_config)
 
     async def _initialize_service_mesh(self):
         """Initialize service mesh integration."""
@@ -441,9 +421,7 @@ class ServiceDiscoveryManager:
         """Initialize monitoring and metrics."""
         if self.config.metrics_enabled:
             self._metrics_aggregator.add_collector(self._metrics_collector)
-            self._metrics_aggregator.set_export_interval(
-                self.config.metrics_export_interval
-            )
+            self._metrics_aggregator.set_export_interval(self.config.metrics_export_interval)
             await self._metrics_aggregator.start()
 
     async def _setup_health_monitoring(self, instance: ServiceInstance):
@@ -536,9 +514,7 @@ class ServiceDiscoveryManager:
                 total_services = len(all_services)
                 healthy_services = len([s for s in all_services if s.is_healthy()])
 
-                self._discovery_metrics.update_service_counts(
-                    total_services, healthy_services
-                )
+                self._discovery_metrics.update_service_counts(total_services, healthy_services)
             except Exception as e:
                 logger.warning("Failed to collect service metrics: %s", e)
 
@@ -585,8 +561,6 @@ def create_discovery_manager(
 ) -> ServiceDiscoveryManager:
     """Create service discovery manager with default configuration."""
 
-    config = DiscoveryManagerConfig(
-        service_name=service_name, environment=environment, **kwargs
-    )
+    config = DiscoveryManagerConfig(service_name=service_name, environment=environment, **kwargs)
 
     return ServiceDiscoveryManager(config)

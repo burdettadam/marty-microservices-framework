@@ -389,9 +389,7 @@ class InMemoryBroker(MessageBrokerInterface):
                                         self.stats.messages_retried += 1
 
                             except Exception as e:
-                                logger.error(
-                                    f"Handler error for message {message.id}: {e}"
-                                )
+                                logger.error(f"Handler error for message {message.id}: {e}")
                                 self.stats.messages_failed += 1
 
                 await asyncio.sleep(0.1)  # Prevent busy waiting
@@ -435,9 +433,7 @@ class RabbitMQBroker(MessageBrokerInterface):
                 self.config.exchange_name, ExchangeType.TOPIC, durable=True
             )
 
-            logger.info(
-                f"Connected to RabbitMQ at {self.config.host}:{self.config.port}"
-            )
+            logger.info(f"Connected to RabbitMQ at {self.config.host}:{self.config.port}")
 
         except Exception as e:
             logger.error(f"Failed to connect to RabbitMQ: {e}")
@@ -604,9 +600,7 @@ class MessageQueue:
         self, topic: str, payload: Any, routing_key: str | None = None, **kwargs
     ) -> bool:
         """Publish message to topic."""
-        message = Message(
-            topic=topic, routing_key=routing_key or topic, payload=payload, **kwargs
-        )
+        message = Message(topic=topic, routing_key=routing_key or topic, payload=payload, **kwargs)
         return await self.broker.publish(message)
 
     async def subscribe(self, topic: str, handler: MessageHandler) -> None:
@@ -617,9 +611,7 @@ class MessageQueue:
         self.handlers[topic].append(handler)
         await self.broker.subscribe([topic], handler)
 
-    async def unsubscribe(
-        self, topic: str, handler: MessageHandler | None = None
-    ) -> None:
+    async def unsubscribe(self, topic: str, handler: MessageHandler | None = None) -> None:
         """Unsubscribe from topic."""
         if topic in self.handlers:
             if handler:

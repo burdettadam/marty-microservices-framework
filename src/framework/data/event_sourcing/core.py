@@ -56,9 +56,7 @@ class InMemoryEventStore(EventStore):
         """Initialize in-memory event store."""
         self.event_streams: builtins.dict[str, EventStream] = {}
         self.snapshots: builtins.dict[str, Snapshot] = {}
-        self.event_index: builtins.dict[str, builtins.list[DomainEvent]] = defaultdict(
-            list
-        )
+        self.event_index: builtins.dict[str, builtins.list[DomainEvent]] = defaultdict(list)
         self._lock = threading.RLock()
 
     async def append_events(
@@ -111,9 +109,7 @@ class InMemoryEventStore(EventStore):
             events = self.event_index.get(event_type, [])
 
             if from_timestamp:
-                events = [
-                    event for event in events if event.timestamp >= from_timestamp
-                ]
+                events = [event for event in events if event.timestamp >= from_timestamp]
 
             return events
 

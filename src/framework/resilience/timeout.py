@@ -24,9 +24,7 @@ logger = logging.getLogger(__name__)
 class ResilienceTimeoutError(Exception):
     """Custom timeout exception to avoid conflicts with built-in TimeoutError."""
 
-    def __init__(
-        self, message: str, timeout_seconds: float, operation: str = "operation"
-    ):
+    def __init__(self, message: str, timeout_seconds: float, operation: str = "operation"):
         super().__init__(message)
         self.timeout_seconds = timeout_seconds
         self.operation = operation
@@ -160,9 +158,7 @@ class TimeoutManager:
 
         except asyncio.TimeoutError:
             if self.config.log_timeouts:
-                logger.warning(
-                    f"Operation '{operation}' timed out after {timeout} seconds"
-                )
+                logger.warning(f"Operation '{operation}' timed out after {timeout} seconds")
 
             if self.config.timeout_handler:
                 self.config.timeout_handler(operation, timeout)
@@ -208,9 +204,7 @@ class TimeoutManager:
                     raise exception[0]
                 return result[0]
             if self.config.log_timeouts:
-                logger.warning(
-                    f"Operation '{operation}' timed out after {timeout} seconds"
-                )
+                logger.warning(f"Operation '{operation}' timed out after {timeout} seconds")
 
             if self.config.timeout_handler:
                 self.config.timeout_handler(operation, timeout)
@@ -242,9 +236,7 @@ class TimeoutManager:
         """Get timeout manager statistics."""
         with self._lock:
             timeout_rate = self._timed_out_operations / max(1, self._total_operations)
-            avg_execution_time = self._total_timeout_time / max(
-                1, self._total_operations
-            )
+            avg_execution_time = self._total_timeout_time / max(1, self._total_operations)
 
             return {
                 "total_operations": self._total_operations,
@@ -289,9 +281,7 @@ async def with_timeout(
         ResilienceTimeoutError: If operation times out
     """
     manager = get_timeout_manager()
-    return await manager.execute_with_timeout(
-        func, timeout_seconds, operation, *args, **kwargs
-    )
+    return await manager.execute_with_timeout(func, timeout_seconds, operation, *args, **kwargs)
 
 
 def with_sync_timeout(
@@ -318,9 +308,7 @@ def with_sync_timeout(
         ResilienceTimeoutError: If operation times out
     """
     manager = get_timeout_manager()
-    return manager.execute_sync_with_timeout(
-        func, timeout_seconds, operation, *args, **kwargs
-    )
+    return manager.execute_sync_with_timeout(func, timeout_seconds, operation, *args, **kwargs)
 
 
 @asynccontextmanager
@@ -348,9 +336,7 @@ async def timeout_context(
         await asyncio.sleep(timeout)
         if not context.cancelled:
             if manager.config.log_timeouts:
-                logger.warning(
-                    f"Context '{operation}' timed out after {timeout} seconds"
-                )
+                logger.warning(f"Context '{operation}' timed out after {timeout} seconds")
 
             if manager.config.timeout_handler:
                 manager.config.timeout_handler(operation, timeout)
@@ -399,9 +385,7 @@ def sync_timeout_context(
 
         if context.is_expired():
             if manager.config.log_timeouts:
-                logger.warning(
-                    f"Context '{operation}' exceeded timeout of {timeout} seconds"
-                )
+                logger.warning(f"Context '{operation}' exceeded timeout of {timeout} seconds")
 
             if manager.config.timeout_handler:
                 manager.config.timeout_handler(operation, timeout)

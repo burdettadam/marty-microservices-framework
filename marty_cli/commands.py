@@ -94,9 +94,7 @@ def helm_to_kustomize(
             from scripts.helm_to_kustomize_converter import HelmToKustomizeConverter
 
             converter = HelmToKustomizeConverter(
-                str(helm_chart_path),
-                str(output_path),
-                service_name
+                str(helm_chart_path), str(output_path), service_name
             )
 
             success = converter.convert(list(map(str, values_file)), validate)
@@ -280,10 +278,10 @@ def _show_generated_structure(output_path: Path) -> None:
     console.print("📁 Generated structure:", style="bold")
 
     for root, _dirs, files in os.walk(output_path):
-        level = root.replace(str(output_path), '').count(os.sep)
-        indent = ' ' * 2 * level
+        level = root.replace(str(output_path), "").count(os.sep)
+        indent = " " * 2 * level
         console.print(f"{indent}📂 {os.path.basename(root)}/", style="blue")
-        sub_indent = ' ' * 2 * (level + 1)
+        sub_indent = " " * 2 * (level + 1)
         for file in files:
             console.print(f"{sub_indent}📄 {file}", style="cyan")
 
@@ -329,18 +327,17 @@ def _generate_basic_overlay(overlay_path: Path, service_name: str, environment: 
         "apiVersion": "kustomize.config.k8s.io/v1beta1",
         "kind": "Kustomization",
         "namespace": f"{service_name}-{environment}",
-        "resources": [
-            "namespace.yaml",
-            "../../base"
+        "resources": ["namespace.yaml", "../../base"],
+        "configMapGenerator": [
+            {
+                "name": "microservice-template-config",
+                "behavior": "merge",
+                "literals": [
+                    f"environment={environment}",
+                    "otlp_endpoint=http://otel-collector.monitoring:4317",
+                ],
+            }
         ],
-        "configMapGenerator": [{
-            "name": "microservice-template-config",
-            "behavior": "merge",
-            "literals": [
-                f"environment={environment}",
-                "otlp_endpoint=http://otel-collector.monitoring:4317"
-            ]
-        }]
     }
 
     with open(overlay_path / "kustomization.yaml", "w", encoding="utf-8") as f:
@@ -352,11 +349,8 @@ def _generate_basic_overlay(overlay_path: Path, service_name: str, environment: 
         "kind": "Namespace",
         "metadata": {
             "name": f"{service_name}-{environment}",
-            "labels": {
-                "name": f"{service_name}-{environment}",
-                "environment": environment
-            }
-        }
+            "labels": {"name": f"{service_name}-{environment}", "environment": environment},
+        },
     }
 
     with open(overlay_path / "namespace.yaml", "w", encoding="utf-8") as f:
@@ -390,7 +384,9 @@ def _compare_manifests(helm_output: str, kustomize_output: str) -> list[str]:
         kustomize_docs = list(yaml.safe_load_all(kustomize_output))
 
         if len(helm_docs) != len(kustomize_docs):
-            differences.append(f"Document count differs: Helm={len(helm_docs)}, Kustomize={len(kustomize_docs)}")
+            differences.append(
+                f"Document count differs: Helm={len(helm_docs)}, Kustomize={len(kustomize_docs)}"
+            )
 
         # More detailed comparison would go here
 

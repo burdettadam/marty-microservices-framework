@@ -118,9 +118,7 @@ class SlidingWindowRateLimiter:
             burst_limited = False
             if rule.burst_requests and rule.burst_window_seconds:
                 burst_start = current_time - rule.burst_window_seconds
-                burst_count = await self.redis_client.zcount(
-                    key, burst_start, current_time
-                )
+                burst_count = await self.redis_client.zcount(key, burst_start, current_time)
                 if burst_count > rule.burst_requests:
                     burst_limited = True
 
@@ -132,9 +130,7 @@ class SlidingWindowRateLimiter:
 
             rate_limit_info = {
                 "limit": rule.requests,
-                "remaining": max(
-                    0, rule.requests - current_count + (1 if is_limited else 0)
-                ),
+                "remaining": max(0, rule.requests - current_count + (1 if is_limited else 0)),
                 "reset_time": current_time + rule.window_seconds,
                 "retry_after": rule.window_seconds if is_limited else 0,
                 "burst_limited": burst_limited,
@@ -192,9 +188,7 @@ class SlidingWindowRateLimiter:
 
         # User-based rate limiting
         if user_id and user_id not in self.config.whitelist_users:
-            user_rule = self.config.per_user_rules.get(
-                user_id, self.config.default_rule
-            )
+            user_rule = self.config.per_user_rules.get(user_id, self.config.default_rule)
             keys_and_rules.append((f"user:{user_id}", user_rule))
 
         # Endpoint-based rate limiting
@@ -259,9 +253,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         try:
             # Get rate limit keys and rules
-            keys_and_rules = await self.rate_limiter.get_rate_limit_key(
-                request, user_id
-            )
+            keys_and_rules = await self.rate_limiter.get_rate_limit_key(request, user_id)
 
             # Check all applicable rate limits
             rate_limit_info = None
@@ -289,9 +281,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
             # Add rate limit headers
             if rate_limit_info:
-                response.headers["X-RateLimit-Limit"] = str(
-                    rate_limit_info.get("limit", "unknown")
-                )
+                response.headers["X-RateLimit-Limit"] = str(rate_limit_info.get("limit", "unknown"))
                 response.headers["X-RateLimit-Remaining"] = str(
                     rate_limit_info.get("remaining", "unknown")
                 )
@@ -306,9 +296,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Continue processing on rate limiting errors
             return await call_next(request)
 
-    def _rate_limit_response(
-        self, rate_limit_info: builtins.dict, key: str
-    ) -> JSONResponse:
+    def _rate_limit_response(self, rate_limit_info: builtins.dict, key: str) -> JSONResponse:
         """Return rate limit exceeded response"""
         retry_after = rate_limit_info.get("retry_after", 60)
 
@@ -324,13 +312,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         )
 
         # Add rate limit headers
-        response.headers["X-RateLimit-Limit"] = str(
-            rate_limit_info.get("limit", "unknown")
-        )
+        response.headers["X-RateLimit-Limit"] = str(rate_limit_info.get("limit", "unknown"))
         response.headers["X-RateLimit-Remaining"] = "0"
-        response.headers["X-RateLimit-Reset"] = str(
-            int(rate_limit_info.get("reset_time", 0))
-        )
+        response.headers["X-RateLimit-Reset"] = str(int(rate_limit_info.get("reset_time", 0)))
         response.headers["Retry-After"] = str(retry_after)
 
         return response
@@ -370,9 +354,7 @@ def create_rate_limit_config(
         "POST:/auth/register": RateLimitRule(
             requests=3, window_seconds=3600
         ),  # 3 registrations per hour
-        "POST:/api/upload": RateLimitRule(
-            requests=10, window_seconds=3600
-        ),  # 10 uploads per hour
+        "POST:/api/upload": RateLimitRule(requests=10, window_seconds=3600),  # 10 uploads per hour
         "GET:/api/search": RateLimitRule(
             requests=100, window_seconds=300
         ),  # 100 searches per 5 min
@@ -381,9 +363,7 @@ def create_rate_limit_config(
     config = RateLimitConfig(
         redis_url=redis_url,
         enabled=True,
-        default_rule=RateLimitRule(
-            requests=default_requests_per_hour, window_seconds=3600
-        ),
+        default_rule=RateLimitRule(requests=default_requests_per_hour, window_seconds=3600),
         per_endpoint_rules=endpoint_rules,
         enable_distributed=redis_url is not None,
     )

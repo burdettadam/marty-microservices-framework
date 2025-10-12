@@ -33,9 +33,7 @@ class TaskRepositoryPort(ABC):
         """Find all tasks with a specific status."""
 
     @abstractmethod
-    async def find_all(
-        self, limit: int | None = None, offset: int = 0
-    ) -> builtins.list[Task]:
+    async def find_all(self, limit: int | None = None, offset: int = 0) -> builtins.list[Task]:
         """Find all tasks with optional pagination."""
 
     @abstractmethod
@@ -67,9 +65,7 @@ class UserRepositoryPort(ABC):
         """Find all active users."""
 
     @abstractmethod
-    async def find_all(
-        self, limit: int | None = None, offset: int = 0
-    ) -> builtins.list[User]:
+    async def find_all(self, limit: int | None = None, offset: int = 0) -> builtins.list[User]:
         """Find all users with optional pagination."""
 
     @abstractmethod
@@ -105,9 +101,7 @@ class NotificationPort(ABC):
         """Send notification when a task is completed."""
 
     @abstractmethod
-    async def send_user_workload_alert(
-        self, user_email: str, pending_task_count: int
-    ) -> None:
+    async def send_user_workload_alert(self, user_email: str, pending_task_count: int) -> None:
         """Send alert when user workload is high."""
 
 

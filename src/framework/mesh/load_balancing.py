@@ -32,7 +32,7 @@ class LoadBalancer:
         self,
         service_name: str,
         endpoints: builtins.list[ServiceEndpoint],
-        request_context: builtins.dict[str, Any] | None = None
+        request_context: builtins.dict[str, Any] | None = None,
     ) -> ServiceEndpoint | None:
         """Select an endpoint using the configured load balancing policy."""
         if not endpoints:
@@ -92,7 +92,7 @@ class LoadBalancer:
         self, endpoints: builtins.list[ServiceEndpoint]
     ) -> ServiceEndpoint:
         """Least connections selection."""
-        min_connections = float('inf')
+        min_connections = float("inf")
         selected_endpoint = endpoints[0]
 
         for endpoint in endpoints:
@@ -112,7 +112,7 @@ class LoadBalancer:
     def _consistent_hash_select(
         self,
         endpoints: builtins.list[ServiceEndpoint],
-        request_context: builtins.dict[str, Any] | None
+        request_context: builtins.dict[str, Any] | None,
     ) -> ServiceEndpoint:
         """Consistent hash selection."""
         if not request_context or not self.config.hash_policy:
@@ -135,7 +135,7 @@ class LoadBalancer:
     def _locality_aware_select(
         self,
         endpoints: builtins.list[ServiceEndpoint],
-        request_context: builtins.dict[str, Any] | None
+        request_context: builtins.dict[str, Any] | None,
     ) -> ServiceEndpoint:
         """Locality-aware selection."""
         if not request_context:
@@ -147,16 +147,13 @@ class LoadBalancer:
 
         # First try same zone
         same_zone_endpoints = [
-            ep for ep in endpoints
-            if ep.region == client_region and ep.zone == client_zone
+            ep for ep in endpoints if ep.region == client_region and ep.zone == client_zone
         ]
         if same_zone_endpoints:
             return self._round_robin_select("same_zone", same_zone_endpoints)
 
         # Then try same region
-        same_region_endpoints = [
-            ep for ep in endpoints if ep.region == client_region
-        ]
+        same_region_endpoints = [ep for ep in endpoints if ep.region == client_region]
         if same_region_endpoints:
             return self._round_robin_select("same_region", same_region_endpoints)
 
@@ -187,8 +184,7 @@ class LoadBalancer:
         """Get statistics for all endpoints."""
         with self.lock:
             return {
-                endpoint_key: stats.copy()
-                for endpoint_key, stats in self.endpoint_stats.items()
+                endpoint_key: stats.copy() for endpoint_key, stats in self.endpoint_stats.items()
             }
 
     def reset_stats(self):
@@ -207,11 +203,7 @@ class TrafficSplitter:
         """Initialize traffic splitter."""
         self.split_rules: builtins.dict[str, builtins.list[builtins.dict[str, Any]]] = {}
 
-    def add_split_rule(
-        self,
-        service_name: str,
-        version_weights: builtins.dict[str, int]
-    ):
+    def add_split_rule(self, service_name: str, version_weights: builtins.dict[str, int]):
         """Add traffic split rule for a service."""
         total_weight = sum(version_weights.values())
         if total_weight == 0:
@@ -222,18 +214,18 @@ class TrafficSplitter:
 
         for version, weight in version_weights.items():
             cumulative_weight += weight
-            rules.append({
-                "version": version,
-                "weight": weight,
-                "cumulative_percentage": (cumulative_weight * 100) // total_weight
-            })
+            rules.append(
+                {
+                    "version": version,
+                    "weight": weight,
+                    "cumulative_percentage": (cumulative_weight * 100) // total_weight,
+                }
+            )
 
         self.split_rules[service_name] = rules
 
     def select_version_endpoints(
-        self,
-        service_name: str,
-        all_endpoints: builtins.list[ServiceEndpoint]
+        self, service_name: str, all_endpoints: builtins.list[ServiceEndpoint]
     ) -> builtins.list[ServiceEndpoint]:
         """Select endpoints based on traffic split rules."""
         if service_name not in self.split_rules:
@@ -252,10 +244,7 @@ class TrafficSplitter:
             return all_endpoints
 
         # Filter endpoints by version
-        version_endpoints = [
-            ep for ep in all_endpoints
-            if ep.version == target_version
-        ]
+        version_endpoints = [ep for ep in all_endpoints if ep.version == target_version]
 
         return version_endpoints if version_endpoints else all_endpoints
 

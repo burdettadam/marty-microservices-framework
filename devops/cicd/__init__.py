@@ -289,9 +289,7 @@ class PipelineDefinition:
     triggers: builtins.list[str] = field(
         default_factory=list
     )  # push, pull_request, schedule, manual
-    branches: builtins.list[str] = field(
-        default_factory=list
-    )  # main, develop, feature/*
+    branches: builtins.list[str] = field(default_factory=list)  # main, develop, feature/*
 
     # Stages
     stages: builtins.list[PipelineStageDefinition] = field(default_factory=list)
@@ -359,9 +357,7 @@ class PipelineExecution:
             **asdict(self),
             "status": self.status.value,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "artifacts": [artifact.to_dict() for artifact in self.artifacts],
         }
 
@@ -429,13 +425,9 @@ class TestRunner:
             start_time = datetime.now()
 
             if test_config.parallel_enabled:
-                test_result = await self._execute_parallel_tests(
-                    test_config, test_command
-                )
+                test_result = await self._execute_parallel_tests(test_config, test_command)
             else:
-                test_result = await self._execute_sequential_tests(
-                    test_config, test_command
-                )
+                test_result = await self._execute_sequential_tests(test_config, test_command)
 
             end_time = datetime.now()
             result["duration"] = (end_time - start_time).total_seconds()
@@ -460,9 +452,9 @@ class TestRunner:
                 and result["coverage_percentage"] < test_config.coverage_threshold
             ):
                 result["status"] = "failed"
-                result[
-                    "error_message"
-                ] = f"Coverage {result['coverage_percentage']:.1f}% below threshold {test_config.coverage_threshold * 100:.1f}%"
+                result["error_message"] = (
+                    f"Coverage {result['coverage_percentage']:.1f}% below threshold {test_config.coverage_threshold * 100:.1f}%"
+                )
 
         except Exception as e:
             result["status"] = "failed"
@@ -496,9 +488,7 @@ class TestRunner:
         coverage_paths_str = ",".join(coverage_paths)
 
         # Set output files
-        junit_output = (
-            test_config.junit_output or f"test-results-{test_config.name}.xml"
-        )
+        junit_output = test_config.junit_output or f"test-results-{test_config.name}.xml"
         coverage_output = test_config.coverage_output or framework_config.get(
             "coverage_file", "coverage.xml"
         )
@@ -572,9 +562,7 @@ class TestRunner:
                     break
 
                 # Modify command for this specific path
-                path_command = base_command.replace(
-                    " ".join(test_config.test_paths), path
-                )
+                path_command = base_command.replace(" ".join(test_config.test_paths), path)
                 path_command += f" --junitxml=test-results-{i}.xml"
                 parallel_commands.append(path_command)
 
@@ -718,9 +706,7 @@ class SecurityScanner:
         }
 
         try:
-            print(
-                f"🔒 Running {scan_config.scan_type.value} security scan: {scan_config.name}"
-            )
+            print(f"🔒 Running {scan_config.scan_type.value} security scan: {scan_config.name}")
 
             # Build scan command
             scan_command = self._build_scan_command(scan_config)
@@ -781,9 +767,7 @@ class SecurityScanner:
         command_template = scanner_config.get("command_template", "")
 
         if not command_template:
-            raise ValueError(
-                f"No command template for scanner: {scan_config.scanner_tool}"
-            )
+            raise ValueError(f"No command template for scanner: {scan_config.scanner_tool}")
 
         # Build scan paths
         scan_paths = scan_config.scan_paths or ["."]
@@ -916,13 +900,13 @@ class SecurityScanner:
         # Add detailed findings
         result["findings"] = [
             {
-                "id": f"VULN-{i+1:03d}",
+                "id": f"VULN-{i + 1:03d}",
                 "severity": "high" if i < 2 else "medium",
-                "title": f"Sample vulnerability {i+1}",
-                "description": f"Description for vulnerability {i+1}",
-                "file": f"src/file{i+1}.py",
+                "title": f"Sample vulnerability {i + 1}",
+                "description": f"Description for vulnerability {i + 1}",
+                "file": f"src/file{i + 1}.py",
                 "line": (i + 1) * 10,
-                "cwe": f"CWE-{200+i}",
+                "cwe": f"CWE-{200 + i}",
                 "confidence": "high",
             }
             for i in range(min(5, result["total_vulnerabilities"]))
@@ -954,9 +938,7 @@ class SecurityScanner:
     ) -> str:
         """Generate security scan report"""
 
-        report_filename = (
-            scan_config.report_output or f"security-report-{scan_config.name}.json"
-        )
+        report_filename = scan_config.report_output or f"security-report-{scan_config.name}.json"
 
         report_data = {
             "scan_info": {
@@ -1071,18 +1053,14 @@ class QualityGateEngine:
 
             # Custom checks
             for custom_check in quality_gate.custom_checks:
-                check_result = await self._execute_custom_check(
-                    custom_check, execution_context
-                )
+                check_result = await self._execute_custom_check(custom_check, execution_context)
                 result["checks"][custom_check["name"]] = check_result
                 total_checks += 1
                 if check_result["passed"]:
                     passed_checks += 1
 
             # Calculate overall score
-            result["overall_score"] = (
-                passed_checks / total_checks if total_checks > 0 else 0.0
-            )
+            result["overall_score"] = passed_checks / total_checks if total_checks > 0 else 0.0
 
             # Determine if gate passes
             result["passed"] = passed_checks == total_checks
@@ -1100,9 +1078,7 @@ class QualityGateEngine:
             # Check if manual approval is required
             if quality_gate.approval_required and not result["passed"]:
                 result["status"] = "manual_approval_required"
-                print(
-                    f"⏸️ Manual approval required for quality gate: {quality_gate.name}"
-                )
+                print(f"⏸️ Manual approval required for quality gate: {quality_gate.name}")
 
         except Exception as e:
             result["status"] = "failed"
@@ -1111,9 +1087,7 @@ class QualityGateEngine:
 
         finally:
             result["completed_at"] = datetime.now().isoformat()
-            self.quality_results[execution_id] = self.quality_results.get(
-                execution_id, {}
-            )
+            self.quality_results[execution_id] = self.quality_results.get(execution_id, {})
             self.quality_results[execution_id][quality_gate.name] = result
 
         return result
@@ -1216,9 +1190,7 @@ class QualityGateEngine:
             "message": f"Security score: {security_score:.1%} (critical: {critical_vulnerabilities}, high: {high_vulnerabilities})",
         }
 
-    def _check_build_time(
-        self, build_duration: float, threshold: int
-    ) -> builtins.dict[str, Any]:
+    def _check_build_time(self, build_duration: float, threshold: int) -> builtins.dict[str, Any]:
         """Check build time threshold"""
 
         return {
@@ -1336,9 +1308,7 @@ async def main():
         test_success_rate_threshold=1.0,
         security_score_threshold=0.9,
         build_time_threshold=600,
-        custom_checks=[
-            {"name": "performance_check", "type": "performance", "threshold": 200}
-        ],
+        custom_checks=[{"name": "performance_check", "type": "performance", "threshold": 200}],
         blocking=True,
     )
 
@@ -1354,9 +1324,7 @@ async def main():
     )
 
     # Execute integration tests
-    integration_test_result = await test_runner.execute_tests(
-        execution_id, integration_test_config
-    )
+    integration_test_result = await test_runner.execute_tests(execution_id, integration_test_config)
     print(
         f"Integration tests: {integration_test_result['status']} - {integration_test_result['passed_tests']}/{integration_test_result['total_tests']} passed"
     )
@@ -1364,9 +1332,7 @@ async def main():
     print("\n🔒 Running Security Scans")
 
     # Execute SAST scan
-    sast_result = await security_scanner.execute_security_scan(
-        execution_id, sast_scan_config
-    )
+    sast_result = await security_scanner.execute_security_scan(execution_id, sast_scan_config)
     print(
         f"SAST scan: {sast_result['status']} - {sast_result['total_vulnerabilities']} vulnerabilities found"
     )

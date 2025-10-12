@@ -130,9 +130,7 @@ class HealthChecker(ABC):
     async def check_health(self, instance: ServiceInstance) -> HealthCheckResult:
         """Perform health check on service instance."""
 
-    async def check_with_circuit_breaker(
-        self, instance: ServiceInstance
-    ) -> HealthCheckResult:
+    async def check_with_circuit_breaker(self, instance: ServiceInstance) -> HealthCheckResult:
         """Check health with circuit breaker protection."""
 
         # Check circuit breaker state
@@ -180,8 +178,7 @@ class HealthChecker(ABC):
 
             if (
                 self.config.circuit_breaker_enabled
-                and self._circuit_breaker_failures
-                >= self.config.circuit_breaker_failure_threshold
+                and self._circuit_breaker_failures >= self.config.circuit_breaker_failure_threshold
             ):
                 self._circuit_breaker_open = True
                 logger.warning("Circuit breaker opened for health checker")
@@ -401,9 +398,7 @@ class UDPHealthChecker(HealthChecker):
 
                     # Check response if expected
                     if self.config.expected_response:
-                        response, addr = sock.recvfrom(
-                            len(self.config.expected_response)
-                        )
+                        response, addr = sock.recvfrom(len(self.config.expected_response))
                         if response != self.config.expected_response:
                             response_time = time.time() - start_time
                             return HealthCheckResult(
@@ -483,9 +478,7 @@ class CustomHealthChecker(HealthChecker):
 
             # Handle different result types
             if isinstance(result, bool):
-                status = (
-                    HealthCheckStatus.HEALTHY if result else HealthCheckStatus.UNHEALTHY
-                )
+                status = HealthCheckStatus.HEALTHY if result else HealthCheckStatus.UNHEALTHY
                 message = "Custom check successful" if result else "Custom check failed"
             elif isinstance(result, HealthCheckResult):
                 return result
@@ -525,9 +518,7 @@ class CustomHealthChecker(HealthChecker):
 class CompositeHealthChecker(HealthChecker):
     """Composite health checker that runs multiple checks."""
 
-    def __init__(
-        self, config: HealthCheckConfig, checkers: builtins.list[HealthChecker]
-    ):
+    def __init__(self, config: HealthCheckConfig, checkers: builtins.list[HealthChecker]):
         super().__init__(config)
         self.checkers = checkers
         self.require_all_healthy = True  # Configurable
@@ -538,10 +529,7 @@ class CompositeHealthChecker(HealthChecker):
 
         # Run all health checks concurrently
         results = await asyncio.gather(
-            *[
-                checker.check_with_circuit_breaker(instance)
-                for checker in self.checkers
-            ],
+            *[checker.check_with_circuit_breaker(instance) for checker in self.checkers],
             return_exceptions=True,
         )
 
@@ -657,9 +645,7 @@ class HealthMonitor:
 
         for name, checker in self._checkers.items():
             if name not in self._monitoring_tasks:
-                task = asyncio.create_task(
-                    self._monitor_instance_health(name, checker, instance)
-                )
+                task = asyncio.create_task(self._monitor_instance_health(name, checker, instance))
                 self._monitoring_tasks[name] = task
 
     async def stop_monitoring(self):
@@ -672,9 +658,7 @@ class HealthMonitor:
 
         # Wait for tasks to complete
         if self._monitoring_tasks:
-            await asyncio.gather(
-                *self._monitoring_tasks.values(), return_exceptions=True
-            )
+            await asyncio.gather(*self._monitoring_tasks.values(), return_exceptions=True)
 
         self._monitoring_tasks.clear()
 
@@ -722,14 +706,12 @@ class HealthMonitor:
                     if (
                         (
                             current_status == HealthCheckStatus.HEALTHY
-                            and consecutive_successes
-                            >= checker.config.healthy_threshold
+                            and consecutive_successes >= checker.config.healthy_threshold
                         )
                         or (
                             current_status
                             in [HealthCheckStatus.UNHEALTHY, HealthCheckStatus.TIMEOUT]
-                            and consecutive_failures
-                            >= checker.config.unhealthy_threshold
+                            and consecutive_failures >= checker.config.unhealthy_threshold
                         )
                         or current_status == HealthCheckStatus.WARNING
                     ):
@@ -801,6 +783,4 @@ DEFAULT_HTTPS_CONFIG = HealthCheckConfig(
     verify_ssl=True,
 )
 
-DEFAULT_TCP_CONFIG = HealthCheckConfig(
-    check_type=HealthCheckType.TCP, interval=30.0, timeout=5.0
-)
+DEFAULT_TCP_CONFIG = HealthCheckConfig(check_type=HealthCheckType.TCP, interval=30.0, timeout=5.0)

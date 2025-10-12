@@ -68,15 +68,11 @@ class SecurityAuditTool:
 
             # 4. Configuration security review
             logger.info("Reviewing configuration security...")
-            self.results["audit_results"][
-                "configurations"
-            ] = self._audit_configurations()
+            self.results["audit_results"]["configurations"] = self._audit_configurations()
 
             # 5. Infrastructure security validation
             logger.info("Validating infrastructure security...")
-            self.results["audit_results"][
-                "infrastructure"
-            ] = self._audit_infrastructure()
+            self.results["audit_results"]["infrastructure"] = self._audit_infrastructure()
 
             # 6. Generate summary
             logger.info("Generating audit summary...")
@@ -188,9 +184,7 @@ class SecurityAuditTool:
         """Run Semgrep analysis"""
         try:
             # Check if semgrep is available
-            result = subprocess.run(
-                ["semgrep", "--version"], capture_output=True, check=False
-            )
+            result = subprocess.run(["semgrep", "--version"], capture_output=True, check=False)
             if result.returncode != 0:
                 return {"status": "skipped", "reason": "Semgrep not available"}
 
@@ -242,9 +236,7 @@ class SecurityAuditTool:
             ]
 
             for pattern in secret_patterns:
-                issues.extend(
-                    self._find_pattern_in_files(pattern, "Potential hardcoded secret")
-                )
+                issues.extend(self._find_pattern_in_files(pattern, "Potential hardcoded secret"))
 
             # Check for insecure configurations
             insecure_patterns = [
@@ -266,9 +258,7 @@ class SecurityAuditTool:
             return {
                 "status": "completed",
                 "issues_count": len(issues),
-                "critical_count": len(
-                    [i for i in issues if i.get("severity") == "critical"]
-                ),
+                "critical_count": len([i for i in issues if i.get("severity") == "critical"]),
                 "issues": issues,
             }
 
@@ -434,9 +424,7 @@ class SecurityAuditTool:
         """Run pip-audit vulnerability check"""
         try:
             # Check if pip-audit is available
-            result = subprocess.run(
-                ["pip-audit", "--version"], capture_output=True, check=False
-            )
+            result = subprocess.run(["pip-audit", "--version"], capture_output=True, check=False)
             if result.returncode != 0:
                 return {"status": "skipped", "reason": "pip-audit not available"}
 
@@ -774,9 +762,7 @@ class SecurityAuditTool:
             try:
                 with open(py_file) as f:
                     content = f.read()
-                    if any(
-                        pattern in content.lower() for pattern in ["getenv", "environ"]
-                    ):
+                    if any(pattern in content.lower() for pattern in ["getenv", "environ"]):
                         secret_files.append(py_file)
             except Exception:
                 continue
@@ -819,10 +805,7 @@ class SecurityAuditTool:
             try:
                 with open(yaml_file) as f:
                     content = yaml.safe_load(f)
-                    if (
-                        isinstance(content, dict)
-                        and content.get("kind") == "NetworkPolicy"
-                    ):
+                    if isinstance(content, dict) and content.get("kind") == "NetworkPolicy":
                         network_policies.append(yaml_file)
             except Exception:
                 continue
@@ -876,9 +859,7 @@ class SecurityAuditTool:
                         security_keys = [
                             k
                             for k in annotations.keys()
-                            if any(
-                                sec in k for sec in ["ssl", "tls", "rate-limit", "auth"]
-                            )
+                            if any(sec in k for sec in ["ssl", "tls", "rate-limit", "auth"])
                         ]
                         security_annotations.extend(security_keys)
             except Exception:
@@ -974,9 +955,7 @@ class SecurityAuditTool:
 
 def main():
     """Main entry point"""
-    parser = argparse.ArgumentParser(
-        description="Security Audit Tool for Microservices Framework"
-    )
+    parser = argparse.ArgumentParser(description="Security Audit Tool for Microservices Framework")
     parser.add_argument(
         "--project-root", type=Path, default=Path.cwd(), help="Project root directory"
     )

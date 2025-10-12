@@ -128,12 +128,8 @@ class CircuitBreaker:
                     self.state = CircuitState.HALF_OPEN
                     self.success_count = 0
                 else:
-                    self._record_metric(
-                        ResilienceMetricType.CIRCUIT_BREAKER_STATE, 0
-                    )  # 0 = open
-                    raise CircuitBreakerException(
-                        f"Circuit breaker {self.name} is open"
-                    )
+                    self._record_metric(ResilienceMetricType.CIRCUIT_BREAKER_STATE, 0)  # 0 = open
+                    raise CircuitBreakerException(f"Circuit breaker {self.name} is open")
 
             # Execute operation
             start_time = time.time()
@@ -205,9 +201,7 @@ class CircuitBreaker:
         # Record metrics
         self._record_metric(ResilienceMetricType.SUCCESS_RATE, 1.0)
         self._record_metric(ResilienceMetricType.RESPONSE_TIME, execution_time)
-        self._record_metric(
-            ResilienceMetricType.CIRCUIT_BREAKER_STATE, 1
-        )  # 1 = closed/half-open
+        self._record_metric(ResilienceMetricType.CIRCUIT_BREAKER_STATE, 1)  # 1 = closed/half-open
 
     def _record_failure(self, execution_time: float, exception: Exception):
         """Record failed operation."""
@@ -249,9 +243,7 @@ class CircuitBreaker:
 
     def _set_next_attempt_time(self):
         """Set next attempt time for circuit reset."""
-        self.next_attempt_time = datetime.now(timezone.utc) + timedelta(
-            seconds=self.config.timeout
-        )
+        self.next_attempt_time = datetime.now(timezone.utc) + timedelta(seconds=self.config.timeout)
 
     def _record_metric(self, metric_type: ResilienceMetricType, value: float):
         """Record resilience metric."""

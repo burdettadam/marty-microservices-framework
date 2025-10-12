@@ -185,23 +185,17 @@ class Risk:
     regulatory_requirements: builtins.list[str] = field(default_factory=list)
 
     # Mitigation
-    mitigation_actions: builtins.list[RiskMitigationAction] = field(
-        default_factory=list
-    )
+    mitigation_actions: builtins.list[RiskMitigationAction] = field(default_factory=list)
     risk_owner: str | None = None
     risk_status: RiskStatus = RiskStatus.IDENTIFIED
 
     # Timeline
     identified_at: datetime = field(default_factory=datetime.now)
     last_assessed: datetime = field(default_factory=datetime.now)
-    next_review_date: datetime = field(
-        default_factory=lambda: datetime.now() + timedelta(days=90)
-    )
+    next_review_date: datetime = field(default_factory=lambda: datetime.now() + timedelta(days=90))
 
     # Tracking
-    assessment_history: builtins.list[builtins.dict[str, Any]] = field(
-        default_factory=list
-    )
+    assessment_history: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     def calculate_inherent_risk_score(self) -> float:
         """Calculate inherent risk score (before controls)"""
@@ -253,9 +247,7 @@ class Risk:
             "residual_risk_score": self.calculate_residual_risk_score(),
             "risk_level": self.get_risk_level().value,
             "factors": [asdict(factor) for factor in self.factors],
-            "mitigation_actions": [
-                action.to_dict() for action in self.mitigation_actions
-            ],
+            "mitigation_actions": [action.to_dict() for action in self.mitigation_actions],
         }
 
 
@@ -388,9 +380,7 @@ class RiskAssessmentEngine:
 
         return identified_risks
 
-    async def _assess_security_risks(
-        self, context: builtins.dict[str, Any]
-    ) -> builtins.list[Risk]:
+    async def _assess_security_risks(self, context: builtins.dict[str, Any]) -> builtins.list[Risk]:
         """Assess cybersecurity risks"""
 
         risks = []
@@ -524,18 +514,14 @@ class RiskAssessmentEngine:
 
         return risks
 
-    def generate_risk_mitigation_plan(
-        self, risk: Risk
-    ) -> builtins.list[RiskMitigationAction]:
+    def generate_risk_mitigation_plan(self, risk: Risk) -> builtins.list[RiskMitigationAction]:
         """Generate mitigation plan for a risk"""
 
         mitigation_actions = []
 
         # Generate actions based on risk category and factors
         if risk.category == RiskCategory.CYBERSECURITY:
-            if any(
-                "encryption" in str(factor.vulnerabilities) for factor in risk.factors
-            ):
+            if any("encryption" in str(factor.vulnerabilities) for factor in risk.factors):
                 mitigation_actions.append(
                     RiskMitigationAction(
                         action_id=f"MIT_{uuid.uuid4().hex[:8]}",
@@ -556,10 +542,7 @@ class RiskAssessmentEngine:
                     )
                 )
 
-            if any(
-                "authentication" in str(factor.vulnerabilities)
-                for factor in risk.factors
-            ):
+            if any("authentication" in str(factor.vulnerabilities) for factor in risk.factors):
                 mitigation_actions.append(
                     RiskMitigationAction(
                         action_id=f"MIT_{uuid.uuid4().hex[:8]}",
@@ -667,9 +650,7 @@ class RiskManager:
         print(f"Starting risk assessment: {assessment_name}")
 
         # Identify risks
-        identified_risks = await self.assessment_engine.assess_system_risks(
-            system_context
-        )
+        identified_risks = await self.assessment_engine.assess_system_risks(system_context)
 
         # Store risks and generate mitigation plans
         for risk in identified_risks:
@@ -677,9 +658,7 @@ class RiskManager:
             risk.add_assessment_record(assessor, f"Assessment: {assessment_name}")
 
             # Generate mitigation plan
-            risk.mitigation_actions = (
-                self.assessment_engine.generate_risk_mitigation_plan(risk)
-            )
+            risk.mitigation_actions = self.assessment_engine.generate_risk_mitigation_plan(risk)
 
             # Store risk
             self.risks[risk.risk_id] = risk
@@ -762,14 +741,10 @@ class RiskManager:
             "high_priority_risks": high_priority_risks[:10],  # Top 10
             "overdue_actions": overdue_actions,
             "mitigation_actions": dict(action_summary),
-            "last_assessment": max(
-                risk.last_assessed for risk in self.risks.values()
-            ).isoformat(),
+            "last_assessment": max(risk.last_assessed for risk in self.risks.values()).isoformat(),
         }
 
-    def get_risk_report(
-        self, category: RiskCategory | None = None
-    ) -> builtins.dict[str, Any]:
+    def get_risk_report(self, category: RiskCategory | None = None) -> builtins.dict[str, Any]:
         """Generate detailed risk report"""
 
         risks_to_include = self.risks.values()
@@ -777,12 +752,8 @@ class RiskManager:
             risks_to_include = [r for r in risks_to_include if r.category == category]
 
         # Calculate overall risk metrics
-        total_inherent_risk = sum(
-            r.calculate_inherent_risk_score() for r in risks_to_include
-        )
-        total_residual_risk = sum(
-            r.calculate_residual_risk_score() for r in risks_to_include
-        )
+        total_inherent_risk = sum(r.calculate_inherent_risk_score() for r in risks_to_include)
+        total_residual_risk = sum(r.calculate_residual_risk_score() for r in risks_to_include)
         risk_reduction = (
             (total_inherent_risk - total_residual_risk) / total_inherent_risk
             if total_inherent_risk > 0
@@ -807,9 +778,7 @@ class RiskManager:
             "mitigation_summary": self._get_mitigation_summary(list(risks_to_include)),
         }
 
-    def _get_mitigation_summary(
-        self, risks: builtins.list[Risk]
-    ) -> builtins.dict[str, Any]:
+    def _get_mitigation_summary(self, risks: builtins.list[Risk]) -> builtins.dict[str, Any]:
         """Get mitigation action summary"""
 
         all_actions = []
@@ -926,12 +895,8 @@ async def main():
     report = risk_manager.get_risk_report()
     print("\nRisk Report:")
     print(f"Risk Reduction: {report['risk_reduction_percentage']:.1f}%")
-    print(
-        f"Total Mitigation Cost: ${report['mitigation_summary']['total_estimated_cost']:,.2f}"
-    )
-    print(
-        f"Total Effort: {report['mitigation_summary']['total_estimated_effort_hours']:,} hours"
-    )
+    print(f"Total Mitigation Cost: ${report['mitigation_summary']['total_estimated_cost']:,.2f}")
+    print(f"Total Effort: {report['mitigation_summary']['total_estimated_effort_hours']:,} hours")
 
 
 if __name__ == "__main__":

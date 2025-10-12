@@ -4,6 +4,7 @@ Comprehensive Event Streaming Tests for CQRS, Event Sourcing, and Saga Patterns.
 This test suite focuses on testing event streaming components with minimal mocking
 to maximize real behavior validation and coverage.
 """
+
 import asyncio
 from typing import Any
 
@@ -33,6 +34,7 @@ from src.framework.event_streaming.saga import Saga, SagaManager
 # Mock classes for testing
 class CQRSEngine:
     """Mock CQRS Engine for testing."""
+
     def __init__(self, event_bus, event_store):
         self.event_bus = event_bus
         self.command_bus = CommandBus()
@@ -41,6 +43,7 @@ class CQRSEngine:
 
 class SagaOrchestrator:
     """Mock Saga Orchestrator for testing."""
+
     def __init__(self, command_bus, event_bus):
         self.command_bus = command_bus
         self.event_bus = event_bus
@@ -58,7 +61,7 @@ class TestEvent:
             aggregate_id="user-123",
             event_type="user.created",
             event_data=event_data,
-            metadata=metadata
+            metadata=metadata,
         )
 
         assert event.aggregate_id == "user-123"
@@ -73,9 +76,24 @@ class TestEvent:
         event_data = {"user_id": "123"}
         metadata = EventMetadata(correlation_id="corr-123")
 
-        event1 = Event(aggregate_id="user-123", event_type="user.created", event_data=event_data, metadata=metadata)
-        event2 = Event(aggregate_id="user-123", event_type="user.created", event_data=event_data, metadata=metadata)
-        event3 = Event(aggregate_id="user-123", event_type="user.updated", event_data=event_data, metadata=metadata)
+        event1 = Event(
+            aggregate_id="user-123",
+            event_type="user.created",
+            event_data=event_data,
+            metadata=metadata,
+        )
+        event2 = Event(
+            aggregate_id="user-123",
+            event_type="user.created",
+            event_data=event_data,
+            metadata=metadata,
+        )
+        event3 = Event(
+            aggregate_id="user-123",
+            event_type="user.updated",
+            event_data=event_data,
+            metadata=metadata,
+        )
 
         assert event1 != event2  # Different event IDs
         assert event1.event_type == event2.event_type
@@ -90,7 +108,7 @@ class UserCreatedEvent(Event):
             aggregate_id=user_id,
             event_type="user.created",
             event_data={"user_id": user_id, "email": email},
-            metadata=EventMetadata(correlation_id=correlation_id)
+            metadata=EventMetadata(correlation_id=correlation_id),
         )
 
 
@@ -122,8 +140,8 @@ class TestEventBus:
     async def test_event_bus_creation(self, event_bus):
         """Test event bus creation."""
         assert event_bus is not None
-        assert hasattr(event_bus, 'publish')
-        assert hasattr(event_bus, 'subscribe')
+        assert hasattr(event_bus, "publish")
+        assert hasattr(event_bus, "subscribe")
 
     @pytest.mark.asyncio
     async def test_event_subscription_and_publishing(self, event_bus, user_handler):
@@ -231,7 +249,7 @@ class TestEventSourcing:
         # Create events
         events = [
             UserCreatedEvent("user-123", "test@example.com"),
-            Event("user.updated", {"user_id": "user-123", "name": "Updated Name"})
+            Event("user.updated", {"user_id": "user-123", "name": "Updated Name"}),
         ]
 
         # Append events to stream
@@ -315,7 +333,7 @@ class UserReadModel:
             self.users[user_data["user_id"]] = {
                 "user_id": user_data["user_id"],
                 "email": user_data["email"],
-                "created_at": event.timestamp
+                "created_at": event.timestamp,
             }
 
     async def get_user(self, user_id: str) -> dict[str, Any]:
@@ -409,7 +427,9 @@ class TestCQRS:
         assert len(query_handler.queries_handled) == 1
 
     @pytest.mark.asyncio
-    async def test_cqrs_full_flow(self, cqrs_engine, command_handler, query_handler, read_model, event_bus):
+    async def test_cqrs_full_flow(
+        self, cqrs_engine, command_handler, query_handler, read_model, event_bus
+    ):
         """Test complete CQRS flow: command -> event -> read model -> query."""
         # Register handlers
         command_bus = cqrs_engine.command_bus
@@ -540,8 +560,7 @@ class TestSagaPatterns:
 
         # Create and start saga
         saga_id = await saga_manager.create_and_start_saga(
-            "order",
-            {"order_id": "order-123", "amount": 100.0}
+            "order", {"order_id": "order-123", "amount": 100.0}
         )
 
         # Verify saga was created
@@ -554,6 +573,7 @@ class TestSagaPatterns:
     @pytest.mark.asyncio
     async def test_saga_compensation(self, saga_orchestrator):
         """Test saga compensation on failure."""
+
         # Create a failing saga for testing compensation
         class FailingSaga(Saga):
             async def execute(self, command_bus) -> bool:
@@ -631,7 +651,9 @@ class TestEventStreamingIntegration:
         saga_orchestrator.register_saga_type("order", OrderSaga)
 
         # Execute command
-        command = CreateUserCommand("integration-user", "integration@example.com", "Integration User")
+        command = CreateUserCommand(
+            "integration-user", "integration@example.com", "Integration User"
+        )
         await cqrs_engine.command_bus.send(command)
 
         # Allow event processing
@@ -662,7 +684,7 @@ class TestEventStreamingIntegration:
         events = [
             UserCreatedEvent("replay-user", "replay@example.com"),
             Event("user.updated", {"user_id": "replay-user", "email": "updated@example.com"}),
-            Event("user.deactivated", {"user_id": "replay-user"})
+            Event("user.deactivated", {"user_id": "replay-user"}),
         ]
 
         await event_store.append_events("replay-user", events)
@@ -677,7 +699,7 @@ class TestEventStreamingIntegration:
                     self.state = {
                         "user_id": event.event_data["user_id"],
                         "email": event.event_data["email"],
-                        "active": True
+                        "active": True,
                     }
                 elif event.event_type == "user.updated":
                     self.state.update(event.event_data)

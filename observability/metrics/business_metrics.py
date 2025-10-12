@@ -58,9 +58,7 @@ class BusinessMetricsConfig:
     enable_cost_tracking: bool = True
     default_currency: str = "USD"
     custom_labels: builtins.dict[str, str] | None = None
-    retention_periods: builtins.list[int] = field(
-        default_factory=lambda: [1, 7, 30, 90]
-    )
+    retention_periods: builtins.list[int] = field(default_factory=lambda: [1, 7, 30, 90])
     cohort_analysis_enabled: bool = True
 
 
@@ -311,9 +309,7 @@ class BusinessMetricsCollector:
         """Track a business event"""
         try:
             labels = [self.config.service_name, "production"]
-            (
-                labels + list(event.labels.values()) if event.labels else labels
-            )
+            (labels + list(event.labels.values()) if event.labels else labels)
 
             if event.event_type == BusinessEventType.USER_SIGNUP:
                 await self._track_user_signup(event)
@@ -499,9 +495,7 @@ class BusinessMetricsCollector:
                 if users:
                     # This would typically query your user database
                     # For demo, we'll use a simulated retention rate
-                    retention_rate = max(
-                        0, 100 - (period * 2)
-                    )  # Simplified calculation
+                    retention_rate = max(0, 100 - (period * 2))  # Simplified calculation
 
                     self.user_retention_rate.labels(
                         service_name=self.config.service_name,
@@ -570,9 +564,7 @@ class BusinessMetricsCollector:
         return generate_latest(self.registry).decode("utf-8")
 
     @asynccontextmanager
-    async def user_session(
-        self, user_id: str, session_id: str, user_segment: str = "unknown"
-    ):
+    async def user_session(self, user_id: str, session_id: str, user_segment: str = "unknown"):
         """Context manager for tracking user sessions"""
         # Track session start
         await self.track_event(

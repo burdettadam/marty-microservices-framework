@@ -13,6 +13,7 @@ def test_import_deployment_strategies():
     """Test that deployment strategies can be imported."""
     try:
         from src.framework.deployment.strategies import DeploymentStrategy
+
         assert issubclass(DeploymentStrategy, Enum)
         print("✓ DeploymentStrategy imported successfully")
     except ImportError as e:
@@ -25,11 +26,11 @@ def test_deployment_strategy_enum():
         from src.framework.deployment.strategies import DeploymentStrategy
 
         # Test enum members exist
-        assert hasattr(DeploymentStrategy, 'BLUE_GREEN')
-        assert hasattr(DeploymentStrategy, 'CANARY')
-        assert hasattr(DeploymentStrategy, 'ROLLING')
-        assert hasattr(DeploymentStrategy, 'RECREATE')
-        assert hasattr(DeploymentStrategy, 'A_B_TEST')
+        assert hasattr(DeploymentStrategy, "BLUE_GREEN")
+        assert hasattr(DeploymentStrategy, "CANARY")
+        assert hasattr(DeploymentStrategy, "ROLLING")
+        assert hasattr(DeploymentStrategy, "RECREATE")
+        assert hasattr(DeploymentStrategy, "A_B_TEST")
 
         # Test enum values
         assert DeploymentStrategy.BLUE_GREEN.value == "blue_green"
@@ -50,14 +51,14 @@ def test_deployment_phase_enum():
         from src.framework.deployment.strategies import DeploymentPhase
 
         # Test enum members exist
-        assert hasattr(DeploymentPhase, 'PLANNING')
-        assert hasattr(DeploymentPhase, 'PRE_DEPLOYMENT')
-        assert hasattr(DeploymentPhase, 'DEPLOYMENT')
-        assert hasattr(DeploymentPhase, 'VALIDATION')
-        assert hasattr(DeploymentPhase, 'TRAFFIC_SHIFTING')
-        assert hasattr(DeploymentPhase, 'MONITORING')
-        assert hasattr(DeploymentPhase, 'COMPLETION')
-        assert hasattr(DeploymentPhase, 'ROLLBACK')
+        assert hasattr(DeploymentPhase, "PLANNING")
+        assert hasattr(DeploymentPhase, "PRE_DEPLOYMENT")
+        assert hasattr(DeploymentPhase, "DEPLOYMENT")
+        assert hasattr(DeploymentPhase, "VALIDATION")
+        assert hasattr(DeploymentPhase, "TRAFFIC_SHIFTING")
+        assert hasattr(DeploymentPhase, "MONITORING")
+        assert hasattr(DeploymentPhase, "COMPLETION")
+        assert hasattr(DeploymentPhase, "ROLLBACK")
 
         print("✓ All deployment phase enum values validated")
 
@@ -71,7 +72,7 @@ def test_deployment_status_enum():
         from src.framework.deployment.strategies import DeploymentStatus
 
         # Test enum members exist
-        assert hasattr(DeploymentStatus, 'PENDING')
+        assert hasattr(DeploymentStatus, "PENDING")
 
         print("✓ DeploymentStatus enum validated")
 

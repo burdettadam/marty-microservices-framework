@@ -54,7 +54,7 @@ class TestEvent:
             aggregate_id="user-123",
             event_type="user.created",
             event_data=event_data,
-            metadata=metadata
+            metadata=metadata,
         )
 
         assert event.aggregate_id == "user-123"
@@ -69,9 +69,24 @@ class TestEvent:
         event_data = {"user_id": "123"}
         metadata = EventMetadata(correlation_id="corr-123")
 
-        event1 = Event(aggregate_id="user-123", event_type="user.created", event_data=event_data, metadata=metadata)
-        event2 = Event(aggregate_id="user-123", event_type="user.created", event_data=event_data, metadata=metadata)
-        event3 = Event(aggregate_id="user-123", event_type="user.updated", event_data=event_data, metadata=metadata)
+        event1 = Event(
+            aggregate_id="user-123",
+            event_type="user.created",
+            event_data=event_data,
+            metadata=metadata,
+        )
+        event2 = Event(
+            aggregate_id="user-123",
+            event_type="user.created",
+            event_data=event_data,
+            metadata=metadata,
+        )
+        event3 = Event(
+            aggregate_id="user-123",
+            event_type="user.updated",
+            event_data=event_data,
+            metadata=metadata,
+        )
 
         assert event1 != event2  # Different event IDs
         assert event1.event_type == event2.event_type
@@ -86,7 +101,7 @@ class UserCreatedEvent(Event):
             aggregate_id=user_id,
             event_type="user.created",
             event_data={"user_id": user_id, "email": email},
-            metadata=EventMetadata(correlation_id=correlation_id)
+            metadata=EventMetadata(correlation_id=correlation_id),
         )
 
 
@@ -164,7 +179,7 @@ class TestUser(AggregateRoot):
         event = DomainEvent(
             aggregate_id=self.aggregate_id,
             event_type="user.created",
-            event_data={"email": email, "name": name}
+            event_data={"email": email, "name": name},
         )
         self._apply_event(event)
 
@@ -173,7 +188,7 @@ class TestUser(AggregateRoot):
         event = DomainEvent(
             aggregate_id=self.aggregate_id,
             event_type="user.email_updated",
-            event_data={"email": new_email}
+            event_data={"email": new_email},
         )
         self._apply_event(event)
 
@@ -191,11 +206,11 @@ class TestUser(AggregateRoot):
             aggregate_id=self.aggregate_id,
             aggregate_type="User",
             version=self.version,
-            data={"email": self.email, "name": self.name}
+            data={"email": self.email, "name": self.name},
         )
 
     @classmethod
-    def from_snapshot(cls, snapshot: Snapshot) -> 'TestUser':
+    def from_snapshot(cls, snapshot: Snapshot) -> "TestUser":
         """Restore from snapshot."""
         user = cls(snapshot.aggregate_id)
         user.email = snapshot.data.get("email")
@@ -242,7 +257,7 @@ class TestEventSourcing:
             DomainEvent(
                 aggregate_id=stream_id,
                 event_type="user.created",
-                event_data={"email": "test@example.com", "name": "Test User"}
+                event_data={"email": "test@example.com", "name": "Test User"},
             )
         ]
 
@@ -278,8 +293,7 @@ class CreateUserCommand(Command):
 
     def __init__(self, user_id: str, email: str, name: str):
         super().__init__(
-            command_type="create_user",
-            data={"user_id": user_id, "email": email, "name": name}
+            command_type="create_user", data={"user_id": user_id, "email": email, "name": name}
         )
 
 
@@ -287,10 +301,7 @@ class GetUserQuery(Query):
     """Test query for getting user information."""
 
     def __init__(self, user_id: str):
-        super().__init__(
-            query_type="get_user",
-            parameters={"user_id": user_id}
-        )
+        super().__init__(query_type="get_user", parameters={"user_id": user_id})
 
 
 class UserCommandHandler(CommandHandler):
@@ -312,13 +323,11 @@ class UserCommandHandler(CommandHandler):
             return CommandResult(
                 command_id=command.command_id,
                 success=True,
-                result={"user_id": command.data["user_id"]}
+                result={"user_id": command.data["user_id"]},
             )
 
         return CommandResult(
-            command_id=command.command_id,
-            success=False,
-            error="Unknown command type"
+            command_id=command.command_id, success=False, error="Unknown command type"
         )
 
 
@@ -347,20 +356,11 @@ class UserQueryHandler(QueryHandler):
             read_model = await self.read_model_store.get_by_id(user_id)
 
             if read_model:
-                return QueryResult(
-                    query_id=query.query_id,
-                    result=read_model
-                )
+                return QueryResult(query_id=query.query_id, result=read_model)
             else:
-                return QueryResult(
-                    query_id=query.query_id,
-                    result=UserReadModel()
-                )
+                return QueryResult(query_id=query.query_id, result=UserReadModel())
 
-        return QueryResult(
-            query_id=query.query_id,
-            error="Unknown query type"
-        )
+        return QueryResult(query_id=query.query_id, error="Unknown query type")
 
 
 class TestCQRS:
@@ -458,24 +458,9 @@ class OrderSaga(Saga):
 
     def _initialize_steps(self):
         """Initialize saga steps."""
-        self.add_step(
-            SagaStep(
-                step_id="reserve_inventory",
-                description="Reserve inventory items"
-            )
-        )
-        self.add_step(
-            SagaStep(
-                step_id="process_payment",
-                description="Process customer payment"
-            )
-        )
-        self.add_step(
-            SagaStep(
-                step_id="ship_order",
-                description="Ship order to customer"
-            )
-        )
+        self.add_step(SagaStep(step_id="reserve_inventory", description="Reserve inventory items"))
+        self.add_step(SagaStep(step_id="process_payment", description="Process customer payment"))
+        self.add_step(SagaStep(step_id="ship_order", description="Ship order to customer"))
 
 
 class TestSagaPatterns:
@@ -536,8 +521,7 @@ class TestSagaPatterns:
         step.status = StepStatus.FAILED
 
         compensation = CompensationAction(
-            action_type="refund_payment",
-            parameters={"amount": 100.0}
+            action_type="refund_payment", parameters={"amount": 100.0}
         )
         step.compensation_action = compensation
 
@@ -580,7 +564,9 @@ class TestEventStreamingIntegration:
         await command_bus.register_handler("create_user", command_handler)
 
         # Execute workflow
-        command = CreateUserCommand("user-integration", "integration@example.com", "Integration User")
+        command = CreateUserCommand(
+            "user-integration", "integration@example.com", "Integration User"
+        )
         result = await command_bus.execute(command)
 
         # Verify results
@@ -599,13 +585,13 @@ class TestEventStreamingIntegration:
             DomainEvent(
                 aggregate_id="user-replay",
                 event_type="user.created",
-                event_data={"email": "replay@example.com", "name": "Replay User"}
+                event_data={"email": "replay@example.com", "name": "Replay User"},
             ),
             DomainEvent(
                 aggregate_id="user-replay",
                 event_type="user.email_updated",
-                event_data={"email": "updated@example.com"}
-            )
+                event_data={"email": "updated@example.com"},
+            ),
         ]
 
         await event_store.append_events("user-replay", events)

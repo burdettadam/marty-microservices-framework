@@ -44,19 +44,14 @@ class ObservableGrpcServiceMixin:
         # Setup common gRPC metrics
         self.service_metrics = {
             "requests_total": self.observability.counter(
-                "grpc_requests_total",
-                "Total gRPC requests",
-                ["method", "status"]
+                "grpc_requests_total", "Total gRPC requests", ["method", "status"]
             ),
             "request_duration": self.observability.histogram(
-                "grpc_request_duration_seconds",
-                "gRPC request duration",
-                ["method"]
+                "grpc_request_duration_seconds", "gRPC request duration", ["method"]
             ),
             "active_connections": self.observability.gauge(
-                "grpc_active_connections",
-                "Active gRPC connections"
-            )
+                "grpc_active_connections", "Active gRPC connections"
+            ),
         }
 
         # Register health checks
@@ -67,9 +62,7 @@ class ObservableGrpcServiceMixin:
         if self.observability:
             # gRPC service health check
             self.observability.register_health_check(
-                name="grpc_service",
-                check_func=self._check_grpc_service_health,
-                interval_seconds=30
+                name="grpc_service", check_func=self._check_grpc_service_health, interval_seconds=30
             )
 
     async def _check_grpc_service_health(self):
@@ -85,6 +78,7 @@ class ObservableGrpcServiceMixin:
 
     def trace_grpc_call(self, method_name: str):
         """Decorator factory for tracing gRPC method calls."""
+
         def decorator(func):
             async def wrapper(request, context):
                 if not self.observability:
@@ -93,7 +87,7 @@ class ObservableGrpcServiceMixin:
                 with self.observability.trace_operation(
                     f"grpc.{method_name}",
                     grpc_method=method_name,
-                    service=self.observability.service_name
+                    service=self.observability.service_name,
                 ) as span:
                     start_time = asyncio.get_event_loop().time()
 
@@ -106,8 +100,7 @@ class ObservableGrpcServiceMixin:
 
                         if self.service_metrics:
                             self.service_metrics["requests_total"].labels(
-                                method=method_name,
-                                status="OK"
+                                method=method_name, status="OK"
                             ).inc()
 
                             self.service_metrics["request_duration"].labels(
@@ -125,8 +118,7 @@ class ObservableGrpcServiceMixin:
                         # Record error metrics
                         if self.service_metrics:
                             self.service_metrics["requests_total"].labels(
-                                method=method_name,
-                                status="ERROR"
+                                method=method_name, status="ERROR"
                             ).inc()
 
                         if span:
@@ -137,6 +129,7 @@ class ObservableGrpcServiceMixin:
                         raise
 
             return wrapper
+
         return decorator
 
 
@@ -197,7 +190,7 @@ class UnifiedGrpcServer:
         self.servicer_instances[servicer_name] = servicer
 
         # Add to server (will be called when server is created)
-        if not hasattr(self, '_pending_servicers'):
+        if not hasattr(self, "_pending_servicers"):
             self._pending_servicers = []
 
         self._pending_servicers.append((add_servicer_func, servicer))
@@ -211,14 +204,14 @@ class UnifiedGrpcServer:
             self.server = aio.server()
 
             # Add all pending servicers
-            if hasattr(self, '_pending_servicers'):
+            if hasattr(self, "_pending_servicers"):
                 for add_func, servicer in self._pending_servicers:
                     add_func(servicer, self.server)
 
             # Enable reflection
             service_names = (
                 reflection.SERVICE_NAME,
-                *[desc.full_name for desc in self.server.get_services()]
+                *[desc.full_name for desc in self.server.get_services()],
             )
             reflection.enable_server_reflection(service_names, self.server)
 
@@ -251,9 +244,9 @@ class UnifiedGrpcServer:
             server_cert = self.config.security.grpc_tls.server_cert
             server_key = self.config.security.grpc_tls.server_key
 
-            with open(server_cert, 'rb') as f:
+            with open(server_cert, "rb") as f:
                 cert_data = f.read()
-            with open(server_key, 'rb') as f:
+            with open(server_key, "rb") as f:
                 key_data = f.read()
 
             credentials = grpc.ssl_server_credentials([(key_data, cert_data)])
@@ -277,19 +270,19 @@ class UnifiedGrpcServer:
 
         # Metrics endpoint
         if self.observability.monitoring_config.prometheus:
-            app.router.add_get('/metrics', self._metrics_handler)
+            app.router.add_get("/metrics", self._metrics_handler)
 
         # Health check endpoints
-        app.router.add_get('/health', self._health_handler)
-        app.router.add_get('/readiness', self._readiness_handler)
-        app.router.add_get('/liveness', self._liveness_handler)
+        app.router.add_get("/health", self._health_handler)
+        app.router.add_get("/readiness", self._readiness_handler)
+        app.router.add_get("/liveness", self._liveness_handler)
 
         # Start HTTP server for observability
         runner = web_runner.AppRunner(app)
         await runner.setup()
 
         health_port = self.observability.monitoring_config.health_check_port
-        site = web_runner.TCPSite(runner, 'localhost', health_port)
+        site = web_runner.TCPSite(runner, "localhost", health_port)
         await site.start()
 
         self.logger.info("Observability endpoints started on port %d", health_port)
@@ -299,7 +292,7 @@ class UnifiedGrpcServer:
         from aiohttp import web
 
         metrics_output = self.observability.get_metrics_output()
-        return web.Response(text=metrics_output, content_type='text/plain')
+        return web.Response(text=metrics_output, content_type="text/plain")
 
     async def _health_handler(self, request):
         """Handle general health check requests."""
@@ -309,8 +302,7 @@ class UnifiedGrpcServer:
 
         # Determine overall health
         is_healthy = all(
-            status.get("status") in ["healthy", "HEALTHY"]
-            for status in health_status.values()
+            status.get("status") in ["healthy", "HEALTHY"] for status in health_status.values()
         )
 
         status_code = 200 if is_healthy else 503
@@ -362,19 +354,18 @@ class UnifiedGrpcServer:
 
 # Factory functions for common service patterns
 
+
 def create_trust_anchor_server(config_path: str = None) -> UnifiedGrpcServer:
     """Create a gRPC server for trust anchor service."""
-    server = UnifiedGrpcServer(
-        config_path=config_path or "config/services/trust_anchor.yaml"
-    )
+    server = UnifiedGrpcServer(config_path=config_path or "config/services/trust_anchor.yaml")
     return server
+
 
 def create_document_signer_server(config_path: str = None) -> UnifiedGrpcServer:
     """Create a gRPC server for document signer service."""
-    server = UnifiedGrpcServer(
-        config_path=config_path or "config/services/document_signer.yaml"
-    )
+    server = UnifiedGrpcServer(config_path=config_path or "config/services/document_signer.yaml")
     return server
+
 
 def create_service_server(service_name: str, config_path: str = None) -> UnifiedGrpcServer:
     """Create a gRPC server for any Marty service."""

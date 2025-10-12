@@ -124,9 +124,7 @@ class ObservabilityMetrics:
 class DistributedTracer:
     """Advanced distributed tracing with OpenTelemetry."""
 
-    def __init__(
-        self, service_name: str, jaeger_endpoint: str = "http://localhost:14268"
-    ):
+    def __init__(self, service_name: str, jaeger_endpoint: str = "http://localhost:14268"):
         """Initialize distributed tracer."""
         self.service_name = service_name
         self.jaeger_endpoint = jaeger_endpoint
@@ -205,9 +203,7 @@ class DistributedTracer:
         self.active_spans[span_id] = span
         return span
 
-    def finish_span(
-        self, span: TraceSpan, status: str = "ok", error: str | None = None
-    ):
+    def finish_span(self, span: TraceSpan, status: str = "ok", error: str | None = None):
         """Finish a trace span."""
         span.end_time = datetime.now(timezone.utc)
         span.duration_ms = (span.end_time - span.start_time).total_seconds() * 1000
@@ -300,9 +296,7 @@ class IntelligentAlerting:
         """Add an alert rule."""
         self.alert_rules[rule.name] = rule
 
-    def add_notification_channel(
-        self, channel_type: str, config: builtins.dict[str, Any]
-    ):
+    def add_notification_channel(self, channel_type: str, config: builtins.dict[str, Any]):
         """Add a notification channel."""
         self.notification_channels.append({"type": channel_type, "config": config})
 
@@ -340,9 +334,7 @@ class IntelligentAlerting:
             return False
 
         # Standard threshold evaluation
-        threshold_exceeded = self._evaluate_threshold(
-            rule.condition, metric_value, rule.threshold
-        )
+        threshold_exceeded = self._evaluate_threshold(rule.condition, metric_value, rule.threshold)
 
         # Anomaly detection if enabled
         anomaly_detected = False
@@ -352,16 +344,12 @@ class IntelligentAlerting:
             )
 
         # Dependency check
-        dependency_satisfied = self._check_dependencies(
-            rule.dependency_rules, current_time
-        )
+        dependency_satisfied = self._check_dependencies(rule.dependency_rules, current_time)
 
         # Final decision
         return (threshold_exceeded or anomaly_detected) and dependency_satisfied
 
-    def _get_metric_value(
-        self, metric_query: str, metrics: ObservabilityMetrics
-    ) -> float | None:
+    def _get_metric_value(self, metric_query: str, metrics: ObservabilityMetrics) -> float | None:
         """Get metric value from metrics object."""
         metric_map = {
             "request_rate": metrics.request_rate,
@@ -375,9 +363,7 @@ class IntelligentAlerting:
 
         return metric_map.get(metric_query)
 
-    def _evaluate_threshold(
-        self, condition: str, value: float, threshold: float
-    ) -> bool:
+    def _evaluate_threshold(self, condition: str, value: float, threshold: float) -> bool:
         """Evaluate threshold condition."""
         if condition == "greater_than":
             return value > threshold
@@ -389,9 +375,7 @@ class IntelligentAlerting:
             return abs(value - threshold) >= 0.01
         return False
 
-    def _detect_anomaly(
-        self, metric_name: str, value: float, sensitivity: float
-    ) -> bool:
+    def _detect_anomaly(self, metric_name: str, value: float, sensitivity: float) -> bool:
         """Detect anomalies using statistical methods."""
         baseline = self.metric_baselines[metric_name]
 
@@ -501,13 +485,9 @@ class IntelligentAlerting:
         for channel in self.notification_channels:
             try:
                 if channel["type"] == "webhook":
-                    await self._send_webhook_notification(
-                        channel["config"], alert, metrics
-                    )
+                    await self._send_webhook_notification(channel["config"], alert, metrics)
                 elif channel["type"] == "slack":
-                    await self._send_slack_notification(
-                        channel["config"], alert, metrics
-                    )
+                    await self._send_slack_notification(channel["config"], alert, metrics)
                 # Add more notification types as needed
 
             except Exception as e:
@@ -544,9 +524,7 @@ class IntelligentAlerting:
         async with aiohttp.ClientSession() as session:
             async with session.post(webhook_url, json=payload) as response:
                 if response.status != 200:
-                    raise Exception(
-                        f"Webhook notification failed with status {response.status}"
-                    )
+                    raise Exception(f"Webhook notification failed with status {response.status}")
 
     async def _send_slack_notification(
         self,
@@ -697,9 +675,7 @@ class AdvancedObservabilityManager:
         self.log_aggregator = LogAggregator(service_name)
 
         # Observability metrics
-        self.last_metrics = ObservabilityMetrics(
-            service_name, datetime.now(timezone.utc)
-        )
+        self.last_metrics = ObservabilityMetrics(service_name, datetime.now(timezone.utc))
 
         # Configure default alert rules
         self._configure_advanced_alerts()
@@ -823,9 +799,7 @@ class AdvancedObservabilityManager:
 
         return metrics
 
-    def _calculate_request_rate(
-        self, trace_analytics: builtins.dict[str, Any]
-    ) -> float:
+    def _calculate_request_rate(self, trace_analytics: builtins.dict[str, Any]) -> float:
         """Calculate request rate from trace analytics."""
         operation_stats = trace_analytics.get("operation_stats", {})
         total_requests = sum(stats["count"] for stats in operation_stats.values())
@@ -848,9 +822,7 @@ class AdvancedObservabilityManager:
         latencies = [stats.get(percentile_key, 0) for stats in operation_stats.values()]
         return max(latencies) if latencies else 0.0
 
-    def _get_system_metric(
-        self, metric_name: str, basic_metrics: builtins.list
-    ) -> float:
+    def _get_system_metric(self, metric_name: str, basic_metrics: builtins.list) -> float:
         """Get system metric value."""
         for metric in basic_metrics:
             if metric_name in metric.name:

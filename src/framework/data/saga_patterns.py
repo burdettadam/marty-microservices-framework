@@ -273,9 +273,7 @@ class SagaOrchestrator:
         for attempt in range(step.retry_count + 1):
             try:
                 # Execute with timeout
-                result = await asyncio.wait_for(
-                    handler(step_context), timeout=step.timeout_seconds
-                )
+                result = await asyncio.wait_for(handler(step_context), timeout=step.timeout_seconds)
                 return bool(result)
 
             except asyncio.TimeoutError:

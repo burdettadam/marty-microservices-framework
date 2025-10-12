@@ -34,6 +34,7 @@ try:
     from opentelemetry.trace.propagation.tracecontext import (
         TraceContextTextMapPropagator,
     )
+
     TRACING_AVAILABLE = True
 except ImportError:
     TRACING_AVAILABLE = False
@@ -41,6 +42,7 @@ except ImportError:
 # Prometheus client
 try:
     from prometheus_client import Counter, Gauge, Histogram, Info, generate_latest
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -51,6 +53,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BusinessMetric:
     """Definition for a business-specific metric."""
+
     name: str
     metric_type: str  # counter, histogram, gauge, info
     description: str
@@ -102,7 +105,7 @@ class ObservabilityManager:
         # Create MMF metrics collector
         self._metrics_collector = MetricsCollector(
             service_name=self.service_name,
-            registry=None  # Use default registry
+            registry=None,  # Use default registry
         )
 
         # Setup business metrics from configuration
@@ -114,10 +117,10 @@ class ObservabilityManager:
 
     def _setup_business_metrics(self) -> None:
         """Setup business-specific metrics from configuration."""
-        if not hasattr(self.monitoring_config, 'business_metrics'):
+        if not hasattr(self.monitoring_config, "business_metrics"):
             return
 
-        business_metrics = getattr(self.monitoring_config, 'business_metrics', [])
+        business_metrics = getattr(self.monitoring_config, "business_metrics", [])
 
         for metric_def in business_metrics:
             if isinstance(metric_def, dict):
@@ -129,30 +132,36 @@ class ObservabilityManager:
 
             if business_metric.metric_type == "counter":
                 self._business_metrics[business_metric.name] = Counter(
-                    metric_name,
-                    business_metric.description,
-                    business_metric.labels
+                    metric_name, business_metric.description, business_metric.labels
                 )
             elif business_metric.metric_type == "histogram":
                 buckets = business_metric.buckets or [
-                    0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0
+                    0.001,
+                    0.005,
+                    0.01,
+                    0.025,
+                    0.05,
+                    0.1,
+                    0.25,
+                    0.5,
+                    1.0,
+                    2.5,
+                    5.0,
+                    10.0,
                 ]
                 self._business_metrics[business_metric.name] = Histogram(
                     metric_name,
                     business_metric.description,
                     business_metric.labels,
-                    buckets=buckets
+                    buckets=buckets,
                 )
             elif business_metric.metric_type == "gauge":
                 self._business_metrics[business_metric.name] = Gauge(
-                    metric_name,
-                    business_metric.description,
-                    business_metric.labels
+                    metric_name, business_metric.description, business_metric.labels
                 )
             elif business_metric.metric_type == "info":
                 self._business_metrics[business_metric.name] = Info(
-                    metric_name,
-                    business_metric.description
+                    metric_name, business_metric.description
                 )
 
         self.logger.info(f"Setup {len(self._business_metrics)} business metrics")
@@ -173,22 +182,20 @@ class ObservabilityManager:
         """Register default health checks for all services."""
 
         # Database health check (if database is configured)
-        if hasattr(self.config, 'database') and self.config.database:
+        if hasattr(self.config, "database") and self.config.database:
             self._health_checker.register_check(
                 HealthCheck(
-                    name="database",
-                    check_func=self._check_database_health,
-                    timeout_seconds=10
+                    name="database", check_func=self._check_database_health, timeout_seconds=10
                 )
             )
 
         # Service discovery health check
-        if hasattr(self.config, 'service_discovery'):
+        if hasattr(self.config, "service_discovery"):
             self._health_checker.register_check(
                 HealthCheck(
                     name="service_discovery",
                     check_func=self._check_service_discovery_health,
-                    timeout_seconds=5
+                    timeout_seconds=5,
                 )
             )
 
@@ -223,22 +230,24 @@ class ObservabilityManager:
             self.logger.warning("OpenTelemetry not available, tracing disabled")
             return
 
-        tracing_config = getattr(self.monitoring_config, 'tracing', None)
-        if not tracing_config or not getattr(tracing_config, 'enabled', False):
+        tracing_config = getattr(self.monitoring_config, "tracing", None)
+        if not tracing_config or not getattr(tracing_config, "enabled", False):
             self.logger.info("Tracing disabled in configuration")
             return
 
         # Setup tracing provider
-        resource = Resource.create({
-            "service.name": self.service_name,
-            "service.version": "1.0.0",
-            "deployment.environment": self.config.environment.value,
-        })
+        resource = Resource.create(
+            {
+                "service.name": self.service_name,
+                "service.version": "1.0.0",
+                "deployment.environment": self.config.environment.value,
+            }
+        )
 
         provider = TracerProvider(resource=resource)
 
         # Setup Jaeger exporter
-        jaeger_endpoint = getattr(tracing_config, 'jaeger_endpoint', None)
+        jaeger_endpoint = getattr(tracing_config, "jaeger_endpoint", None)
         if jaeger_endpoint:
             jaeger_exporter = JaegerExporter(
                 agent_host_name="localhost",
@@ -254,10 +263,7 @@ class ObservabilityManager:
         trace.set_tracer_provider(provider)
 
         # Get tracer for this service
-        self._tracer = trace.get_tracer(
-            f"marty.{self.service_name}",
-            version="1.0.0"
-        )
+        self._tracer = trace.get_tracer(f"marty.{self.service_name}", version="1.0.0")
 
         self.logger.info("Distributed tracing initialized")
 
@@ -280,8 +286,9 @@ class ObservabilityManager:
         metric_name = f"marty_{self.service_name}_{name}"
         return Counter(metric_name, description, labels)
 
-    def histogram(self, name: str, description: str, labels: list[str] = None,
-                  buckets: list[float] = None) -> Any | None:
+    def histogram(
+        self, name: str, description: str, labels: list[str] = None, buckets: list[float] = None
+    ) -> Any | None:
         """Create or get a histogram metric."""
         if not PROMETHEUS_AVAILABLE or not self._metrics_collector:
             return None
@@ -336,8 +343,9 @@ class ObservabilityManager:
 
             yield span
 
-    def register_health_check(self, name: str, check_func: Callable,
-                            interval_seconds: int = 30, timeout_seconds: int = 10) -> None:
+    def register_health_check(
+        self, name: str, check_func: Callable, interval_seconds: int = 30, timeout_seconds: int = 10
+    ) -> None:
         """Register a custom health check."""
         if not self._health_checker:
             self.logger.warning("Health checker not available")
@@ -347,7 +355,7 @@ class ObservabilityManager:
             name=name,
             check_func=check_func,
             interval_seconds=interval_seconds,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self._health_checker.register_check(health_check)
@@ -368,7 +376,7 @@ class ObservabilityManager:
         if not PROMETHEUS_AVAILABLE:
             return "# Prometheus not available"
 
-        return generate_latest().decode('utf-8')
+        return generate_latest().decode("utf-8")
 
     async def shutdown(self) -> None:
         """Shutdown observability components."""
@@ -379,7 +387,7 @@ class ObservabilityManager:
             pass
 
         # Flush any remaining traces
-        if self._tracer and hasattr(trace.get_tracer_provider(), 'shutdown'):
+        if self._tracer and hasattr(trace.get_tracer_provider(), "shutdown"):
             trace.get_tracer_provider().shutdown()
 
         self.logger.info("Observability shutdown complete")
@@ -402,6 +410,7 @@ def create_observability_manager(config: BaseServiceConfig) -> ObservabilityMana
 # Decorator for automatic operation tracing
 def trace_grpc_method(observability_manager: ObservabilityManager):
     """Decorator to automatically trace gRPC service methods."""
+
     def decorator(func):
         async def wrapper(self, request, context):
             method_name = func.__name__
@@ -409,7 +418,7 @@ def trace_grpc_method(observability_manager: ObservabilityManager):
             with observability_manager.trace_operation(
                 f"grpc.{method_name}",
                 grpc_method=method_name,
-                service=observability_manager.service_name
+                service=observability_manager.service_name,
             ) as span:
                 try:
                     # Execute the method
@@ -432,6 +441,7 @@ def trace_grpc_method(observability_manager: ObservabilityManager):
                     raise
 
         return wrapper
+
     return decorator
 
 
@@ -446,20 +456,20 @@ class MartyMetrics:
             "validations_total": observability.counter(
                 "certificate_validations_total",
                 "Total certificate validations performed",
-                ["result", "certificate_type", "issuer_country"]
+                ["result", "certificate_type", "issuer_country"],
             ),
             "validation_duration": observability.histogram(
                 "certificate_validation_duration_seconds",
                 "Time to validate certificates",
                 ["certificate_type"],
-                buckets=[0.001, 0.01, 0.1, 0.5, 1.0, 5.0]
+                buckets=[0.001, 0.01, 0.1, 0.5, 1.0, 5.0],
             ),
             "trust_chain_length": observability.histogram(
                 "trust_chain_length",
                 "Length of certificate trust chains",
                 ["certificate_type"],
-                buckets=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-            )
+                buckets=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            ),
         }
 
     @staticmethod
@@ -469,19 +479,19 @@ class MartyMetrics:
             "documents_signed": observability.counter(
                 "documents_signed_total",
                 "Total documents signed",
-                ["algorithm", "document_type", "result"]
+                ["algorithm", "document_type", "result"],
             ),
             "signing_duration": observability.histogram(
                 "document_signing_duration_seconds",
                 "Time to sign documents",
                 ["algorithm", "document_type"],
-                buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0]
+                buckets=[0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0],
             ),
             "key_operations": observability.counter(
                 "cryptographic_key_operations_total",
                 "Cryptographic key operations",
-                ["operation", "key_type", "result"]
-            )
+                ["operation", "key_type", "result"],
+            ),
         }
 
     @staticmethod
@@ -491,18 +501,18 @@ class MartyMetrics:
             "sync_operations": observability.counter(
                 "pkd_sync_operations_total",
                 "PKD synchronization operations",
-                ["result", "sync_type"]
+                ["result", "sync_type"],
             ),
             "sync_duration": observability.histogram(
                 "pkd_sync_duration_seconds",
                 "Time to complete PKD sync",
                 ["sync_type"],
-                buckets=[1, 5, 10, 30, 60, 120, 300]
+                buckets=[1, 5, 10, 30, 60, 120, 300],
             ),
             "records_processed": observability.histogram(
                 "pkd_records_processed",
                 "Number of records processed during sync",
                 ["sync_type"],
-                buckets=[10, 50, 100, 500, 1000, 5000, 10000]
-            )
+                buckets=[10, 50, 100, 500, 1000, 5000, 10000],
+            ),
         }

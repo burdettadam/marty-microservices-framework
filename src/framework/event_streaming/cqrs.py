@@ -263,9 +263,7 @@ class QueryBus:
                 cache_key = self._generate_cache_key(query)
                 if cache_key in self._cache:
                     cached_result = self._cache[cache_key]
-                    execution_time = (
-                        datetime.utcnow() - start_time
-                    ).total_seconds() * 1000
+                    execution_time = (datetime.utcnow() - start_time).total_seconds() * 1000
                     cached_result.execution_time_ms = execution_time
                     return cached_result
 
@@ -353,16 +351,12 @@ class ReadModelStore(ABC):
     """Abstract read model store interface."""
 
     @abstractmethod
-    async def save(
-        self, model_type: str, model_id: str, data: builtins.dict[str, Any]
-    ) -> None:
+    async def save(self, model_type: str, model_id: str, data: builtins.dict[str, Any]) -> None:
         """Save read model."""
         raise NotImplementedError
 
     @abstractmethod
-    async def get(
-        self, model_type: str, model_id: str
-    ) -> builtins.dict[str, Any] | None:
+    async def get(self, model_type: str, model_id: str) -> builtins.dict[str, Any] | None:
         """Get read model by ID."""
         raise NotImplementedError
 
@@ -385,9 +379,7 @@ class ReadModelStore(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def count(
-        self, model_type: str, filters: builtins.dict[str, Any] = None
-    ) -> int:
+    async def count(self, model_type: str, filters: builtins.dict[str, Any] = None) -> int:
         """Count read models."""
         raise NotImplementedError
 
@@ -396,21 +388,17 @@ class InMemoryReadModelStore(ReadModelStore):
     """In-memory read model store implementation."""
 
     def __init__(self):
-        self._models: builtins.dict[
-            str, builtins.dict[str, builtins.dict[str, Any]]
-        ] = defaultdict(dict)
+        self._models: builtins.dict[str, builtins.dict[str, builtins.dict[str, Any]]] = defaultdict(
+            dict
+        )
         self._lock = asyncio.Lock()
 
-    async def save(
-        self, model_type: str, model_id: str, data: builtins.dict[str, Any]
-    ) -> None:
+    async def save(self, model_type: str, model_id: str, data: builtins.dict[str, Any]) -> None:
         """Save read model."""
         async with self._lock:
             self._models[model_type][model_id] = data.copy()
 
-    async def get(
-        self, model_type: str, model_id: str
-    ) -> builtins.dict[str, Any] | None:
+    async def get(self, model_type: str, model_id: str) -> builtins.dict[str, Any] | None:
         """Get read model by ID."""
         async with self._lock:
             return self._models[model_type].get(model_id)
@@ -453,9 +441,7 @@ class InMemoryReadModelStore(ReadModelStore):
             if model_id in self._models[model_type]:
                 del self._models[model_type][model_id]
 
-    async def count(
-        self, model_type: str, filters: builtins.dict[str, Any] = None
-    ) -> int:
+    async def count(self, model_type: str, filters: builtins.dict[str, Any] = None) -> int:
         """Count read models."""
         async with self._lock:
             models = self._models[model_type].values()
@@ -489,9 +475,7 @@ class InMemoryReadModelStore(ReadModelStore):
 
         return True
 
-    def _apply_filter_operation(
-        self, field_value: Any, operation: str, op_value: Any
-    ) -> bool:
+    def _apply_filter_operation(self, field_value: Any, operation: str, op_value: Any) -> bool:
         """Apply filter operation."""
         if operation == "$eq":
             return field_value == op_value
@@ -518,9 +502,7 @@ class ProjectionManager:
     def __init__(self, read_model_store: ReadModelStore):
         self.read_model_store = read_model_store
         self._projections: builtins.dict[str, Projection] = {}
-        self._event_handlers: builtins.dict[
-            str, builtins.list[Projection]
-        ] = defaultdict(list)
+        self._event_handlers: builtins.dict[str, builtins.list[Projection]] = defaultdict(list)
 
     def register_projection(self, projection: Projection) -> None:
         """Register projection."""
@@ -544,9 +526,7 @@ class ProjectionManager:
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def rebuild_projection(
-        self, projection_name: str, events: builtins.list[Event]
-    ) -> None:
+    async def rebuild_projection(self, projection_name: str, events: builtins.list[Event]) -> None:
         """Rebuild projection from events."""
         projection = self._projections.get(projection_name)
         if not projection:

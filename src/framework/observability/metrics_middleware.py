@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from prometheus_client import Counter, Histogram
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -63,13 +64,9 @@ class MetricsMiddleware:
         if not PROMETHEUS_AVAILABLE:
             return
 
-        self.requests_total.labels(
-            service=self.service_name, method=method, status=status
-        ).inc()
+        self.requests_total.labels(service=self.service_name, method=method, status=status).inc()
 
-        self.request_duration.labels(
-            service=self.service_name, method=method
-        ).observe(duration)
+        self.request_duration.labels(service=self.service_name, method=method).observe(duration)
 
     def record_error(self, method: str, error_type: str) -> None:
         """Record an error metric.

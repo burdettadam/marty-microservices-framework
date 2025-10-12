@@ -284,9 +284,7 @@ class MetricsCollector:
         labels = {"service_name": self.config.service_name, "cache_name": cache_name}
         self.cache_misses_total.labels(**labels).inc()
 
-    def set_db_connections(
-        self, active: int, max_connections: int, database: str
-    ) -> None:
+    def set_db_connections(self, active: int, max_connections: int, database: str) -> None:
         """Set database connection metrics"""
         labels = {"service_name": self.config.service_name, "database": database}
         self.db_connections_active.labels(**labels).set(active)
@@ -322,9 +320,7 @@ class MetricsCollector:
 
         return Histogram(**histogram_kwargs)
 
-    def create_custom_gauge(
-        self, name: str, description: str, labels: builtins.list[str]
-    ) -> Gauge:
+    def create_custom_gauge(self, name: str, description: str, labels: builtins.list[str]) -> Gauge:
         """Create a custom gauge metric"""
         return Gauge(
             name=f"{self.config.namespace}_{name}",
@@ -352,11 +348,7 @@ def grpc_metrics_decorator(metrics_collector: MetricsCollector):
 
             # Extract method and service from function
             method = func.__name__
-            service = (
-                func.__module__.split(".")[-1]
-                if hasattr(func, "__module__")
-                else "unknown"
-            )
+            service = func.__module__.split(".")[-1] if hasattr(func, "__module__") else "unknown"
 
             try:
                 result = await func(*args, **kwargs)
@@ -396,9 +388,7 @@ def grpc_metrics_decorator(metrics_collector: MetricsCollector):
     return decorator
 
 
-def business_metrics_decorator(
-    metrics_collector: MetricsCollector, transaction_type: str
-):
+def business_metrics_decorator(metrics_collector: MetricsCollector, transaction_type: str):
     """Decorator to automatically collect business transaction metrics"""
 
     def decorator(func: Callable) -> Callable:

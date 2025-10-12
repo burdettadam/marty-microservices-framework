@@ -137,9 +137,7 @@ class RESTAPIConnector(ExternalSystemConnector):
                 latency_ms=latency,
             )
 
-    def _prepare_headers(
-        self, request_headers: builtins.dict[str, str]
-    ) -> builtins.dict[str, str]:
+    def _prepare_headers(self, request_headers: builtins.dict[str, str]) -> builtins.dict[str, str]:
         """Prepare HTTP headers with authentication."""
         headers = request_headers.copy()
 
@@ -162,9 +160,7 @@ class RESTAPIConnector(ExternalSystemConnector):
             username = credentials.get("username")
             password = credentials.get("password")
             if username and password:
-                auth_string = base64.b64encode(
-                    f"{username}:{password}".encode()
-                ).decode()
+                auth_string = base64.b64encode(f"{username}:{password}".encode()).decode()
                 headers["Authorization"] = f"Basic {auth_string}"
 
         # Set default content type

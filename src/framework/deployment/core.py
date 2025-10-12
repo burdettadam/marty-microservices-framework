@@ -122,13 +122,9 @@ class DeploymentConfig:
     health_check: HealthCheck = field(default_factory=HealthCheck)
     environment_variables: builtins.dict[str, str] = field(default_factory=dict)
     secrets: builtins.dict[str, str] = field(default_factory=dict)
-    config_maps: builtins.dict[str, builtins.dict[str, str]] = field(
-        default_factory=dict
-    )
+    config_maps: builtins.dict[str, builtins.dict[str, str]] = field(default_factory=dict)
     volumes: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
-    network_policies: builtins.list[builtins.dict[str, Any]] = field(
-        default_factory=list
-    )
+    network_policies: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
     service_account: str | None = None
     annotations: builtins.dict[str, str] = field(default_factory=dict)
     labels: builtins.dict[str, str] = field(default_factory=dict)
@@ -202,9 +198,7 @@ class DeploymentProvider(ABC):
         """Get deployment status."""
 
     @abstractmethod
-    async def get_logs(
-        self, deployment: Deployment, lines: int = 100
-    ) -> builtins.list[str]:
+    async def get_logs(self, deployment: Deployment, lines: int = 100) -> builtins.list[str]:
         """Get deployment logs."""
 
     @abstractmethod
@@ -260,16 +254,12 @@ class KubernetesProvider(DeploymentProvider):
                 )
                 return True
             deployment.status = DeploymentStatus.FAILED
-            deployment.add_event(
-                "deployment_failed", "Deployment did not become ready", "error"
-            )
+            deployment.add_event("deployment_failed", "Deployment did not become ready", "error")
             return False
 
         except Exception as e:
             deployment.status = DeploymentStatus.FAILED
-            deployment.add_event(
-                "deployment_error", f"Deployment error: {e!s}", "error"
-            )
+            deployment.add_event("deployment_error", f"Deployment error: {e!s}", "error")
             logger.error(f"Kubernetes deployment failed: {e}")
             return False
 
@@ -296,9 +286,7 @@ class KubernetesProvider(DeploymentProvider):
             if result.returncode == 0:
                 if await self._wait_for_deployment_ready(deployment):
                     deployment.status = DeploymentStatus.ROLLED_BACK
-                    deployment.add_event(
-                        "rollback_completed", "Rollback completed successfully"
-                    )
+                    deployment.add_event("rollback_completed", "Rollback completed successfully")
                     return True
 
             deployment.status = DeploymentStatus.FAILED
@@ -332,14 +320,10 @@ class KubernetesProvider(DeploymentProvider):
 
             if result.returncode == 0:
                 deployment.config.resources.replicas = replicas
-                deployment.add_event(
-                    "scaling_completed", f"Scaled to {replicas} replicas"
-                )
+                deployment.add_event("scaling_completed", f"Scaled to {replicas} replicas")
                 return True
 
-            deployment.add_event(
-                "scaling_failed", "Failed to scale deployment", "error"
-            )
+            deployment.add_event("scaling_failed", "Failed to scale deployment", "error")
             return False
 
         except Exception as e:
@@ -376,8 +360,7 @@ class KubernetesProvider(DeploymentProvider):
                     "ready_replicas": status.get("readyReplicas", 0),
                     "available_replicas": status.get("availableReplicas", 0),
                     "updated_replicas": status.get("updatedReplicas", 0),
-                    "healthy": status.get("readyReplicas", 0)
-                    == spec.get("replicas", 0),
+                    "healthy": status.get("readyReplicas", 0) == spec.get("replicas", 0),
                     "conditions": status.get("conditions", []),
                 }
 
@@ -387,9 +370,7 @@ class KubernetesProvider(DeploymentProvider):
             logger.error(f"Failed to get Kubernetes status: {e}")
             return {"healthy": False, "error": str(e)}
 
-    async def get_logs(
-        self, deployment: Deployment, lines: int = 100
-    ) -> builtins.list[str]:
+    async def get_logs(self, deployment: Deployment, lines: int = 100) -> builtins.list[str]:
         """Get Kubernetes deployment logs."""
         try:
             cmd = [
@@ -419,9 +400,7 @@ class KubernetesProvider(DeploymentProvider):
     async def terminate(self, deployment: Deployment) -> bool:
         """Terminate Kubernetes deployment."""
         try:
-            deployment.add_event(
-                "termination_started", "Starting deployment termination"
-            )
+            deployment.add_event("termination_started", "Starting deployment termination")
             deployment.status = DeploymentStatus.TERMINATED
 
             # Delete deployment
@@ -440,26 +419,18 @@ class KubernetesProvider(DeploymentProvider):
             result = await self._run_kubectl_command(cmd)
 
             if result.returncode == 0:
-                deployment.add_event(
-                    "termination_completed", "Deployment terminated successfully"
-                )
+                deployment.add_event("termination_completed", "Deployment terminated successfully")
                 return True
 
-            deployment.add_event(
-                "termination_failed", "Failed to terminate deployment", "error"
-            )
+            deployment.add_event("termination_failed", "Failed to terminate deployment", "error")
             return False
 
         except Exception as e:
-            deployment.add_event(
-                "termination_error", f"Termination error: {e!s}", "error"
-            )
+            deployment.add_event("termination_error", f"Termination error: {e!s}", "error")
             logger.error(f"Kubernetes termination failed: {e}")
             return False
 
-    def _generate_manifests(
-        self, deployment: Deployment
-    ) -> builtins.list[builtins.dict[str, Any]]:
+    def _generate_manifests(self, deployment: Deployment) -> builtins.list[builtins.dict[str, Any]]:
         """Generate Kubernetes manifests."""
         manifests = []
         config = deployment.config
@@ -541,9 +512,9 @@ class KubernetesProvider(DeploymentProvider):
 
         # Add service account if specified
         if config.service_account:
-            deployment_manifest["spec"]["template"]["spec"][
-                "serviceAccountName"
-            ] = config.service_account
+            deployment_manifest["spec"]["template"]["spec"]["serviceAccountName"] = (
+                config.service_account
+            )
 
         # Add volumes if specified
         if config.volumes:
@@ -552,13 +523,11 @@ class KubernetesProvider(DeploymentProvider):
             volume_mounts = []
             for volume in config.volumes:
                 if "mountPath" in volume:
-                    volume_mounts.append(
-                        {"name": volume["name"], "mountPath": volume["mountPath"]}
-                    )
+                    volume_mounts.append({"name": volume["name"], "mountPath": volume["mountPath"]})
             if volume_mounts:
-                deployment_manifest["spec"]["template"]["spec"]["containers"][0][
-                    "volumeMounts"
-                ] = volume_mounts
+                deployment_manifest["spec"]["template"]["spec"]["containers"][0]["volumeMounts"] = (
+                    volume_mounts
+                )
 
         manifests.append(deployment_manifest)
 
@@ -634,9 +603,7 @@ class KubernetesProvider(DeploymentProvider):
 
         return manifests
 
-    def _get_deployment_strategy(
-        self, strategy: DeploymentStrategy
-    ) -> builtins.dict[str, Any]:
+    def _get_deployment_strategy(self, strategy: DeploymentStrategy) -> builtins.dict[str, Any]:
         """Get Kubernetes deployment strategy configuration."""
         if strategy == DeploymentStrategy.ROLLING_UPDATE:
             return {
@@ -691,14 +658,10 @@ class KubernetesProvider(DeploymentProvider):
             return False
 
         except Exception as e:
-            deployment.add_event(
-                "manifest_error", f"Error applying manifest: {e!s}", "error"
-            )
+            deployment.add_event("manifest_error", f"Error applying manifest: {e!s}", "error")
             return False
 
-    async def _wait_for_deployment_ready(
-        self, deployment: Deployment, timeout: int = 300
-    ) -> bool:
+    async def _wait_for_deployment_ready(self, deployment: Deployment, timeout: int = 300) -> bool:
         """Wait for deployment to be ready."""
         start_time = datetime.utcnow()
 
@@ -712,9 +675,7 @@ class KubernetesProvider(DeploymentProvider):
 
         return False
 
-    async def _run_kubectl_command(
-        self, cmd: builtins.list[str]
-    ) -> subprocess.CompletedProcess:
+    async def _run_kubectl_command(self, cmd: builtins.list[str]) -> subprocess.CompletedProcess:
         """Run kubectl command."""
         process = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -792,9 +753,7 @@ class DeploymentManager:
 
         provider = self.providers.get(deployment.config.target.provider)
         if not provider:
-            logger.error(
-                f"Provider not found: {deployment.config.target.provider.value}"
-            )
+            logger.error(f"Provider not found: {deployment.config.target.provider.value}")
             return False
 
         return await provider.rollback(deployment)
@@ -808,16 +767,12 @@ class DeploymentManager:
 
         provider = self.providers.get(deployment.config.target.provider)
         if not provider:
-            logger.error(
-                f"Provider not found: {deployment.config.target.provider.value}"
-            )
+            logger.error(f"Provider not found: {deployment.config.target.provider.value}")
             return False
 
         return await provider.scale(deployment, replicas)
 
-    async def get_deployment_status(
-        self, deployment_id: str
-    ) -> builtins.dict[str, Any] | None:
+    async def get_deployment_status(self, deployment_id: str) -> builtins.dict[str, Any] | None:
         """Get deployment status."""
         deployment = self.deployments.get(deployment_id)
         if not deployment:
@@ -836,9 +791,7 @@ class DeploymentManager:
             "status": deployment.status.value,
             "created_at": deployment.created_at.isoformat(),
             "updated_at": deployment.updated_at.isoformat(),
-            "deployed_at": deployment.deployed_at.isoformat()
-            if deployment.deployed_at
-            else None,
+            "deployed_at": deployment.deployed_at.isoformat() if deployment.deployed_at else None,
             "provider_status": provider_status,
             "events": [
                 {
@@ -851,9 +804,7 @@ class DeploymentManager:
             ],
         }
 
-    async def get_deployment_logs(
-        self, deployment_id: str, lines: int = 100
-    ) -> builtins.list[str]:
+    async def get_deployment_logs(self, deployment_id: str, lines: int = 100) -> builtins.list[str]:
         """Get deployment logs."""
         deployment = self.deployments.get(deployment_id)
         if not deployment:
@@ -874,9 +825,7 @@ class DeploymentManager:
 
         provider = self.providers.get(deployment.config.target.provider)
         if not provider:
-            logger.error(
-                f"Provider not found: {deployment.config.target.provider.value}"
-            )
+            logger.error(f"Provider not found: {deployment.config.target.provider.value}")
             return False
 
         return await provider.terminate(deployment)
@@ -889,10 +838,7 @@ class DeploymentManager:
 
         for deployment in self.deployments.values():
             if deployment.config.service_name == service_name:
-                if (
-                    environment is None
-                    or deployment.config.target.environment == environment
-                ):
+                if environment is None or deployment.config.target.environment == environment:
                     deployments.append(deployment)
 
         return sorted(deployments, key=lambda d: d.created_at, reverse=True)

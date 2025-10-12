@@ -1,6 +1,5 @@
 """Direct load balancing strategy tests - bypassing import issues."""
 
-
 import pytest
 
 
@@ -12,6 +11,7 @@ def test_direct_import_load_balancing():
             RoundRobinLoadBalancer,
             WeightedLoadBalancer,
         )
+
         assert LoadBalancingStrategy is not None
         assert RoundRobinLoadBalancer is not None
         assert WeightedLoadBalancer is not None
@@ -26,11 +26,7 @@ def test_direct_import_service_instance():
         from src.framework.discovery.core import ServiceInstance
 
         # Test basic instantiation
-        instance = ServiceInstance(
-            service_name="test-service",
-            host="localhost",
-            port=8080
-        )
+        instance = ServiceInstance(service_name="test-service", host="localhost", port=8080)
         assert instance.service_name == "test-service"
         assert instance.host == "localhost"
         assert instance.port == 8080
@@ -97,7 +93,7 @@ async def test_weighted_basic_functionality():
         ]
 
         # Set weights if supported (check if method exists)
-        if hasattr(instances[0], 'weight'):
+        if hasattr(instances[0], "weight"):
             instances[0].weight = 3
             instances[1].weight = 1
 

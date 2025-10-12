@@ -67,7 +67,6 @@ __all__ = [
     "AggregateRoot",
     "Repository",
     "EventSourcingRepository",
-
     # CQRS
     "Command",
     "Query",
@@ -75,21 +74,18 @@ __all__ = [
     "QueryHandler",
     "ProjectionManager",
     "CQRSBus",
-
     # Transactions
     "TransactionState",
     "TransactionParticipant",
     "DistributedTransaction",
     "DistributedTransactionCoordinator",
     "TransactionManager",
-
     # Sagas
     "SagaState",
     "SagaStep",
     "SagaTransaction",
     "SagaOrchestrator",
     "SagaBuilder",
-
     # Consistency
     "ConsistencyLevel",
     "DistributedCache",

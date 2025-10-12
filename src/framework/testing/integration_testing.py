@@ -177,9 +177,7 @@ class IntegrationTestEnvironment:
             for _service_name, service in self.services.items():
                 await self._wait_for_service(session, service)
 
-    async def _wait_for_service(
-        self, session: aiohttp.ClientSession, service: ServiceEndpoint
-    ):
+    async def _wait_for_service(self, session: aiohttp.ClientSession, service: ServiceEndpoint):
         """Wait for a specific service to be ready."""
         health_url = f"{service.url.rstrip('/')}{service.health_check_path}"
         max_attempts = 30
@@ -318,9 +316,7 @@ class DatabaseIntegrationHelper:
         elif self.config.type == "redis":
             if isinstance(data, dict):
                 for key, value in data.items():
-                    self.connection.set(
-                        f"{table_or_collection}:{key}", json.dumps(value)
-                    )
+                    self.connection.set(f"{table_or_collection}:{key}", json.dumps(value))
 
     def cleanup_test_data(self, table_or_collection: str, condition: str = None):
         """Clean up test data."""
@@ -396,9 +392,7 @@ class MessageQueueIntegrationHelper:
         """Publish message to queue."""
         if self.config.type == "rabbitmq":
             routing_key = routing_key or self.config.queue_name
-            message_body = (
-                json.dumps(message) if not isinstance(message, str) else message
-            )
+            message_body = json.dumps(message) if not isinstance(message, str) else message
 
             self.channel.basic_publish(
                 exchange="",
@@ -426,9 +420,7 @@ class MessageQueueIntegrationHelper:
                 messages.append(message)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
 
-            self.channel.basic_consume(
-                queue=self.config.queue_name, on_message_callback=callback
-            )
+            self.channel.basic_consume(queue=self.config.queue_name, on_message_callback=callback)
 
             # Consume messages for specified timeout
             while time.time() - start_time < timeout:
@@ -589,9 +581,7 @@ class ServiceToServiceTestCase(TestCase):
 class DatabaseIntegrationTestCase(TestCase):
     """Test case for database integration testing."""
 
-    def __init__(
-        self, name: str, database_config: DatabaseConfig, test_scenario: TestScenario
-    ):
+    def __init__(self, name: str, database_config: DatabaseConfig, test_scenario: TestScenario):
         super().__init__(
             name=f"Database Integration: {name}",
             test_type=TestType.INTEGRATION,
@@ -709,9 +699,7 @@ class DatabaseIntegrationTestCase(TestCase):
 class MessageQueueIntegrationTestCase(TestCase):
     """Test case for message queue integration testing."""
 
-    def __init__(
-        self, name: str, mq_config: MessageQueueConfig, test_scenario: TestScenario
-    ):
+    def __init__(self, name: str, mq_config: MessageQueueConfig, test_scenario: TestScenario):
         super().__init__(
             name=f"Message Queue Integration: {name}",
             test_type=TestType.INTEGRATION,
@@ -867,9 +855,7 @@ class IntegrationTestManager:
         if not target_service:
             raise ValueError(f"Target service not found: {target_service_name}")
 
-        return ServiceToServiceTestCase(
-            name, source_service, target_service, test_scenario
-        )
+        return ServiceToServiceTestCase(name, source_service, target_service, test_scenario)
 
     def create_database_test(
         self, name: str, database_name: str, test_scenario: TestScenario
@@ -917,9 +903,7 @@ def create_api_integration_scenario(
             # Verify response
             expected_status = call.get("expected_status", 200)
             if response.status != expected_status:
-                raise AssertionError(
-                    f"Expected status {expected_status}, got {response.status}"
-                )
+                raise AssertionError(f"Expected status {expected_status}, got {response.status}")
 
             response_data = (
                 await response.json()
@@ -949,9 +933,9 @@ def create_database_crud_scenario(
         # Example read operation
         if test_case.database_config.type == "postgresql":
             result = test_case.db_helper.execute_query(f"SELECT * FROM {table_name}")
-            assert len(result) == len(
-                test_data
-            ), f"Expected {len(test_data)} records, got {len(result)}"
+            assert len(result) == len(test_data), (
+                f"Expected {len(test_data)} records, got {len(result)}"
+            )
         return result
 
     def cleanup_test_data(test_case: DatabaseIntegrationTestCase):
@@ -980,9 +964,9 @@ def create_message_flow_scenario(
         received_messages = test_case.mq_helper.consume_messages(timeout=10.0)
         expected = expected_count if expected_count is not None else len(messages)
 
-        assert (
-            len(received_messages) == expected
-        ), f"Expected {expected} messages, got {len(received_messages)}"
+        assert len(received_messages) == expected, (
+            f"Expected {expected} messages, got {len(received_messages)}"
+        )
         return received_messages
 
     def cleanup_queue(test_case: MessageQueueIntegrationTestCase):

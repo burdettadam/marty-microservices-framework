@@ -55,9 +55,7 @@ class CryptographyManager:
 
         # Return base64 encoded encrypted data with key version
         key_version = self.key_versions[key_id]
-        return base64.b64encode(f"{key_version}:".encode() + encrypted_data).decode(
-            "utf-8"
-        )
+        return base64.b64encode(f"{key_version}:".encode() + encrypted_data).decode("utf-8")
 
     def decrypt_data(self, encrypted_data: str, key_id: str = "default") -> str:
         """Decrypt data using specified key."""
@@ -105,9 +103,7 @@ class CryptographyManager:
         private_key = self.signing_keys[key_id]
         signature = private_key.sign(
             data,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            ),
+            padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
             hashes.SHA256(),
         )
 
@@ -151,9 +147,7 @@ class CryptographyManager:
     def verify_password(self, password: str, hashed_password: str) -> bool:
         """Verify password against hash."""
         try:
-            return bcrypt.checkpw(
-                password.encode("utf-8"), hashed_password.encode("utf-8")
-            )
+            return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
         except Exception:
             return False
 
@@ -170,9 +164,7 @@ class CryptographyManager:
         self.encryption_keys[key_id] = Fernet.generate_key()
 
         # Schedule next rotation
-        self.key_rotation_schedule[key_id] = datetime.now(timezone.utc) + timedelta(
-            days=90
-        )
+        self.key_rotation_schedule[key_id] = datetime.now(timezone.utc) + timedelta(days=90)
 
     def should_rotate_key(self, key_id: str) -> bool:
         """Check if key should be rotated."""

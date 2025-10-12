@@ -12,7 +12,9 @@ from src.framework.discovery.core import (
 )
 
 
-def _make_instance(service_name: str = "orders", instance_id: str = "instance-1") -> ServiceInstance:
+def _make_instance(
+    service_name: str = "orders", instance_id: str = "instance-1"
+) -> ServiceInstance:
     endpoint = ServiceEndpoint(
         host="localhost",
         port=8080,

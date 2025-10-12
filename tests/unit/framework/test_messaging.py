@@ -18,11 +18,7 @@ class TestMessage:
 
     def test_message_creation(self):
         """Test message creation with required fields."""
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123, "name": "John"}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123, "name": "John"})
 
         assert message.id == "test-123"
         assert message.type == "user.created"
@@ -38,7 +34,7 @@ class TestMessage:
             data={"order_id": 456},
             correlation_id="corr-789",
             source="order-service",
-            destination="notification-service"
+            destination="notification-service",
         )
 
         assert message.correlation_id == "corr-789"
@@ -47,11 +43,7 @@ class TestMessage:
 
     def test_message_to_dict(self):
         """Test message serialization to dictionary."""
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         message_dict = message.to_dict()
 
@@ -68,7 +60,7 @@ class TestMessage:
             "type": "order.created",
             "data": {"order_id": 456},
             "timestamp": "2024-01-01T12:00:00Z",
-            "retry_count": 1
+            "retry_count": 1,
         }
 
         message = Message.from_dict(message_dict)
@@ -80,11 +72,7 @@ class TestMessage:
 
     def test_message_increment_retry(self):
         """Test message retry count increment."""
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         assert message.retry_count == 0
 
@@ -97,34 +85,18 @@ class TestMessage:
     def test_message_is_expired(self):
         """Test message expiration check."""
         # This would test TTL functionality if implemented
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         # Assuming messages don't expire by default
         assert not message.is_expired()
 
     def test_message_equality(self):
         """Test message equality comparison."""
-        message1 = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message1 = Message(id="test-123", type="user.created", data={"user_id": 123})
 
-        message2 = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message2 = Message(id="test-123", type="user.created", data={"user_id": 123})
 
-        message3 = Message(
-            id="test-456",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message3 = Message(id="test-456", type="user.created", data={"user_id": 123})
 
         assert message1 == message2
         assert message1 != message3
@@ -137,13 +109,12 @@ class TestMessageHandler:
 
     async def test_message_handler_creation(self):
         """Test message handler creation."""
+
         async def handler_func(message: Message) -> bool:
             return True
 
         handler = MessageHandler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
         assert handler.name == "test-handler"
@@ -154,6 +125,7 @@ class TestMessageHandler:
 
     async def test_message_handler_with_custom_config(self):
         """Test message handler with custom configuration."""
+
         async def handler_func(message: Message) -> bool:
             return True
 
@@ -163,7 +135,7 @@ class TestMessageHandler:
             handler_func=handler_func,
             max_retries=5,
             retry_delay=2.0,
-            timeout=30.0
+            timeout=30.0,
         )
 
         assert handler.max_retries == 5
@@ -179,16 +151,10 @@ class TestMessageHandler:
             return True
 
         handler = MessageHandler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         result = await handler.execute(message)
 
@@ -198,20 +164,15 @@ class TestMessageHandler:
 
     async def test_message_handler_execution_failure(self):
         """Test message handler execution with failure."""
+
         async def handler_func(message: Message) -> bool:
             raise ValueError("Handler failed")
 
         handler = MessageHandler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         result = await handler.execute(message)
 
@@ -219,26 +180,17 @@ class TestMessageHandler:
 
     async def test_message_handler_matches_type(self):
         """Test message handler type matching."""
+
         async def handler_func(message: Message) -> bool:
             return True
 
         handler = MessageHandler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
-        matching_message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        matching_message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
-        non_matching_message = Message(
-            id="test-456",
-            type="order.created",
-            data={"order_id": 456}
-        )
+        non_matching_message = Message(id="test-456", type="order.created", data={"order_id": 456})
 
         assert handler.matches(matching_message) is True
         assert handler.matches(non_matching_message) is False
@@ -265,9 +217,7 @@ class TestMessageBus:
             return True
 
         handler = bus.register_handler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
         assert len(bus.handlers) == 1
@@ -282,16 +232,12 @@ class TestMessageBus:
             return True
 
         bus.register_handler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
         with pytest.raises(ValueError, match="Handler 'test-handler' already registered"):
             bus.register_handler(
-                name="test-handler",
-                message_type="order.created",
-                handler_func=handler_func
+                name="test-handler", message_type="order.created", handler_func=handler_func
             )
 
     def test_message_bus_unregister_handler(self):
@@ -302,9 +248,7 @@ class TestMessageBus:
             return True
 
         bus.register_handler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
         assert len(bus.handlers) == 1
@@ -329,16 +273,10 @@ class TestMessageBus:
             return True
 
         bus.register_handler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         await bus.publish(message)
 
@@ -356,15 +294,13 @@ class TestMessageBus:
             return True
 
         bus.register_handler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
         message = Message(
             id="test-123",
             type="order.created",  # No handler for this type
-            data={"order_id": 123}
+            data={"order_id": 123},
         )
 
         # Should not raise an exception
@@ -385,22 +321,14 @@ class TestMessageBus:
             return True
 
         bus.register_handler(
-            name="handler-1",
-            message_type="user.created",
-            handler_func=handler1_func
+            name="handler-1", message_type="user.created", handler_func=handler1_func
         )
 
         bus.register_handler(
-            name="handler-2",
-            message_type="user.created",
-            handler_func=handler2_func
+            name="handler-2", message_type="user.created", handler_func=handler2_func
         )
 
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         await bus.publish(message)
 
@@ -441,16 +369,10 @@ class TestMessageBus:
 
         bus.add_middleware(test_middleware)
         bus.register_handler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         await bus.publish(message)
         await asyncio.sleep(0.1)
@@ -475,14 +397,10 @@ class TestMessageBus:
             name="failing-handler",
             message_type="user.created",
             handler_func=failing_handler,
-            max_retries=3
+            max_retries=3,
         )
 
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         await bus.publish(message)
         await asyncio.sleep(0.1)
@@ -490,7 +408,7 @@ class TestMessageBus:
         # Should have been called 3 times (initial + 2 retries)
         assert call_count == 3
 
-    @patch('src.framework.messaging.logger')
+    @patch("src.framework.messaging.logger")
     async def test_message_bus_logging(self, mock_logger):
         """Test message bus logging functionality."""
         bus = MessageBus(service_name="test-service")
@@ -499,16 +417,10 @@ class TestMessageBus:
             return True
 
         bus.register_handler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         await bus.publish(message)
         await asyncio.sleep(0.1)
@@ -525,16 +437,10 @@ class TestMessageBus:
             return True
 
         bus.register_handler(
-            name="test-handler",
-            message_type="user.created",
-            handler_func=handler_func
+            name="test-handler", message_type="user.created", handler_func=handler_func
         )
 
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         await bus.publish(message)
         await asyncio.sleep(0.1)
@@ -557,14 +463,10 @@ class TestMessageBus:
             name="failing-handler",
             message_type="user.created",
             handler_func=always_failing_handler,
-            max_retries=2
+            max_retries=2,
         )
 
-        message = Message(
-            id="test-123",
-            type="user.created",
-            data={"user_id": 123}
-        )
+        message = Message(id="test-123", type="user.created", data={"user_id": 123})
 
         await bus.publish(message)
         await asyncio.sleep(0.1)

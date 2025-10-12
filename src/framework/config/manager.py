@@ -176,21 +176,15 @@ class BaseServiceConfig(BaseSettings):
 
     # Database configuration
     database_url: str = Field(..., description="Database connection URL")
-    database_pool_size: int = Field(
-        default=20, description="Database connection pool size"
-    )
+    database_pool_size: int = Field(default=20, description="Database connection pool size")
     database_max_overflow: int = Field(
         default=30, description="Maximum database overflow connections"
     )
 
     # Observability
-    otlp_endpoint: str | None = Field(
-        default=None, description="OpenTelemetry OTLP endpoint"
-    )
+    otlp_endpoint: str | None = Field(default=None, description="OpenTelemetry OTLP endpoint")
     metrics_enabled: bool = Field(default=True, description="Enable metrics collection")
-    tracing_enabled: bool = Field(
-        default=True, description="Enable distributed tracing"
-    )
+    tracing_enabled: bool = Field(default=True, description="Enable distributed tracing")
 
     # Security
     secret_key: str = Field(..., description="Application secret key")
@@ -203,9 +197,7 @@ class BaseServiceConfig(BaseSettings):
     max_requests: int = Field(default=1000, description="Maximum requests per worker")
 
     # Feature flags
-    features: builtins.dict[str, bool] = Field(
-        default_factory=dict, description="Feature flags"
-    )
+    features: builtins.dict[str, bool] = Field(default_factory=dict, description="Feature flags")
 
 
 class ConfigManager(Generic[T]):
@@ -240,9 +232,7 @@ class ConfigManager(Generic[T]):
                 provider_config = await provider.load_config(key)
                 merged_config.update(provider_config)
             except Exception as e:
-                logger.warning(
-                    f"Provider {provider.__class__.__name__} failed for key {key}: {e}"
-                )
+                logger.warning(f"Provider {provider.__class__.__name__} failed for key {key}: {e}")
 
         # Validate and create config instance
         try:
@@ -407,9 +397,7 @@ def get_secret_manager() -> SecretManager | None:
 
 
 @asynccontextmanager
-async def config_context(
-    service_name: str, config_class: builtins.type[T] = BaseServiceConfig
-):
+async def config_context(service_name: str, config_class: builtins.type[T] = BaseServiceConfig):
     """Context manager for configuration lifecycle."""
     manager = create_config_manager(service_name, config_class)
     config = await manager.get_config(service_name)
@@ -455,11 +443,15 @@ class FrameworkConfig(BaseServiceConfig):
     """
 
     # Framework identification
-    framework_name: str = Field(default="marty-microservices-framework", description="Name of the framework")
+    framework_name: str = Field(
+        default="marty-microservices-framework", description="Name of the framework"
+    )
     framework_version: str = Field(default="1.0.0", description="Version of the framework")
 
     # Default service settings
-    default_service_timeout: float = Field(default=30.0, description="Default service timeout in seconds")
+    default_service_timeout: float = Field(
+        default=30.0, description="Default service timeout in seconds"
+    )
     default_retry_attempts: int = Field(default=3, description="Default number of retry attempts")
 
     # Messaging configuration
@@ -468,7 +460,9 @@ class FrameworkConfig(BaseServiceConfig):
 
     # Discovery configuration
     discovery_enabled: bool = Field(default=True, description="Enable service discovery")
-    default_discovery_backend: str = Field(default="in-memory", description="Default discovery backend")
+    default_discovery_backend: str = Field(
+        default="in-memory", description="Default discovery backend"
+    )
 
     # Observability configuration
     metrics_enabled: bool = Field(default=True, description="Enable metrics collection")

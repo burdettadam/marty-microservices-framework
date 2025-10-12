@@ -184,6 +184,7 @@ class MartyTemplateManager:
                     # Fallback to basic YAML parsing
                     with open(self.config_path) as f:
                         import yaml
+
                         return yaml.safe_load(f) or default_config
             except Exception as e:
                 logger.warning(f"Failed to load config: {e}")
@@ -253,9 +254,7 @@ class MartyTemplateManager:
         try:
             templates = self.get_available_templates()
             if config.template not in templates:
-                console.print(
-                    f"[red]Error: Template '{config.template}' not found[/red]"
-                )
+                console.print(f"[red]Error: Template '{config.template}' not found[/red]")
                 return False
 
             template_config = templates[config.template]
@@ -306,9 +305,7 @@ class MartyTemplateManager:
                 # In non-interactive mode, initialize git if git_repo is specified or default to True
                 should_init_git = config.git_repo or True
             else:
-                should_init_git = config.git_repo or Confirm.ask(
-                    "Initialize git repository?"
-                )
+                should_init_git = config.git_repo or Confirm.ask("Initialize git repository?")
 
             if should_init_git:
                 self._init_git_repo(project_path, config.git_repo)
@@ -334,18 +331,12 @@ class MartyTemplateManager:
         )
 
         # Define template filters
-        jinja_env.filters["slug"] = (
-            lambda x: x.lower().replace(" ", "-").replace("_", "-")
-        )
-        jinja_env.filters["snake"] = (
-            lambda x: x.lower().replace(" ", "_").replace("-", "_")
-        )
+        jinja_env.filters["slug"] = lambda x: x.lower().replace(" ", "-").replace("_", "-")
+        jinja_env.filters["snake"] = lambda x: x.lower().replace(" ", "_").replace("-", "_")
         jinja_env.filters["pascal"] = lambda x: "".join(
             word.capitalize() for word in x.replace("-", " ").replace("_", " ").split()
         )
-        jinja_env.filters["kebab"] = (
-            lambda x: x.lower().replace(" ", "-").replace("_", "-")
-        )
+        jinja_env.filters["kebab"] = lambda x: x.lower().replace(" ", "-").replace("_", "-")
 
         for root, dirs, files in os.walk(template_path):
             # Skip hidden directories and template config
@@ -355,9 +346,7 @@ class MartyTemplateManager:
             relative_path = root_path.relative_to(template_path)
 
             # Process directory names
-            processed_relative = self._process_path_template(
-                str(relative_path), context
-            )
+            processed_relative = self._process_path_template(str(relative_path), context)
             output_dir = output_path / processed_relative
             output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -404,9 +393,7 @@ class MartyTemplateManager:
                     # Fallback to direct copy
                     shutil.copy2(file_path, output_file)
 
-    def _process_path_template(
-        self, path: str, context: builtins.dict[str, Any]
-    ) -> str:
+    def _process_path_template(self, path: str, context: builtins.dict[str, Any]) -> str:
         """Process path templates."""
         try:
             template = jinja2.Template(path)
@@ -453,9 +440,7 @@ class MartyTemplateManager:
     def _setup_python_environment(self, project_path: Path, python_version: str):
         """Setup Python virtual environment and install dependencies."""
         try:
-            console.print(
-                f"[blue]Setting up Python {python_version} environment...[/blue]"
-            )
+            console.print(f"[blue]Setting up Python {python_version} environment...[/blue]")
 
             # Create virtual environment
             venv_path = project_path / ".venv"
@@ -602,9 +587,7 @@ class MartyProjectManager:
             # Check for different build systems
             if (self.current_project / "pyproject.toml").exists():
                 # Modern Python packaging
-                subprocess.run(
-                    ["python", "-m", "build"], check=True, cwd=self.current_project
-                )
+                subprocess.run(["python", "-m", "build"], check=True, cwd=self.current_project)
             elif (self.current_project / "setup.py").exists():
                 # Legacy setup.py
                 subprocess.run(
@@ -626,9 +609,7 @@ class MartyProjectManager:
                     cwd=self.current_project,
                 )
             else:
-                console.print(
-                    "[yellow]Warning: No recognized build system found[/yellow]"
-                )
+                console.print("[yellow]Warning: No recognized build system found[/yellow]")
                 return False
 
             console.print("[green]✓ Project built successfully[/green]")
@@ -654,9 +635,7 @@ class MartyProjectManager:
             if (self.current_project / "pytest.ini").exists() or (
                 self.current_project / "pyproject.toml"
             ).exists():
-                subprocess.run(
-                    ["python", "-m", "pytest"], check=True, cwd=self.current_project
-                )
+                subprocess.run(["python", "-m", "pytest"], check=True, cwd=self.current_project)
             elif (self.current_project / "tests").exists():
                 subprocess.run(
                     ["python", "-m", "unittest", "discover", "tests"],
@@ -700,14 +679,10 @@ class MartyProjectManager:
                 console.print("[green]✓ Deployed to Kubernetes[/green]")
             elif docker_compose.exists():
                 # Docker Compose deployment
-                subprocess.run(
-                    ["docker-compose", "up", "-d"], check=True, cwd=self.current_project
-                )
+                subprocess.run(["docker-compose", "up", "-d"], check=True, cwd=self.current_project)
                 console.print("[green]✓ Deployed with Docker Compose[/green]")
             else:
-                console.print(
-                    "[yellow]Warning: No deployment configuration found[/yellow]"
-                )
+                console.print("[yellow]Warning: No deployment configuration found[/yellow]")
                 return False
 
             return True
@@ -731,7 +706,7 @@ class MartyServiceRunner:
         service_name: str | None = None,
         config_file: str | None = None,
         environment: str = "development",
-        overrides: dict[str, Any] | None = None
+        overrides: dict[str, Any] | None = None,
     ) -> ServiceConfig:
         """Resolve service configuration from various sources."""
         overrides = overrides or {}
@@ -745,8 +720,11 @@ class MartyServiceRunner:
                 service_name = self.current_directory.name
             else:
                 # Look for service directories
-                service_dirs = [d for d in self.current_directory.iterdir()
-                              if d.is_dir() and not d.name.startswith('.')]
+                service_dirs = [
+                    d
+                    for d in self.current_directory.iterdir()
+                    if d.is_dir() and not d.name.startswith(".")
+                ]
                 if len(service_dirs) == 1:
                     service_name = service_dirs[0].name
                 else:
@@ -767,7 +745,7 @@ class MartyServiceRunner:
                 "config/base.yaml",
                 "config/base.yml",
                 "config.yaml",
-                "config.yml"
+                "config.yml",
             ]
 
             for config_path in default_configs:
@@ -808,16 +786,16 @@ class MartyServiceRunner:
         """Update service config from dictionary."""
         # Map common config keys
         mappings = {
-            'host': 'host',
-            'port': 'port',
-            'grpc_port': 'grpc_port',
-            'workers': 'workers',
-            'debug': 'debug',
-            'log_level': 'log_level',
-            'metrics_enabled': 'metrics_enabled',
-            'metrics_port': 'metrics_port',
-            'app_module': 'app_module',
-            'grpc_module': 'grpc_module'
+            "host": "host",
+            "port": "port",
+            "grpc_port": "grpc_port",
+            "workers": "workers",
+            "debug": "debug",
+            "log_level": "log_level",
+            "metrics_enabled": "metrics_enabled",
+            "metrics_port": "metrics_port",
+            "app_module": "app_module",
+            "grpc_module": "grpc_module",
         }
 
         for config_key, attr_name in mappings.items():
@@ -825,8 +803,8 @@ class MartyServiceRunner:
                 setattr(config, attr_name, data[config_key])
 
         # Handle nested service config
-        if 'service' in data:
-            self._update_config_from_dict(config, data['service'])
+        if "service" in data:
+            self._update_config_from_dict(config, data["service"])
 
     def _detect_app_module(self) -> str:
         """Auto-detect the FastAPI app module."""
@@ -850,7 +828,10 @@ class MartyServiceRunner:
         patterns = [
             ("grpc_server.py", "grpc_server:serve"),
             ("grpc_service.py", "grpc_service:serve"),
-            (f"{self.current_directory.name}/grpc_server.py", f"{self.current_directory.name}.grpc_server:serve"),
+            (
+                f"{self.current_directory.name}/grpc_server.py",
+                f"{self.current_directory.name}.grpc_server:serve",
+            ),
         ]
 
         for file_path, module in patterns:
@@ -861,6 +842,7 @@ class MartyServiceRunner:
 
     def run_service(self, config: ServiceConfig):
         """Run the service with the given configuration."""
+
         # Setup signal handlers for graceful shutdown
         def signal_handler(signum, frame):
             logger.info(f"Received signal {signum}, shutting down...")
@@ -907,7 +889,7 @@ class MartyServiceRunner:
                 if not config.grpc_module:
                     raise ValueError("gRPC module not specified")
 
-                module_name, func_name = config.grpc_module.split(':')
+                module_name, func_name = config.grpc_module.split(":")
                 module = __import__(module_name, fromlist=[func_name])
                 grpc_serve = getattr(module, func_name)
             except Exception as e:
@@ -931,11 +913,7 @@ class MartyServiceRunner:
             logger.info(f"Starting HTTP server on {config.host}:{config.port}")
             logger.info(f"Starting gRPC server on port {config.grpc_port}")
 
-            await asyncio.gather(
-                server.serve(),
-                grpc_serve(),
-                return_exceptions=True
-            )
+            await asyncio.gather(server.serve(), grpc_serve(), return_exceptions=True)
 
         # Run the event loop
         try:
@@ -1030,27 +1008,19 @@ def new(
         console.print(table)
 
         if template not in available_templates:
-            template = Prompt.ask(
-                "\nSelect template", choices=list(available_templates.keys())
-            )
+            template = Prompt.ask("\nSelect template", choices=list(available_templates.keys()))
 
         if not name:
             name = Prompt.ask("Project name")
 
         if not author:
-            author = Prompt.ask(
-                "Author name", default=template_manager.config.get("author", "")
-            )
+            author = Prompt.ask("Author name", default=template_manager.config.get("author", ""))
 
         if not email:
-            email = Prompt.ask(
-                "Author email", default=template_manager.config.get("email", "")
-            )
+            email = Prompt.ask("Author email", default=template_manager.config.get("email", ""))
 
         if not description:
-            description = Prompt.ask(
-                "Project description", default=f"A {template} microservice"
-            )
+            description = Prompt.ask("Project description", default=f"A {template} microservice")
 
     # Use config defaults
     config = template_manager.config
@@ -1128,9 +1098,7 @@ def templates():
         table.add_column("Python", style="green")
 
         for tmpl_name, tmpl_config in templates:
-            table.add_row(
-                tmpl_name, tmpl_config.description, tmpl_config.python_version
-            )
+            table.add_row(tmpl_name, tmpl_config.description, tmpl_config.python_version)
 
         console.print(table)
 
@@ -1210,13 +1178,9 @@ def run():
 
         # Check for different run configurations
         if (project_manager.current_project / "main.py").exists():
-            subprocess.run(
-                ["python", "main.py"], cwd=project_manager.current_project, check=False
-            )
+            subprocess.run(["python", "main.py"], cwd=project_manager.current_project, check=False)
         elif (project_manager.current_project / "app.py").exists():
-            subprocess.run(
-                ["python", "app.py"], cwd=project_manager.current_project, check=False
-            )
+            subprocess.run(["python", "app.py"], cwd=project_manager.current_project, check=False)
         elif (project_manager.current_project / "uvicorn").exists():
             subprocess.run(
                 ["uvicorn", "main:app", "--reload"],
@@ -1224,9 +1188,7 @@ def run():
                 check=False,
             )
         else:
-            console.print(
-                "[yellow]Warning: No recognized run configuration found[/yellow]"
-            )
+            console.print("[yellow]Warning: No recognized run configuration found[/yellow]")
             console.print("Try running: python main.py")
 
     except KeyboardInterrupt:
@@ -1263,7 +1225,7 @@ def runservice(
     log_level,
     access_log,
     metrics,
-    dry_run
+    dry_run,
 ):
     """Run a Marty microservice using the framework patterns.
 
@@ -1295,7 +1257,7 @@ def runservice(
                 "log_level": log_level,
                 "access_log": access_log,
                 "metrics": metrics,
-            }
+            },
         )
 
         if dry_run:
@@ -1327,6 +1289,7 @@ def runservice(
         console.print(f"[red]Failed to start service: {e}[/red]")
         if debug:
             import traceback
+
             console.print(traceback.format_exc())
         sys.exit(1)
 
@@ -1389,9 +1352,7 @@ def config_set(author, email, license, python_version):
     console.print(f"Author: {config_data.get('author', 'Not set')}")
     console.print(f"Email: {config_data.get('email', 'Not set')}")
     console.print(f"Default License: {config_data.get('default_license', 'MIT')}")
-    console.print(
-        f"Default Python Version: {config_data.get('default_python_version', '3.11')}"
-    )
+    console.print(f"Default Python Version: {config_data.get('default_python_version', '3.11')}")
 
 
 @config.command("validate")
@@ -1444,7 +1405,9 @@ def config_validate(service_path):
     console.print(f"Valid configs: {len(valid_configs)}/{len(required_configs)}")
 
     if missing_configs:
-        console.print(f"[red]❌ Validation failed - missing or invalid: {', '.join(missing_configs)}[/red]")
+        console.print(
+            f"[red]❌ Validation failed - missing or invalid: {', '.join(missing_configs)}[/red]"
+        )
         sys.exit(1)
     else:
         console.print("[green]✅ All configuration files are valid[/green]")
@@ -1500,14 +1463,18 @@ def create():
 
 @create.command()
 @click.option("--name", required=True, help="Service name")
-@click.option("--type", "service_type", default="fastapi", help="Service type (fastapi, flask, grpc)")
+@click.option(
+    "--type", "service_type", default="fastapi", help="Service type (fastapi, flask, grpc)"
+)
 @click.option("--output", default=".", help="Output directory")
 @click.option("--with-database", is_flag=True, help="Include database support")
 @click.option("--with-monitoring", is_flag=True, help="Include monitoring support")
 @click.option("--with-caching", is_flag=True, help="Include caching support")
 @click.option("--with-auth", is_flag=True, help="Include authentication support")
 @click.option("--with-tls", is_flag=True, help="Include TLS/SSL support")
-def service(name, service_type, output, with_database, with_monitoring, with_caching, with_auth, with_tls):
+def service(
+    name, service_type, output, with_database, with_monitoring, with_caching, with_auth, with_tls
+):
     """Create a new microservice.
 
     Examples:
@@ -1520,7 +1487,9 @@ def service(name, service_type, output, with_database, with_monitoring, with_cac
     output_path.mkdir(parents=True, exist_ok=True)
 
     # Create main.py
-    main_py_content = _generate_main_py(service_type, name, with_database, with_monitoring, with_caching, with_auth, with_tls)
+    main_py_content = _generate_main_py(
+        service_type, name, with_database, with_monitoring, with_caching, with_auth, with_tls
+    )
     (output_path / "main.py").write_text(main_py_content)
 
     # Create config directory and multiple config files
@@ -1528,21 +1497,31 @@ def service(name, service_type, output, with_database, with_monitoring, with_cac
     config_dir.mkdir(exist_ok=True)
 
     # Main config.yaml
-    config_yaml_content = _generate_config_yaml(name, with_database, with_monitoring, with_caching, with_auth, with_tls)
+    config_yaml_content = _generate_config_yaml(
+        name, with_database, with_monitoring, with_caching, with_auth, with_tls
+    )
     (output_path / "config.yaml").write_text(config_yaml_content)
 
     # Environment-specific configs
-    dev_config = _generate_env_config_yaml(name, "development", with_database, with_monitoring, with_caching, with_auth, with_tls)
+    dev_config = _generate_env_config_yaml(
+        name, "development", with_database, with_monitoring, with_caching, with_auth, with_tls
+    )
     (config_dir / "development.yaml").write_text(dev_config)
 
-    test_config = _generate_env_config_yaml(name, "testing", with_database, with_monitoring, with_caching, with_auth, with_tls)
+    test_config = _generate_env_config_yaml(
+        name, "testing", with_database, with_monitoring, with_caching, with_auth, with_tls
+    )
     (config_dir / "testing.yaml").write_text(test_config)
 
-    prod_config = _generate_env_config_yaml(name, "production", with_database, with_monitoring, with_caching, with_auth, with_tls)
+    prod_config = _generate_env_config_yaml(
+        name, "production", with_database, with_monitoring, with_caching, with_auth, with_tls
+    )
     (config_dir / "production.yaml").write_text(prod_config)
 
     # Create requirements.txt
-    requirements_content = _generate_requirements(service_type, with_database, with_monitoring, with_caching, with_auth, with_tls)
+    requirements_content = _generate_requirements(
+        service_type, with_database, with_monitoring, with_caching, with_auth, with_tls
+    )
     (output_path / "requirements.txt").write_text(requirements_content)
 
     # Create Dockerfile
@@ -1590,8 +1569,14 @@ def scan(service_path: str):
 
     # Check for sensitive files
     sensitive_patterns = [
-        "*.key", "*.pem", "*.p12", "*.jks",
-        ".env", "*.env", "secrets.yaml", "secrets.yml"
+        "*.key",
+        "*.pem",
+        "*.p12",
+        "*.jks",
+        ".env",
+        "*.env",
+        "secrets.yaml",
+        "secrets.yml",
     ]
 
     for pattern in sensitive_patterns:
@@ -1602,9 +1587,14 @@ def scan(service_path: str):
     # Check for hardcoded secrets in Python files
     for py_file in service_path_obj.rglob("*.py"):
         if py_file.is_file():
-            content = py_file.read_text(errors='ignore')
-            if any(keyword in content.lower() for keyword in ["password=", "secret=", "token=", "api_key="]):
-                issues.append(f"MEDIUM: Potential hardcoded secret in: {py_file.relative_to(service_path_obj)}")
+            content = py_file.read_text(errors="ignore")
+            if any(
+                keyword in content.lower()
+                for keyword in ["password=", "secret=", "token=", "api_key="]
+            ):
+                issues.append(
+                    f"MEDIUM: Potential hardcoded secret in: {py_file.relative_to(service_path_obj)}"
+                )
 
     # Check for proper certificate files (should exist in certs/)
     certs_dir = service_path_obj / "certs"
@@ -1678,11 +1668,7 @@ def migrate(service_path, db_host, db_port, db_name, db_user, db_password):
         try:
             # Connect to database
             conn = await asyncpg.connect(
-                host=db_host,
-                port=db_port,
-                database=db_name,
-                user=db_user,
-                password=db_password
+                host=db_host, port=db_port, database=db_name, user=db_user, password=db_password
             )
 
             # Run migrations in order
@@ -1745,11 +1731,7 @@ INSERT INTO items (name, description) VALUES
         try:
             # Connect to database
             conn = await asyncpg.connect(
-                host=db_host,
-                port=db_port,
-                database=db_name,
-                user=db_user,
-                password=db_password
+                host=db_host, port=db_port, database=db_name, user=db_user, password=db_password
             )
 
             # Run seed files in order
@@ -1771,7 +1753,15 @@ INSERT INTO items (name, description) VALUES
         raise click.ClickException("Seeding failed")
 
 
-def _generate_main_py(service_type, name, with_database, with_monitoring, with_caching, with_auth=False, with_tls=False):
+def _generate_main_py(
+    service_type,
+    name,
+    with_database,
+    with_monitoring,
+    with_caching,
+    with_auth=False,
+    with_tls=False,
+):
     """Generate main.py content based on service type and options."""
     if service_type == "fastapi":
         content = f"""from fastapi import FastAPI
@@ -1915,7 +1905,15 @@ if __name__ == "__main__":
     return f"# {service_type} service template not implemented yet"
 
 
-def _generate_env_config_yaml(name: str, environment: str, with_database: bool, with_monitoring: bool, with_caching: bool, with_auth: bool = False, with_tls: bool = False) -> str:
+def _generate_env_config_yaml(
+    name: str,
+    environment: str,
+    with_database: bool,
+    with_monitoring: bool,
+    with_caching: bool,
+    with_auth: bool = False,
+    with_tls: bool = False,
+) -> str:
     """Generate environment-specific config.yaml content."""
     db_suffix = {"development": "_dev", "testing": "_test", "production": ""}.get(environment, "")
     redis_db = {"development": "0", "testing": "1", "production": "0"}.get(environment, "0")
@@ -2049,63 +2047,63 @@ class SecurityMiddleware:
 ''')
 
 
-def _generate_config_yaml(name, with_database, with_monitoring, with_caching, with_auth=False, with_tls=False):
+def _generate_config_yaml(
+    name, with_database, with_monitoring, with_caching, with_auth=False, with_tls=False
+):
     """Generate config.yaml content."""
-    config = {
-        "service": {
-            "name": name,
-            "version": "1.0.0",
-            "port": 8080
-        }
-    }
+    config = {"service": {"name": name, "version": "1.0.0", "port": 8080}}
 
     if with_database:
         config["database"] = {
             "url": "${DATABASE_URL:postgresql://localhost:5432/db}",
-            "pool_size": 10
+            "pool_size": 10,
         }
 
     if with_monitoring:
-        config["monitoring"] = {
-            "enabled": True,
-            "metrics_port": 9090
-        }
+        config["monitoring"] = {"enabled": True, "metrics_port": 9090}
 
     if with_caching:
-        config["cache"] = {
-            "redis_url": "${REDIS_URL:redis://localhost:6379}",
-            "ttl": 3600
-        }
+        config["cache"] = {"redis_url": "${REDIS_URL:redis://localhost:6379}", "ttl": 3600}
 
     return yaml.dump(config, default_flow_style=False)
 
 
-def _generate_requirements(service_type, with_database, with_monitoring, with_caching, with_auth=False, with_tls=False):
+def _generate_requirements(
+    service_type, with_database, with_monitoring, with_caching, with_auth=False, with_tls=False
+):
     """Generate requirements.txt content."""
     requirements = []
 
     if service_type == "fastapi":
-        requirements.extend([
-            "fastapi>=0.104.0",
-            "uvicorn[standard]>=0.24.0",
-            "python-multipart>=0.0.6",
-        ])
+        requirements.extend(
+            [
+                "fastapi>=0.104.0",
+                "uvicorn[standard]>=0.24.0",
+                "python-multipart>=0.0.6",
+            ]
+        )
 
     if with_database:
-        requirements.extend([
-            "asyncpg>=0.29.0",
-            "sqlalchemy>=2.0.0",
-        ])
+        requirements.extend(
+            [
+                "asyncpg>=0.29.0",
+                "sqlalchemy>=2.0.0",
+            ]
+        )
 
     if with_monitoring:
-        requirements.extend([
-            "prometheus-client>=0.19.0",
-        ])
+        requirements.extend(
+            [
+                "prometheus-client>=0.19.0",
+            ]
+        )
 
     if with_caching:
-        requirements.extend([
-            "redis>=4.5.0",
-        ])
+        requirements.extend(
+            [
+                "redis>=4.5.0",
+            ]
+        )
 
     return "\n".join(requirements)
 
@@ -2169,6 +2167,7 @@ scrape_configs:
 # Import and add migration commands
 try:
     from marty_cli.commands import migrate
+
     cli.add_command(migrate)
 except ImportError:
     # Migration commands not available

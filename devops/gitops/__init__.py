@@ -141,9 +141,7 @@ class GitOpsApplication:
             "source_repo": self.source_repo.to_dict(),
             "health_status": self.health_status.value,
             "sync_status": self.sync_status.value,
-            "last_sync_time": self.last_sync_time.isoformat()
-            if self.last_sync_time
-            else None,
+            "last_sync_time": self.last_sync_time.isoformat() if self.last_sync_time else None,
         }
 
 
@@ -176,9 +174,7 @@ class GitOpsOperation:
             **asdict(self),
             "operation_type": self.operation_type.value,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
 
 
@@ -244,9 +240,7 @@ class GitRepositoryManager:
 
         else:
             # Clone repository
-            git_repo = git.Repo.clone_from(
-                repo.url, repo.local_path, branch=repo.branch
-            )
+            git_repo = git.Repo.clone_from(repo.url, repo.local_path, branch=repo.branch)
 
         # Update repository info
         repo.last_commit = git_repo.head.commit.hexsha
@@ -351,9 +345,7 @@ class GitRepositoryManager:
                     with open(file_path) as f:
                         yaml.safe_load(f)
                 except yaml.YAMLError as e:
-                    validation_results["errors"].append(
-                        f"Invalid YAML in {file_name}: {e}"
-                    )
+                    validation_results["errors"].append(f"Invalid YAML in {file_name}: {e}")
                     validation_results["valid"] = False
 
         return validation_results
@@ -405,9 +397,7 @@ class ArgoCDIntegration:
                 self.applications[app.name] = app
                 print(f"✅ Created ArgoCD application: {app.name}")
                 return True
-            print(
-                f"❌ Failed to create application: {response.status_code} - {response.text}"
-            )
+            print(f"❌ Failed to create application: {response.status_code} - {response.text}")
             return False
 
         except Exception as e:
@@ -426,9 +416,7 @@ class ArgoCDIntegration:
         print(f"✅ Mock created ArgoCD application: {app.name}")
         return True
 
-    def _convert_to_argocd_spec(
-        self, app: GitOpsApplication
-    ) -> builtins.dict[str, Any]:
+    def _convert_to_argocd_spec(self, app: GitOpsApplication) -> builtins.dict[str, Any]:
         """Convert GitOpsApplication to ArgoCD application spec"""
 
         spec = {
@@ -475,9 +463,7 @@ class ArgoCDIntegration:
 
         return spec
 
-    async def sync_application(
-        self, app_name: str, revision: str = None
-    ) -> GitOpsOperation:
+    async def sync_application(self, app_name: str, revision: str = None) -> GitOpsOperation:
         """Sync ArgoCD application"""
 
         operation = GitOpsOperation(
@@ -531,9 +517,7 @@ class ArgoCDIntegration:
 
         return operation
 
-    async def _mock_sync_application(
-        self, operation: GitOpsOperation
-    ) -> GitOpsOperation:
+    async def _mock_sync_application(self, operation: GitOpsOperation) -> GitOpsOperation:
         """Mock application sync for testing"""
 
         # Simulate sync operation
@@ -558,9 +542,7 @@ class ArgoCDIntegration:
         print(f"✅ Mock synced application: {operation.application_name}")
         return operation
 
-    async def get_application_status(
-        self, app_name: str
-    ) -> builtins.dict[str, Any] | None:
+    async def get_application_status(self, app_name: str) -> builtins.dict[str, Any] | None:
         """Get ArgoCD application status"""
 
         if app_name not in self.applications:
@@ -589,9 +571,7 @@ class ArgoCDIntegration:
             print(f"❌ Error getting application status: {e}")
             return None
 
-    def _mock_get_application_status(
-        self, app: GitOpsApplication
-    ) -> builtins.dict[str, Any]:
+    def _mock_get_application_status(self, app: GitOpsApplication) -> builtins.dict[str, Any]:
         """Mock application status for testing"""
 
         return {
@@ -599,9 +579,7 @@ class ArgoCDIntegration:
             "namespace": app.namespace,
             "health_status": app.health_status.value,
             "sync_status": app.sync_status.value,
-            "last_sync_time": app.last_sync_time.isoformat()
-            if app.last_sync_time
-            else None,
+            "last_sync_time": app.last_sync_time.isoformat() if app.last_sync_time else None,
             "resources": [
                 {
                     "kind": "Deployment",
@@ -618,9 +596,7 @@ class ArgoCDIntegration:
             ],
         }
 
-    def _parse_argocd_status(
-        self, app_data: builtins.dict[str, Any]
-    ) -> builtins.dict[str, Any]:
+    def _parse_argocd_status(self, app_data: builtins.dict[str, Any]) -> builtins.dict[str, Any]:
         """Parse ArgoCD application status response"""
 
         status = app_data.get("status", {})
@@ -635,9 +611,7 @@ class ArgoCDIntegration:
             "conditions": status.get("conditions", []),
         }
 
-    async def rollback_application(
-        self, app_name: str, target_revision: str
-    ) -> GitOpsOperation:
+    async def rollback_application(self, app_name: str, target_revision: str) -> GitOpsOperation:
         """Rollback ArgoCD application to specific revision"""
 
         operation = GitOpsOperation(
@@ -683,9 +657,7 @@ class ConfigurationDriftDetector:
 
     def __init__(self):
         self.drift_rules: builtins.list[builtins.dict[str, Any]] = []
-        self.detected_drifts: builtins.dict[
-            str, builtins.list[builtins.dict[str, Any]]
-        ] = {}
+        self.detected_drifts: builtins.dict[str, builtins.list[builtins.dict[str, Any]]] = {}
 
         # Initialize Kubernetes client if available
         if KUBERNETES_AVAILABLE:
@@ -735,9 +707,7 @@ class ConfigurationDriftDetector:
                 app.drift_detected = True
                 app.drift_resources = [drift["resource"] for drift in drifts]
 
-                print(
-                    f"⚠️ Configuration drift detected for {app.name}: {len(drifts)} resources"
-                )
+                print(f"⚠️ Configuration drift detected for {app.name}: {len(drifts)} resources")
             else:
                 app.drift_detected = False
                 app.drift_resources = []
@@ -751,9 +721,7 @@ class ConfigurationDriftDetector:
 
         return detected_drifts
 
-    async def _get_desired_state(
-        self, app: GitOpsApplication
-    ) -> builtins.dict[str, Any]:
+    async def _get_desired_state(self, app: GitOpsApplication) -> builtins.dict[str, Any]:
         """Get desired state from Git repository"""
 
         # Mock implementation - would parse Kubernetes manifests from Git
@@ -895,9 +863,7 @@ class ConfigurationDriftDetector:
 
         return drifts
 
-    async def remediate_drift(
-        self, app_name: str, drift: builtins.dict[str, Any]
-    ) -> bool:
+    async def remediate_drift(self, app_name: str, drift: builtins.dict[str, Any]) -> bool:
         """Remediate configuration drift"""
 
         try:
@@ -912,10 +878,7 @@ class ConfigurationDriftDetector:
                 self.detected_drifts[app_name] = [
                     d
                     for d in self.detected_drifts[app_name]
-                    if not (
-                        d["resource"] == drift["resource"]
-                        and d["field"] == drift["field"]
-                    )
+                    if not (d["resource"] == drift["resource"] and d["field"] == drift["field"])
                 ]
 
                 if not self.detected_drifts[app_name]:
@@ -1018,16 +981,12 @@ class GitOpsOrchestrator:
             await self.repo_manager._clone_or_update_repo(app.source_repo)
 
             # Validate configuration
-            validation = self.repo_manager.validate_repository_structure(
-                app.source_repo.name
-            )
+            validation = self.repo_manager.validate_repository_structure(app.source_repo.name)
             if not validation["valid"]:
                 raise Exception(f"Repository validation failed: {validation['errors']}")
 
             # Sync with ArgoCD
-            sync_operation = await self.argocd.sync_application(
-                app_name, target_revision
-            )
+            sync_operation = await self.argocd.sync_application(app_name, target_revision)
 
             if sync_operation.status == "succeeded":
                 operation.status = "succeeded"
@@ -1079,9 +1038,7 @@ class GitOpsOrchestrator:
             # Check application health
             status = await self.argocd.get_application_status(app.name)
             if status:
-                app.health_status = GitOpsApplicationStatus(
-                    status.get("health_status", "unknown")
-                )
+                app.health_status = GitOpsApplicationStatus(status.get("health_status", "unknown"))
                 app.sync_status = GitOpsSyncStatus(status.get("sync_status", "unknown"))
 
             # Check for configuration drift
@@ -1099,9 +1056,7 @@ class GitOpsOrchestrator:
                         await self.drift_detector.remediate_drift(app.name, drift)
 
             # Check for repository updates
-            latest_commit = await self.repo_manager.get_latest_commit(
-                app.source_repo.name
-            )
+            latest_commit = await self.repo_manager.get_latest_commit(app.source_repo.name)
             if latest_commit and latest_commit != app.source_repo.last_commit:
                 app.source_repo.last_commit = latest_commit
 
@@ -1127,9 +1082,7 @@ class GitOpsOrchestrator:
         self.event_handlers[event_type].append(handler)
         print(f"✅ Added event handler for: {event_type}")
 
-    async def _trigger_event(
-        self, event_type: str, event_data: builtins.dict[str, Any]
-    ):
+    async def _trigger_event(self, event_type: str, event_data: builtins.dict[str, Any]):
         """Trigger GitOps event"""
 
         if event_type in self.event_handlers:
@@ -1201,12 +1154,8 @@ async def main():
     print(f"Deployment status: {deployment.status}")
 
     # Add event handlers
-    gitops.add_event_handler(
-        "drift_detected", lambda data: print(f"🚨 Drift detected: {data}")
-    )
-    gitops.add_event_handler(
-        "application_deployed", lambda data: print(f"🚀 App deployed: {data}")
-    )
+    gitops.add_event_handler("drift_detected", lambda data: print(f"🚨 Drift detected: {data}"))
+    gitops.add_event_handler("application_deployed", lambda data: print(f"🚀 App deployed: {data}"))
 
     # Get status
     status = gitops.get_orchestrator_status()

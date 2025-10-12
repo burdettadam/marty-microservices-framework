@@ -186,9 +186,7 @@ class AuditLogger:
             .outcome(outcome)
             .action("authenticate")
             .severity(
-                AuditSeverity.MEDIUM
-                if outcome == AuditOutcome.SUCCESS
-                else AuditSeverity.HIGH
+                AuditSeverity.MEDIUM if outcome == AuditOutcome.SUCCESS else AuditSeverity.HIGH
             )
         )
         if source_ip:
@@ -210,14 +208,8 @@ class AuditLogger:
         error_message: str | None = None,
     ) -> None:
         """Log API request/response event."""
-        outcome = (
-            AuditOutcome.SUCCESS if 200 <= status_code < 400 else AuditOutcome.FAILURE
-        )
-        severity = (
-            AuditSeverity.INFO
-            if outcome == AuditOutcome.SUCCESS
-            else AuditSeverity.MEDIUM
-        )
+        outcome = AuditOutcome.SUCCESS if 200 <= status_code < 400 else AuditOutcome.FAILURE
+        severity = AuditSeverity.INFO if outcome == AuditOutcome.SUCCESS else AuditSeverity.MEDIUM
         builder = (
             self.create_event_builder()
             .event_type(AuditEventType.API_REQUEST)
@@ -364,9 +356,7 @@ class AuditLogger:
                 stats["total_events"] += 1
                 # Count by event type
                 event_type = event.event_type.value
-                stats["event_counts"][event_type] = (
-                    stats["event_counts"].get(event_type, 0) + 1
-                )
+                stats["event_counts"][event_type] = stats["event_counts"].get(event_type, 0) + 1
                 # Count by user
                 if event.user_id:
                     stats["user_activity"][event.user_id] = (
@@ -421,9 +411,7 @@ class AuditLogger:
             logger.info("Added database audit destination")
         # Console destination
         if self.config.enable_console_logging:
-            console_destination = ConsoleAuditDestination(
-                format_json=False, include_details=True
-            )
+            console_destination = ConsoleAuditDestination(format_json=False, include_details=True)
             self.destinations.append(console_destination)
             logger.info("Added console audit destination")
         # SIEM destination
@@ -459,9 +447,7 @@ class AuditLogger:
             try:
                 await destination.log_event(event)
             except Exception as e:
-                logger.error(
-                    f"Failed to log to destination {type(destination).__name__}: {e}"
-                )
+                logger.error(f"Failed to log to destination {type(destination).__name__}: {e}")
 
     async def _process_event_queue(self) -> None:
         """Process events from the async queue."""
@@ -526,9 +512,7 @@ def set_audit_logger(audit_logger: AuditLogger) -> None:
 
 
 @asynccontextmanager
-async def audit_context(
-    config: AuditConfig, context: AuditContext, db_session: Any | None = None
-):
+async def audit_context(config: AuditConfig, context: AuditContext, db_session: Any | None = None):
     """Context manager for audit logging."""
     audit_logger = AuditLogger(config, context, db_session)
     try:

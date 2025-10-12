@@ -120,9 +120,7 @@ class AuthorizationConfig:
 
     # Role-based settings
     role_hierarchy: builtins.dict[str, builtins.list[str]] = field(default_factory=dict)
-    super_admin_roles: builtins.set[str] = field(
-        default_factory=lambda: {"admin", "super_admin"}
-    )
+    super_admin_roles: builtins.set[str] = field(default_factory=lambda: {"admin", "super_admin"})
 
     # Permission settings
     permission_separator: str = ":"
@@ -135,12 +133,8 @@ class AuthorizationConfig:
     custom_authorizer: Callable[[Principal, GatewayRequest], bool] | None = None
 
     # Policy settings
-    policy_evaluation_order: builtins.list[str] = field(
-        default_factory=lambda: ["deny", "allow"]
-    )
-    combine_policies: str = (
-        "first_applicable"  # first_applicable, permit_overrides, deny_overrides
-    )
+    policy_evaluation_order: builtins.list[str] = field(default_factory=lambda: ["deny", "allow"])
+    combine_policies: str = "first_applicable"  # first_applicable, permit_overrides, deny_overrides
 
 
 @dataclass
@@ -397,9 +391,7 @@ class BasicAuthenticator(Authenticator):
             return AuthenticationResult(success=False, error="Invalid credentials")
 
         except Exception as e:
-            return AuthenticationResult(
-                success=False, error=f"Authentication error: {e!s}"
-            )
+            return AuthenticationResult(success=False, error=f"Authentication error: {e!s}")
 
 
 class CustomAuthenticator(Authenticator):
@@ -411,9 +403,7 @@ class CustomAuthenticator(Authenticator):
     def authenticate(self, request: GatewayRequest) -> AuthenticationResult:
         """Authenticate using custom function."""
         if not self.config.custom_authenticator:
-            return AuthenticationResult(
-                success=False, error="No custom authenticator configured"
-            )
+            return AuthenticationResult(success=False, error="No custom authenticator configured")
 
         try:
             principal = self.config.custom_authenticator(request)
@@ -423,18 +413,14 @@ class CustomAuthenticator(Authenticator):
                 return AuthenticationResult(success=True, principal=principal)
             return AuthenticationResult(success=False, error="Authentication failed")
         except Exception as e:
-            return AuthenticationResult(
-                success=False, error=f"Authentication error: {e!s}"
-            )
+            return AuthenticationResult(success=False, error=f"Authentication error: {e!s}")
 
 
 class Authorizer(ABC):
     """Abstract authorizer interface."""
 
     @abstractmethod
-    def authorize(
-        self, principal: Principal, request: GatewayRequest
-    ) -> AuthorizationResult:
+    def authorize(self, principal: Principal, request: GatewayRequest) -> AuthorizationResult:
         """Check if principal is authorized for request."""
         raise NotImplementedError
 
@@ -452,9 +438,7 @@ class RBACAuthorizer(Authorizer):
         # Sort rules by priority (higher priority first)
         self.rules.sort(key=lambda r: r.priority, reverse=True)
 
-    def authorize(
-        self, principal: Principal, request: GatewayRequest
-    ) -> AuthorizationResult:
+    def authorize(self, principal: Principal, request: GatewayRequest) -> AuthorizationResult:
         """Authorize using RBAC rules."""
         # Check if super admin
         if principal.roles & self.config.super_admin_roles:
@@ -494,9 +478,7 @@ class RBACAuthorizer(Authorizer):
 
         return AuthorizationResult(
             allowed=final_decision,
-            reason="Default policy"
-            if not matched_rules
-            else f"Combined rules: {matched_rules}",
+            reason="Default policy" if not matched_rules else f"Combined rules: {matched_rules}",
             matched_rules=matched_rules,
         )
 
@@ -513,9 +495,7 @@ class RBACAuthorizer(Authorizer):
             return False
 
         # Check actions (HTTP methods)
-        if rule.actions and request.method.value.lower() not in [
-            a.lower() for a in rule.actions
-        ]:
+        if rule.actions and request.method.value.lower() not in [a.lower() for a in rule.actions]:
             return False
 
         # Check resources (paths)
@@ -524,9 +504,7 @@ class RBACAuthorizer(Authorizer):
 
         # Check conditions
         for condition_key, condition_value in rule.conditions.items():
-            if not self._evaluate_condition(
-                condition_key, condition_value, principal, request
-            ):
+            if not self._evaluate_condition(condition_key, condition_value, principal, request):
                 return False
 
         return True
@@ -548,9 +526,7 @@ class RBACAuthorizer(Authorizer):
 
         # Wildcard permission check
         if self.config.wildcard_permissions:
-            permission_parts = required_permission.split(
-                self.config.permission_separator
-            )
+            permission_parts = required_permission.split(self.config.permission_separator)
 
             for granted in principal.permissions:
                 if granted.endswith("*"):
@@ -566,9 +542,7 @@ class RBACAuthorizer(Authorizer):
 
         return False
 
-    def _matches_resources(
-        self, path: str, resource_patterns: builtins.list[str]
-    ) -> bool:
+    def _matches_resources(self, path: str, resource_patterns: builtins.list[str]) -> bool:
         """Check if path matches any resource pattern."""
         for pattern in resource_patterns:
             if self._matches_resource_pattern(path, pattern):
@@ -607,9 +581,7 @@ class RBACAuthorizer(Authorizer):
 
         if key == "ip_address":
             # Check if request IP is in allowed list
-            ip = request.get_header("X-Forwarded-For") or request.get_header(
-                "X-Real-IP"
-            )
+            ip = request.get_header("X-Forwarded-For") or request.get_header("X-Real-IP")
             return ip in value if isinstance(value, list) else ip == value
 
         if key == "user_attribute":
@@ -647,9 +619,7 @@ class AuthenticationMiddleware:
 
         authenticator_class = auth_type_map.get(self.config.auth_type)
         if not authenticator_class:
-            raise ValueError(
-                f"Unsupported authentication type: {self.config.auth_type}"
-            )
+            raise ValueError(f"Unsupported authentication type: {self.config.auth_type}")
 
         return authenticator_class(self.config)
 
@@ -657,10 +627,7 @@ class AuthenticationMiddleware:
         """Process request for authentication."""
         try:
             # Skip authentication if not required
-            if (
-                not self.config.required
-                and self.config.auth_type == AuthenticationType.NONE
-            ):
+            if not self.config.required and self.config.auth_type == AuthenticationType.NONE:
                 request.context.principal = Principal(
                     id="anonymous", type="anonymous", auth_method="none"
                 )
@@ -695,18 +662,14 @@ class AuthenticationMiddleware:
                 AuthenticationResult(success=False, error="Authentication error")
             )
 
-    def _create_auth_error_response(
-        self, result: AuthenticationResult
-    ) -> GatewayResponse:
+    def _create_auth_error_response(self, result: AuthenticationResult) -> GatewayResponse:
         """Create authentication error response."""
         from .core import GatewayResponse
 
         status_code = 401
         body = result.error or "Authentication required"
 
-        response = GatewayResponse(
-            status_code=status_code, body=body, content_type="text/plain"
-        )
+        response = GatewayResponse(status_code=status_code, body=body, content_type="text/plain")
 
         if result.challenge:
             response.set_header("WWW-Authenticate", result.challenge)
@@ -793,9 +756,7 @@ def create_jwt_auth(secret: str, algorithm: str = "HS256") -> AuthenticationMidd
     return AuthenticationMiddleware(config)
 
 
-def create_api_key_auth(
-    api_keys: builtins.dict[str, Principal]
-) -> AuthenticationMiddleware:
+def create_api_key_auth(api_keys: builtins.dict[str, Principal]) -> AuthenticationMiddleware:
     """Create API key authentication middleware."""
     config = AuthenticationConfig(auth_type=AuthenticationType.API_KEY)
     middleware = AuthenticationMiddleware(config)

@@ -208,7 +208,12 @@ class AggregateRoot(ABC):
     def _handle_event(self, event: DomainEvent):
         """Handle specific event type (to be implemented by subclasses)."""
 
-    def raise_event(self, event_type: str, data: builtins.dict[str, Any], metadata: builtins.dict[str, Any] = None):
+    def raise_event(
+        self,
+        event_type: str,
+        data: builtins.dict[str, Any],
+        metadata: builtins.dict[str, Any] = None,
+    ):
         """Raise a new domain event."""
         event = DomainEvent(
             event_id=str(uuid.uuid4()),

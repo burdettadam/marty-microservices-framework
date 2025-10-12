@@ -30,7 +30,7 @@ def sample_config():
     return LoadBalancingConfig(
         strategy=LoadBalancingStrategy.ROUND_ROBIN,
         health_check_enabled=True,
-        health_check_interval=30.0
+        health_check_interval=30.0,
     )
 
 
@@ -38,9 +38,15 @@ def sample_config():
 def service_instances():
     """Create sample service instances for testing."""
     return [
-        ServiceInstance(service_name="test-service", instance_id="instance-1", host="localhost", port=8080),
-        ServiceInstance(service_name="test-service", instance_id="instance-2", host="localhost", port=8081),
-        ServiceInstance(service_name="test-service", instance_id="instance-3", host="localhost", port=8082),
+        ServiceInstance(
+            service_name="test-service", instance_id="instance-1", host="localhost", port=8080
+        ),
+        ServiceInstance(
+            service_name="test-service", instance_id="instance-2", host="localhost", port=8081
+        ),
+        ServiceInstance(
+            service_name="test-service", instance_id="instance-3", host="localhost", port=8082
+        ),
     ]
 
 
@@ -52,7 +58,7 @@ def context():
         session_id="session-123",
         request_headers={"User-Agent": "test-client"},
         request_path="/api/v1/data",
-        request_method="GET"
+        request_method="GET",
     )
 
 
@@ -62,10 +68,7 @@ class TestServiceInstanceFixed:
     def test_service_instance_creation(self):
         """Test creating a service instance with proper parameters."""
         instance = ServiceInstance(
-            service_name="test-service",
-            instance_id="test-instance",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test-instance", host="localhost", port=8080
         )
 
         assert instance.service_name == "test-service"
@@ -76,22 +79,13 @@ class TestServiceInstanceFixed:
     def test_service_instance_equality(self):
         """Test service instance equality comparison."""
         instance1 = ServiceInstance(
-            service_name="service",
-            instance_id="instance-1",
-            host="localhost",
-            port=8080
+            service_name="service", instance_id="instance-1", host="localhost", port=8080
         )
         instance2 = ServiceInstance(
-            service_name="service",
-            instance_id="instance-1",
-            host="localhost",
-            port=8080
+            service_name="service", instance_id="instance-1", host="localhost", port=8080
         )
         instance3 = ServiceInstance(
-            service_name="service",
-            instance_id="instance-2",
-            host="localhost",
-            port=8080
+            service_name="service", instance_id="instance-2", host="localhost", port=8080
         )
 
         assert instance1 == instance2
@@ -302,7 +296,7 @@ class TestLoadBalancingConfigFixed:
             strategy=LoadBalancingStrategy.WEIGHTED_ROUND_ROBIN,
             health_check_enabled=False,
             health_check_interval=60.0,
-            max_retries=5
+            max_retries=5,
         )
 
         assert config.strategy == LoadBalancingStrategy.WEIGHTED_ROUND_ROBIN
@@ -330,7 +324,7 @@ class TestLoadBalancingContextFixed:
             session_id="session-123",
             request_headers={"User-Agent": "test-client"},
             request_path="/api/v1/data",
-            custom_data={"priority": "high"}
+            custom_data={"priority": "high"},
         )
 
         assert context.client_ip == "192.168.1.100"
@@ -379,7 +373,7 @@ class TestLoadBalancerFallbackFixed:
         """Test fallback strategy when primary fails."""
         config = LoadBalancingConfig(
             strategy=LoadBalancingStrategy.ROUND_ROBIN,
-            fallback_strategy=LoadBalancingStrategy.RANDOM
+            fallback_strategy=LoadBalancingStrategy.RANDOM,
         )
         balancer = RoundRobinBalancer(config)
 
@@ -398,17 +392,11 @@ class TestLoadBalancerHealthCheckFixed:
         """Test that only healthy instances are used."""
         # Create instances with mixed health status
         healthy_instance = ServiceInstance(
-            service_name="service",
-            instance_id="healthy",
-            host="localhost",
-            port=8080
+            service_name="service", instance_id="healthy", host="localhost", port=8080
         )
 
         unhealthy_instance = ServiceInstance(
-            service_name="service",
-            instance_id="unhealthy",
-            host="localhost",
-            port=8081
+            service_name="service", instance_id="unhealthy", host="localhost", port=8081
         )
 
         # Mock health status
@@ -416,8 +404,7 @@ class TestLoadBalancerHealthCheckFixed:
         unhealthy_instance.is_healthy = lambda: False
 
         config = LoadBalancingConfig(
-            strategy=LoadBalancingStrategy.ROUND_ROBIN,
-            health_check_enabled=True
+            strategy=LoadBalancingStrategy.ROUND_ROBIN, health_check_enabled=True
         )
         balancer = RoundRobinBalancer(config)
 
@@ -428,6 +415,7 @@ class TestLoadBalancerHealthCheckFixed:
         result = await balancer.select_instance(None)
         assert result == healthy_instance or result is None
 
+
 import pytest
 
 
@@ -437,10 +425,7 @@ class TestServiceInstanceFixedV2:
     def test_service_instance_creation(self):
         """Test creating a service instance with all attributes."""
         instance = ServiceInstance(
-            service_name="test-service",
-            instance_id="test-1",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test-1", host="localhost", port=8080
         )
 
         assert instance.instance_id == "test-1"
@@ -451,10 +436,7 @@ class TestServiceInstanceFixedV2:
     def test_service_instance_address_property(self):
         """Test service instance address property."""
         instance = ServiceInstance(
-            service_name="api-service",
-            instance_id="test",
-            host="api.example.com",
-            port=9000
+            service_name="api-service", instance_id="test", host="api.example.com", port=9000
         )
         address = instance.endpoint.get_url()
         assert "api.example.com:9000" in address
@@ -462,14 +444,12 @@ class TestServiceInstanceFixedV2:
     def test_service_instance_is_healthy(self):
         """Test service instance health status."""
         instance = ServiceInstance(
-            service_name="test-service",
-            instance_id="test",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test", host="localhost", port=8080
         )
 
         # Default health status should be unknown
         from src.framework.discovery.core import HealthStatus
+
         assert instance.health_status == HealthStatus.UNKNOWN
 
         # Test updating health status
@@ -479,10 +459,7 @@ class TestServiceInstanceFixedV2:
     def test_service_instance_request_tracking(self):
         """Test service instance request tracking."""
         instance = ServiceInstance(
-            service_name="test-service",
-            instance_id="test",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test", host="localhost", port=8080
         )
 
         # Initially no requests
@@ -504,9 +481,15 @@ class TestRoundRobinBalancerFixedV2:
     def service_instances(self):
         """Create test service instances."""
         return [
-            ServiceInstance(service_name="service", instance_id="service-1", host="host1", port=8080),
-            ServiceInstance(service_name="service", instance_id="service-2", host="host2", port=8080),
-            ServiceInstance(service_name="service", instance_id="service-3", host="host3", port=8080),
+            ServiceInstance(
+                service_name="service", instance_id="service-1", host="host1", port=8080
+            ),
+            ServiceInstance(
+                service_name="service", instance_id="service-2", host="host2", port=8080
+            ),
+            ServiceInstance(
+                service_name="service", instance_id="service-3", host="host3", port=8080
+            ),
         ]
 
     def test_round_robin_selection_cycle(self, service_instances):
@@ -599,8 +582,12 @@ class TestLeastConnectionsBalancerFixedV2:
     def connection_instances(self):
         """Create instances with different connection counts."""
         instances = [
-            ServiceInstance(service_name="service", instance_id="low-load", host="host1", port=8080),
-            ServiceInstance(service_name="service", instance_id="high-load", host="host2", port=8080),
+            ServiceInstance(
+                service_name="service", instance_id="low-load", host="host1", port=8080
+            ),
+            ServiceInstance(
+                service_name="service", instance_id="high-load", host="host2", port=8080
+            ),
         ]
         # Simulate different connection loads
         instances[0].active_connections = 2
@@ -638,10 +625,7 @@ class TestLeastConnectionsBalancerFixedV2:
     def test_record_request_updates_tracking(self):
         """Test that recording a request updates connection tracking."""
         instance = ServiceInstance(
-            service_name="test-service",
-            instance_id="test",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test", host="localhost", port=8080
         )
 
         balancer = LeastConnectionsBalancer()
@@ -663,9 +647,15 @@ class TestRandomBalancerFixedV2:
     def service_instances(self):
         """Create test service instances."""
         return [
-            ServiceInstance(service_name="service", instance_id="service-1", host="host1", port=8080),
-            ServiceInstance(service_name="service", instance_id="service-2", host="host2", port=8080),
-            ServiceInstance(service_name="service", instance_id="service-3", host="host3", port=8080),
+            ServiceInstance(
+                service_name="service", instance_id="service-1", host="host1", port=8080
+            ),
+            ServiceInstance(
+                service_name="service", instance_id="service-2", host="host2", port=8080
+            ),
+            ServiceInstance(
+                service_name="service", instance_id="service-3", host="host3", port=8080
+            ),
         ]
 
     def test_random_selection_distribution(self, service_instances):
@@ -702,9 +692,15 @@ class TestHealthBasedBalancerFixed:
         from src.framework.discovery.core import HealthStatus
 
         instances = [
-            ServiceInstance(service_name="service", instance_id="healthy-1", host="host1", port=8080),
-            ServiceInstance(service_name="service", instance_id="healthy-2", host="host2", port=8080),
-            ServiceInstance(service_name="service", instance_id="unhealthy-1", host="host3", port=8080),
+            ServiceInstance(
+                service_name="service", instance_id="healthy-1", host="host1", port=8080
+            ),
+            ServiceInstance(
+                service_name="service", instance_id="healthy-2", host="host2", port=8080
+            ),
+            ServiceInstance(
+                service_name="service", instance_id="unhealthy-1", host="host3", port=8080
+            ),
         ]
 
         # Set health status
@@ -724,6 +720,7 @@ class TestHealthBasedBalancerFixed:
             selected = balancer.select_instance(mixed_health_instances, config, None)
             if selected:
                 from src.framework.discovery.core import HealthStatus
+
                 assert selected.health_status == HealthStatus.HEALTHY
 
     def test_health_based_all_unhealthy_returns_none(self):
@@ -731,8 +728,12 @@ class TestHealthBasedBalancerFixed:
         from src.framework.discovery.core import HealthStatus
 
         instances = [
-            ServiceInstance(service_name="service", instance_id="unhealthy-1", host="host1", port=8080),
-            ServiceInstance(service_name="service", instance_id="unhealthy-2", host="host2", port=8080),
+            ServiceInstance(
+                service_name="service", instance_id="unhealthy-1", host="host1", port=8080
+            ),
+            ServiceInstance(
+                service_name="service", instance_id="unhealthy-2", host="host2", port=8080
+            ),
         ]
 
         # Make all unhealthy
@@ -828,11 +829,21 @@ class TestLoadBalancingIntegrationFixed:
         from src.framework.discovery.core import HealthStatus
 
         instances = [
-            ServiceInstance(service_name="web", instance_id="web-1", host="web1.example.com", port=80),
-            ServiceInstance(service_name="web", instance_id="web-2", host="web2.example.com", port=80),
-            ServiceInstance(service_name="web", instance_id="web-3", host="web3.example.com", port=80),
-            ServiceInstance(service_name="api", instance_id="api-1", host="api1.example.com", port=8080),
-            ServiceInstance(service_name="api", instance_id="api-2", host="api2.example.com", port=8080),
+            ServiceInstance(
+                service_name="web", instance_id="web-1", host="web1.example.com", port=80
+            ),
+            ServiceInstance(
+                service_name="web", instance_id="web-2", host="web2.example.com", port=80
+            ),
+            ServiceInstance(
+                service_name="web", instance_id="web-3", host="web3.example.com", port=80
+            ),
+            ServiceInstance(
+                service_name="api", instance_id="api-1", host="api1.example.com", port=8080
+            ),
+            ServiceInstance(
+                service_name="api", instance_id="api-2", host="api2.example.com", port=8080
+            ),
         ]
 
         # Set different health statuses and loads
@@ -880,7 +891,10 @@ class TestLoadBalancingIntegrationFixed:
         # Test different strategies
         strategies = [
             (RoundRobinBalancer(), LoadBalancingConfig(strategy=LoadBalancingStrategy.ROUND_ROBIN)),
-            (LeastConnectionsBalancer(), LoadBalancingConfig(strategy=LoadBalancingStrategy.LEAST_CONNECTIONS)),
+            (
+                LeastConnectionsBalancer(),
+                LoadBalancingConfig(strategy=LoadBalancingStrategy.LEAST_CONNECTIONS),
+            ),
             (RandomBalancer(), LoadBalancingConfig(strategy=LoadBalancingStrategy.RANDOM)),
         ]
 

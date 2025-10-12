@@ -28,9 +28,7 @@ class TaskManagementService:
         """Create a new task with proper validation and event generation."""
 
         # Create the task
-        task = Task(
-            title=title, description=description, priority=priority, assignee=assignee
-        )
+        task = Task(title=title, description=description, priority=priority, assignee=assignee)
 
         # Generate domain event
         event = TaskCreated(
@@ -142,9 +140,7 @@ class UserManagementService:
             "is_overloaded": workload_score > 20,  # Business rule threshold
         }
 
-    def find_best_assignee(
-        self, users: builtins.list[User], task_priority: str
-    ) -> User | None:
+    def find_best_assignee(self, users: builtins.list[User], task_priority: str) -> User | None:
         """Find the best user to assign a task to based on workload and availability."""
 
         # Filter active users only

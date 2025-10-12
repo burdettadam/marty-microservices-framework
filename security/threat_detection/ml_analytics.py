@@ -166,9 +166,7 @@ class SecurityMLAnalyzer:
                 "ML anomaly detections",
                 ["entity_type", "anomaly_type"],
             )
-            self.model_accuracy_gauge = Gauge(
-                "marty_ml_model_accuracy", "ML model accuracy"
-            )
+            self.model_accuracy_gauge = Gauge("marty_ml_model_accuracy", "ML model accuracy")
 
     def _initialize_models(self):
         """Initialize ML models"""
@@ -227,9 +225,7 @@ class SecurityMLAnalyzer:
 
         # Update access patterns
         access_hours = [
-            datetime.fromisoformat(
-                event.get("timestamp", datetime.now().isoformat())
-            ).hour
+            datetime.fromisoformat(event.get("timestamp", datetime.now().isoformat())).hour
             for event in recent_events
             if "timestamp" in event
         ]
@@ -267,18 +263,12 @@ class SecurityMLAnalyzer:
 
             # Calculate risk factors
             failed_logins = sum(
-                1
-                for event in recent_events
-                if event.get("event_type") == "authentication_failure"
+                1 for event in recent_events if event.get("event_type") == "authentication_failure"
             )
-            profile.failed_login_rate = (
-                failed_logins / len(recent_events) if recent_events else 0.0
-            )
+            profile.failed_login_rate = failed_logins / len(recent_events) if recent_events else 0.0
 
             admin_accesses = sum(
-                1
-                for event in recent_events
-                if "admin" in event.get("endpoint", "").lower()
+                1 for event in recent_events if "admin" in event.get("endpoint", "").lower()
             )
             profile.privilege_escalation_attempts = admin_accesses
 
@@ -306,9 +296,7 @@ class SecurityMLAnalyzer:
 
         # Update metrics
         if METRICS_AVAILABLE and profile.anomaly_score > 0.7:
-            self.anomaly_detections.labels(
-                entity_type="user", anomaly_type="behavioral"
-            ).inc()
+            self.anomaly_detections.labels(entity_type="user", anomaly_type="behavioral").inc()
 
         return profile
 
@@ -326,9 +314,7 @@ class SecurityMLAnalyzer:
 
         # Hour of day (average)
         hours = [
-            datetime.fromisoformat(
-                event.get("timestamp", datetime.now().isoformat())
-            ).hour
+            datetime.fromisoformat(event.get("timestamp", datetime.now().isoformat())).hour
             for event in recent_events
             if "timestamp" in event
         ]
@@ -337,9 +323,7 @@ class SecurityMLAnalyzer:
 
         # Day of week (most common)
         days = [
-            datetime.fromisoformat(
-                event.get("timestamp", datetime.now().isoformat())
-            ).weekday()
+            datetime.fromisoformat(event.get("timestamp", datetime.now().isoformat())).weekday()
             for event in recent_events
             if "timestamp" in event
         ]
@@ -347,28 +331,20 @@ class SecurityMLAnalyzer:
         features.append(most_common_day / 7.0)  # Normalize to 0-1
 
         # Requests per hour
-        features.append(
-            min(1.0, profile.avg_requests_per_hour / 100.0)
-        )  # Cap at 100 req/hour
+        features.append(min(1.0, profile.avg_requests_per_hour / 100.0))  # Cap at 100 req/hour
 
         # Unique endpoints accessed
-        unique_endpoints = len(
-            {event.get("endpoint", "") for event in recent_events}
-        )
+        unique_endpoints = len({event.get("endpoint", "") for event in recent_events})
         features.append(min(1.0, unique_endpoints / 50.0))  # Cap at 50 endpoints
 
         # Failed login rate
         features.append(profile.failed_login_rate)
 
         # Average response time (normalized)
-        features.append(
-            min(1.0, profile.avg_response_time / 5000.0)
-        )  # Cap at 5 seconds
+        features.append(min(1.0, profile.avg_response_time / 5000.0))  # Cap at 5 seconds
 
         # Average payload size
-        payload_sizes = [
-            len(str(event.get("request_body", ""))) for event in recent_events
-        ]
+        payload_sizes = [len(str(event.get("request_body", ""))) for event in recent_events]
         avg_payload = statistics.mean(payload_sizes) if payload_sizes else 0
         features.append(min(1.0, avg_payload / 10000.0))  # Cap at 10KB
 
@@ -385,10 +361,7 @@ class SecurityMLAnalyzer:
         critical_services = sum(
             1
             for event in recent_events
-            if any(
-                x in event.get("service_name", "").lower()
-                for x in ["payment", "auth", "admin"]
-            )
+            if any(x in event.get("service_name", "").lower() for x in ["payment", "auth", "admin"])
         )
         service_risk = critical_services / len(recent_events) if recent_events else 0.0
         features.append(service_risk)
@@ -403,9 +376,7 @@ class SecurityMLAnalyzer:
         # Session duration (estimated)
         if len(recent_events) > 1:
             timestamps = [
-                datetime.fromisoformat(
-                    event.get("timestamp", datetime.now().isoformat())
-                )
+                datetime.fromisoformat(event.get("timestamp", datetime.now().isoformat()))
                 for event in recent_events
                 if "timestamp" in event
             ]
@@ -424,9 +395,7 @@ class SecurityMLAnalyzer:
 
         return features
 
-    def _calculate_user_anomaly_score_fallback(
-        self, profile: UserBehaviorProfile
-    ) -> float:
+    def _calculate_user_anomaly_score_fallback(self, profile: UserBehaviorProfile) -> float:
         """Fallback anomaly calculation when ML not available"""
 
         score = 0.0
@@ -474,15 +443,11 @@ class SecurityMLAnalyzer:
         if response_times:
             profile.avg_response_time = statistics.mean(response_times)
 
-        throughput_values = [
-            m.get("throughput", 0) for m in recent_metrics if m.get("throughput")
-        ]
+        throughput_values = [m.get("throughput", 0) for m in recent_metrics if m.get("throughput")]
         if throughput_values:
             profile.avg_throughput = statistics.mean(throughput_values)
 
-        error_rates = [
-            m.get("error_rate", 0) for m in recent_metrics if m.get("error_rate")
-        ]
+        error_rates = [m.get("error_rate", 0) for m in recent_metrics if m.get("error_rate")]
         if error_rates:
             profile.avg_error_rate = statistics.mean(error_rates)
 
@@ -490,9 +455,7 @@ class SecurityMLAnalyzer:
         auth_failures = sum(
             1 for m in recent_metrics if m.get("event_type") == "authentication_failure"
         )
-        profile.auth_failure_rate = (
-            auth_failures / len(recent_metrics) if recent_metrics else 0.0
-        )
+        profile.auth_failure_rate = auth_failures / len(recent_metrics) if recent_metrics else 0.0
 
         suspicious_requests = sum(
             1 for m in recent_metrics if "suspicious" in m.get("event_type", "")
@@ -517,17 +480,13 @@ class SecurityMLAnalyzer:
                 print(f"Error calculating service anomaly score: {e}")
                 profile.anomaly_score = 0.0
         else:
-            profile.anomaly_score = self._calculate_service_anomaly_score_fallback(
-                profile
-            )
+            profile.anomaly_score = self._calculate_service_anomaly_score_fallback(profile)
 
         profile.updated_at = datetime.now()
 
         # Update metrics
         if METRICS_AVAILABLE and profile.anomaly_score > 0.7:
-            self.anomaly_detections.labels(
-                entity_type="service", anomaly_type="performance"
-            ).inc()
+            self.anomaly_detections.labels(entity_type="service", anomaly_type="performance").inc()
 
         return profile
 
@@ -569,18 +528,14 @@ class SecurityMLAnalyzer:
         critical_keywords = ["payment", "auth", "user", "admin", "core"]
         criticality = (
             1.0
-            if any(
-                keyword in profile.service_name.lower() for keyword in critical_keywords
-            )
+            if any(keyword in profile.service_name.lower() for keyword in critical_keywords)
             else 0.5
         )
         features.append(criticality)
 
         return features
 
-    def _calculate_service_anomaly_score_fallback(
-        self, profile: ServiceBehaviorProfile
-    ) -> float:
+    def _calculate_service_anomaly_score_fallback(self, profile: ServiceBehaviorProfile) -> float:
         """Fallback service anomaly calculation"""
 
         score = 0.0
@@ -603,9 +558,7 @@ class SecurityMLAnalyzer:
 
         return min(1.0, score)
 
-    async def predict_threat(
-        self, event_data: builtins.dict[str, Any]
-    ) -> ThreatPrediction | None:
+    async def predict_threat(self, event_data: builtins.dict[str, Any]) -> ThreatPrediction | None:
         """Predict threat likelihood using ML models"""
 
         if not ML_AVAILABLE or not self.threat_classifier:
@@ -643,8 +596,7 @@ class SecurityMLAnalyzer:
                 created_at=datetime.now(),
                 threat_type=threat_type,
                 confidence=confidence,
-                predicted_at=datetime.now()
-                + timedelta(minutes=30),  # Predict 30 min ahead
+                predicted_at=datetime.now() + timedelta(minutes=30),  # Predict 30 min ahead
                 features_used=self.feature_names,
                 model_version="1.0",
                 risk_score=confidence,
@@ -684,15 +636,11 @@ class SecurityMLAnalyzer:
             features.extend([0.5, 0.5])  # Default values
 
         # Request characteristics
-        features.append(
-            min(1.0, len(str(event_data.get("request_body", ""))) / 10000.0)
-        )
+        features.append(min(1.0, len(str(event_data.get("request_body", ""))) / 10000.0))
         features.append(len(set(event_data.get("endpoint", "").split("/"))) / 10.0)
 
         # Security indicators
-        failed_auth = (
-            1.0 if event_data.get("event_type") == "authentication_failure" else 0.0
-        )
+        failed_auth = 1.0 if event_data.get("event_type") == "authentication_failure" else 0.0
         features.append(failed_auth)
 
         response_time = event_data.get("response_time", 0)
@@ -715,9 +663,7 @@ class SecurityMLAnalyzer:
         # Service criticality
         service_name = event_data.get("service_name", "").lower()
         critical_services = ["payment", "auth", "user", "admin"]
-        criticality = (
-            1.0 if any(cs in service_name for cs in critical_services) else 0.5
-        )
+        criticality = 1.0 if any(cs in service_name for cs in critical_services) else 0.5
         features.append(criticality)
 
         # User privilege (inferred)
@@ -732,9 +678,7 @@ class SecurityMLAnalyzer:
         # IP reputation (simplified)
         known_good_ips = ["192.168.", "10.", "172.16.", "172.17.", "172.18."]
         ip_reputation = (
-            0.1
-            if any(source_ip.startswith(prefix) for prefix in known_good_ips)
-            else 0.8
+            0.1 if any(source_ip.startswith(prefix) for prefix in known_good_ips) else 0.8
         )
         features.append(ip_reputation)
 
@@ -752,10 +696,7 @@ class SecurityMLAnalyzer:
         payload = str(event_data.get("request_body", "")) + str(
             event_data.get("request_params", "")
         )
-        if any(
-            pattern in payload.upper()
-            for pattern in ["SELECT", "UNION", "DROP", "; DROP"]
-        ):
+        if any(pattern in payload.upper() for pattern in ["SELECT", "UNION", "DROP", "; DROP"]):
             threat_type = "injection_attack"
             risk_score = 0.9
 
@@ -770,9 +711,7 @@ class SecurityMLAnalyzer:
             risk_score = 0.6
 
         # Check for external access to sensitive services
-        elif not event_data.get("source_ip", "").startswith(
-            ("192.168", "10.", "172.")
-        ) and any(
+        elif not event_data.get("source_ip", "").startswith(("192.168", "10.", "172.")) and any(
             service in event_data.get("service_name", "").lower()
             for service in ["payment", "user", "auth"]
         ):
@@ -834,9 +773,7 @@ class SecurityMLAnalyzer:
             threat_type, ["Monitor situation closely", "Alert security team"]
         )
 
-    async def train_models(
-        self, training_events: builtins.list[builtins.dict[str, Any]]
-    ) -> bool:
+    async def train_models(self, training_events: builtins.list[builtins.dict[str, Any]]) -> bool:
         """Train ML models with security event data"""
 
         if not ML_AVAILABLE:
@@ -897,9 +834,7 @@ class SecurityMLAnalyzer:
             return {"total_users": 0, "high_risk_users": 0}
 
         high_risk_users = [
-            profile
-            for profile in self.user_profiles.values()
-            if profile.anomaly_score > 0.7
+            profile for profile in self.user_profiles.values() if profile.anomaly_score > 0.7
         ]
 
         avg_anomaly_score = statistics.mean(
@@ -920,9 +855,7 @@ class SecurityMLAnalyzer:
             return {"total_services": 0, "high_risk_services": 0}
 
         high_risk_services = [
-            profile
-            for profile in self.service_profiles.values()
-            if profile.anomaly_score > 0.7
+            profile for profile in self.service_profiles.values() if profile.anomaly_score > 0.7
         ]
 
         avg_anomaly_score = statistics.mean(
@@ -933,9 +866,7 @@ class SecurityMLAnalyzer:
             "total_services": len(self.service_profiles),
             "high_risk_services": len(high_risk_services),
             "avg_anomaly_score": avg_anomaly_score,
-            "high_risk_service_names": [
-                profile.service_name for profile in high_risk_services
-            ],
+            "high_risk_service_names": [profile.service_name for profile in high_risk_services],
         }
 
     def get_ml_model_status(self) -> builtins.dict[str, Any]:

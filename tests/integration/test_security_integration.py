@@ -163,7 +163,7 @@ class SecurityIntegrationTestSuite:
                 created_at=datetime.now(),
                 expires_at=datetime.now() + timedelta(days=30),
                 security_level=SecurityLevel.INTERNAL,
-                capabilities={"read"}
+                capabilities={"read"},
             )
 
             # Register the identity
@@ -178,7 +178,7 @@ class SecurityIntegrationTestSuite:
                 target_selector={"service": "api-gateway"},
                 action="read",
                 decision=AccessDecision.ALLOW,
-                priority=10
+                priority=10,
             )
 
             self.zero_trust.policy_engine.add_policy(test_policy)
@@ -196,9 +196,7 @@ class SecurityIntegrationTestSuite:
                 },
             }
 
-            access_decision = await self.zero_trust.evaluate_access_request(
-                access_request
-            )
+            access_decision = await self.zero_trust.evaluate_access_request(access_request)
 
             # Test network segmentation
             segment_result = await self.zero_trust.network_manager.create_segment(
@@ -270,9 +268,7 @@ class SecurityIntegrationTestSuite:
                 "status": "PASSED",
                 "details": {
                     "malware_detected": malware_detection.get("threat_detected", False),
-                    "behavioral_anomaly": behavioral_analysis.get(
-                        "anomaly_detected", False
-                    ),
+                    "behavioral_anomaly": behavioral_analysis.get("anomaly_detected", False),
                     "incident_created": incident.get("success", False),
                     "threat_score": malware_detection.get("threat_score", 0.0),
                 },
@@ -324,9 +320,7 @@ class SecurityIntegrationTestSuite:
             )
 
             # Generate compliance report
-            compliance_report = self.compliance_manager.generate_compliance_report(
-                "gdpr"
-            )
+            compliance_report = self.compliance_manager.generate_compliance_report("gdpr")
 
             result = {
                 "test_name": test_name,
@@ -384,12 +378,8 @@ class SecurityIntegrationTestSuite:
                 "details": {
                     "risks_identified": len(risks),
                     "total_risks": dashboard.get("total_risks", 0),
-                    "high_priority_risks": len(
-                        dashboard.get("high_priority_risks", [])
-                    ),
-                    "risk_reduction_percentage": risk_report.get(
-                        "risk_reduction_percentage", 0
-                    ),
+                    "high_priority_risks": len(dashboard.get("high_priority_risks", [])),
+                    "risk_reduction_percentage": risk_report.get("risk_reduction_percentage", 0),
                 },
             }
 
@@ -446,9 +436,7 @@ class SecurityIntegrationTestSuite:
                 events.append(success_event)
 
             # Run analytics
-            alerts = await self.monitoring_system.analytics_engine.analyze_events(
-                events
-            )
+            alerts = await self.monitoring_system.analytics_engine.analyze_events(events)
 
             # Get security dashboard
             dashboard = self.monitoring_system.dashboard.get_security_dashboard()
@@ -461,9 +449,7 @@ class SecurityIntegrationTestSuite:
                     "alerts_generated": len(alerts),
                     "security_score": dashboard.get("security_score", 0),
                     "threat_level": dashboard.get("threat_level", "UNKNOWN"),
-                    "siem_configured": len(
-                        self.monitoring_system.siem_integration.siem_connections
-                    )
+                    "siem_configured": len(self.monitoring_system.siem_integration.siem_connections)
                     > 0,
                 },
             }
@@ -501,9 +487,7 @@ class SecurityIntegrationTestSuite:
                 "context": {"time": "15:00", "source_ip": "192.168.1.100"},
             }
 
-            access_decision = await self.zero_trust.evaluate_access_request(
-                access_request
-            )
+            access_decision = await self.zero_trust.evaluate_access_request(access_request)
             scenario_results["access_granted"] = access_decision.get("allowed", False)
 
             # 3. User performs unusual activity (mass data access)
@@ -520,12 +504,8 @@ class SecurityIntegrationTestSuite:
                 )
 
             # 4. Threat detection identifies anomaly
-            events = list(
-                self.monitoring_system.event_collector.processed_events.values()
-            )
-            alerts = await self.monitoring_system.analytics_engine.analyze_events(
-                events
-            )
+            events = list(self.monitoring_system.event_collector.processed_events.values())
+            alerts = await self.monitoring_system.analytics_engine.analyze_events(events)
             scenario_results["anomaly_detected"] = len(alerts) > 0
 
             # 5. Compliance check for data access
@@ -538,9 +518,7 @@ class SecurityIntegrationTestSuite:
                     "purpose": "business_operations",
                 },
             )
-            scenario_results["compliance_check"] = compliance_check.get(
-                "compliant", False
-            )
+            scenario_results["compliance_check"] = compliance_check.get("compliant", False)
 
             # 6. Risk assessment update
             risk_assessment = await self.risk_manager.conduct_risk_assessment(

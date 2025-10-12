@@ -198,12 +198,8 @@ class StructuredLogger:
         if OTEL_AVAILABLE:
             current_span = get_current_span()
             if current_span and current_span.get_span_context().is_valid:
-                context.trace_id = format(
-                    current_span.get_span_context().trace_id, "032x"
-                )
-                context.span_id = format(
-                    current_span.get_span_context().span_id, "016x"
-                )
+                context.trace_id = format(current_span.get_span_context().trace_id, "032x")
+                context.span_id = format(current_span.get_span_context().span_id, "016x")
 
         return context
 
@@ -289,9 +285,7 @@ class StructuredLogger:
         **kwargs,
     ):
         """Debug level logging"""
-        log_entry = self._create_log_entry(
-            LogLevel.DEBUG, message, category, fields, **kwargs
-        )
+        log_entry = self._create_log_entry(LogLevel.DEBUG, message, category, fields, **kwargs)
         self.logger.debug(log_entry.to_json())
 
     def info(
@@ -302,9 +296,7 @@ class StructuredLogger:
         **kwargs,
     ):
         """Info level logging"""
-        log_entry = self._create_log_entry(
-            LogLevel.INFO, message, category, fields, **kwargs
-        )
+        log_entry = self._create_log_entry(LogLevel.INFO, message, category, fields, **kwargs)
         self.logger.info(log_entry.to_json())
 
     def warning(
@@ -315,9 +307,7 @@ class StructuredLogger:
         **kwargs,
     ):
         """Warning level logging"""
-        log_entry = self._create_log_entry(
-            LogLevel.WARNING, message, category, fields, **kwargs
-        )
+        log_entry = self._create_log_entry(LogLevel.WARNING, message, category, fields, **kwargs)
         self.logger.warning(log_entry.to_json())
 
     def error(
@@ -438,9 +428,7 @@ class StructuredLogger:
             **(fields or {}),
         }
 
-        log_entry = self._create_log_entry(
-            LogLevel.INFO, message, LogCategory.AUDIT, audit_fields
-        )
+        log_entry = self._create_log_entry(LogLevel.INFO, message, LogCategory.AUDIT, audit_fields)
         self.logger.info(log_entry.to_json())
 
     def access(
