@@ -23,6 +23,7 @@ class HealthChecker:
         """Initialize health checker."""
         self.config = config
         self.health_check_tasks: builtins.dict[str, asyncio.Task] = {}
+        self._session: aiohttp.ClientSession | None = None
 
     def start_health_checking(self, service_name: str, registry):
         """Start health checking for a service."""
@@ -35,6 +36,13 @@ class HealthChecker:
         if service_name in self.health_check_tasks:
             self.health_check_tasks[service_name].cancel()
             del self.health_check_tasks[service_name]
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        """Get or create the shared aiohttp session."""
+        if self._session is None or self._session.closed:
+            timeout = aiohttp.ClientTimeout(total=self.config.timeout_seconds)
+            self._session = aiohttp.ClientSession(timeout=timeout)
+        return self._session
 
     async def _health_check_loop(self, service_name: str, registry):
         """Health check loop for a service."""
@@ -51,6 +59,7 @@ class HealthChecker:
     async def _perform_health_checks(self, service_name: str, registry):
         """Perform health checks for service endpoints."""
         endpoints = registry.services.get(service_name, [])
+        session = await self._get_session()
 
         for endpoint in endpoints:
             endpoint_key = f"{endpoint.host}:{endpoint.port}"
@@ -59,11 +68,8 @@ class HealthChecker:
                 # Perform health check
                 health_url = f"{endpoint.protocol}://{endpoint.host}:{endpoint.port}{endpoint.health_check_path}"
 
-                async with aiohttp.ClientSession(
-                    timeout=aiohttp.ClientTimeout(total=5)
-                ) as session:
-                    async with session.get(health_url) as response:
-                        is_healthy = response.status == 200
+                async with session.get(health_url) as response:
+                    is_healthy = response.status == 200
 
                 # Update health status
                 with registry._lock:
@@ -76,7 +82,7 @@ class HealthChecker:
 
                         # Mark as healthy if we have enough successes
                         if (
-                            health_info["consecutive_successes"] >= 3  # Default threshold
+                            health_info["consecutive_successes"] >= self.config.healthy_threshold
                         ):
                             was_unhealthy = not health_info.get("healthy", False)
                             health_info["healthy"] = True
@@ -102,7 +108,7 @@ class HealthChecker:
                         health_info["consecutive_successes"] = 0
 
                         # Mark as unhealthy if we have enough failures
-                        if health_info["consecutive_failures"] >= 3:  # Default threshold
+                        if health_info["consecutive_failures"] >= self.config.unhealthy_threshold:
                             was_healthy = health_info.get("healthy", True)
                             health_info["healthy"] = False
 
@@ -134,7 +140,7 @@ class HealthChecker:
                     health_info["consecutive_successes"] = 0
 
                     # Mark as unhealthy if we have enough failures
-                    if health_info["consecutive_failures"] >= 3:  # Default threshold
+                    if health_info["consecutive_failures"] >= self.config.unhealthy_threshold:
                         was_healthy = health_info.get("healthy", True)
                         health_info["healthy"] = False
 
@@ -168,3 +174,9 @@ class HealthChecker:
         for task in self.health_check_tasks.values():
             task.cancel()
         self.health_check_tasks.clear()
+
+    async def close(self):
+        """Close the health checker and cleanup resources."""
+        self.cleanup()
+        if self._session and not self._session.closed:
+            await self._session.close()
