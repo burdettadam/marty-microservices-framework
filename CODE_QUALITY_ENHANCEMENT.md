@@ -23,7 +23,7 @@ Added automated code quality checks to enforce complexity and length limits in t
 - Updated xenon version to latest `v0.9.3`
 - Replaced complex inline bash script with clean Python script reference
 - Added `code-quality-check` hook that runs on all Python files
-- Excludes test directories, templates, examples, and quarantine folders
+- Excludes test directories, templates, and examples folders
 
 ### 3. Dependency Management
 - Added `radon>=6.0.1` to development dependencies

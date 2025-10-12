@@ -17,7 +17,7 @@ The migration goals have been achieved:
 - Legacy `marty_chassis` code removed from repository
 - Templates updated to use modern framework APIs
 - Documentation updated to reflect current architecture
-- Legacy files quarantined in `quarantine/legacy-templates/`
+- All legacy files have been completely removed
 
 ## Framework Architecture Reference
 
