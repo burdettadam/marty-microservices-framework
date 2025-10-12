@@ -16,12 +16,8 @@ from typing import Any
 
 import jwt
 
-from framework.security.cryptography.manager import CryptographyManager
-from framework.security.models import (
-    AuthenticationMethod,
-    SecurityPrincipal,
-    SecurityToken,
-)
+from ..cryptography.manager import CryptographyManager
+from ..models import AuthenticationMethod, SecurityPrincipal, SecurityToken
 
 
 class AuthenticationManager:

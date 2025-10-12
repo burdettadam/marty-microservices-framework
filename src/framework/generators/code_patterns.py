@@ -337,14 +337,78 @@ class {{ domain_object }}RepositoryImpl({{ domain_object }}Repository):
 
     {% for method in custom_methods %}
     async def {{ method }}(self, **kwargs) -> Union[{{ domain_object }}, List[{{ domain_object }}], bool]:
-        """{{ method.replace('_', ' ').title() }} operation."""
-        # TODO: Implement custom method {{ method }}
+        """{{ method.replace('_', ' ').title() }} operation.
+
+        Args:
+            **kwargs: Method-specific arguments
+
+        Returns:
+            Result depends on the operation:
+            - Single {{ domain_object }} for get operations
+            - List[{{ domain_object }}] for search/list operations
+            - bool for validation/check operations
+
+        Raises:
+            ValueError: For invalid parameters
+            DatabaseError: For database operation failures
+        """
         async with self.db_manager.get_session() as session:
             try:
-                # Add your custom implementation here
-                pass
+                # Custom method implementation for {{ method }}
+                # Common patterns:
+
+                if "{{ method }}".startswith("find_by_"):
+                    # Search operations
+                    filter_field = "{{ method }}".replace("find_by_", "")
+                    filter_value = kwargs.get(filter_field)
+                    if not filter_value:
+                        raise ValueError(f"Missing required parameter: {filter_field}")
+
+                    query = select({{ domain_object }}).where(
+                        getattr({{ domain_object }}, filter_field) == filter_value
+                    )
+                    result = await session.execute(query)
+                    return result.scalars().all()
+
+                elif "{{ method }}".startswith("count_"):
+                    # Count operations
+                    query = select(func.count({{ domain_object }}.id))
+                    # Add your filter conditions here based on kwargs
+                    result = await session.execute(query)
+                    return result.scalar()
+
+                elif "{{ method }}".startswith("update_"):
+                    # Update operations
+                    entity_id = kwargs.get("id")
+                    if not entity_id:
+                        raise ValueError("Missing required parameter: id")
+
+                    entity = await self.get_by_id(entity_id)
+                    if not entity:
+                        raise ValueError(f"{{ domain_object }} not found with id: {entity_id}")
+
+                    # Update fields based on kwargs
+                    for key, value in kwargs.items():
+                        if key != "id" and hasattr(entity, key):
+                            setattr(entity, key, value)
+
+                    await session.commit()
+                    await session.refresh(entity)
+                    return entity
+
+                elif "{{ method }}".startswith("validate_"):
+                    # Validation operations
+                    # Implement your validation logic here
+                    return True
+
+                else:
+                    # Generic implementation - customize based on your needs
+                    logger.warning("Generic implementation for custom method {{ method }}")
+                    # Add your specific business logic here
+                    return None
+
             except Exception as e:
-                logger.error(f"Failed to execute {{ method }}: {e}")
+                logger.error("Failed to execute {{ method }}: %s", e)
                 raise
 
     {% endfor %}
