@@ -50,7 +50,7 @@ repos:
         entry: uv run python scripts/check_code_quality.py
         language: system
         files: \.py$
-        exclude: ^(tests/|templates/|examples/|microservice_project_template/|quarantine/)
+        exclude: ^(tests/|templates/|examples/|microservice_project_template/)
         require_serial: true
         pass_filenames: false
 
