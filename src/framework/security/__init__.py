@@ -8,10 +8,15 @@ This module provides comprehensive security capabilities including:
 - Security audit logging
 - gRPC security interceptors
 - FastAPI security middleware
+- Cryptography management with key rotation
+- Secrets management with audit trails
+- Security vulnerability scanning
+- Comprehensive security hardening framework
 
 Based on enterprise patterns from the main Marty project.
 """
 
+# Legacy security components (for backward compatibility)
 from .auth import (
     APIKeyAuthenticator,
     AuthenticatedUser,
@@ -20,9 +25,14 @@ from .auth import (
     JWTAuthenticator,
     MTLSAuthenticator,
 )
+
+# Component managers
+from .authentication import AuthenticationManager
 from .authorization import (
+    AuthorizationManager,
     Permission,
     PermissionLevel,
+    PolicyEngine,
     Role,
     RoleBasedAccessControl,
     get_rbac,
@@ -39,6 +49,7 @@ from .config import (
     SecurityConfig,
     SecurityLevel,
 )
+from .cryptography import CryptographyManager
 from .errors import (
     AuthenticationError,
     AuthorizationError,
@@ -48,6 +59,9 @@ from .errors import (
     RateLimitExceededError,
     SecurityError,
 )
+
+# New comprehensive security framework components
+from .framework import SecurityHardeningFramework, create_security_framework
 from .middleware import (
     FastAPISecurityMiddleware,
     GRPCSecurityInterceptor,
@@ -58,6 +72,14 @@ from .middleware import (
     require_permission_dependency,
     require_role_dependency,
 )
+from .models import AuthenticationMethod, ComplianceStandard, SecurityEvent
+from .models import SecurityLevel as NewSecurityLevel
+from .models import (
+    SecurityPrincipal,
+    SecurityThreatLevel,
+    SecurityToken,
+    SecurityVulnerability,
+)
 from .rate_limiting import (
     MemoryRateLimitBackend,
     RateLimiter,
@@ -67,16 +89,23 @@ from .rate_limiting import (
     initialize_rate_limiter,
     rate_limit,
 )
+from .scanning import SecurityScanner
+from .secrets import SecretsManager
 
 __all__ = [
     "APIKeyAuthenticator",
     "APIKeyConfig",
     "AuthenticatedUser",
     "AuthenticationError",
+    "AuthenticationManager",
+    "AuthenticationMethod",
     "AuthenticationResult",
     "AuthorizationError",
+    "AuthorizationManager",
     "BaseAuthenticator",
     "CertificateValidationError",
+    "ComplianceStandard",
+    "CryptographyManager",
     "FastAPISecurityMiddleware",
     "GRPCSecurityInterceptor",
     "HTTPBearerOptional",
@@ -88,8 +117,10 @@ __all__ = [
     "MTLSAuthenticator",
     "MTLSConfig",
     "MemoryRateLimitBackend",
+    "NewSecurityLevel",
     "Permission",
     "PermissionLevel",
+    "PolicyEngine",
     "RateLimitConfig",
     "RateLimitExceededError",
     "RateLimitRule",
@@ -103,9 +134,18 @@ __all__ = [
     "SecurityConfig",
     # Errors
     "SecurityError",
+    "SecurityEvent",
+    "SecurityHardeningFramework",
     "SecurityLevel",
     # Middleware
     "SecurityMiddleware",
+    "SecurityPrincipal",
+    "SecurityScanner",
+    "SecurityThreatLevel",
+    "SecurityToken",
+    "SecurityVulnerability",
+    "SecretsManager",
+    "create_security_framework",
     "get_current_user",
     "get_rate_limiter",
     "get_rbac",

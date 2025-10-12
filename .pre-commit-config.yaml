@@ -41,6 +41,19 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
         exclude: ^templates/.*\.py$|^microservice_project_template/
 
+  # Code complexity checks
+  # Code Quality Analysis - Comprehensive complexity and length checks
+  - repo: local
+    hooks:
+      - id: code-quality-check
+        name: Code Quality Check (Complexity & Length)
+        entry: uv run python scripts/check_code_quality.py
+        language: system
+        files: \.py$
+        exclude: ^(tests/|templates/|examples/|microservice_project_template/|quarantine/)
+        require_serial: true
+        pass_filenames: false
+
   # Security checks with bandit (using development version of rich for Python 3.13 compatibility)
   - repo: https://github.com/PyCQA/bandit
     rev: 1.8.0
