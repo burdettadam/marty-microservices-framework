@@ -6,16 +6,10 @@ Tests complete workflows with real services and minimal mocking.
 
 import asyncio
 import json
-from pathlib import Path
-from typing import Any, Dict, List
 
 import pytest
-
-from src.framework.config import FrameworkConfig
-from src.framework.database import DatabaseConnection
-from src.framework.events import Event, EventBus
-from src.framework.messaging import Message, MessageBus
-from src.framework.metrics import MetricsCollector
+from src.framework.events import Event
+from src.framework.messaging import Message
 
 
 @pytest.mark.integration
@@ -198,7 +192,7 @@ class TestFrameworkIntegration:
                     await self._create_order(order_data)
                     saga_steps.append("order_created")
 
-                except Exception as e:
+                except Exception:
                     # Start compensation
                     await self._compensate(order_data)
 
@@ -326,7 +320,7 @@ class TestFrameworkIntegration:
                     result = await func(*args, **kwargs)
                     self._on_success()
                     return result
-                except Exception as e:
+                except Exception:
                     self._on_failure()
                     raise
 
@@ -363,7 +357,7 @@ class TestFrameworkIntegration:
         circuit_breaker = CircuitBreaker(failure_threshold=3)
 
         # Test circuit breaker opening
-        for i in range(5):
+        for _i in range(5):
             try:
                 await circuit_breaker.call(unreliable_service)
             except Exception:

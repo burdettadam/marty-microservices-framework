@@ -10,7 +10,7 @@ import builtins
 import json
 import logging
 import time
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from .core import (
     HealthStatus,
@@ -772,7 +772,7 @@ class EtcdServiceRegistry(ServiceRegistry):
             prefix = f"{self._prefix}{service_name}/"
 
             instances = []
-            for value, metadata in etcd.get_prefix(prefix):
+            for value, _metadata in etcd.get_prefix(prefix):
                 try:
                     instance_data = json.loads(value.decode("utf-8"))
                     instance = self._dict_to_instance(instance_data)
@@ -816,7 +816,7 @@ class EtcdServiceRegistry(ServiceRegistry):
             etcd = await self._get_etcd_client()
 
             services = set()
-            for key, value in etcd.get_prefix(self._prefix):
+            for key, _value in etcd.get_prefix(self._prefix):
                 key_str = key.decode("utf-8")
                 # Extract service name from key
                 relative_key = key_str[len(self._prefix) :]

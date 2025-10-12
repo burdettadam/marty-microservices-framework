@@ -20,7 +20,7 @@ from datetime import datetime
 from email.mime.multipart import MimeMultipart
 from email.mime.text import MimeText
 from enum import Enum
-from typing import Any, Dict, Generic, List, Optional, Set, dict, list
+from typing import Any, dict, list
 
 import requests
 
@@ -29,7 +29,6 @@ from . import PipelineExecution, PipelineStatus
 
 try:
     from slack_sdk import WebClient
-    from slack_sdk.errors import SlackApiError
 
     SLACK_AVAILABLE = True
 except ImportError:

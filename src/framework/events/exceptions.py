@@ -4,7 +4,6 @@ Event Publishing Exceptions
 Custom exceptions for event publishing operations.
 """
 
-from typing import Optional
 
 
 class EventPublishingError(Exception):

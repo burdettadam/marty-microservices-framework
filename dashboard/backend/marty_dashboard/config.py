@@ -4,7 +4,6 @@ Application configuration using Pydantic settings.
 
 import builtins
 from functools import lru_cache
-from typing import List, Optional, list
 
 from pydantic import Field
 from pydantic_settings import BaseSettings

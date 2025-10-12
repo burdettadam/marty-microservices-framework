@@ -2,7 +2,8 @@
 End-to-End Test Configuration and Fixtures for Marty Framework
 
 This module provides comprehensive testing infrastructure for performance
-analysis, bottleneck detection, timeout monitoring, and auditability testing.
+analysis, bottleneck detection, timeout monitoring, and auditability testing
+using the modern framework testing components.
 """
 
 import asyncio
@@ -13,19 +14,14 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import psutil
 import pytest
 import pytest_asyncio
-
-from marty_chassis.plugins.examples import (
-    CircuitBreakerPlugin,
-    DataProcessingPipelinePlugin,
-    PerformanceMonitorPlugin,
-    SimulationServicePlugin,
-)
-from marty_chassis.plugins.manager import PluginManager
+from src.framework.observability import ServiceMonitor
+from src.framework.observability.monitoring import MetricsCollector
+from src.framework.testing import PerformanceTestCase, TestEventCollector
 
 
 @dataclass
@@ -289,11 +285,12 @@ class PerformanceAnalyzer:
 
 
 @pytest_asyncio.fixture
-async def plugin_manager():
-    """Create plugin manager for testing."""
-    manager = PluginManager()
-    yield manager
-    await manager.shutdown()
+async def service_monitor():
+    """Create service monitor for testing."""
+    monitor = ServiceMonitor("test_service")
+    monitor.start_monitoring()
+    yield monitor
+    monitor.stop_monitoring()
 
 
 @pytest_asyncio.fixture
@@ -303,43 +300,49 @@ async def performance_analyzer():
 
 
 @pytest_asyncio.fixture
-async def simulation_plugin(plugin_manager):
-    """Create and initialize simulation plugin."""
-    plugin = SimulationServicePlugin()
-    await plugin_manager.register_plugin(plugin)
-    await plugin.initialize()
-    yield plugin
-    await plugin.shutdown()
+async def metrics_collector():
+    """Create and initialize metrics collector."""
+    collector = MetricsCollector("test_service")
+    yield collector
 
 
 @pytest_asyncio.fixture
-async def pipeline_plugin(plugin_manager):
-    """Create and initialize pipeline plugin."""
-    plugin = DataProcessingPipelinePlugin()
-    await plugin_manager.register_plugin(plugin)
-    await plugin.initialize()
-    yield plugin
-    await plugin.shutdown()
+async def test_event_collector():
+    """Create and initialize test event collector."""
+    collector = TestEventCollector()
+    yield collector
 
 
 @pytest_asyncio.fixture
-async def monitoring_plugin(plugin_manager):
-    """Create and initialize monitoring plugin."""
-    plugin = PerformanceMonitorPlugin()
-    await plugin_manager.register_plugin(plugin)
-    await plugin.initialize()
-    yield plugin
-    await plugin.shutdown()
+async def performance_test_case():
+    """Create performance test case for testing."""
+    from src.framework.testing.performance_testing import (
+        LoadConfiguration,
+        LoadPattern,
+        RequestSpec,
+    )
+
+    request_spec = RequestSpec(
+        method="GET",
+        url="http://localhost:8000/health"
+    )
+    load_config = LoadConfiguration(
+        pattern=LoadPattern.CONSTANT,
+        max_users=10,
+        duration=30
+    )
+    test_case = PerformanceTestCase("test_performance", request_spec, load_config)
+    yield test_case
 
 
 @pytest_asyncio.fixture
-async def circuit_breaker_plugin(plugin_manager):
-    """Create and initialize circuit breaker plugin."""
-    plugin = CircuitBreakerPlugin()
-    await plugin_manager.register_plugin(plugin)
-    await plugin.initialize()
-    yield plugin
-    await plugin.shutdown()
+async def framework_performance_monitor():
+    """Create framework performance monitor for circuit breaker simulation."""
+    # Use the framework's monitoring instead of chassis plugins
+    monitor = ServiceMonitor("circuit_breaker_test")
+    monitor.start_monitoring()
+    yield monitor
+    monitor.stop_monitoring()
 
 
 @pytest.fixture

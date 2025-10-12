@@ -5,15 +5,12 @@ Ported from Marty's resilience framework to provide resilient
 outbound call capabilities for microservices.
 """
 
-import asyncio
 import logging
-from typing import Any, Awaitable, Callable, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
 
 from .advanced_retry import AdvancedRetryConfig, async_retry_with_advanced_policy
-from .enhanced_circuit_breaker import (
-    EnhancedCircuitBreaker,
-    EnhancedCircuitBreakerConfig,
-)
+from .enhanced_circuit_breaker import EnhancedCircuitBreakerConfig
 
 logger = logging.getLogger(__name__)
 

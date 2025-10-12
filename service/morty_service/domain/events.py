@@ -6,7 +6,6 @@ They are used for loose coupling between bounded contexts and eventual consisten
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from .value_objects import ValueObject

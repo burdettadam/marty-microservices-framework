@@ -11,12 +11,12 @@ Provides comprehensive distributed tracing capabilities with:
 import asyncio
 import builtins
 import logging
-import os
+from collections.abc import Callable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Optional, Set, Union, dict, list
+from dataclasses import dataclass
+from typing import Any
 
-from opentelemetry import baggage, metrics, trace
+from opentelemetry import metrics, trace
 from opentelemetry.baggage.propagation import W3CBaggagePropagator
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -45,7 +45,7 @@ from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapProp
 
 # FastAPI and gRPC imports
 try:
-    from fastapi import FastAPI, Request, Response
+    from fastapi import FastAPI, Request
     from starlette.middleware.base import BaseHTTPMiddleware
 
     FASTAPI_AVAILABLE = True
@@ -440,7 +440,7 @@ class TracingMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next: Callable):
         # Extract trace context from request headers
-        context = self.tracing.extract_context(dict(request.headers))
+        self.tracing.extract_context(dict(request.headers))
 
         with trace.use_span(trace.get_current_span(), end_on_exit=False):
             # Add request information to span

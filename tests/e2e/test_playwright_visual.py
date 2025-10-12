@@ -12,12 +12,10 @@ import asyncio
 import builtins
 import json
 from pathlib import Path
-from typing import Dict, List, Set
 
 import pytest
 from aiohttp import web  # Added for F821 'web'
 from playwright.async_api import Browser, Page, async_playwright
-
 from tests.e2e.conftest import PerformanceAnalyzer
 
 
@@ -31,7 +29,7 @@ class MockDashboardServer:
     async def start(self):
         """Start mock dashboard server."""
         # Create simple HTML dashboard for testing
-        dashboard_html = self._create_dashboard_html()
+        self._create_dashboard_html()
 
         # Create a simple HTTP server (in real scenarios, this would be your actual dashboard)
         from aiohttp import web

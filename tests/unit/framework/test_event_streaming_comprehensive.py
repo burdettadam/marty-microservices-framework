@@ -3,14 +3,11 @@ Comprehensive Event Streaming Tests - All APIs Fixed
 Tests event streaming, CQRS, event sourcing, and saga patterns with real implementations.
 """
 
-import asyncio
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 from typing import Any
 
 import pytest
-
 from src.framework.event_streaming import (
     AggregateRoot,
     Command,
@@ -24,7 +21,6 @@ from src.framework.event_streaming import (
     EventHandler,
     EventMetadata,
     EventSourcedRepository,
-    EventStore,
     EventType,
     InMemoryEventBus,
     InMemoryEventStore,
@@ -33,7 +29,6 @@ from src.framework.event_streaming import (
     QueryHandler,
     QueryResult,
     Saga,
-    SagaContext,
     SagaManager,
     SagaOrchestrator,
     SagaStatus,
@@ -518,7 +513,7 @@ class TestSagaPatterns:
                 ]
 
         saga = OrderSaga(saga_id="order-456")
-        command_bus = CommandBus()
+        CommandBus()
 
         # Execute saga (simplified - would need actual command handlers)
         saga.status = SagaStatus.RUNNING
@@ -600,7 +595,7 @@ class TestEventStreamingIntegration:
     async def test_end_to_end_workflow(self):
         """Test complete event streaming workflow."""
         # Setup components
-        event_bus = InMemoryEventBus()
+        InMemoryEventBus()
         event_store = InMemoryEventStore()
         command_bus = CommandBus()
 

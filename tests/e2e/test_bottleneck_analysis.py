@@ -14,8 +14,6 @@ import time
 from pathlib import Path
 
 import pytest
-import pytest_asyncio
-
 from tests.e2e.conftest import PerformanceAnalyzer
 
 
@@ -169,13 +167,13 @@ class TestBottleneckAnalysis:
                 complexity = 1 + (operation_count % 5)  # Cycle complexity 1-5
 
                 start_op = time.time()
-                result = await plugin.simulate_work(
+                await plugin.simulate_work(
                     task_name=f"{task_name}_op_{operation_count}", complexity=complexity
                 )
                 end_op = time.time()
 
                 # Record response time (simulated)
-                response_time = end_op - start_op
+                end_op - start_op
 
                 operation_count += 1
 
@@ -200,9 +198,9 @@ class TestBottleneckAnalysis:
                     "priority": job_count % 3,  # Vary priority
                 }
 
-                start_job = time.time()
+                time.time()
                 await plugin.submit_job(job_data)
-                end_job = time.time()
+                time.time()
 
                 job_count += 1
 

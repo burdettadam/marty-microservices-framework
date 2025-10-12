@@ -9,7 +9,7 @@ import asyncio
 import builtins
 import random
 import time
-from typing import Any, Dict
+from typing import Any
 
 from framework.resilience import (  # Circuit Breaker; Retry; Timeout; Fallback; Integrated Patterns
     CircuitBreaker,

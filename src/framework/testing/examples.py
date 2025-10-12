@@ -15,7 +15,6 @@ from src.framework.testing.patterns import (
     TestEventCollector,
     create_test_config,
     integration_test,
-    performance_test,
     unit_test,
     wait_for_condition,
 )
@@ -267,65 +266,6 @@ class TestUserServicePerformance(AsyncTestCase, ServiceTestMixin, PerformanceTes
 
         # Assert - Multiple events published
         assert len(self.event_collector.events) == 2
-
-
-# Performance Tests
-@pytest.mark.skip(reason="Performance tests are expensive and should be run separately")
-class TestUserServicePerformance(AsyncTestCase, ServiceTestMixin):
-    """Performance tests for UserService."""
-
-    async def setup_method(self):
-        """Setup for each test."""
-        await self.setup_async_test()
-
-        self.user_service = UserService(
-            repository=self.mock_repository,
-            event_bus=self.test_event_bus,
-        )
-
-    @performance_test
-    async def test_user_creation_performance(self):
-        """Test user creation performance."""
-
-        # Define operation
-        async def create_user_operation():
-            return await self.user_service.create_user(
-                f"perf{len(self.mock_repository._data)}@example.com",
-                "Performance Test User",
-            )
-
-        # Run load test
-        results = await self.run_load_test(
-            operation=create_user_operation,
-            concurrent_requests=10,
-            total_requests=100,
-        )
-
-        # Assert performance criteria
-        assert results["successful"] >= 95  # 95% success rate
-        assert results["requests_per_second"] >= 50  # 50 RPS minimum
-        assert results["average_time"] <= 0.1  # 100ms average response time
-
-    @performance_test
-    async def test_user_retrieval_performance(self):
-        """Test user retrieval performance."""
-        # Setup - Create test users
-        for i in range(100):
-            await self.mock_repository.create(
-                User(id=f"user_{i}", email=f"user{i}@example.com", name=f"User {i}")
-            )
-
-        # Define operation
-        async def get_user_operation():
-            user_id = f"user_{len(self.mock_repository._data) % 100}"
-            return await self.user_service.get_user(user_id)
-
-        # Measure execution time
-        execution_time = await self.measure_execution_time(get_user_operation)
-
-        # Assert performance
-        assert execution_time <= 0.01  # 10ms maximum for retrieval
-
 
 # Specialized Test Patterns
 class TestEventDrivenPatterns(AsyncTestCase):

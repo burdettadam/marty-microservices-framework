@@ -13,7 +13,7 @@ import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .core import Message, MessageHeaders, MessagePriority
 from .serialization import JSONSerializer, MessageSerializer

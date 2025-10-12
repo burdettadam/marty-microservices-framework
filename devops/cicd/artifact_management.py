@@ -21,35 +21,32 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, dict, list
 
 # External dependencies
 try:
     import boto3
-    from botocore.exceptions import ClientError
 
     AWS_AVAILABLE = True
 except ImportError:
     AWS_AVAILABLE = False
 
 try:
-    from google.cloud import storage as gcs
-
-    GCS_AVAILABLE = True
+    # Storage backend availability checks
+    import importlib.util
+    GCS_AVAILABLE = importlib.util.find_spec("google.cloud.storage") is not None
 except ImportError:
     GCS_AVAILABLE = False
 
 try:
-    from azure.storage.blob import BlobServiceClient
-
-    AZURE_AVAILABLE = True
+    # Azure storage availability check
+    AZURE_AVAILABLE = importlib.util.find_spec("azure.storage.blob") is not None
 except ImportError:
     AZURE_AVAILABLE = False
 
 try:
-    import docker
-
-    DOCKER_AVAILABLE = True
+    # Docker availability check
+    DOCKER_AVAILABLE = importlib.util.find_spec("docker") is not None
 except ImportError:
     DOCKER_AVAILABLE = False
 
@@ -1067,12 +1064,12 @@ class ArtifactManager:
                 artifact_groups[artifact.name].append((artifact_id, artifact))
 
             # For each group, keep only the latest versions
-            for name, artifacts in artifact_groups.items():
+            for _name, artifacts in artifact_groups.items():
                 # Sort by creation time (newest first)
                 artifacts.sort(key=lambda x: x[1].created_at, reverse=True)
 
                 # Delete older versions
-                for artifact_id, artifact in artifacts[policy.max_versions :]:
+                for artifact_id, _artifact in artifacts[policy.max_versions :]:
                     if policy.archive_before_delete:
                         result["archived"] += 1
 

@@ -8,7 +8,6 @@ ensuring consistency across all Marty microservices.
 from __future__ import annotations
 
 import logging
-from typing import Dict, Optional
 
 logger = logging.getLogger(__name__)
 

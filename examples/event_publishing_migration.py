@@ -8,7 +8,7 @@ event publishing logic to the unified event publishing framework.
 import asyncio
 import json
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from framework.events import (
     AuditEventType,

@@ -12,22 +12,18 @@ Provides comprehensive compliance monitoring and automation including:
 
 import asyncio
 import builtins
-import hashlib
 import json
 import re
-import time
 import uuid
 from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 # External dependencies
 try:
-    import aiofiles
-    import redis.asyncio as redis
-    from prometheus_client import Counter, Gauge, Histogram
+    from prometheus_client import Counter
 
     ASYNC_AVAILABLE = True
     REDIS_AVAILABLE = True
@@ -553,7 +549,7 @@ class ComplianceRuleEngine:
                 ):
                     return False
 
-            elif isinstance(expected_value, (int, float)):
+            elif isinstance(expected_value, int | float):
                 # Numeric comparison
                 if not self._evaluate_numeric_condition(expected_value, context_value):
                     return False

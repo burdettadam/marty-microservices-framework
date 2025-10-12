@@ -14,7 +14,7 @@ import builtins
 import json
 import sys
 from pathlib import Path
-from typing import List, list
+from typing import list
 
 import yaml
 
@@ -45,7 +45,7 @@ def validate_kafka_configs() -> builtins.list[str]:
 
         # Basic instantiation test
         config = KafkaConfig()
-        event_bus = EventBus(config, "test")
+        EventBus(config, "test")
     except ImportError as e:
         errors.append(f"Cannot import Kafka modules: {e}")
     except Exception as e:

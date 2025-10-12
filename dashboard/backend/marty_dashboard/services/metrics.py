@@ -6,7 +6,6 @@ import asyncio
 import builtins
 import logging
 from datetime import datetime
-from typing import Dict, List, Optional, dict, list
 
 import httpx
 from sqlalchemy import select

@@ -4,15 +4,9 @@ Comprehensive tests for Load Balancing strategies with minimal mocking.
 This test suite focuses on testing the actual strategy implementations
 with real data structures to minimize mocking and maximize code coverage.
 """
-import asyncio
-import hashlib
 import random
-import time
-from typing import List
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from src.framework.discovery.core import HealthStatus, ServiceInstance
 from src.framework.discovery.load_balancing import (
     AdaptiveBalancer,
@@ -20,13 +14,11 @@ from src.framework.discovery.load_balancing import (
     HealthBasedBalancer,
     IPHashBalancer,
     LeastConnectionsBalancer,
-    LoadBalancer,
     LoadBalancingConfig,
     LoadBalancingContext,
     LoadBalancingStrategy,
     RandomBalancer,
     RoundRobinBalancer,
-    WeightedLeastConnectionsBalancer,
     WeightedRandomBalancer,
     WeightedRoundRobinBalancer,
     create_load_balancer,
@@ -729,7 +721,7 @@ class TestLoadBalancingIntegrationScenarios:
         assert instance is not None
 
         # Simulate gradual failures
-        for i, failed_instance in enumerate(realistic_service_pool[:3]):
+        for _i, failed_instance in enumerate(realistic_service_pool[:3]):
             failed_instance.healthy = False
             await balancer.update_instances(realistic_service_pool)
 
@@ -762,7 +754,6 @@ class TestLoadBalancingIntegrationScenarios:
             selections.append(instance.id)
 
         # Calculate actual distribution
-        instance_counts = {}
         total_weight = sum(inst.weight for inst in realistic_service_pool)
 
         for instance in realistic_service_pool:
@@ -788,7 +779,7 @@ class TestLoadBalancingIntegrationScenarios:
             context = LoadBalancingContext(client_ip=client_ip)
 
             # Multiple requests from same user should go to same instance
-            for request in range(5):
+            for _request in range(5):
                 instance = await balancer.select_instance(context)
                 assert instance is not None
 

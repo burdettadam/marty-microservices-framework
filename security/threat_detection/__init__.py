@@ -12,9 +12,6 @@ Provides comprehensive threat detection including:
 
 import asyncio
 import builtins
-import hashlib
-import json
-import math
 import re
 import statistics
 import time
@@ -22,14 +19,11 @@ from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 # External dependencies (optional)
 try:
-    import aiohttp
-    import numpy as np
-    import redis.asyncio as redis
-    from prometheus_client import Counter, Gauge, Histogram
+    from prometheus_client import Counter, Histogram
     REDIS_AVAILABLE = True
 
     ANALYTICS_AVAILABLE = True
@@ -643,7 +637,7 @@ class IncidentResponseEngine:
             created_at=datetime.now(),
             updated_at=datetime.now(),
             events=events,
-            affected_services=set(event.service_name for event in events),
+            affected_services={event.service_name for event in events},
         )
 
         self.incidents[incident_id] = incident
@@ -710,13 +704,6 @@ class IncidentResponseEngine:
         print(f"    Sending alert: {action}")
 
         # This would integrate with alerting systems (PagerDuty, Slack, etc.)
-        alert_data = {
-            "incident_id": incident.incident_id,
-            "title": incident.title,
-            "severity": incident.threat_level.value,
-            "category": incident.category.value,
-            "action": action,
-        }
 
         # Simulate alert sending
         incident.response_actions.append(f"Alert sent: {action}")
@@ -920,9 +907,9 @@ class ThreatDetectionManager:
                 )
 
             # Check for reconnaissance pattern
-            unique_endpoints = set(
+            unique_endpoints = {
                 e.raw_data.get("endpoint", "") for e in related_events
-            )
+            }
             if len(unique_endpoints) >= 10:
                 await self._create_correlation_incident(
                     [event] + related_events,

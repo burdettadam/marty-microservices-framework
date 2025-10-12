@@ -6,7 +6,6 @@ providing concrete persistence implementations using SQLAlchemy.
 """
 
 import builtins
-from typing import List, Optional, Set, list
 from uuid import UUID
 
 import sqlalchemy as sa

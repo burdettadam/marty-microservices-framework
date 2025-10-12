@@ -4,9 +4,6 @@ Tests cover deployment strategy patterns, configurations, and orchestration
 with minimal mocking to verify real functionality.
 """
 
-import asyncio
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -14,13 +11,10 @@ import pytest
 try:
     from src.framework.deployment.strategies import DeploymentStrategy
     DEPLOYMENT_AVAILABLE = True
-except ImportError as e:
+except ImportError:
     DEPLOYMENT_AVAILABLE = False
 
 import inspect
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
 
 # Import deployment strategy components
 try:
@@ -98,12 +92,6 @@ def test_deployment_orchestrator_creation():
 async def test_deployment_config_creation():
     """Test deployment configuration creation."""
     # Test basic deployment config
-    config = {
-        "strategy": DeploymentStrategy.BLUE_GREEN,
-        "target_environment": "staging",
-        "replicas": 3,
-        "timeout": 300
-    }
 
     # Test if we can create configurations for different strategies
     strategies_to_test = [

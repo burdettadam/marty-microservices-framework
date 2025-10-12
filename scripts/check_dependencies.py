@@ -14,10 +14,9 @@ Usage:
 import importlib
 import subprocess
 import sys
-from pathlib import Path
 
 
-def check_import(module_name: str, package_name: str = None) -> bool:
+def check_import(module_name: str, package_name: str | None = None) -> bool:
     """Check if a module can be imported successfully."""
     try:
         importlib.import_module(module_name)
@@ -132,8 +131,8 @@ def main():
                                   capture_output=True, text=True)
             if "v0." in result.stdout:
                 print("✅ Kind version is compatible")
-        except:
-            pass
+        except (subprocess.SubprocessError, OSError) as version_error:
+            print(f"   Warning: Unable to determine Kind version: {version_error}")
     else:
         print("   Install with: brew install kind  # or download from https://kind.sigs.k8s.io/")
         all_good = False
@@ -156,8 +155,6 @@ def main():
 
         # Test imports that might cause issues
         problematic_imports = [
-            "marty_chassis.config",
-            "marty_chassis.logger",
             "observability.load_testing.load_tester",
         ]
 

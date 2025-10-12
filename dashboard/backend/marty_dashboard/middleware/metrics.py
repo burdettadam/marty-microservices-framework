@@ -3,7 +3,7 @@ Metrics middleware for collecting HTTP metrics.
 """
 
 import time
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
 from prometheus_client import Counter, Gauge, Histogram

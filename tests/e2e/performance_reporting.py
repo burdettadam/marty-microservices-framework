@@ -13,7 +13,6 @@ import builtins
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Set
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -467,7 +466,7 @@ class PerformanceReportGenerator:
             ax.set_xlim(0, 1.2)
 
             # Add status labels
-            for i, (bar, status) in enumerate(zip(bars, check_status, strict=False)):
+            for i, (_bar, status) in enumerate(zip(bars, check_status, strict=False)):
                 ax.text(
                     0.5,
                     i,
@@ -524,7 +523,7 @@ class PerformanceReportGenerator:
         ax.set_xlim(0, 1.2)
 
         # Add status labels
-        for i, (bar, value) in enumerate(zip(bars, values, strict=False)):
+        for i, (_bar, value) in enumerate(zip(bars, values, strict=False)):
             status = "PASS" if value == 1 else "FAIL"
             ax.text(
                 0.5,
@@ -631,7 +630,7 @@ class PerformanceReportGenerator:
 
             metrics = ["Completeness", "Traceability"]
             scores = [completeness, traceability]
-            bars = ax_audit.bar(
+            ax_audit.bar(
                 metrics, scores, color=["#9b59b6", "#1abc9c"], alpha=0.7
             )
             ax_audit.set_title("Audit Quality", fontweight="bold")
@@ -752,7 +751,7 @@ class PerformanceReportGenerator:
 
         # Group by priority and category
         priority_order = ["critical", "high", "medium", "low"]
-        categories = list(set(rec["category"] for rec in all_recommendations))
+        list({rec["category"] for rec in all_recommendations})
 
         # Create matrix data
         matrix_data = []
@@ -781,7 +780,7 @@ class PerformanceReportGenerator:
             ax.grid(True, alpha=0.3, axis="x")
 
             # Add value labels
-            for i, (bar, count) in enumerate(zip(bars, matrix_data, strict=False)):
+            for _i, (bar, count) in enumerate(zip(bars, matrix_data, strict=False)):
                 ax.text(
                     bar.get_width() + 0.1,
                     bar.get_y() + bar.get_height() / 2,
@@ -1453,7 +1452,7 @@ class PerformanceReportGenerator:
         for key, value in results.items():
             if key != "status" and key != "summary":
                 formatted_key = key.replace("_", " ").title()
-                if isinstance(value, (int, float)):
+                if isinstance(value, int | float):
                     details.append(f"<strong>{formatted_key}:</strong> {value}")
                 elif isinstance(value, list):
                     details.append(

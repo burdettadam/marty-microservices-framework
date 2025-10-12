@@ -6,32 +6,21 @@ external applications to integrate with MMF infrastructure while maintaining
 clean separation of concerns.
 """
 
-import asyncio
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     # These would be the actual MMF service types when available
-    from typing import Any as CacheService
-    from typing import Any as DatabaseService
-    from typing import Any as MessageBus
-    from typing import Any as ObservabilityService
-    from typing import Any as SecurityService
 
     from framework.config import PluginConfigManager
 
 logger = logging.getLogger(__name__)
 
-import asyncio
 import logging
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from enum import Enum
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .services import ServiceDefinition
@@ -414,7 +403,7 @@ class PluginManager:
             List of plugin information dictionaries
         """
         info = []
-        for plugin_name, plugin in self.plugins.items():
+        for _plugin_name, plugin in self.plugins.items():
             metadata = plugin.metadata
             info.append({
                 "name": metadata.name,

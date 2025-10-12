@@ -9,9 +9,10 @@ import asyncio
 import builtins
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 
 from .circuit_breaker import CircuitBreakerConfig, CircuitBreakerManager
 from .core import ServiceInstance, ServiceRegistry, ServiceWatcher

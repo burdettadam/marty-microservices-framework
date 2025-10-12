@@ -7,13 +7,14 @@ Integrates with test execution, security scanning, quality gates, and deployment
 
 import asyncio
 import builtins
+import importlib.util
 import os
 import queue
 import threading
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, Final, List, Optional, Set, dict, list
+from typing import Any
 
 # Local imports
 from . import (
@@ -34,20 +35,16 @@ from . import (
     TestType,
 )
 
-try:
-    from ..deployment import DeploymentOrchestrator, DeploymentStrategy
+# External dependencies availability checks
+DEPLOYMENT_AVAILABLE = importlib.util.find_spec("devops.deployment") is not None
+KUBERNETES_AVAILABLE = importlib.util.find_spec("kubernetes") is not None
 
-    DEPLOYMENT_AVAILABLE = True
-except ImportError:
-    DEPLOYMENT_AVAILABLE = False
-
-try:
-    import kubernetes
-    from kubernetes import client, config
-
-    KUBERNETES_AVAILABLE = True
-except ImportError:
-    KUBERNETES_AVAILABLE = False
+# Conditional imports
+if DEPLOYMENT_AVAILABLE:
+    try:
+        from ..deployment import DeploymentOrchestrator
+    except ImportError:
+        DEPLOYMENT_AVAILABLE = False
 
 
 @dataclass
@@ -252,10 +249,10 @@ class PipelineOrchestrator:
         """Execute pipeline stages with dependency resolution"""
 
         execution.status = PipelineStatus.RUNNING
-        start_time = datetime.now()
+        datetime.now()
 
         # Build dependency graph
-        dependency_graph = self._build_dependency_graph(pipeline.stages)
+        self._build_dependency_graph(pipeline.stages)
 
         # Execute stages in dependency order
         completed_stages = set()
@@ -859,7 +856,7 @@ class PipelineOrchestrator:
             e for e in relevant_executions if e.duration is not None
         ]
         avg_duration = (
-            sum(e.duration for e in completed_executions) / len(completed_executions)
+            sum(e.duration for e in completed_executions if e.duration is not None) / len(completed_executions)
             if completed_executions
             else 0.0
         )

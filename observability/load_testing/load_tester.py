@@ -15,7 +15,6 @@ import logging
 import statistics
 import time
 from dataclasses import asdict, dataclass
-from typing import Dict, List, Optional
 
 import aiohttp
 import grpc
@@ -207,7 +206,7 @@ class GrpcLoadTester:
         try:
             # Create gRPC channel
             target = f"{self.config.target_host}:{self.config.target_port}"
-            async with grpc.aio.insecure_channel(target) as channel:
+            async with grpc.aio.insecure_channel(target):
                 # This is a simplified example - in practice, you'd need
                 # to import and use the actual gRPC service stub
                 # stub = YourServiceStub(channel)
@@ -463,13 +462,12 @@ class LoadTestRunner:
 
     async def _monitor_throughput(self) -> None:
         """Background task to update throughput metrics"""
-        last_count = 0
-        last_time = time.time()
+        time.time()
 
         while True:
             await asyncio.sleep(5)  # Update every 5 seconds
 
-            current_time = time.time()
+            time.time()
             # This would need access to current request count
             # Implementation depends on how results are tracked
 

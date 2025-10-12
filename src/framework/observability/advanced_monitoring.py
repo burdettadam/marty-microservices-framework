@@ -12,7 +12,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, Final, List, Optional
+from typing import Any
 from uuid import uuid4
 
 import aiohttp
@@ -804,7 +804,7 @@ class AdvancedObservabilityManager:
         trace_analytics = self.tracer.get_trace_analytics()
 
         # Get log analytics
-        log_analytics = self.log_aggregator.get_log_analytics()
+        self.log_aggregator.get_log_analytics()
 
         # Get basic metrics
         basic_metrics = self.metrics_collector.get_metrics()

@@ -5,7 +5,6 @@ Test suite for Marty CLI functionality.
 import os
 import tempfile
 from pathlib import Path
-from typing import Set
 from unittest.mock import patch
 
 import pytest

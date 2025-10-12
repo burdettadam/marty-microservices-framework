@@ -1,321 +1,129 @@
-# Marty Service Migration Guide
+# Marty Service Migration Guide - COMPLETED
 
-This guide helps you migrate existing Marty microservices to use the unified Marty Microservices Framework (MMF) patterns, eliminating custom service runner code.
+This guide documented the migration from the legacy `marty_chassis` to the unified Marty Microservices Framework (MMF) in `src/framework`. **The migration has been completed successfully.**
 
-## Overview
+## Migration Summary
 
-The goal is to:
-1. **Eliminate custom main.py startup code** - Replace with framework-managed service launcher
-2. **Standardize configuration** - Use framework configuration patterns
-3. **Adopt framework patterns** - Use framework templates and chassis components
-4. **Remove duplication** - Eliminate internal framework copies
+The migration goals have been achieved:
+1. **✅ Eliminated marty_chassis dependencies** - All imports updated to `src/framework`
+2. **✅ Standardized configuration** - Framework configuration patterns adopted
+3. **✅ Adopted framework patterns** - Framework templates and components in use
+4. **✅ Removed duplication** - Legacy chassis code removed from repository
 
-## Migration Steps
+## Final Status
 
-### Step 1: Install/Update Framework Dependencies
+✅ **Migration Complete:**
+- All services migrated to `src/framework` imports
+- Legacy `marty_chassis` code removed from repository
+- Templates updated to use modern framework APIs
+- Documentation updated to reflect current architecture
+- Legacy files quarantined in `quarantine/legacy-templates/`
 
-If not already done, ensure your service has access to the MMF:
+## Framework Architecture Reference
 
-```bash
-# Option A: Install as package dependency (recommended for production)
-pip install marty-microservices-framework
+For new development, use the modern framework patterns documented below:
 
-# Option B: Use local development version
-cd path/to/marty-microservices-framework
-pip install -e .
+### Modern Import Patterns
+
+**Configuration:**
+```python
+from src.framework.config_factory import create_service_config
 ```
 
-### Step 2: Refactor main.py
-
-**Before (Custom Pattern):**
+**Logging:**
 ```python
-# Old main.py with custom startup logic
+from src.framework.logging import UnifiedServiceLogger
+```
+
+**Observability:**
+```python
+from src.framework.observability.monitoring import MetricsCollector
+from src.framework.observability import init_observability
+```
+
+**Service Discovery:**
+```python
+from src.framework.discovery import (
+    ServiceDiscoveryManager,
+    InMemoryServiceRegistry,
+    ServiceInstance
+)
+```
+
+**Testing:**
+```python
+from src.framework.testing import (
+    TestEventCollector,
+    ServiceTestMixin,
+    AsyncTestCase
+)
+```
+
+### Service Creation Pattern
+
+**Modern Service Template:**
+```python
+#!/usr/bin/env python3
+"""
+Modern Marty Microservice
+
+Uses the unified framework patterns.
+"""
+
 import asyncio
 import signal
-import uvicorn
 from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from src.framework.config_factory import create_service_config
+from src.framework.logging import UnifiedServiceLogger
+from src.framework.observability import init_observability
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Custom startup logic
-    await init_database()
-    init_metrics()
-    if settings.metrics_enabled:
-        start_http_server(settings.metrics_port)
+    """Service lifecycle management."""
+    # Startup
+    logger.info("Service starting up...")
+    await init_observability()
+
     yield
-    # Custom shutdown logic
 
-async def run_servers():
-    app = create_app()
-    config = uvicorn.Config(app, host=settings.host, port=settings.port)
-    server = uvicorn.Server(config)
-    await asyncio.gather(server.serve(), serve_grpc())
+    # Shutdown
+    logger.info("Service shutting down...")
 
-def main():
-    # Custom signal handlers
-    def signal_handler(signum, frame):
-        logger.info(f"Received signal {signum}")
-        loop.stop()
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        loop.run_until_complete(run_servers())
-    except KeyboardInterrupt:
-        logger.info("Shutdown signal received")
-    finally:
-        loop.close()
-
-if __name__ == "__main__":
-    main()
-```
-
-**After (Framework Pattern):**
-```python
-# New main.py - simplified, framework-managed
-from fastapi import FastAPI
-from datetime import datetime
-import structlog
-
-logger = structlog.get_logger()
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application."""
+    """Create FastAPI application."""
+    config = create_service_config()
+    logger = UnifiedServiceLogger(__name__)
+
     app = FastAPI(
-        title="Your Service",
-        description="Service description",
-        version="1.0.0"
+        title="My Service",
+        version="1.0.0",
+        lifespan=lifespan
     )
 
-    # Add your routes and middleware here
     @app.get("/health")
-    async def health_check():
-        return {"status": "healthy", "timestamp": datetime.utcnow()}
+    async def health():
+        return {"status": "healthy"}
 
     return app
 
-# Create the app instance - framework will manage the lifecycle
-app = create_app()
 
-# Optional: Add lifecycle events
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Service starting up")
-    # Add your startup logic here
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Service shutting down")
-    # Add your cleanup logic here
+if __name__ == "__main__":
+    import uvicorn
+    app = create_app()
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
 
-### Step 3: Create Service Configuration
+## Legacy Reference (For Historical Context)
 
-Create a `config.yaml` file in your service root:
+The following patterns were used in the legacy `marty_chassis` system and have been fully migrated:
 
-```yaml
-# config.yaml
-service:
-  name: "your-service-name"
-  version: "1.0.0"
-  description: "Your service description"
+- `from marty_chassis import ChassisConfig` → `from src.framework.config_factory import create_service_config`
+- `from marty_chassis.logger import get_logger` → `from src.framework.logging import UnifiedServiceLogger`
+- `from marty_chassis.metrics import MetricsCollector` → `from src.framework.observability.monitoring import MetricsCollector`
+- `from marty_chassis.plugins.manager import PluginManager` → `from src.framework.plugins import PluginManager`
 
-# Server configuration
-host: "0.0.0.0"
-port: 8000
-
-# gRPC configuration (if applicable)
-grpc_enabled: true
-grpc_port: 50051
-grpc_module: "grpc_server:serve"
-
-# Application modules
-app_module: "main:app"
-
-# Development settings
-debug: false
-reload: false
-log_level: "info"
-access_log: true
-
-# Performance
-workers: 1
-
-# Monitoring
-metrics_enabled: true
-metrics_port: 9090
-
-# Add environment-specific configs in:
-# config/development.yaml
-# config/production.yaml
-```
-
-### Step 4: Update gRPC Module (if applicable)
-
-If your service has gRPC, ensure the gRPC module exports a `serve` function:
-
-```python
-# grpc_server.py
-import asyncio
-import grpc
-from concurrent import futures
-
-async def serve():
-    """Start gRPC server - called by framework."""
-    server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
-
-    # Add your gRPC services here
-    # add_YourServiceServicer_to_server(YourServiceServicer(), server)
-
-    listen_addr = '[::]:50051'
-    server.add_insecure_port(listen_addr)
-
-    await server.start()
-    await server.wait_for_termination()
-```
-
-### Step 5: Update Service Startup
-
-**Before:**
-```bash
-# Old way - each service has custom startup
-cd src/your-service
-python main.py
-
-# Or with uvicorn directly
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-**After:**
-```bash
-# New way - unified framework launcher
-cd your-service-directory
-marty runservice
-
-# Or with specific configuration
-marty runservice --config config/production.yaml --environment production
-
-# Or with overrides
-marty runservice your-service --port 8080 --reload --debug
-```
-
-### Step 6: Update Docker/Deployment Configuration
-
-Update your Dockerfile and deployment configurations:
-
-**Dockerfile:**
-```dockerfile
-# Old way
-CMD ["python", "main.py"]
-
-# New way
-CMD ["marty", "runservice", "--config", "config/production.yaml"]
-```
-
-**Docker Compose:**
-```yaml
-# docker-compose.yml
-services:
-  your-service:
-    build: .
-    command: ["marty", "runservice", "--environment", "development", "--reload"]
-    ports:
-      - "8000:8000"
-      - "50051:50051"
-    environment:
-      - DEBUG=true
-```
-
-**Kubernetes:**
-```yaml
-# k8s deployment
-spec:
-  containers:
-  - name: your-service
-    command: ["marty", "runservice", "--config", "/etc/config/service.yaml"]
-```
-
-### Step 7: Remove Custom Service Runner Code
-
-After migration, you can remove:
-- Custom signal handlers
-- Custom uvicorn configuration
-- Custom asyncio event loop management
-- Custom server startup/shutdown logic
-- Custom lifespan management (move to FastAPI events)
-
-## Environment-Specific Configuration
-
-Create environment-specific configs:
-
-```yaml
-# config/development.yaml
-debug: true
-reload: true
-log_level: "debug"
-database:
-  url: "postgresql://dev_user:dev_pass@localhost/dev_db"
-
-# config/production.yaml
-debug: false
-reload: false
-log_level: "info"
-workers: 4
-database:
-  url: "postgresql://prod_user:prod_pass@prod-db/prod_db"
-```
-
-## Testing the Migration
-
-1. **Test with framework CLI:**
-   ```bash
-   marty runservice --dry-run  # Show what would be executed
-   marty runservice --debug    # Run with debug output
-   ```
-
-2. **Verify endpoints work:**
-   ```bash
-   curl http://localhost:8000/health
-   curl http://localhost:8000/metrics
-   ```
-
-3. **Test gRPC (if applicable):**
-   ```bash
-   grpcurl -plaintext localhost:50051 list
-   ```
-
-## Benefits After Migration
-
-1. **Consistency** - All services use the same startup patterns
-2. **Maintainability** - Framework updates apply to all services
-3. **Configuration** - Standardized configuration management
-4. **Observability** - Built-in metrics, logging, and tracing
-5. **Development** - Faster startup and easier debugging
-6. **Deployment** - Simplified deployment configurations
-
-## Troubleshooting
-
-**Service won't start:**
-- Check configuration file syntax: `marty runservice --dry-run`
-- Verify app module path: `app_module: "main:app"`
-- Check working directory and imports
-
-**gRPC not working:**
-- Verify `grpc_module` points to correct function
-- Ensure gRPC function is `async def serve():`
-- Check port conflicts
-
-**Configuration not loading:**
-- Verify YAML syntax
-- Check file paths and permissions
-- Use absolute paths if needed
-
-**Import errors:**
-- Ensure framework is installed: `pip install marty-microservices-framework`
-- Check Python path and working directory
-- Verify all dependencies are installed
-
-For more help, see the [Framework Documentation](../README.md) or create an issue.
+All chassis code has been successfully migrated and removed from the repository.

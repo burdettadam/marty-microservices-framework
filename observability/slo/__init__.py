@@ -13,31 +13,32 @@ Provides comprehensive SLO/SLI management including:
 
 import asyncio
 import builtins
-import json
-import math
+import importlib.util
 import statistics
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, dict, list, tuple
+from typing import Any
 
-# External dependencies (optional)
-try:
-    import aiohttp
-    import aioredis
-    from prometheus_client import (
-        CollectorRegistry,
-        Counter,
-        Gauge,
-        Histogram,
-        Summary,
-        generate_latest,
-    )
+# External dependencies availability checks
+AIOHTTP_AVAILABLE = importlib.util.find_spec("aiohttp") is not None
+PROMETHEUS_AVAILABLE = importlib.util.find_spec("prometheus_client") is not None
 
-    MONITORING_AVAILABLE = True
-except ImportError:
-    MONITORING_AVAILABLE = False
+# Conditional imports
+if AIOHTTP_AVAILABLE:
+    try:
+        import aiohttp
+    except ImportError:
+        AIOHTTP_AVAILABLE = False
+
+if PROMETHEUS_AVAILABLE:
+    try:
+        from prometheus_client import CollectorRegistry, Counter, Gauge
+    except ImportError:
+        PROMETHEUS_AVAILABLE = False
+
+MONITORING_AVAILABLE = AIOHTTP_AVAILABLE and PROMETHEUS_AVAILABLE
 
 
 class SLIType(Enum):
@@ -768,7 +769,7 @@ class SLOManager:
         }
 
         # Calculate summary statistics
-        for slo_name, slo_data in slos.items():
+        for _slo_name, slo_data in slos.items():
             if slo_data and slo_data.get("error_budget"):
                 budget_remaining = slo_data["error_budget"]["budget_remaining"]
                 if budget_remaining > 50:

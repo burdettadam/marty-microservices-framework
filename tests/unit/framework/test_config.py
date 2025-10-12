@@ -6,12 +6,10 @@ without external dependencies.
 """
 
 import os
-from pathlib import Path
 from unittest.mock import mock_open, patch
 
 import pytest
-
-from src.framework.config import BaseServiceConfig
+from src.framework.config import BaseServiceConfig, FrameworkConfig
 
 
 @pytest.mark.unit

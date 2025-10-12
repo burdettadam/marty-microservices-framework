@@ -8,7 +8,7 @@ service mesh components and configurations.
 import builtins
 import logging
 import tempfile
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from .core import (
     BasicServiceMeshManager,
@@ -452,7 +452,7 @@ async def setup_canary_deployment(
 ) -> CanaryDeployment:
     """Setup canary deployment for service."""
     canary = CanaryDeployment(service_name)
-    virtual_service = canary.create_traffic_split(
+    canary.create_traffic_split(
         canary_version=canary_version,
         stable_version=stable_version,
         canary_weight=canary_weight,
@@ -469,7 +469,7 @@ async def setup_blue_green_deployment(
 ) -> BlueGreenDeployment:
     """Setup blue-green deployment for service."""
     blue_green = BlueGreenDeployment(service_name)
-    virtual_service = blue_green.setup_deployment(blue_version, green_version)
+    blue_green.setup_deployment(blue_version, green_version)
 
     logger.info(
         f"Blue-green deployment setup for {service_name}: blue={blue_version}, green={green_version}"

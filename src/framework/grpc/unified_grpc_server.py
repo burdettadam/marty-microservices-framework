@@ -9,18 +9,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 import grpc
-from grpc import aio
-from grpc_reflection.v1alpha import reflection
 
 # MMF imports
 from framework.config_factory import create_service_config
-from framework.observability.unified_observability import (
-    create_observability_manager,
-    trace_grpc_method,
-)
+from framework.observability.unified_observability import create_observability_manager
+from grpc import aio
+from grpc_reflection.v1alpha import reflection
 
 logger = logging.getLogger(__name__)
 

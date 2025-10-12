@@ -9,20 +9,17 @@ and automated test reporting.
 import asyncio
 import builtins
 import fnmatch
-import glob
 import importlib.util
 import inspect
 import json
 import logging
-import os
 import threading
 import time
-import unittest
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 try:
     import schedule
@@ -445,7 +442,7 @@ class TestScheduler:
     def _scheduler_loop(self):
         """Main scheduler loop."""
         # Setup scheduled jobs
-        for plan_name, (plan, schedule_config) in self.scheduled_plans.items():
+        for plan_name, (_plan, schedule_config) in self.scheduled_plans.items():
             if not schedule_config.enabled:
                 continue
 
@@ -503,7 +500,7 @@ class TestScheduler:
             test_run.status = TestStatus.RUNNING
 
             # Execute the plan (this would integrate with TestExecutor)
-            executor = TestExecutor(plan.configuration or TestConfiguration())
+            TestExecutor(plan.configuration or TestConfiguration())
 
             # For now, just simulate execution
             await asyncio.sleep(1)  # Simulate test execution
@@ -526,7 +523,7 @@ class TestScheduler:
                     logger.info(f"Retrying test plan {plan.name}, attempt {attempt + 1}")
                     try:
                         await asyncio.sleep(5)  # Wait before retry
-                        executor = TestExecutor(plan.configuration or TestConfiguration())
+                        TestExecutor(plan.configuration or TestConfiguration())
                         await asyncio.sleep(1)  # Simulate retry execution
                         test_run.status = TestStatus.PASSED
                         test_run.completed_at = datetime.utcnow()

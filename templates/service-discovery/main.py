@@ -20,7 +20,8 @@ from typing import Any, Dict, List, Optional, Set, dict, list
 import uvicorn
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from framework.discovery import (
+from src.framework.config_factory import create_service_config
+from src.framework.discovery import (
     ConsulServiceRegistry,
     DiscoveryManagerConfig,
     EtcdServiceRegistry,
@@ -34,12 +35,11 @@ from framework.discovery import (
     ServiceQuery,
     ServiceRegistry,
 )
-from framework.discovery.monitoring import DiscoveryMetrics, MetricsCollector
-from marty_chassis.config import load_config
-from marty_chassis.health import HealthChecker
-from marty_chassis.logger import get_logger
+from src.framework.discovery.monitoring import DiscoveryMetrics, MetricsCollector
+from src.framework.health import HealthChecker
+from src.framework.logging import UnifiedServiceLogger
 
-logger = get_logger(__name__)
+logger = UnifiedServiceLogger(__name__)
 
 # Global discovery manager
 discovery_manager: Optional[ServiceDiscoveryManager] = None
@@ -333,7 +333,7 @@ async def lifespan(app: FastAPI):
 
     try:
         # Load configuration
-        config = load_config()
+        config = create_service_config()
 
         # Service discovery specific configuration
         sd_config = {

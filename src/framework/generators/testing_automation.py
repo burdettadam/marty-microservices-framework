@@ -13,7 +13,7 @@ import subprocess
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import pytest
 from coverage import Coverage
@@ -592,7 +592,7 @@ class QualityAnalyzer:
         # Run tests with coverage
         pytest_args = [str(service_dir / "tests"), "--tb=short", "-v"]
 
-        exit_code = pytest.main(pytest_args)
+        pytest.main(pytest_args)
         cov.stop()
         cov.save()
 
@@ -769,9 +769,9 @@ class QualityAnalyzer:
 
         for child in ast.walk(node):
             if (
-                isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor))
+                isinstance(child, ast.If | ast.While | ast.For | ast.AsyncFor)
                 or isinstance(child, ast.ExceptHandler)
-                or isinstance(child, ast.With, ast.AsyncWith)
+                or isinstance(child, ast.With | ast.AsyncWith)
             ):
                 complexity += 1
             elif isinstance(child, ast.BoolOp):

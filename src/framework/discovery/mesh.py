@@ -11,7 +11,7 @@ import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .core import ServiceEndpoint, ServiceInstance
 from .discovery import DiscoveryResult, ServiceQuery
@@ -301,9 +301,9 @@ class IstioClient(ServiceMeshClient):
             },
         }
 
-        # Apply via Kubernetes API
+        # Apply via Kubernetes API (placeholder for real implementation)
         # await self._k8s_client.create_namespaced_custom_object(...)
-
+        logger.debug("Generated DestinationRule: %s", destination_rule)
         logger.info("Applied DestinationRule for %s", policy.service_name)
 
     async def _apply_circuit_breaker_rule(self, policy: TrafficPolicy):
@@ -330,7 +330,8 @@ class IstioClient(ServiceMeshClient):
             },
         }
 
-        # Apply via Kubernetes API
+        # Apply via Kubernetes API (placeholder for real implementation)
+        logger.debug("Generated DestinationRule: %s", destination_rule)
         logger.info("Applied circuit breaker rule for %s", policy.service_name)
 
     async def _apply_virtual_service(self, policy: TrafficPolicy):
@@ -359,7 +360,8 @@ class IstioClient(ServiceMeshClient):
             },
         }
 
-        # Apply via Kubernetes API
+        # Apply via Kubernetes API (placeholder for real implementation)
+        logger.debug("Generated VirtualService: %s", virtual_service)
         logger.info("Applied VirtualService retry policy for %s", policy.service_name)
 
     async def remove_traffic_policy(

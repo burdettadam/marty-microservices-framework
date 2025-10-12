@@ -9,12 +9,10 @@ Tests all major deployment patterns using real implementations:
 - Infrastructure Provider Abstractions
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
+from datetime import datetime
+from unittest.mock import AsyncMock
 
 import pytest
-
 from src.framework.deployment import (  # Core Components; Utility Functions
     Deployment,
     DeploymentConfig,
@@ -527,7 +525,7 @@ class TestDeploymentIntegration:
             period=10
         )
 
-        config = DeploymentConfig(
+        DeploymentConfig(
             service_name="integration-service",
             version="3.2.1",
             image="integration-service:3.2.1",

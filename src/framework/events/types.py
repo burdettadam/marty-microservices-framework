@@ -7,7 +7,7 @@ Defines the types and structures used throughout the event publishing system.
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 

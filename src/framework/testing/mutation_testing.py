@@ -19,11 +19,12 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 # For code analysis and mutation
 import coverage
@@ -319,7 +320,7 @@ class ConstantReplacementMutator(CodeMutator):
 
     def can_mutate(self, node: ast.AST) -> bool:
         """Check if node is a constant."""
-        return isinstance(node, (ast.Constant, ast.Num, ast.Str, ast.NameConstant))
+        return isinstance(node, ast.Constant | ast.Num | ast.Str | ast.NameConstant)
 
     def mutate(self, node: ast.AST) -> builtins.list[ast.AST]:
         """Generate constant mutations."""
@@ -328,7 +329,7 @@ class ConstantReplacementMutator(CodeMutator):
         if isinstance(node, ast.Constant):
             value = node.value
 
-            if isinstance(value, (int, float)):
+            if isinstance(value, int | float):
                 # Numeric mutations
                 mutations.extend(
                     [
@@ -366,7 +367,7 @@ class StatementDeletionMutator(CodeMutator):
 
     def can_mutate(self, node: ast.AST) -> bool:
         """Check if node is a deletable statement."""
-        return isinstance(node, (ast.Expr, ast.Assign, ast.AnnAssign, ast.AugAssign))
+        return isinstance(node, ast.Expr | ast.Assign | ast.AnnAssign | ast.AugAssign)
 
     def mutate(self, node: ast.AST) -> builtins.list[ast.AST]:
         """Generate statement deletion mutations."""
@@ -495,7 +496,7 @@ class MutationEngine:
         try:
             # Read original file
             with open(mutant.original_file) as f:
-                lines = f.readlines()
+                f.readlines()
 
             # Parse and mutate the AST
             with open(mutant.original_file) as f:
@@ -549,8 +550,12 @@ class MutationEngine:
                         mutated_node = ast.parse(self.mutated_code, mode="eval").body
                         self.applied = True
                         return mutated_node
-                    except:
-                        pass
+                    except Exception:
+                        logging.debug(
+                            "Failed to parse mutated code for mutation %s",
+                            mutant.mutant_id,
+                            exc_info=True,
+                        )
 
                 return self.generic_visit(node)
 
@@ -713,7 +718,7 @@ class MutationTester:
         source_files = []
 
         for directory in self.source_directories:
-            for root, dirs, files in os.walk(directory):
+            for root, _dirs, files in os.walk(directory):
                 for file in files:
                     if file.endswith(".py") and not file.startswith("test_"):
                         source_files.append(os.path.join(root, file))

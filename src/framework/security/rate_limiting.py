@@ -8,8 +8,8 @@ import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable, Dict, Optional, Set, Union
 
 from .config import RateLimitConfig
 from .errors import RateLimitExceededError

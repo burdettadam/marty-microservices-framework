@@ -13,10 +13,11 @@ import time
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -664,7 +665,7 @@ class AlertManager:
         """Check alert conditions."""
         triggered_alerts = []
 
-        for alert_name, alert in self._alerts.items():
+        for _alert_name, alert in self._alerts.items():
             # Simplified alert evaluation - in production, use proper expression evaluation
             for metric in metrics:
                 if alert.condition in metric.name and metric.value > alert.threshold:

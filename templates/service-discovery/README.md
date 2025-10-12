@@ -5,7 +5,9 @@ A production-ready service discovery template for the Marty Microservices Framew
 ## Features
 
 ### Core Capabilities
-- **Multi-Backend Support**: Consul, etcd, Kubernetes, and in-memory registries
+- **Multi-Backend Support**: In-memory registry (production-ready), with extensible architecture for external backends
+  - ⚠️ **Backend Status**: Consul, etcd, and Kubernetes integrations are currently stub implementations
+  - **In-Memory Registry**: Fully functional for development and small-scale production deployments
 - **Dynamic Service Registration**: Automatic registration and deregistration
 - **Health Monitoring**: Comprehensive health checks with multiple strategies
 - **Load Balancing**: Multiple algorithms including health-based routing
@@ -14,20 +16,19 @@ A production-ready service discovery template for the Marty Microservices Framew
 - **API Gateway Integration**: Seamless integration with gateway services
 
 ### Enterprise Features
-- **High Availability**: Clustering and failover support
+- **High Availability**: Clustering and failover support via in-memory registry replication
 - **Security**: TLS, API keys, JWT authentication
 - **Monitoring**: Prometheus metrics, Jaeger tracing, structured logging
 - **Configuration Management**: Environment-specific configurations
-- **Kubernetes Native**: Full Kubernetes integration with service/endpoint watching
+- **Extensible Backends**: Framework ready for Consul, etcd, and Kubernetes implementations
 
 ## Quick Start
 
-### Using Consul (Recommended for Development)
+### Using In-Memory Registry (Recommended)
 
-1. **Start Consul**:
+1. **Start the Service Discovery Service**:
 ```bash
-# Using Docker
-docker run -d --name consul -p 8500:8500 consul:latest agent -dev -client=0.0.0.0
+# Using the template directly
 
 # Or using Consul binary
 consul agent -dev

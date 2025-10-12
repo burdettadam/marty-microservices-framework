@@ -2,8 +2,6 @@
 Integration setup for observability components
 """
 
-from typing import Tuple
-
 from observability.kafka import EventBus, KafkaConfig, event_bus_context
 from observability.metrics import MetricsCollector, MetricsConfig
 

@@ -15,11 +15,8 @@ import logging
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List
 
 import pytest
-import pytest_asyncio
-
 from tests.e2e.conftest import AuditEvent, PerformanceAnalyzer
 
 
@@ -606,7 +603,7 @@ class TestAuditability:
                 )
 
                 # Execute simulation
-                result = await simulation_plugin.simulate_work(
+                await simulation_plugin.simulate_work(
                     task_name=f"{worker_name}_op_{operation_count}",
                     complexity=getattr(
                         simulation_plugin.config, "complexity_multiplier", 1
@@ -808,8 +805,8 @@ class TestAuditability:
         analysis["traceability_score"] = traceability_score
 
         # Coverage analysis
-        services_covered = set(e.service for e in audit_collector.audit_events)
-        event_types_covered = set(e.event_type for e in audit_collector.audit_events)
+        services_covered = {e.service for e in audit_collector.audit_events}
+        event_types_covered = {e.event_type for e in audit_collector.audit_events}
 
         analysis["coverage_analysis"] = {
             "services_covered": list(services_covered),
@@ -919,7 +916,7 @@ class TestAuditability:
         """Get sample correlation chains for demonstration."""
         samples = []
 
-        for correlation_id, event_ids in list(audit_collector.correlation_map.items())[
+        for correlation_id, _event_ids in list(audit_collector.correlation_map.items())[
             :max_samples
         ]:
             events = audit_collector.get_events_by_correlation(correlation_id)

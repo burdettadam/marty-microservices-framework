@@ -8,7 +8,7 @@ for API requests, authentication events, and other application activities.
 import json
 import logging
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # FastAPI imports
 try:
@@ -194,7 +194,7 @@ if FASTAPI_AVAILABLE:
 
             # Extract request information
             client_ip = request.client.host if request.client else "unknown"
-            user_agent = request.headers.get("user-agent", "")
+            request.headers.get("user-agent", "")
             headers = dict(request.headers)
             query_params = dict(request.query_params)
 
@@ -214,19 +214,13 @@ if FASTAPI_AVAILABLE:
             # Process request
             try:
                 response = await call_next(request)
-                outcome = AuditOutcome.SUCCESS
                 error_message = None
 
                 # Determine outcome based on status code
                 if response.status_code >= 400:
-                    outcome = (
-                        AuditOutcome.FAILURE
-                        if response.status_code < 500
-                        else AuditOutcome.ERROR
-                    )
+                    pass
 
             except Exception as e:
-                outcome = AuditOutcome.ERROR
                 error_message = str(e)
 
                 # Create error response

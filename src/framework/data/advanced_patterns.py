@@ -15,21 +15,11 @@ import threading
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    TypeVar,
-    dict,
-    list,
-)
+from typing import Any, Generic, TypeVar, dict, list
 
 
 class EventType(Enum):

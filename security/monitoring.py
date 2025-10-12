@@ -19,7 +19,7 @@ from collections import defaultdict, deque
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Generic, List, Optional, Set
+from typing import Any
 
 # External dependencies
 try:
@@ -1195,7 +1195,7 @@ async def main():
     print("\nSimulating security events...")
 
     # Failed login attempts
-    for i in range(6):
+    for _i in range(6):
         await monitoring.event_collector.collect_event(
             source="application",
             event_type=SecurityEventType.AUTHENTICATION_FAILURE,

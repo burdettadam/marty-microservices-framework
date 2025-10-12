@@ -11,11 +11,12 @@ import logging
 import threading
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -431,7 +432,7 @@ class BulkheadManager:
     def shutdown_all(self):
         """Shutdown all bulkheads."""
         with self._lock:
-            for name, bulkhead in list(self._bulkheads.items()):
+            for _name, bulkhead in list(self._bulkheads.items()):
                 if isinstance(bulkhead, ThreadPoolBulkhead):
                     bulkhead.shutdown()
             self._bulkheads.clear()

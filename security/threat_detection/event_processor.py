@@ -14,9 +14,10 @@ import builtins
 import re
 import time
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional, dict, list
+from typing import Any, list
 
 # External dependencies
 try:
@@ -372,7 +373,7 @@ class SecurityEventProcessor:
     def _apply_filters(self, event_data: builtins.dict[str, Any]) -> bool:
         """Apply event filters to determine if event should be processed"""
 
-        for filter_name, filter_config in self.filters.items():
+        for _filter_name, filter_config in self.filters.items():
             if not filter_config.enabled:
                 continue
 

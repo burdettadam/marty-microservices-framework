@@ -9,10 +9,11 @@ import asyncio
 import builtins
 import logging
 import random
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from .core import LoadBalancingStrategy, ServiceEndpoint
 

@@ -8,11 +8,14 @@ and service discovery mechanisms.
 
 import asyncio
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .core import PluginContext, PluginManager
 
 logger = logging.getLogger(__name__)
 

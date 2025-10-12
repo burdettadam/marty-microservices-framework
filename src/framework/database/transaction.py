@@ -5,12 +5,12 @@ Transaction management utilities for the enterprise database framework.
 import asyncio
 import builtins
 import logging
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Awaitable, Callable, Dict, Generic, List, Optional, Set, TypeVar
+from typing import Any, TypeVar
 
 from sqlalchemy import text
 from sqlalchemy.exc import DataError, IntegrityError, SQLAlchemyError

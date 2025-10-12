@@ -22,22 +22,19 @@ Version: 1.0.0
 
 import asyncio
 import builtins
-import json
 import logging
 import os
 import shutil
 import signal
 import subprocess
 import sys
-import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import click
 import jinja2
-import requests
 import yaml
 from rich.console import Console
 from rich.panel import Panel
@@ -864,8 +861,6 @@ class MartyServiceRunner:
 
     def run_service(self, config: ServiceConfig):
         """Run the service with the given configuration."""
-        import uvicorn
-
         # Setup signal handlers for graceful shutdown
         def signal_handler(signum, frame):
             logger.info(f"Received signal {signum}, shutting down...")

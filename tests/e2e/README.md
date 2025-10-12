@@ -190,10 +190,10 @@ Tests automatically configure plugins with appropriate settings:
 
 ### Common Issues
 
-**Tests fail with plugin errors:**
+**Tests fail with import errors:**
 ```bash
-# Ensure plugins are properly imported
-python -c "from marty_chassis.plugins.examples import *"
+# Ensure framework modules are properly imported
+python -c "from src.framework.plugins import PluginManager; print('Framework plugins available')"
 ```
 
 **Playwright tests fail:**

@@ -13,29 +13,32 @@ Provides comprehensive deployment strategy implementations including:
 
 import asyncio
 import builtins
+import importlib.util
 import random
 import time
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Final, Generic, List, Optional, dict, list
+from typing import Any
 
-# External dependencies
-try:
-    import kubernetes
-    from kubernetes import client, config
+# External dependencies availability checks
+KUBERNETES_AVAILABLE = importlib.util.find_spec("kubernetes") is not None
+METRICS_AVAILABLE = importlib.util.find_spec("prometheus_client") is not None
 
-    KUBERNETES_AVAILABLE = True
-except ImportError:
-    KUBERNETES_AVAILABLE = False
+# Conditional imports for kubernetes
+if KUBERNETES_AVAILABLE:
+    try:
+        from kubernetes import client, config
+    except ImportError:
+        KUBERNETES_AVAILABLE = False
 
-try:
-    from prometheus_client import Counter, Gauge, Histogram
-
-    METRICS_AVAILABLE = True
-except ImportError:
-    METRICS_AVAILABLE = False
+# Conditional imports for prometheus metrics
+if METRICS_AVAILABLE:
+    try:
+        from prometheus_client import Counter, Gauge, Histogram
+    except ImportError:
+        METRICS_AVAILABLE = False
 
 
 class DeploymentStrategy(Enum):
@@ -288,12 +291,13 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
         if KUBERNETES_AVAILABLE:
             try:
                 config.load_incluster_config()
-            except:
+            except Exception as incluster_error:
                 try:
                     config.load_kube_config()
-                except:
+                except Exception as kubeconfig_error:
                     print(
-                        "⚠️ Kubernetes config not available for Blue-Green deployment"
+                        "⚠️ Kubernetes config not available for Blue-Green deployment: "
+                        f"in-cluster error={incluster_error}, kubeconfig error={kubeconfig_error}"
                     )
 
     async def deploy(self, operation: DeploymentOperation) -> bool:
@@ -629,7 +633,6 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
         try:
             config = operation.validation_config
-            target = operation.target_config
 
             for attempt in range(config.health_check_retries):
                 # Mock health check - would make actual HTTP request

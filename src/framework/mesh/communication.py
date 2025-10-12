@@ -13,22 +13,11 @@ import threading
 import time
 import uuid
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    dict,
-    list,
-    set,
-    tuple,
-)
+from typing import Any, dict, list, set
 
 # For networking operations
 import aiohttp
@@ -560,7 +549,7 @@ class ServiceCommunicationManager:
                 headers=headers,
                 params=query_params,
                 json=body if isinstance(body, dict) else None,
-                data=body if isinstance(body, (str, bytes)) else None,
+                data=body if isinstance(body, str | bytes) else None,
             ) as response:
                 response_body = await response.text()
 
@@ -581,8 +570,8 @@ class ServiceCommunicationManager:
         # Simplified gRPC request
         # In practice, this would use grpcio library
 
-        service_method = request_data.get("service_method")
-        message = request_data.get("message", {})
+        request_data.get("service_method")
+        request_data.get("message", {})
 
         # Simulate gRPC call
         await asyncio.sleep(0.1)  # Simulate network delay
@@ -902,7 +891,7 @@ class ServiceDependencyManager:
             all_services.add(dep.target_service)
 
         # Perform topological sort
-        in_degree = {service: 0 for service in all_services}
+        in_degree = dict.fromkeys(all_services, 0)
 
         # Calculate in-degrees (only for hard dependencies)
         for dep in self.dependencies.values():

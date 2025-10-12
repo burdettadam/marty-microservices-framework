@@ -17,7 +17,6 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import yaml
 
@@ -160,7 +159,7 @@ class SecurityAuditTool:
             for exclude in excludes:
                 cmd.extend(["-x", exclude])
 
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # Parse results
             results_file = self.output_dir / "bandit_results.json"
@@ -413,7 +412,7 @@ class SecurityAuditTool:
                 str(self.output_dir / "safety_results.json"),
             ]
 
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            subprocess.run(cmd, capture_output=True, text=True, check=False)
 
             # Parse results
             results_file = self.output_dir / "safety_results.json"

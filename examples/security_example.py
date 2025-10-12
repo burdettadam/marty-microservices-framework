@@ -12,9 +12,6 @@ This example shows:
 import logging
 from contextlib import asynccontextmanager
 
-# Import the security framework
-from typing import List, Optional
-
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from framework.security import (
@@ -31,6 +28,9 @@ from framework.security import (
     require_permission_dependency,
     require_role_dependency,
 )
+
+# Import the security framework
+
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

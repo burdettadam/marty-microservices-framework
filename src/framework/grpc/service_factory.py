@@ -15,9 +15,10 @@ import importlib
 import inspect
 import logging
 import signal
+from collections.abc import Callable
 from concurrent import futures
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Protocol, Set
+from typing import Any, Protocol
 
 import grpc
 from grpc_health.v1 import health_pb2, health_pb2_grpc

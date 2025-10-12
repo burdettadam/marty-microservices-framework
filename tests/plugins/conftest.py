@@ -9,12 +9,9 @@ Configuration for running the plugin system test suite including:
 """
 
 import asyncio
-from pathlib import Path
-from typing import Any, Dict
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-
 from framework.plugins import MMFPlugin, PluginContext, PluginManager, PluginMetadata
 
 

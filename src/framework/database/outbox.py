@@ -6,7 +6,6 @@ Provides transactional outbox pattern for reliable event publishing.
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from sqlalchemy import Column, DateTime, Integer, LargeBinary, String, Text
 from sqlalchemy.ext.declarative import declarative_base

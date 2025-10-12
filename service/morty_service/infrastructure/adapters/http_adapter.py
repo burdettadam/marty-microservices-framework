@@ -6,7 +6,6 @@ implementing the input ports defined in the application layer.
 """
 
 import builtins
-from typing import List, Optional, list
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status

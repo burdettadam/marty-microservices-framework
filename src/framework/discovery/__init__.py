@@ -99,7 +99,7 @@ from .manager import DiscoveryManagerConfig as ManagerConfig
 from .manager import DiscoveryManagerState, ServiceDiscoveryManager
 
 # Service mesh integration
-from .mesh import ServiceMeshConfig, ServiceMeshManager, TrafficPolicy
+from .mesh import ServiceMeshConfig, TrafficPolicy
 
 # Monitoring and metrics
 from .monitoring import (
@@ -154,8 +154,6 @@ __all__ = [
     "MetricsCollector",
     "RandomBalancer",
     "RoundRobinBalancer",
-    "RoutingRule",
-    "SecurityPolicy",
     "ServerSideDiscovery",
     # Circuit breaker
     "CircuitBreaker",
@@ -167,7 +165,6 @@ __all__ = [
     # Core components
     "ServiceInstance",
     # Service mesh
-    "ServiceMesh",
     "ServiceMeshConfig",
     "ServiceMetadata",
     "ServiceMetrics",

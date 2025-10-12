@@ -13,8 +13,9 @@ import builtins
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, Final, List, Optional
+from typing import Any
 
 
 def run_command(cmd: str, cwd: str | None = None) -> builtins.dict[str, Any]:

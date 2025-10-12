@@ -12,17 +12,12 @@ Provides comprehensive GitOps capabilities including:
 
 import asyncio
 import builtins
-import hashlib
-import json
-import shutil
-import subprocess
-import tempfile
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Union, dict, list, set
+from typing import Any
 
 import yaml
 
@@ -35,7 +30,6 @@ except ImportError:
     GIT_AVAILABLE = False
 
 try:
-    import kubernetes
     from kubernetes import client, config
 
     KUBERNETES_AVAILABLE = True
@@ -697,11 +691,14 @@ class ConfigurationDriftDetector:
         if KUBERNETES_AVAILABLE:
             try:
                 config.load_incluster_config()
-            except:
+            except Exception as incluster_error:
                 try:
                     config.load_kube_config()
-                except:
-                    print("⚠️ Kubernetes config not available")
+                except Exception as kubeconfig_error:
+                    print(
+                        "⚠️ Kubernetes config not available "
+                        f"(in-cluster error={incluster_error}, kubeconfig error={kubeconfig_error})"
+                    )
 
             self.k8s_client = client.ApiClient()
         else:
@@ -1065,7 +1062,7 @@ class GitOpsOrchestrator:
         while self.monitoring_enabled:
             try:
                 # Check all applications
-                for app_name, app in self.applications.items():
+                for _app_name, app in self.applications.items():
                     await self._monitor_application(app)
 
                 # Wait for next monitoring cycle
