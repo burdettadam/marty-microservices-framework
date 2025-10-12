@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 
 class EventPriority(Enum):
     """Event priority levels."""
+
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
@@ -109,9 +110,7 @@ class EventMetadata(BaseModel):
     custom_headers: dict[str, str] = Field(default_factory=dict)
 
     class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+        json_encoders = {datetime: lambda v: v.isoformat()}
 
 
 class AuditEventData(BaseModel):

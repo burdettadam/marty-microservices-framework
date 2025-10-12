@@ -4,7 +4,6 @@ Tests for External Connectors Enums
 Test all enumeration types for external system integration.
 """
 
-
 from ..enums import ConnectorType, DataFormat, IntegrationPattern, TransformationType
 
 
@@ -14,8 +13,17 @@ class TestConnectorType:
     def test_all_connector_types_defined(self):
         """Test that all expected connector types are defined."""
         expected_types = [
-            "REST_API", "SOAP_API", "DATABASE", "FILE_SYSTEM", "FTP", "SFTP",
-            "LEGACY_MAINFRAME", "MESSAGE_QUEUE", "WEBHOOK", "GRAPHQL", "CUSTOM"
+            "REST_API",
+            "SOAP_API",
+            "DATABASE",
+            "FILE_SYSTEM",
+            "FTP",
+            "SFTP",
+            "LEGACY_MAINFRAME",
+            "MESSAGE_QUEUE",
+            "WEBHOOK",
+            "GRAPHQL",
+            "CUSTOM",
         ]
 
         for type_name in expected_types:
@@ -43,8 +51,15 @@ class TestDataFormat:
     def test_all_data_formats_defined(self):
         """Test that all expected data formats are defined."""
         expected_formats = [
-            "JSON", "XML", "CSV", "FIXED_WIDTH", "DELIMITED",
-            "BINARY", "YAML", "AVRO", "PROTOBUF"
+            "JSON",
+            "XML",
+            "CSV",
+            "FIXED_WIDTH",
+            "DELIMITED",
+            "BINARY",
+            "YAML",
+            "AVRO",
+            "PROTOBUF",
         ]
 
         for format_name in expected_formats:
@@ -65,8 +80,13 @@ class TestIntegrationPattern:
     def test_all_integration_patterns_defined(self):
         """Test that all expected integration patterns are defined."""
         expected_patterns = [
-            "REQUEST_RESPONSE", "FIRE_AND_FORGET", "POLLING", "STREAMING",
-            "BATCH_PROCESSING", "EVENT_SUBSCRIPTION", "WEBHOOK_CALLBACK"
+            "REQUEST_RESPONSE",
+            "FIRE_AND_FORGET",
+            "POLLING",
+            "STREAMING",
+            "BATCH_PROCESSING",
+            "EVENT_SUBSCRIPTION",
+            "WEBHOOK_CALLBACK",
         ]
 
         for pattern_name in expected_patterns:
@@ -87,8 +107,13 @@ class TestTransformationType:
     def test_all_transformation_types_defined(self):
         """Test that all expected transformation types are defined."""
         expected_types = [
-            "MAPPING", "FILTERING", "AGGREGATION", "ENRICHMENT",
-            "VALIDATION", "FORMAT_CONVERSION", "PROTOCOL_ADAPTATION"
+            "MAPPING",
+            "FILTERING",
+            "AGGREGATION",
+            "ENRICHMENT",
+            "VALIDATION",
+            "FORMAT_CONVERSION",
+            "PROTOCOL_ADAPTATION",
         ]
 
         for type_name in expected_types:

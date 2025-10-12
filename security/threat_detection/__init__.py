@@ -24,6 +24,7 @@ from typing import Any
 # External dependencies (optional)
 try:
     from prometheus_client import Counter, Histogram
+
     REDIS_AVAILABLE = True
 
     ANALYTICS_AVAILABLE = True
@@ -172,9 +173,7 @@ class AnomalyDetector:
                 "marty_anomaly_score", "Anomaly scores", ["service", "metric"]
             )
 
-    def establish_baseline(
-        self, service_name: str, metric_name: str, values: builtins.list[float]
-    ):
+    def establish_baseline(self, service_name: str, metric_name: str, values: builtins.list[float]):
         """Establish behavioral baseline for a service metric"""
         if len(values) < 10:
             return  # Need minimum data points
@@ -212,10 +211,7 @@ class AnomalyDetector:
         self.event_history[key].append({"value": value, "timestamp": datetime.now()})
 
         # Check if we have baseline
-        if (
-            service_name not in self.baselines
-            or metric_name not in self.baselines[service_name]
-        ):
+        if service_name not in self.baselines or metric_name not in self.baselines[service_name]:
             # Build baseline from recent history
             recent_values = [item["value"] for item in self.event_history[key]]
             if len(recent_values) >= 30:  # Minimum for baseline
@@ -233,9 +229,7 @@ class AnomalyDetector:
 
         # Update metrics
         if ANALYTICS_AVAILABLE:
-            self.anomaly_score.labels(service=service_name, metric=metric_name).observe(
-                z_score
-            )
+            self.anomaly_score.labels(service=service_name, metric=metric_name).observe(z_score)
 
         is_anomaly = z_score > threshold_std
 
@@ -259,9 +253,7 @@ class AnomalyDetector:
         anomaly_score = 0.0
 
         # Analyze request patterns
-        request_times = [
-            action.get("timestamp", datetime.now()) for action in user_actions
-        ]
+        request_times = [action.get("timestamp", datetime.now()) for action in user_actions]
         if len(request_times) > 1:
             # Check for rapid-fire requests (potential bot behavior)
             time_deltas = []
@@ -520,9 +512,7 @@ class ThreatIntelligenceEngine:
 
     def get_threat_summary(self) -> builtins.dict[str, Any]:
         """Get threat intelligence summary"""
-        active_indicators = [
-            intel for intel in self.threat_indicators.values() if intel.is_valid()
-        ]
+        active_indicators = [intel for intel in self.threat_indicators.values() if intel.is_valid()]
 
         by_type = defaultdict(int)
         by_category = defaultdict(int)
@@ -623,9 +613,7 @@ class IncidentResponseEngine:
         """Create new security incident"""
 
         self.incident_counter += 1
-        incident_id = (
-            f"INC-{datetime.now().strftime('%Y%m%d')}-{self.incident_counter:04d}"
-        )
+        incident_id = f"INC-{datetime.now().strftime('%Y%m%d')}-{self.incident_counter:04d}"
 
         incident = SecurityIncident(
             incident_id=incident_id,
@@ -746,8 +734,7 @@ class IncidentResponseEngine:
         return [
             incident
             for incident in self.incidents.values()
-            if incident.status
-            not in [IncidentStatus.RESOLVED, IncidentStatus.FALSE_POSITIVE]
+            if incident.status not in [IncidentStatus.RESOLVED, IncidentStatus.FALSE_POSITIVE]
         ]
 
     def get_incident_summary(self) -> builtins.dict[str, Any]:
@@ -806,7 +793,7 @@ class ThreatDetectionManager:
 
         # Create security event
         event = SecurityEvent(
-            event_id=f"EVT-{int(time.time()*1000)}",
+            event_id=f"EVT-{int(time.time() * 1000)}",
             timestamp=datetime.now(),
             source_ip=event_data.get("source_ip", ""),
             user_id=event_data.get("user_id"),
@@ -907,9 +894,7 @@ class ThreatDetectionManager:
                 )
 
             # Check for reconnaissance pattern
-            unique_endpoints = {
-                e.raw_data.get("endpoint", "") for e in related_events
-            }
+            unique_endpoints = {e.raw_data.get("endpoint", "") for e in related_events}
             if len(unique_endpoints) >= 10:
                 await self._create_correlation_incident(
                     [event] + related_events,
@@ -924,8 +909,7 @@ class ThreatDetectionManager:
             recent_user_events = [
                 e
                 for e in related_events
-                if e.user_id == event.user_id
-                and "user" in e.raw_data.get("endpoint", "").lower()
+                if e.user_id == event.user_id and "user" in e.raw_data.get("endpoint", "").lower()
             ]
 
             if recent_user_events:
@@ -1065,18 +1049,14 @@ async def main():
     status = threat_manager.get_security_status()
     print("\n=== SECURITY STATUS ===")
     print(f"Active incidents: {status['incidents']['active_incidents']}")
-    print(
-        f"Total threat indicators: {status['threat_intelligence']['total_indicators']}"
-    )
+    print(f"Total threat indicators: {status['threat_intelligence']['total_indicators']}")
     print(f"Baseline services: {status['anomaly_detector']['total_services']}")
 
     # Show active incidents
     active_incidents = threat_manager.incident_response.get_active_incidents()
     print(f"\n=== ACTIVE INCIDENTS ({len(active_incidents)}) ===")
     for incident in active_incidents:
-        print(
-            f"{incident.incident_id}: {incident.title} ({incident.threat_level.value})"
-        )
+        print(f"{incident.incident_id}: {incident.title} ({incident.threat_level.value})")
         print(f"  Status: {incident.status.value}")
         print(f"  Events: {len(incident.events)}")
         print(f"  Actions: {len(incident.response_actions)}")

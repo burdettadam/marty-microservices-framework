@@ -161,7 +161,7 @@ class DistributedCache:
         key: str,
         value: Any,
         ttl_seconds: int = 3600,
-        consistency_level: ConsistencyLevel | None = None
+        consistency_level: ConsistencyLevel | None = None,
     ) -> bool:
         """Put value in cache with consistency guarantees."""
         level = consistency_level or self.consistency_config.level
@@ -437,7 +437,9 @@ class DataConsistencyManager:
         await asyncio.sleep(0.01)
         return True
 
-    async def repair_inconsistency(self, source_id: str, key: str, authoritative_value: Any) -> bool:
+    async def repair_inconsistency(
+        self, source_id: str, key: str, authoritative_value: Any
+    ) -> bool:
         """Repair data inconsistency."""
         if source_id not in self.data_sources:
             return False

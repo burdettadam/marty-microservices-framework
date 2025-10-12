@@ -128,9 +128,7 @@ class PerformanceMonitor:
 
     def record_request(self, duration_seconds: float, status: str) -> None:
         """Record a completed request"""
-        self.response_time.labels(test_name=self.test_name, status=status).observe(
-            duration_seconds
-        )
+        self.response_time.labels(test_name=self.test_name, status=status).observe(duration_seconds)
 
         self.requests_total.labels(test_name=self.test_name, status=status).inc()
 
@@ -161,9 +159,7 @@ class GrpcLoadTester:
         # Create tasks for concurrent users
         tasks = []
         for user_id in range(self.config.concurrent_users):
-            delay = (
-                user_id * self.config.ramp_up_seconds
-            ) / self.config.concurrent_users
+            delay = (user_id * self.config.ramp_up_seconds) / self.config.concurrent_users
             task = asyncio.create_task(self._user_session(user_id, delay))
             tasks.append(task)
 
@@ -269,9 +265,7 @@ class GrpcLoadTester:
                 else max(response_times)
             )
         else:
-            avg_response_time = (
-                p50_response_time
-            ) = p95_response_time = p99_response_time = 0
+            avg_response_time = p50_response_time = p95_response_time = p99_response_time = 0
 
         # Error analysis
         errors_by_type = {}
@@ -299,9 +293,7 @@ class GrpcLoadTester:
             p50_response_time_ms=p50_response_time,
             p95_response_time_ms=p95_response_time,
             p99_response_time_ms=p99_response_time,
-            requests_per_second=len(self.results) / total_duration
-            if total_duration > 0
-            else 0,
+            requests_per_second=len(self.results) / total_duration if total_duration > 0 else 0,
             bytes_per_second=total_bytes / total_duration if total_duration > 0 else 0,
             error_rate_percent=(len(failed_results) / len(self.results)) * 100
             if self.results
@@ -335,9 +327,7 @@ class HttpLoadTester:
             # Create tasks for concurrent users
             tasks = []
             for user_id in range(self.config.concurrent_users):
-                delay = (
-                    user_id * self.config.ramp_up_seconds
-                ) / self.config.concurrent_users
+                delay = (user_id * self.config.ramp_up_seconds) / self.config.concurrent_users
                 task = asyncio.create_task(self._user_session(session, user_id, delay))
                 tasks.append(task)
 
@@ -393,9 +383,7 @@ class HttpLoadTester:
             ]:
                 kwargs["json"] = self.config.http_payload
 
-            async with session.request(
-                self.config.http_method, url, **kwargs
-            ) as response:
+            async with session.request(self.config.http_method, url, **kwargs) as response:
                 response_body = await response.read()
                 duration = time.time() - start_time
 
@@ -480,9 +468,9 @@ class LoadTestRunner:
 
     def print_summary(self, report: LoadTestReport) -> None:
         """Print a summary of the load test results"""
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Load Test Summary: {report.config.test_name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
         print(f"Duration: {report.end_time - report.start_time:.2f} seconds")
         print(f"Total Requests: {report.total_requests}")
         print(f"Successful: {report.successful_requests}")
@@ -502,4 +490,4 @@ class LoadTestRunner:
             for error_type, count in report.errors_by_type.items():
                 print(f"  {error_type}: {count}")
 
-        print(f"{'='*60}\n")
+        print(f"{'=' * 60}\n")

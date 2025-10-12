@@ -75,10 +75,7 @@ class DataTransformationEngine:
             if transformation.transformation_type == TransformationType.FILTERING:
                 return self._apply_filtering_transformation(data, transformation)
 
-            if (
-                transformation.transformation_type
-                == TransformationType.FORMAT_CONVERSION
-            ):
+            if transformation.transformation_type == TransformationType.FORMAT_CONVERSION:
                 return self._apply_format_conversion(data, transformation)
 
             if transformation.transformation_type == TransformationType.VALIDATION:
@@ -98,9 +95,7 @@ class DataTransformationEngine:
             logging.exception(f"Transformation error: {e}")
             raise
 
-    def _apply_mapping_transformation(
-        self, data: Any, transformation: DataTransformation
-    ) -> Any:
+    def _apply_mapping_transformation(self, data: Any, transformation: DataTransformation) -> Any:
         """Apply field mapping transformation."""
         if not isinstance(data, dict):
             return data
@@ -119,9 +114,7 @@ class DataTransformationEngine:
 
         return result
 
-    def _apply_filtering_transformation(
-        self, data: Any, transformation: DataTransformation
-    ) -> Any:
+    def _apply_filtering_transformation(self, data: Any, transformation: DataTransformation) -> Any:
         """Apply filtering transformation."""
         if isinstance(data, list):
             # Filter array items
@@ -161,31 +154,20 @@ class DataTransformationEngine:
             if (
                 (operator == "gt" and (item_value is None or item_value <= value))
                 or (operator == "lt" and (item_value is None or item_value >= value))
-                or (
-                    operator == "contains"
-                    and (item_value is None or value not in str(item_value))
-                )
-                or (
-                    operator == "in" and (item_value is None or item_value not in value)
-                )
+                or (operator == "contains" and (item_value is None or value not in str(item_value)))
+                or (operator == "in" and (item_value is None or item_value not in value))
             ):
                 return False
 
         return True
 
-    def _apply_format_conversion(
-        self, data: Any, transformation: DataTransformation
-    ) -> Any:
+    def _apply_format_conversion(self, data: Any, transformation: DataTransformation) -> Any:
         """Apply format conversion transformation."""
         source_format = (
-            transformation.source_schema.get("format")
-            if transformation.source_schema
-            else "json"
+            transformation.source_schema.get("format") if transformation.source_schema else "json"
         )
         target_format = (
-            transformation.target_schema.get("format")
-            if transformation.target_schema
-            else "json"
+            transformation.target_schema.get("format") if transformation.target_schema else "json"
         )
 
         converter_name = f"{source_format}_to_{target_format}"
@@ -263,9 +245,7 @@ class DataTransformationEngine:
 
                 if lookup_value:
                     # Simulate lookup result
-                    enriched_data[
-                        f"{lookup_field}_enriched"
-                    ] = f"enriched_{lookup_value}"
+                    enriched_data[f"{lookup_field}_enriched"] = f"enriched_{lookup_value}"
 
         return enriched_data
 

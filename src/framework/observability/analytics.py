@@ -211,9 +211,7 @@ class PerformanceAnalyzer:
 
         # Calculate various health factors
         stability_score = self._calculate_stability_score(recent_values)
-        performance_score = self._calculate_performance_score(
-            metric_name, recent_values
-        )
+        performance_score = self._calculate_performance_score(metric_name, recent_values)
         availability_score = self._calculate_availability_score(recent_values)
 
         # Weighted combination
@@ -282,9 +280,7 @@ class PerformanceAnalyzer:
 
         return trend, min(1.0, confidence)
 
-    def _calculate_statistics(
-        self, values: builtins.list[float]
-    ) -> builtins.dict[str, float]:
+    def _calculate_statistics(self, values: builtins.list[float]) -> builtins.dict[str, float]:
         """Calculate statistical measures."""
         if not values:
             return {}
@@ -297,8 +293,7 @@ class PerformanceAnalyzer:
             "max": max(values),
             "p95": self._percentile(values, 0.95),
             "p99": self._percentile(values, 0.99),
-            "coefficient_of_variation": statistics.stdev(values)
-            / statistics.mean(values)
+            "coefficient_of_variation": statistics.stdev(values) / statistics.mean(values)
             if statistics.mean(values) > 0 and len(values) > 1
             else 0.0,
         }
@@ -320,22 +315,17 @@ class PerformanceAnalyzer:
                 hourly_means[hour].append(values[i])
 
             # Calculate variance across hours
-            hour_avgs = [
-                statistics.mean(vals) for vals in hourly_means.values() if vals
-            ]
+            hour_avgs = [statistics.mean(vals) for vals in hourly_means.values() if vals]
             if len(hour_avgs) > 1:
                 hourly_variance = statistics.variance(hour_avgs)
                 overall_variance = statistics.variance(values)
 
-                if (
-                    hourly_variance > overall_variance * 0.1
-                ):  # Significant hourly pattern
+                if hourly_variance > overall_variance * 0.1:  # Significant hourly pattern
                     patterns["hourly_seasonality"] = True
                     patterns["peak_hours"] = [
                         h
                         for h, vals in hourly_means.items()
-                        if vals
-                        and statistics.mean(vals) > statistics.mean(values) * 1.2
+                        if vals and statistics.mean(vals) > statistics.mean(values) * 1.2
                     ]
 
         # Spike detection
@@ -347,9 +337,7 @@ class PerformanceAnalyzer:
             spikes = [i for i, val in enumerate(values) if val > threshold]
             if spikes:
                 patterns["spikes_detected"] = len(spikes)
-                patterns["spike_severity"] = (
-                    max(values) / mean_val if mean_val > 0 else 0
-                )
+                patterns["spike_severity"] = max(values) / mean_val if mean_val > 0 else 0
 
         return patterns
 
@@ -372,16 +360,10 @@ class PerformanceAnalyzer:
         recent_avg = statistics.mean(recent_trend)
         older_avg = statistics.mean(older_values)
 
-        change_percent = (
-            ((recent_avg - older_avg) / older_avg * 100) if older_avg > 0 else 0
-        )
+        change_percent = ((recent_avg - older_avg) / older_avg * 100) if older_avg > 0 else 0
 
         if abs(change_percent) > 20:  # Significant change threshold
-            severity = (
-                InsightSeverity.WARNING
-                if abs(change_percent) > 50
-                else InsightSeverity.INFO
-            )
+            severity = InsightSeverity.WARNING if abs(change_percent) > 50 else InsightSeverity.INFO
             direction = "increased" if change_percent > 0 else "decreased"
 
             insight = PerformanceInsight(
@@ -396,9 +378,7 @@ class PerformanceAnalyzer:
                 if change_percent > 0
                 else TrendDirection.DECREASING,
                 confidence=0.8,
-                recommendations=self._get_trend_recommendations(
-                    metric_name, change_percent
-                ),
+                recommendations=self._get_trend_recommendations(metric_name, change_percent),
                 metadata={"change_percent": change_percent},
             )
 
@@ -496,9 +476,7 @@ class PerformanceAnalyzer:
                     id=str(uuid4()),
                     title=f"Anomaly detected in {metric_name}",
                     description=f"{metric_name} current value {current_value:.2f} is {z_score:.1f} standard deviations from normal",
-                    severity=InsightSeverity.WARNING
-                    if z_score > 4
-                    else InsightSeverity.INFO,
+                    severity=InsightSeverity.WARNING if z_score > 4 else InsightSeverity.INFO,
                     metric_name=metric_name,
                     current_value=current_value,
                     expected_value=mean_val,
@@ -625,9 +603,7 @@ class PerformanceAnalyzer:
         cv = statistics.stdev(values) / mean_val
         return max(0.0, 1.0 - cv)
 
-    def _calculate_performance_score(
-        self, metric_name: str, values: builtins.list[float]
-    ) -> float:
+    def _calculate_performance_score(self, metric_name: str, values: builtins.list[float]) -> float:
         """Calculate performance score based on metric type."""
         if not values:
             return 0.0
@@ -838,14 +814,10 @@ class CapacityPlanner:
 
         # Make prediction
         future_timestamp = timestamps[-1] + prediction_horizon
-        predicted_value = self._predict_value(
-            metric_name, future_timestamp, timestamps[0]
-        )
+        predicted_value = self._predict_value(metric_name, future_timestamp, timestamps[0])
 
         # Calculate confidence interval
-        confidence_interval = self._calculate_confidence_interval(
-            metric_name, predicted_value
-        )
+        confidence_interval = self._calculate_confidence_interval(metric_name, predicted_value)
 
         # Determine time to threshold
         threshold = self.capacity_thresholds.get(metric_name, 1.0)
@@ -933,9 +905,7 @@ class CapacityPlanner:
         if model["type"] == "linear":
             # Use R-squared to estimate confidence
             accuracy = model.get("r_squared", 0.5)
-            margin = (
-                predicted_value * (1 - accuracy) * 0.5
-            )  # Simplified margin calculation
+            margin = predicted_value * (1 - accuracy) * 0.5  # Simplified margin calculation
             return (max(0, predicted_value - margin), predicted_value + margin)
         if model["type"] == "mean":
             std_dev = model.get("std_dev", 0.0)

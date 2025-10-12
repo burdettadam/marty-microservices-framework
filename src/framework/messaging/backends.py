@@ -175,9 +175,7 @@ class InMemoryBackend(MessageBackend):
                 self._queues[routing_key].append(message)
                 message.mark_published()
             else:
-                logger.warning(
-                    f"No queue or exchange found for routing key: {routing_key}"
-                )
+                logger.warning(f"No queue or exchange found for routing key: {routing_key}")
                 return False
 
             return True
@@ -186,9 +184,7 @@ class InMemoryBackend(MessageBackend):
             logger.error(f"Failed to publish message: {e}")
             return False
 
-    async def _route_through_exchange(
-        self, message: Message, exchange_name: str, routing_key: str
-    ):
+    async def _route_through_exchange(self, message: Message, exchange_name: str, routing_key: str):
         """Route message through exchange."""
         exchange = self._exchanges[exchange_name]
         exchange_type = exchange["type"]
@@ -351,9 +347,7 @@ class RabbitMQBackend(MessageBackend):
             await self._channel.set_qos(prefetch_count=100)
 
             self._connected = True
-            logger.info(
-                f"Connected to RabbitMQ at {self.config.host}:{self.config.port}"
-            )
+            logger.info(f"Connected to RabbitMQ at {self.config.host}:{self.config.port}")
 
         except ImportError:
             raise RuntimeError("aio-pika package required for RabbitMQ backend")
@@ -700,9 +694,7 @@ class RedisBackend(MessageBackend):
                 # Use Redis lists
                 timeout_int = int(timeout) if timeout else 1
 
-                result = await self._redis.brpop(
-                    keys=[f"queue:{queue}"], timeout=timeout_int
-                )
+                result = await self._redis.brpop(keys=[f"queue:{queue}"], timeout=timeout_int)
 
                 if result:
                     queue_name, message_data = result

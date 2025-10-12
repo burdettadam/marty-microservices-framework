@@ -17,7 +17,7 @@ from typing import Any, TypeVar
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class BackoffStrategy(str, Enum):
@@ -116,14 +116,18 @@ class AdvancedRetryManager:
             delay = random.uniform(self.config.base_delay, self.config.max_delay)
         elif self.config.backoff_strategy == BackoffStrategy.JITTERED_EXPONENTIAL:
             base_delay = self.config.base_delay * (self.config.backoff_multiplier ** (attempt - 1))
-            jitter = random.uniform(-self.config.jitter_range, self.config.jitter_range) * base_delay
+            jitter = (
+                random.uniform(-self.config.jitter_range, self.config.jitter_range) * base_delay
+            )
             delay = base_delay + jitter
         else:
             delay = self.config.base_delay
 
         # Apply jitter if enabled (except for random and jittered strategies)
-        if (self.config.jitter and
-            self.config.backoff_strategy not in [BackoffStrategy.RANDOM, BackoffStrategy.JITTERED_EXPONENTIAL]):
+        if self.config.jitter and self.config.backoff_strategy not in [
+            BackoffStrategy.RANDOM,
+            BackoffStrategy.JITTERED_EXPONENTIAL,
+        ]:
             jitter = random.uniform(-self.config.jitter_range, self.config.jitter_range) * delay
             delay += jitter
 
@@ -176,7 +180,7 @@ def retry_with_advanced_policy(
     *args,
     config: AdvancedRetryConfig | None = None,
     manager_name: str = "default",
-    **kwargs
+    **kwargs,
 ) -> RetryResult:
     """Execute function with advanced retry policy."""
     if config is None:
@@ -192,10 +196,7 @@ def retry_with_advanced_policy(
             execution_time = time.time() - start_time
 
             retry_result = RetryResult(
-                success=True,
-                attempts=attempt,
-                total_time=execution_time,
-                result=result
+                success=True, attempts=attempt, total_time=execution_time, result=result
             )
 
             if config.collect_metrics:
@@ -218,7 +219,9 @@ def retry_with_advanced_policy(
                 delay = manager.calculate_delay(attempt)
 
                 if config.log_retries:
-                    logger.warning("Attempt %d failed with %s, retrying in %.2fs", attempt, e, delay)
+                    logger.warning(
+                        "Attempt %d failed with %s, retrying in %.2fs", attempt, e, delay
+                    )
 
                 time.sleep(delay)
             else:
@@ -230,7 +233,7 @@ def retry_with_advanced_policy(
         success=False,
         attempts=config.max_attempts,
         total_time=execution_time,
-        last_exception=last_exception
+        last_exception=last_exception,
     )
 
     if config.collect_metrics:
@@ -244,7 +247,7 @@ async def async_retry_with_advanced_policy(
     *args,
     config: AdvancedRetryConfig | None = None,
     manager_name: str = "default",
-    **kwargs
+    **kwargs,
 ) -> RetryResult:
     """Execute async function with advanced retry policy."""
     if config is None:
@@ -264,10 +267,7 @@ async def async_retry_with_advanced_policy(
             execution_time = time.time() - start_time
 
             retry_result = RetryResult(
-                success=True,
-                attempts=attempt,
-                total_time=execution_time,
-                result=result
+                success=True, attempts=attempt, total_time=execution_time, result=result
             )
 
             if config.collect_metrics:
@@ -290,7 +290,9 @@ async def async_retry_with_advanced_policy(
                 delay = manager.calculate_delay(attempt)
 
                 if config.log_retries:
-                    logger.warning("Attempt %d failed with %s, retrying in %.2fs", attempt, e, delay)
+                    logger.warning(
+                        "Attempt %d failed with %s, retrying in %.2fs", attempt, e, delay
+                    )
 
                 await asyncio.sleep(delay)
             else:
@@ -302,7 +304,7 @@ async def async_retry_with_advanced_policy(
         success=False,
         attempts=config.max_attempts,
         total_time=execution_time,
-        last_exception=last_exception
+        last_exception=last_exception,
     )
 
     if config.collect_metrics:

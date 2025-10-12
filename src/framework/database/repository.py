@@ -60,9 +60,7 @@ class BaseRepository(Generic[ModelType], ABC):
         async with self.db_manager.get_transaction() as session:
             yield session
 
-    async def create(
-        self, obj_in: CreateSchemaType | dict[str, Any], **kwargs
-    ) -> ModelType:
+    async def create(self, obj_in: CreateSchemaType | dict[str, Any], **kwargs) -> ModelType:
         """Create a new entity."""
         async with self.get_transaction() as session:
             try:
@@ -90,18 +88,12 @@ class BaseRepository(Generic[ModelType], ABC):
                 await session.flush()
                 await session.refresh(db_obj)
 
-                logger.debug(
-                    "Created %s with id: %s", self.model_class.__name__, db_obj.id
-                )
+                logger.debug("Created %s with id: %s", self.model_class.__name__, db_obj.id)
                 return db_obj
 
             except IntegrityError as e:
-                logger.error(
-                    "Integrity error creating %s: %s", self.model_class.__name__, e
-                )
-                raise ConflictError(
-                    f"Entity already exists or violates constraints: {e}"
-                ) from e
+                logger.error("Integrity error creating %s: %s", self.model_class.__name__, e)
+                raise ConflictError(f"Entity already exists or violates constraints: {e}") from e
             except Exception as e:
                 logger.error("Error creating %s: %s", self.model_class.__name__, e)
                 raise RepositoryError(f"Error creating entity: {e}") from e
@@ -132,9 +124,7 @@ class BaseRepository(Generic[ModelType], ABC):
         """Get entity by ID or raise NotFoundError."""
         entity = await self.get_by_id(entity_id)
         if not entity:
-            raise NotFoundError(
-                f"{self.model_class.__name__} with id {entity_id} not found"
-            )
+            raise NotFoundError(f"{self.model_class.__name__} with id {entity_id} not found")
         return entity
 
     async def get_all(
@@ -216,25 +206,19 @@ class BaseRepository(Generic[ModelType], ABC):
                 await session.flush()
                 await session.refresh(db_obj)
 
-                logger.debug(
-                    "Updated %s with id: %s", self.model_class.__name__, entity_id
-                )
+                logger.debug("Updated %s with id: %s", self.model_class.__name__, entity_id)
                 return db_obj
 
             except NotFoundError:
                 raise
             except IntegrityError as e:
-                logger.error(
-                    "Integrity error updating %s: %s", self.model_class.__name__, e
-                )
+                logger.error("Integrity error updating %s: %s", self.model_class.__name__, e)
                 raise ConflictError(f"Update violates constraints: {e}") from e
             except Exception as e:
                 logger.error("Error updating %s: %s", self.model_class.__name__, e)
                 raise RepositoryError(f"Error updating entity: {e}") from e
 
-    async def delete(
-        self, entity_id: int | str | UUID, hard_delete: bool = False
-    ) -> bool:
+    async def delete(self, entity_id: int | str | UUID, hard_delete: bool = False) -> bool:
         """Delete an entity (soft delete by default if supported)."""
         async with self.get_transaction() as session:
             try:
@@ -370,9 +354,7 @@ class BaseRepository(Generic[ModelType], ABC):
                 )
                 raise ConflictError(f"Bulk create violates constraints: {e}") from e
             except Exception as e:
-                logger.error(
-                    "Error in bulk create %s: %s", self.model_class.__name__, e
-                )
+                logger.error("Error in bulk create %s: %s", self.model_class.__name__, e)
                 raise RepositoryError(f"Error in bulk create: {e}") from e
 
     async def search(

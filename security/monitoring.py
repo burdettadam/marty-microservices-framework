@@ -187,9 +187,7 @@ class SecurityAlert:
             "severity": self.severity.value,
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
-            "resolution_time": self.resolution_time.isoformat()
-            if self.resolution_time
-            else None,
+            "resolution_time": self.resolution_time.isoformat() if self.resolution_time else None,
         }
 
 
@@ -228,9 +226,7 @@ class SecurityEventCollector:
                 ["status"],
             )
 
-    def register_event_source(
-        self, source_name: str, source_config: builtins.dict[str, Any]
-    ):
+    def register_event_source(self, source_name: str, source_config: builtins.dict[str, Any]):
         """Register a new event source"""
         self.event_sources[source_name] = source_config
         print(f"Registered event source: {source_name}")
@@ -297,9 +293,7 @@ class SecurityEventCollector:
 
     def _calculate_event_hash(self, event: SecurityEvent) -> str:
         """Calculate hash for event deduplication"""
-        hash_data = (
-            f"{event.event_type.value}_{event.source_ip}_{event.user_id}_{event.action}"
-        )
+        hash_data = f"{event.event_type.value}_{event.source_ip}_{event.user_id}_{event.action}"
         return hashlib.sha256(hash_data.encode()).hexdigest()[:16]
 
     def _normalize_event_data(self, event: SecurityEvent) -> builtins.dict[str, Any]:
@@ -343,9 +337,7 @@ class SecurityEventCollector:
 
         # Threat intelligence enrichment
         if event.source_ip:
-            enrichment["threat_intel"] = await self._lookup_threat_intelligence(
-                event.source_ip
-            )
+            enrichment["threat_intel"] = await self._lookup_threat_intelligence(event.source_ip)
 
         # Asset enrichment
         if event.resource:
@@ -374,9 +366,7 @@ class SecurityEventCollector:
             "risk_score": 0.2,
         }
 
-    async def _lookup_threat_intelligence(
-        self, ip_address: str
-    ) -> builtins.dict[str, Any]:
+    async def _lookup_threat_intelligence(self, ip_address: str) -> builtins.dict[str, Any]:
         """Lookup threat intelligence for IP"""
         # Mock implementation - would query threat intel feeds
         return {
@@ -605,9 +595,7 @@ class SecurityAnalyticsEngine:
                     alert_name=f"Unusual {event_type.value} Volume",
                     severity=SecurityEventSeverity.MEDIUM,
                     created_at=datetime.now(),
-                    trigger_conditions=[
-                        f"Event count {count} exceeds baseline {baseline}"
-                    ],
+                    trigger_conditions=[f"Event count {count} exceeds baseline {baseline}"],
                     recommended_actions=["investigate_cause", "check_system_health"],
                 )
                 alerts.append(alert)
@@ -701,9 +689,7 @@ class SIEMIntegration:
                 ["destination"],
             )
 
-    def configure_siem_connection(
-        self, siem_name: str, config: builtins.dict[str, Any]
-    ):
+    def configure_siem_connection(self, siem_name: str, config: builtins.dict[str, Any]):
         """Configure connection to SIEM platform"""
         self.siem_connections[siem_name] = config
         print(f"Configured SIEM connection: {siem_name}")
@@ -851,21 +837,13 @@ class SecurityMonitoringDashboard:
 
         # Deduct points for active critical alerts
         critical_alerts = len(
-            [
-                a
-                for a in self.active_alerts.values()
-                if a.severity == SecurityEventSeverity.CRITICAL
-            ]
+            [a for a in self.active_alerts.values() if a.severity == SecurityEventSeverity.CRITICAL]
         )
         score = base_score - (critical_alerts * 10)
 
         # Deduct points for high alerts
         high_alerts = len(
-            [
-                a
-                for a in self.active_alerts.values()
-                if a.severity == SecurityEventSeverity.HIGH
-            ]
+            [a for a in self.active_alerts.values() if a.severity == SecurityEventSeverity.HIGH]
         )
         score = score - (high_alerts * 5)
 
@@ -874,18 +852,10 @@ class SecurityMonitoringDashboard:
     def _calculate_threat_level(self) -> str:
         """Calculate current threat level"""
         critical_count = len(
-            [
-                a
-                for a in self.active_alerts.values()
-                if a.severity == SecurityEventSeverity.CRITICAL
-            ]
+            [a for a in self.active_alerts.values() if a.severity == SecurityEventSeverity.CRITICAL]
         )
         high_count = len(
-            [
-                a
-                for a in self.active_alerts.values()
-                if a.severity == SecurityEventSeverity.HIGH
-            ]
+            [a for a in self.active_alerts.values() if a.severity == SecurityEventSeverity.HIGH]
         )
 
         if critical_count > 0:
@@ -1124,9 +1094,7 @@ class SecurityMonitoringSystem:
         # Log for investigation
         # Would integrate with ticketing system
 
-    async def _send_alert_notification(
-        self, alert: SecurityAlert, recipients: builtins.list[str]
-    ):
+    async def _send_alert_notification(self, alert: SecurityAlert, recipients: builtins.list[str]):
         """Send alert notification"""
 
         # Mock implementation - would integrate with email/Slack/PagerDuty
@@ -1152,9 +1120,7 @@ class SecurityMonitoringSystem:
                         "CRITICAL": 4,
                     }
                     threat_level = self.dashboard._calculate_threat_level()
-                    self.dashboard.threat_level.set(
-                        threat_level_map.get(threat_level, 1)
-                    )
+                    self.dashboard.threat_level.set(threat_level_map.get(threat_level, 1))
 
                 # Sleep for metrics update interval
                 await asyncio.sleep(60)  # Update every minute

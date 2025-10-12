@@ -362,9 +362,7 @@ _circuit_breakers: builtins.dict[str, CircuitBreaker] = {}
 _registry_lock = threading.Lock()
 
 
-def get_circuit_breaker(
-    name: str, config: CircuitBreakerConfig | None = None
-) -> CircuitBreaker:
+def get_circuit_breaker(name: str, config: CircuitBreakerConfig | None = None) -> CircuitBreaker:
     """Get or create a circuit breaker by name."""
     with _registry_lock:
         if name not in _circuit_breakers:

@@ -8,7 +8,6 @@ Tests for plugin discovery mechanisms including:
 - Plugin loading and validation
 """
 
-
 # Fix import paths
 import sys
 from pathlib import Path
@@ -28,7 +27,7 @@ try:
 except ImportError:
     # Create mock classes for testing structure
     class PluginInfo:
-        def __init__(self, name: str, metadata: 'PluginMetadata', module_path: str):
+        def __init__(self, name: str, metadata: "PluginMetadata", module_path: str):
             self.name = name
             self.metadata = metadata
             self.module_path = module_path
@@ -37,10 +36,10 @@ except ImportError:
         def __init__(self, name: str, version: str, **kwargs):
             self.name = name
             self.version = version
-            self.description = kwargs.get('description', '')
-            self.author = kwargs.get('author', '')
-            self.dependencies = kwargs.get('dependencies', [])
-            self.optional_dependencies = kwargs.get('optional_dependencies', [])
+            self.description = kwargs.get("description", "")
+            self.author = kwargs.get("author", "")
+            self.dependencies = kwargs.get("dependencies", [])
+            self.optional_dependencies = kwargs.get("optional_dependencies", [])
 
     class DirectoryPluginDiscoverer:
         def __init__(self, plugin_dir: Path):
@@ -67,27 +66,21 @@ except ImportError:
             return plugins
 
 
-
 class TestPluginInfo:
     """Test plugin information structure."""
 
     def test_create_plugin_info(self):
         """Test creation of plugin info."""
-        metadata = PluginMetadata(
-            name="test-plugin",
-            version="1.0.0",
-            description="Test plugin"
-        )
+        metadata = PluginMetadata(name="test-plugin", version="1.0.0", description="Test plugin")
 
         plugin_info = PluginInfo(
-            name="test-plugin",
-            metadata=metadata,
-            module_path="/path/to/plugin"
+            name="test-plugin", metadata=metadata, module_path="/path/to/plugin"
         )
 
         assert plugin_info.name == "test-plugin"
         assert plugin_info.metadata == metadata
         assert plugin_info.module_path == "/path/to/plugin"
+
 
 class TestDirectoryPluginDiscoverer:
     """Test directory-based plugin discovery."""
@@ -118,7 +111,7 @@ Test plugin module for {plugin_name}
 from framework.plugins.core import MMFPlugin, PluginContext
 from typing import Dict, Any
 
-class {plugin_name.replace('-', '').title()}Plugin(MMFPlugin):
+class {plugin_name.replace("-", "").title()}Plugin(MMFPlugin):
     async def initialize(self, context: PluginContext) -> None:
         self.context = context
 
@@ -133,7 +126,7 @@ class {plugin_name.replace('-', '').title()}Plugin(MMFPlugin):
 
 # Plugin factory function
 def create_plugin():
-    return {plugin_name.replace('-', '').title()}Plugin()
+    return {plugin_name.replace("-", "").title()}Plugin()
 '''
 
         (plugin_path / "plugin.py").write_text(plugin_content)
@@ -208,6 +201,7 @@ def create_plugin():
 
         assert len(plugins) == 0
 
+
 class TestPackagePluginDiscoverer:
     """Test package-based plugin discovery."""
 
@@ -226,6 +220,7 @@ class TestPackagePluginDiscoverer:
 
         assert len(plugins) == 0
 
+
 class TestCompositePluginDiscoverer:
     """Test composite plugin discovery strategy."""
 
@@ -241,7 +236,7 @@ class TestCompositePluginDiscoverer:
         # Create composite discoverer
         discoverers = [
             DirectoryPluginDiscoverer(plugin_dir),
-            PackagePluginDiscoverer("test_package")
+            PackagePluginDiscoverer("test_package"),
         ]
 
         composite = CompositePluginDiscoverer(discoverers)
@@ -256,11 +251,12 @@ class TestCompositePluginDiscoverer:
 
         assert len(plugins) == 0
 
+
 class TestPluginLoading:
     """Test plugin loading and validation mechanisms."""
 
-    @patch('importlib.util.spec_from_file_location')
-    @patch('importlib.util.module_from_spec')
+    @patch("importlib.util.spec_from_file_location")
+    @patch("importlib.util.module_from_spec")
     def test_plugin_loading_success(self, mock_module_from_spec, mock_spec_from_file):
         """Test successful plugin loading."""
         # Mock the import machinery
@@ -282,23 +278,19 @@ class TestPluginLoading:
         """Test plugin metadata validation."""
         # Valid metadata
         valid_metadata = PluginMetadata(
-            name="valid-plugin",
-            version="1.0.0",
-            description="A valid test plugin"
+            name="valid-plugin", version="1.0.0", description="A valid test plugin"
         )
 
         assert valid_metadata.name == "valid-plugin"
         assert valid_metadata.version == "1.0.0"
 
         # Test with minimal metadata
-        minimal_metadata = PluginMetadata(
-            name="minimal",
-            version="0.1.0"
-        )
+        minimal_metadata = PluginMetadata(name="minimal", version="0.1.0")
 
         assert minimal_metadata.name == "minimal"
         assert minimal_metadata.version == "0.1.0"
         assert minimal_metadata.description == ""
+
 
 class TestPluginDependencyResolution:
     """Test plugin dependency resolution."""
@@ -309,18 +301,16 @@ class TestPluginDependencyResolution:
             PluginInfo(
                 "plugin-a",
                 PluginMetadata("plugin-a", "1.0.0", dependencies=["plugin-b"]),
-                "/path/to/a"
+                "/path/to/a",
             ),
             PluginInfo(
-                "plugin-b",
-                PluginMetadata("plugin-b", "1.0.0", dependencies=[]),
-                "/path/to/b"
+                "plugin-b", PluginMetadata("plugin-b", "1.0.0", dependencies=[]), "/path/to/b"
             ),
             PluginInfo(
                 "plugin-c",
                 PluginMetadata("plugin-c", "1.0.0", dependencies=["plugin-a", "plugin-b"]),
-                "/path/to/c"
-            )
+                "/path/to/c",
+            ),
         ]
 
         # Mock dependency resolution logic
@@ -342,13 +332,13 @@ class TestPluginDependencyResolution:
             PluginInfo(
                 "plugin-a",
                 PluginMetadata("plugin-a", "1.0.0", dependencies=["plugin-b"]),
-                "/path/to/a"
+                "/path/to/a",
             ),
             PluginInfo(
                 "plugin-b",
                 PluginMetadata("plugin-b", "1.0.0", dependencies=["plugin-a"]),
-                "/path/to/b"
-            )
+                "/path/to/b",
+            ),
         ]
 
         # Mock circular dependency detection
@@ -363,7 +353,7 @@ class TestPluginDependencyResolution:
             PluginInfo(
                 "plugin-a",
                 PluginMetadata("plugin-a", "1.0.0", dependencies=["missing-plugin"]),
-                "/path/to/a"
+                "/path/to/a",
             )
         ]
 
@@ -372,6 +362,7 @@ class TestPluginDependencyResolution:
 
         missing = required_dependencies - available_plugins
         assert "missing-plugin" in missing
+
 
 class TestPluginDiscoveryIntegration:
     """Test integration of discovery mechanisms."""

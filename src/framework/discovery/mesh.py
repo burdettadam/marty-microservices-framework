@@ -141,9 +141,7 @@ class ServiceMeshClient(ABC):
         """Discover services through service mesh."""
 
     @abstractmethod
-    async def get_service_endpoints(
-        self, service_name: str
-    ) -> builtins.list[ServiceMeshEndpoint]:
+    async def get_service_endpoints(self, service_name: str) -> builtins.list[ServiceMeshEndpoint]:
         """Get service endpoints with mesh metadata."""
 
     @abstractmethod
@@ -157,9 +155,7 @@ class ServiceMeshClient(ABC):
         """Remove traffic management policy."""
 
     @abstractmethod
-    async def get_traffic_policies(
-        self, service_name: str
-    ) -> builtins.list[TrafficPolicy]:
+    async def get_traffic_policies(self, service_name: str) -> builtins.list[TrafficPolicy]:
         """Get traffic policies for service."""
 
     async def health_check(self) -> bool:
@@ -227,9 +223,7 @@ class IstioClient(ServiceMeshClient):
             logger.error("Istio service discovery failed: %s", e)
             raise
 
-    async def _query_istio_services(
-        self, query: ServiceQuery
-    ) -> builtins.list[ServiceInstance]:
+    async def _query_istio_services(self, query: ServiceQuery) -> builtins.list[ServiceInstance]:
         """Query Istio for services matching query."""
 
         # This would use Istio APIs to discover services
@@ -244,9 +238,7 @@ class IstioClient(ServiceMeshClient):
 
         return services
 
-    async def get_service_endpoints(
-        self, service_name: str
-    ) -> builtins.list[ServiceMeshEndpoint]:
+    async def get_service_endpoints(self, service_name: str) -> builtins.list[ServiceMeshEndpoint]:
         """Get Istio service endpoints."""
 
         endpoints = []
@@ -270,9 +262,7 @@ class IstioClient(ServiceMeshClient):
             elif policy.policy_type == TrafficPolicyType.RETRY:
                 await self._apply_virtual_service(policy)
             else:
-                logger.warning(
-                    "Unsupported policy type for Istio: %s", policy.policy_type
-                )
+                logger.warning("Unsupported policy type for Istio: %s", policy.policy_type)
                 return False
 
             return True
@@ -294,9 +284,7 @@ class IstioClient(ServiceMeshClient):
             "spec": {
                 "host": policy.service_name,
                 "trafficPolicy": {
-                    "loadBalancer": {
-                        "simple": policy.configuration.get("algorithm", "ROUND_ROBIN")
-                    }
+                    "loadBalancer": {"simple": policy.configuration.get("algorithm", "ROUND_ROBIN")}
                 },
             },
         }
@@ -397,9 +385,7 @@ class IstioClient(ServiceMeshClient):
         # Delete via Kubernetes API
         logger.info("Deleted VirtualService: %s", name)
 
-    async def get_traffic_policies(
-        self, service_name: str
-    ) -> builtins.list[TrafficPolicy]:
+    async def get_traffic_policies(self, service_name: str) -> builtins.list[TrafficPolicy]:
         """Get Istio traffic policies for service."""
 
         policies = []
@@ -453,16 +439,12 @@ class LinkerdClient(ServiceMeshClient):
             metadata={"mesh_type": "linkerd", "namespace": self.config.namespace},
         )
 
-    async def _query_linkerd_services(
-        self, query: ServiceQuery
-    ) -> builtins.list[ServiceInstance]:
+    async def _query_linkerd_services(self, query: ServiceQuery) -> builtins.list[ServiceInstance]:
         """Query Linkerd for services."""
         # Implementation would use Linkerd APIs
         return []
 
-    async def get_service_endpoints(
-        self, service_name: str
-    ) -> builtins.list[ServiceMeshEndpoint]:
+    async def get_service_endpoints(self, service_name: str) -> builtins.list[ServiceMeshEndpoint]:
         """Get Linkerd service endpoints."""
         return []
 
@@ -477,9 +459,7 @@ class LinkerdClient(ServiceMeshClient):
         """Remove Linkerd traffic policy."""
         return True
 
-    async def get_traffic_policies(
-        self, service_name: str
-    ) -> builtins.list[TrafficPolicy]:
+    async def get_traffic_policies(self, service_name: str) -> builtins.list[TrafficPolicy]:
         """Get Linkerd traffic policies."""
         return []
 
@@ -527,16 +507,12 @@ class ConsulConnectClient(ServiceMeshClient):
             metadata={"mesh_type": "consul_connect"},
         )
 
-    async def _query_consul_services(
-        self, query: ServiceQuery
-    ) -> builtins.list[ServiceInstance]:
+    async def _query_consul_services(self, query: ServiceQuery) -> builtins.list[ServiceInstance]:
         """Query Consul for services."""
         # Implementation would use Consul APIs
         return []
 
-    async def get_service_endpoints(
-        self, service_name: str
-    ) -> builtins.list[ServiceMeshEndpoint]:
+    async def get_service_endpoints(self, service_name: str) -> builtins.list[ServiceMeshEndpoint]:
         """Get Consul Connect service endpoints."""
         return []
 
@@ -551,9 +527,7 @@ class ConsulConnectClient(ServiceMeshClient):
         """Remove Consul Connect traffic policy."""
         return True
 
-    async def get_traffic_policies(
-        self, service_name: str
-    ) -> builtins.list[TrafficPolicy]:
+    async def get_traffic_policies(self, service_name: str) -> builtins.list[TrafficPolicy]:
         """Get Consul Connect traffic policies."""
         return []
 
@@ -590,9 +564,7 @@ class ServiceMeshManager:
 
         return results
 
-    async def apply_policy_to_all_meshes(
-        self, policy: TrafficPolicy
-    ) -> builtins.dict[str, bool]:
+    async def apply_policy_to_all_meshes(self, policy: TrafficPolicy) -> builtins.dict[str, bool]:
         """Apply traffic policy to all service meshes."""
 
         results = {}
@@ -631,9 +603,7 @@ class ServiceMeshManager:
         # Clean up active policies
         if service_name in self._active_policies:
             self._active_policies[service_name] = [
-                p
-                for p in self._active_policies[service_name]
-                if p.policy_type != policy_type
+                p for p in self._active_policies[service_name] if p.policy_type != policy_type
             ]
 
         return results

@@ -158,7 +158,9 @@ class DistributedTransactionCoordinator:
                     participant.state = TransactionState.FAILED
 
             except Exception as e:
-                logging.exception("Prepare failed for participant %s: %s", participant.participant_id, e)
+                logging.exception(
+                    "Prepare failed for participant %s: %s", participant.participant_id, e
+                )
                 participant.state = TransactionState.FAILED
                 prepare_results.append(False)
 
@@ -202,7 +204,9 @@ class DistributedTransactionCoordinator:
                     participant.state = TransactionState.FAILED
 
             except Exception as e:
-                logging.exception("Commit failed for participant %s: %s", participant.participant_id, e)
+                logging.exception(
+                    "Commit failed for participant %s: %s", participant.participant_id, e
+                )
                 participant.state = TransactionState.FAILED
                 commit_results.append(False)
 
@@ -248,7 +252,9 @@ class DistributedTransactionCoordinator:
                     abort_results.append(True)  # Nothing to abort
 
             except Exception as e:
-                logging.exception("Abort failed for participant %s: %s", participant.participant_id, e)
+                logging.exception(
+                    "Abort failed for participant %s: %s", participant.participant_id, e
+                )
                 participant.state = TransactionState.FAILED
                 abort_results.append(False)
 

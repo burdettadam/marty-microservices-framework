@@ -1,4 +1,5 @@
 """Main deployment orchestration engine."""
+
 import asyncio
 import builtins
 import logging
@@ -53,13 +54,9 @@ class DeploymentOrchestrator:
         self.deployment_events: deque = deque(maxlen=10000)
 
         # Thread pool for concurrent operations
-        self.executor = ThreadPoolExecutor(
-            max_workers=10, thread_name_prefix="deployment"
-        )
+        self.executor = ThreadPoolExecutor(max_workers=10, thread_name_prefix="deployment")
 
-    async def create_deployment(
-        self, deployment_config: builtins.dict[str, Any]
-    ) -> str:
+    async def create_deployment(self, deployment_config: builtins.dict[str, Any]) -> str:
         """Create a new deployment."""
         deployment_id = str(uuid.uuid4())
 
@@ -69,17 +66,12 @@ class DeploymentOrchestrator:
             strategy=DeploymentStrategy(deployment_config["strategy"]),
             source_version=ServiceVersion(**deployment_config["source_version"]),
             target_version=ServiceVersion(**deployment_config["target_version"]),
-            target_environment=DeploymentTarget(
-                **deployment_config["target_environment"]
-            ),
+            target_environment=DeploymentTarget(**deployment_config["target_environment"]),
             traffic_split=TrafficSplit(**deployment_config.get("traffic_split", {})),
             validations=[
-                DeploymentValidation(**v)
-                for v in deployment_config.get("validations", [])
+                DeploymentValidation(**v) for v in deployment_config.get("validations", [])
             ],
-            rollback_config=RollbackConfiguration(
-                **deployment_config.get("rollback_config", {})
-            ),
+            rollback_config=RollbackConfiguration(**deployment_config.get("rollback_config", {})),
         )
 
         self.active_deployments[deployment_id] = deployment
@@ -173,11 +165,7 @@ class DeploymentOrchestrator:
                 deployment.validations, green_environment
             )
 
-            if not all(
-                r.result == ValidationResult.PASS
-                for r in validation_results
-                if r.required
-            ):
+            if not all(r.result == ValidationResult.PASS for r in validation_results if r.required):
                 raise Exception("Validation failed for green environment")
 
             # Phase 4: Traffic switching
@@ -266,11 +254,7 @@ class DeploymentOrchestrator:
                 deployment.validations, canary_environment
             )
 
-            if not all(
-                r.result == ValidationResult.PASS
-                for r in validation_results
-                if r.required
-            ):
+            if not all(r.result == ValidationResult.PASS for r in validation_results if r.required):
                 raise Exception("Initial validation failed for canary deployment")
 
             # Phase 4: Gradual traffic shifting
@@ -304,13 +288,9 @@ class DeploymentOrchestrator:
                 )
 
                 if not all(
-                    r.result == ValidationResult.PASS
-                    for r in step_validations
-                    if r.required
+                    r.result == ValidationResult.PASS for r in step_validations if r.required
                 ):
-                    raise Exception(
-                        f"Validation failed at {traffic_percentage*100}% traffic"
-                    )
+                    raise Exception(f"Validation failed at {traffic_percentage * 100}% traffic")
 
                 await self._log_deployment_event(
                     deployment.deployment_id,
@@ -380,9 +360,7 @@ class DeploymentOrchestrator:
                 )
 
                 # Wait for new instances to be ready
-                await self.infrastructure_manager.wait_for_instances_ready(
-                    new_instances
-                )
+                await self.infrastructure_manager.wait_for_instances_ready(new_instances)
 
                 # Remove old instances
                 await self.infrastructure_manager.remove_instances(batch_instances)
@@ -400,11 +378,7 @@ class DeploymentOrchestrator:
                 deployment.validations, deployment.target_environment
             )
 
-            if not all(
-                r.result == ValidationResult.PASS
-                for r in validation_results
-                if r.required
-            ):
+            if not all(r.result == ValidationResult.PASS for r in validation_results if r.required):
                 raise Exception("Final validation failed for rolling deployment")
 
             deployment.status = DeploymentStatus.SUCCESS
@@ -433,9 +407,7 @@ class DeploymentOrchestrator:
                     deployment.source_version.version: 0.5,  # Control group
                     deployment.target_version.version: 0.5,  # Test group
                 },
-                routing_rules=[
-                    {"type": "user_cohort", "field": "user_id", "hash_mod": 2}
-                ],
+                routing_rules=[{"type": "user_cohort", "field": "user_id", "hash_mod": 2}],
             )
 
             await self.traffic_manager.configure_ab_test(
@@ -474,9 +446,7 @@ class DeploymentOrchestrator:
                 EnvironmentType.PRODUCTION,
             )
 
-            await self.infrastructure_manager.deploy_service(
-                environment, deployment.target_version
-            )
+            await self.infrastructure_manager.deploy_service(environment, deployment.target_version)
 
             # Validation
             deployment.current_phase = DeploymentPhase.VALIDATION
@@ -484,11 +454,7 @@ class DeploymentOrchestrator:
                 deployment.validations, environment
             )
 
-            if not all(
-                r.result == ValidationResult.PASS
-                for r in validation_results
-                if r.required
-            ):
+            if not all(r.result == ValidationResult.PASS for r in validation_results if r.required):
                 raise Exception("Validation failed for recreate deployment")
 
             deployment.status = DeploymentStatus.SUCCESS
@@ -507,9 +473,7 @@ class DeploymentOrchestrator:
         deployment = self.active_deployments[deployment_id]
         return await self.rollback_manager.execute_rollback(deployment)
 
-    async def _monitor_deployment_health(
-        self, deployment: "Deployment", duration_seconds: int
-    ):
+    async def _monitor_deployment_health(self, deployment: "Deployment", duration_seconds: int):
         """Monitor deployment health for a specific duration."""
         start_time = time.time()
 
@@ -520,9 +484,7 @@ class DeploymentOrchestrator:
             )
 
             if not health_status["healthy"]:
-                raise Exception(
-                    f"Health check failed: {health_status.get('errors', [])}"
-                )
+                raise Exception(f"Health check failed: {health_status.get('errors', [])}")
 
             # Check performance metrics
             metrics = await self.infrastructure_manager.get_performance_metrics(
@@ -534,9 +496,7 @@ class DeploymentOrchestrator:
                 raise Exception(f"High error rate: {metrics['error_rate']:.2%}")
 
             if metrics["response_time_p95"] > 2000:  # 2s response time threshold
-                raise Exception(
-                    f"High response time: {metrics['response_time_p95']:.0f}ms"
-                )
+                raise Exception(f"High response time: {metrics['response_time_p95']:.0f}ms")
 
             await asyncio.sleep(30)  # Check every 30 seconds
 
@@ -563,8 +523,7 @@ class DeploymentOrchestrator:
             for version, version_metrics in metrics.items():
                 if version_metrics["error_rate"] > 0.1:  # 10% error rate threshold
                     raise Exception(
-                        f"High error rate in version {version}: "
-                        f"{version_metrics['error_rate']:.2%}"
+                        f"High error rate in version {version}: {version_metrics['error_rate']:.2%}"
                     )
 
             await asyncio.sleep(300)  # Check every 5 minutes
@@ -608,9 +567,7 @@ class DeploymentOrchestrator:
                 to_version=deployment.source_version.version,
             )
 
-    def _calculate_ab_test_score(
-        self, metrics: builtins.dict[str, Any]
-    ) -> float:
+    def _calculate_ab_test_score(self, metrics: builtins.dict[str, Any]) -> float:
         """Calculate A/B test score based on metrics."""
         error_rate = metrics["error_rate"]
         response_time = metrics["avg_response_time"]
@@ -648,9 +605,7 @@ class DeploymentOrchestrator:
         self.deployment_events.append(event)
         logging.info(f"Deployment {deployment_id}: {event_type} in {phase.value}")
 
-    def get_deployment_status(
-        self, deployment_id: str
-    ) -> builtins.dict[str, Any] | None:
+    def get_deployment_status(self, deployment_id: str) -> builtins.dict[str, Any] | None:
         """Get deployment status."""
         if deployment_id not in self.active_deployments:
             return None
@@ -665,9 +620,7 @@ class DeploymentOrchestrator:
             "current_phase": deployment.current_phase.value,
             "source_version": deployment.source_version.version,
             "target_version": deployment.target_version.version,
-            "started_at": deployment.started_at.isoformat()
-            if deployment.started_at
-            else None,
+            "started_at": deployment.started_at.isoformat() if deployment.started_at else None,
             "completed_at": deployment.completed_at.isoformat()
             if deployment.completed_at
             else None,
@@ -677,8 +630,7 @@ class DeploymentOrchestrator:
     def get_all_deployments_status(self) -> builtins.dict[str, Any]:
         """Get status of all deployments."""
         active_deployments = {
-            dep_id: self.get_deployment_status(dep_id)
-            for dep_id in self.active_deployments
+            dep_id: self.get_deployment_status(dep_id) for dep_id in self.active_deployments
         }
 
         return {

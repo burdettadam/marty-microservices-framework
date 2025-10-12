@@ -91,9 +91,7 @@ class DatabaseManager:
             # Test connection
             await self.health_check()
             self._initialized = True
-            logger.info(
-                "Database manager initialized for service: %s", self.config.service_name
-            )
+            logger.info("Database manager initialized for service: %s", self.config.service_name)
         except Exception as e:
             logger.error("Failed to initialize database manager: %s", e)
             raise ConnectionError(f"Failed to initialize database: {e}") from e
@@ -114,16 +112,12 @@ class DatabaseManager:
         @event.listens_for(self._async_engine.sync_engine, "checkout")
         def receive_checkout(dbapi_connection, connection_record, connection_proxy):
             """Handle connection checkout."""
-            logger.debug(
-                "Database connection checked out for %s", self.config.service_name
-            )
+            logger.debug("Database connection checked out for %s", self.config.service_name)
 
         @event.listens_for(self._async_engine.sync_engine, "checkin")
         def receive_checkin(dbapi_connection, connection_record):
             """Handle connection checkin."""
-            logger.debug(
-                "Database connection checked in for %s", self.config.service_name
-            )
+            logger.debug("Database connection checked in for %s", self.config.service_name)
 
     async def close(self) -> None:
         """Close all database connections."""
@@ -137,9 +131,7 @@ class DatabaseManager:
             self._async_session_factory = None
             self._sync_session_factory = None
             self._initialized = False
-            logger.info(
-                "Database manager closed for service: %s", self.config.service_name
-            )
+            logger.info("Database manager closed for service: %s", self.config.service_name)
         except Exception as e:
             logger.error("Error closing database manager: %s", e)
             raise
@@ -208,9 +200,7 @@ class DatabaseManager:
         try:
             async with self._async_engine.begin() as conn:
                 await conn.run_sync(target_metadata.create_all)
-            logger.info(
-                "Database tables created for service: %s", self.config.service_name
-            )
+            logger.info("Database tables created for service: %s", self.config.service_name)
         except Exception as e:
             logger.error("Failed to create tables: %s", e)
             raise DatabaseError(f"Failed to create tables: {e}") from e
@@ -223,16 +213,12 @@ class DatabaseManager:
         try:
             async with self._async_engine.begin() as conn:
                 await conn.run_sync(target_metadata.drop_all)
-            logger.info(
-                "Database tables dropped for service: %s", self.config.service_name
-            )
+            logger.info("Database tables dropped for service: %s", self.config.service_name)
         except Exception as e:
             logger.error("Failed to drop tables: %s", e)
             raise DatabaseError(f"Failed to drop tables: {e}") from e
 
-    async def execute_raw_sql(
-        self, sql: str, params: builtins.dict[str, Any] | None = None
-    ) -> Any:
+    async def execute_raw_sql(self, sql: str, params: builtins.dict[str, Any] | None = None) -> Any:
         """Execute raw SQL."""
         async with self.get_session() as session:
             result = await session.execute(text(sql), params or {})

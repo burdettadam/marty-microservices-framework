@@ -48,6 +48,7 @@ except ImportError:
     def create_plugin_config_manager(base_config_path: Path):
         return PluginConfigManager(base_config_path)
 
+
 # Try to import MartyTrustPKIConfig, create mock if not available
 try:
     from framework.config import MartyTrustPKIConfig
@@ -55,18 +56,17 @@ except ImportError:
     # Create mock MartyTrustPKIConfig for testing
     class MartyTrustPKIConfig:
         def __init__(self, **kwargs):
-            self.enabled = kwargs.get('enabled', True)
-            self.trust_anchor_url = kwargs.get('trust_anchor_url', '')
-            self.pkd_url = kwargs.get('pkd_url', '')
-            self.document_signer_url = kwargs.get('document_signer_url', '')
-            self.signing_algorithms = kwargs.get('signing_algorithms', [])
-            self.certificate_validation_enabled = kwargs.get('certificate_validation_enabled', True)
-            self.require_mutual_tls = kwargs.get('require_mutual_tls', False)
+            self.enabled = kwargs.get("enabled", True)
+            self.trust_anchor_url = kwargs.get("trust_anchor_url", "")
+            self.pkd_url = kwargs.get("pkd_url", "")
+            self.document_signer_url = kwargs.get("document_signer_url", "")
+            self.signing_algorithms = kwargs.get("signing_algorithms", [])
+            self.certificate_validation_enabled = kwargs.get("certificate_validation_enabled", True)
+            self.require_mutual_tls = kwargs.get("require_mutual_tls", False)
             # Set any additional attributes from kwargs
             for key, value in kwargs.items():
                 if not hasattr(self, key):
                     setattr(self, key, value)
-
 
 
 class TestPluginConfigSection:
@@ -74,11 +74,7 @@ class TestPluginConfigSection:
 
     def test_create_plugin_config_section(self):
         """Test creation of plugin configuration section."""
-        config = PluginConfigSection(
-            enabled=True,
-            custom_setting="test_value",
-            numeric_setting=42
-        )
+        config = PluginConfigSection(enabled=True, custom_setting="test_value", numeric_setting=42)
 
         assert config.enabled is True
         assert config.custom_setting == "test_value"
@@ -97,11 +93,11 @@ class TestPluginConfigManager:
         """Create a test configuration file."""
         config_file = config_dir / filename
 
-        if filename.endswith('.json'):
-            with open(config_file, 'w') as f:
+        if filename.endswith(".json"):
+            with open(config_file, "w") as f:
                 json.dump(config_data, f, indent=2)
-        elif filename.endswith('.yaml') or filename.endswith('.yml'):
-            with open(config_file, 'w') as f:
+        elif filename.endswith(".yaml") or filename.endswith(".yml"):
+            with open(config_file, "w") as f:
                 yaml.dump(config_data, f)
 
         return config_file
@@ -128,7 +124,7 @@ class TestPluginConfigManager:
             "document_signer_url": "https://test-signer.example.com",
             "signing_algorithms": ["RSA-SHA256", "ECDSA-SHA256"],
             "certificate_validation_enabled": True,
-            "require_mutual_tls": True
+            "require_mutual_tls": True,
         }
 
         self.create_test_config_file(config_dir, "marty.json", marty_config_data)
@@ -151,7 +147,7 @@ class TestPluginConfigManager:
             "document_signer_url": "https://yaml-signer.example.com",
             "signing_algorithms": ["RSA-SHA256"],
             "certificate_validation_enabled": False,
-            "require_mutual_tls": False
+            "require_mutual_tls": False,
         }
 
         self.create_test_config_file(config_dir, "marty.yaml", marty_config_data)
@@ -186,6 +182,7 @@ class TestPluginConfigManager:
         retrieved_config = manager.get_plugin_config("test-plugin")
         assert retrieved_config is not None
 
+
 class TestEnvironmentSpecificConfiguration:
     """Test environment-specific configuration handling."""
 
@@ -198,18 +195,20 @@ class TestEnvironmentSpecificConfiguration:
         base_config = {
             "enabled": True,
             "trust_anchor_url": "https://base-trust.example.com",
-            "certificate_validation_enabled": True
+            "certificate_validation_enabled": True,
         }
 
         # Create development override
         dev_config = {
             "trust_anchor_url": "https://dev-trust.example.com",
             "certificate_validation_enabled": False,
-            "debug_mode": True
+            "debug_mode": True,
         }
 
         TestPluginConfigManager().create_test_config_file(config_dir, "marty.json", base_config)
-        TestPluginConfigManager().create_test_config_file(config_dir, "marty.development.json", dev_config)
+        TestPluginConfigManager().create_test_config_file(
+            config_dir, "marty.development.json", dev_config
+        )
 
         manager = create_plugin_config_manager(config_dir)
         config = manager.load_plugin_config("marty", MartyTrustPKIConfig)
@@ -225,23 +224,26 @@ class TestEnvironmentSpecificConfiguration:
         base_config = {
             "enabled": True,
             "trust_anchor_url": "https://base-trust.example.com",
-            "require_mutual_tls": False
+            "require_mutual_tls": False,
         }
 
         # Create production override
         prod_config = {
             "trust_anchor_url": "https://prod-trust.example.com",
             "require_mutual_tls": True,
-            "high_security_mode": True
+            "high_security_mode": True,
         }
 
         TestPluginConfigManager().create_test_config_file(config_dir, "marty.json", base_config)
-        TestPluginConfigManager().create_test_config_file(config_dir, "marty.production.json", prod_config)
+        TestPluginConfigManager().create_test_config_file(
+            config_dir, "marty.production.json", prod_config
+        )
 
         manager = create_plugin_config_manager(config_dir)
         config = manager.load_plugin_config("marty", MartyTrustPKIConfig)
 
         assert isinstance(config, MartyTrustPKIConfig)
+
 
 class TestConfigurationValidation:
     """Test configuration validation and error handling."""
@@ -287,13 +289,16 @@ class TestConfigurationValidation:
             # Missing trust_anchor_url and other required fields
         }
 
-        TestPluginConfigManager().create_test_config_file(config_dir, "incomplete.json", incomplete_config)
+        TestPluginConfigManager().create_test_config_file(
+            config_dir, "incomplete.json", incomplete_config
+        )
 
         manager = create_plugin_config_manager(config_dir)
 
         # Should handle gracefully with defaults
         config = manager.load_plugin_config("incomplete", MartyTrustPKIConfig)
         assert isinstance(config, MartyTrustPKIConfig)
+
 
 class TestConfigurationIntegration:
     """Test configuration integration with plugin system."""
@@ -311,10 +316,12 @@ class TestConfigurationIntegration:
             "document_signer_url": "https://integrated-signer.example.com",
             "signing_algorithms": ["RSA-SHA256", "ECDSA-SHA256"],
             "certificate_validation_enabled": True,
-            "require_mutual_tls": True
+            "require_mutual_tls": True,
         }
 
-        TestPluginConfigManager().create_test_config_file(config_dir, "marty.json", marty_config_data)
+        TestPluginConfigManager().create_test_config_file(
+            config_dir, "marty.json", marty_config_data
+        )
 
         manager = create_plugin_config_manager(config_dir)
         config = manager.load_plugin_config("marty", MartyTrustPKIConfig)
@@ -331,13 +338,14 @@ class TestConfigurationIntegration:
         # Create configurations for multiple plugins
         plugin1_config = {"enabled": True, "setting1": "value1"}
         plugin2_config = {"enabled": False, "setting2": "value2"}
-        marty_config = {
-            "enabled": True,
-            "trust_anchor_url": "https://multi-trust.example.com"
-        }
+        marty_config = {"enabled": True, "trust_anchor_url": "https://multi-trust.example.com"}
 
-        TestPluginConfigManager().create_test_config_file(config_dir, "plugin1.json", plugin1_config)
-        TestPluginConfigManager().create_test_config_file(config_dir, "plugin2.json", plugin2_config)
+        TestPluginConfigManager().create_test_config_file(
+            config_dir, "plugin1.json", plugin1_config
+        )
+        TestPluginConfigManager().create_test_config_file(
+            config_dir, "plugin2.json", plugin2_config
+        )
         TestPluginConfigManager().create_test_config_file(config_dir, "marty.json", marty_config)
 
         manager = create_plugin_config_manager(config_dir)
@@ -355,6 +363,7 @@ class TestConfigurationIntegration:
         assert config1.enabled is True
         assert config2.enabled is False
 
+
 class TestConfigurationSecurity:
     """Test configuration security and sensitive data handling."""
 
@@ -368,10 +377,12 @@ class TestConfigurationSecurity:
             "enabled": True,
             "trust_anchor_url": "https://sensitive-trust.example.com",
             "api_key": "secret-api-key-12345",
-            "private_key_path": "/path/to/secret/key.pem"
+            "private_key_path": "/path/to/secret/key.pem",
         }
 
-        TestPluginConfigManager().create_test_config_file(config_dir, "sensitive.json", sensitive_config)
+        TestPluginConfigManager().create_test_config_file(
+            config_dir, "sensitive.json", sensitive_config
+        )
 
         manager = create_plugin_config_manager(config_dir)
         config = manager.load_plugin_config("sensitive", PluginConfigSection)
@@ -386,12 +397,11 @@ class TestConfigurationSecurity:
         config_dir.mkdir()
 
         # Create restricted configuration
-        restricted_config = {
-            "enabled": True,
-            "admin_only_setting": "restricted_value"
-        }
+        restricted_config = {"enabled": True, "admin_only_setting": "restricted_value"}
 
-        TestPluginConfigManager().create_test_config_file(config_dir, "restricted.json", restricted_config)
+        TestPluginConfigManager().create_test_config_file(
+            config_dir, "restricted.json", restricted_config
+        )
 
         manager = create_plugin_config_manager(config_dir)
         config = manager.load_plugin_config("restricted", PluginConfigSection)

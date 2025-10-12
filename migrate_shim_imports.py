@@ -28,31 +28,54 @@ SHIM_MIGRATIONS = {
         "target": "src.framework.integration.external_connectors",
         "description": "External connectors decomposed package",
         "exports": [
-            "ConnectorType", "DatabaseConnector", "DataFormat",
-            "DataTransformation", "DataTransformationEngine",
-            "ExternalSystemConfig", "ExternalSystemConnector",
-            "ExternalSystemManager", "FileSystemConnector",
-            "IntegrationPattern", "IntegrationRequest",
-            "IntegrationResponse", "RESTAPIConnector",
-            "TransformationType", "create_external_integration_platform"
-        ]
+            "ConnectorType",
+            "DatabaseConnector",
+            "DataFormat",
+            "DataTransformation",
+            "DataTransformationEngine",
+            "ExternalSystemConfig",
+            "ExternalSystemConnector",
+            "ExternalSystemManager",
+            "FileSystemConnector",
+            "IntegrationPattern",
+            "IntegrationRequest",
+            "IntegrationResponse",
+            "RESTAPIConnector",
+            "TransformationType",
+            "create_external_integration_platform",
+        ],
     },
     # strategies.py shim
     "src.framework.deployment.strategies": {
         "target": "src.framework.deployment.strategies",
         "description": "Deployment strategies decomposed package",
         "exports": [
-            "Deployment", "DeploymentEvent", "DeploymentOrchestrator",
-            "DeploymentPhase", "DeploymentStatus", "DeploymentStrategy",
-            "DeploymentTarget", "DeploymentValidation", "EnvironmentType",
-            "FeatureFlag", "FeatureFlagManager", "FeatureFlagType",
-            "InfrastructureManager", "RollbackConfiguration",
-            "RollbackManager", "ServiceVersion", "TrafficManager",
-            "TrafficSplit", "ValidationManager", "ValidationResult",
-            "ValidationRunResult", "create_deployment_orchestrator"
-        ]
-    }
+            "Deployment",
+            "DeploymentEvent",
+            "DeploymentOrchestrator",
+            "DeploymentPhase",
+            "DeploymentStatus",
+            "DeploymentStrategy",
+            "DeploymentTarget",
+            "DeploymentValidation",
+            "EnvironmentType",
+            "FeatureFlag",
+            "FeatureFlagManager",
+            "FeatureFlagType",
+            "InfrastructureManager",
+            "RollbackConfiguration",
+            "RollbackManager",
+            "ServiceVersion",
+            "TrafficManager",
+            "TrafficSplit",
+            "ValidationManager",
+            "ValidationResult",
+            "ValidationRunResult",
+            "create_deployment_orchestrator",
+        ],
+    },
 }
+
 
 class ShimMigrationTool:
     """Tool for migrating shim imports to decomposed packages."""
@@ -71,15 +94,12 @@ class ShimMigrationTool:
             # Find Python files that import from the shim
             for py_file in self.root_path.rglob("*.py"):
                 try:
-                    with open(py_file, encoding='utf-8') as f:
+                    with open(py_file, encoding="utf-8") as f:
                         content = f.read()
 
                     imports = self._find_shim_imports(content, shim_module)
                     if imports:
-                        results[shim_module].append({
-                            "file": str(py_file),
-                            "imports": imports
-                        })
+                        results[shim_module].append({"file": str(py_file), "imports": imports})
 
                 except Exception as e:
                     print(f"Warning: Could not scan {py_file}: {e}")
@@ -97,35 +117,33 @@ class ShimMigrationTool:
         # Pattern for "import X" statements
         import_pattern = rf"import\s+{re.escape(shim_module)}(?:\s+as\s+\w+)?"
 
-        for line_num, line in enumerate(content.split('\n'), 1):
+        for line_num, line in enumerate(content.split("\n"), 1):
             line = line.strip()
 
             # Check for "from ... import ..." pattern
             from_match = re.search(from_pattern, line)
             if from_match:
                 imported_items = from_match.group(1)
-                imports.append({
-                    "line": line_num,
-                    "type": "from_import",
-                    "original": line,
-                    "imported_items": imported_items
-                })
+                imports.append(
+                    {
+                        "line": line_num,
+                        "type": "from_import",
+                        "original": line,
+                        "imported_items": imported_items,
+                    }
+                )
 
             # Check for "import ..." pattern
             import_match = re.search(import_pattern, line)
             if import_match:
-                imports.append({
-                    "line": line_num,
-                    "type": "import",
-                    "original": line
-                })
+                imports.append({"line": line_num, "type": "import", "original": line})
 
         return imports
 
     def migrate_file(self, file_path: Path, dry_run: bool = True) -> tuple[bool, str]:
         """Migrate shim imports in a single file."""
         try:
-            with open(file_path, encoding='utf-8') as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             changes_made = False
@@ -152,7 +170,7 @@ class ShimMigrationTool:
                     changes_made = True
 
             if changes_made and not dry_run:
-                with open(file_path, 'w', encoding='utf-8') as f:
+                with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
 
             return changes_made, content if changes_made else ""
@@ -165,12 +183,7 @@ class ShimMigrationTool:
         if not self.scan_results:
             self.scan_for_shim_usage()
 
-        results = {
-            "files_processed": 0,
-            "files_changed": 0,
-            "errors": [],
-            "changes": []
-        }
+        results = {"files_processed": 0, "files_changed": 0, "errors": [], "changes": []}
 
         for shim_module, file_list in self.scan_results.items():
             for file_info in file_list:
@@ -181,11 +194,13 @@ class ShimMigrationTool:
 
                 if changed:
                     results["files_changed"] += 1
-                    results["changes"].append({
-                        "file": str(file_path),
-                        "shim": shim_module,
-                        "target": SHIM_MIGRATIONS[shim_module]["target"]
-                    })
+                    results["changes"].append(
+                        {
+                            "file": str(file_path),
+                            "shim": shim_module,
+                            "target": SHIM_MIGRATIONS[shim_module]["target"],
+                        }
+                    )
                 elif "Error" in content_or_error:
                     results["errors"].append(content_or_error)
 
@@ -193,11 +208,7 @@ class ShimMigrationTool:
 
     def verify_migrations(self) -> dict[str, any]:
         """Verify that migrated files can still be imported/parsed."""
-        results = {
-            "files_checked": 0,
-            "syntax_errors": [],
-            "import_errors": []
-        }
+        results = {"files_checked": 0, "syntax_errors": [], "import_errors": []}
 
         if not self.scan_results:
             self.scan_for_shim_usage()
@@ -209,14 +220,11 @@ class ShimMigrationTool:
 
                 # Check syntax
                 try:
-                    with open(file_path, encoding='utf-8') as f:
+                    with open(file_path, encoding="utf-8") as f:
                         content = f.read()
                     ast.parse(content)
                 except SyntaxError as e:
-                    results["syntax_errors"].append({
-                        "file": str(file_path),
-                        "error": str(e)
-                    })
+                    results["syntax_errors"].append({"file": str(file_path), "error": str(e)})
 
         return results
 
@@ -244,7 +252,7 @@ class ShimMigrationTool:
 
             for file_info in file_list:
                 report.append(f"- `{file_info['file']}`")
-                for import_info in file_info['imports']:
+                for import_info in file_info["imports"]:
                     report.append(f"  - Line {import_info['line']}: `{import_info['original']}`")
 
             report.append("")
@@ -254,9 +262,13 @@ class ShimMigrationTool:
 
 def main():
     parser = argparse.ArgumentParser(description="Migrate shim imports to decomposed packages")
-    parser.add_argument("--root", default=".", help="Root directory to scan (default: current directory)")
+    parser.add_argument(
+        "--root", default=".", help="Root directory to scan (default: current directory)"
+    )
     parser.add_argument("--scan", action="store_true", help="Scan for shim usage")
-    parser.add_argument("--migrate", action="store_true", help="Migrate imports (dry run by default)")
+    parser.add_argument(
+        "--migrate", action="store_true", help="Migrate imports (dry run by default)"
+    )
     parser.add_argument("--verify", action="store_true", help="Verify migrated files")
     parser.add_argument("--apply", action="store_true", help="Actually apply changes (not dry run)")
     parser.add_argument("--report", action="store_true", help="Generate migration report")
@@ -287,9 +299,9 @@ def main():
         print(f"Processed: {results['files_processed']} files")
         print(f"Changed: {results['files_changed']} files")
 
-        if results['errors']:
+        if results["errors"]:
             print(f"Errors: {len(results['errors'])}")
-            for error in results['errors'][:3]:
+            for error in results["errors"][:3]:
                 print(f"  - {error}")
 
         if not args.apply:
@@ -300,9 +312,9 @@ def main():
         results = tool.verify_migrations()
 
         print(f"Checked: {results['files_checked']} files")
-        if results['syntax_errors']:
+        if results["syntax_errors"]:
             print(f"Syntax errors: {len(results['syntax_errors'])}")
-            for error in results['syntax_errors']:
+            for error in results["syntax_errors"]:
                 print(f"  - {error['file']}: {error['error']}")
         else:
             print("No syntax errors found!")
@@ -312,7 +324,7 @@ def main():
         report = tool.generate_report()
 
         report_file = Path("shim_migration_report.md")
-        with open(report_file, 'w') as f:
+        with open(report_file, "w") as f:
             f.write(report)
         print(f"Report saved to: {report_file}")
 

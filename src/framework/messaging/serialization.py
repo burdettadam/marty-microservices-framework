@@ -77,9 +77,7 @@ class CompressionType(Enum):
 class SerializationError(Exception):
     """Exception raised during serialization/deserialization."""
 
-    def __init__(
-        self, message: str, format_type: str, original_error: Exception | None = None
-    ):
+    def __init__(self, message: str, format_type: str, original_error: Exception | None = None):
         super().__init__(message)
         self.format_type = format_type
         self.original_error = original_error
@@ -196,9 +194,7 @@ class JSONSerializer(MessageSerializer):
             return json.loads(json_str, cls=self.config.custom_decoder)
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to deserialize from JSON: {e!s}", "json", e
-            )
+            raise SerializationError(f"Failed to deserialize from JSON: {e!s}", "json", e)
 
 
 class PickleSerializer(MessageSerializer):
@@ -216,9 +212,7 @@ class PickleSerializer(MessageSerializer):
             return self.compress(pickle_bytes)
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to serialize to pickle: {e!s}", "pickle", e
-            )
+            raise SerializationError(f"Failed to serialize to pickle: {e!s}", "pickle", e)
 
     def deserialize(self, data: bytes) -> Any:
         """Deserialize pickle bytes to data."""
@@ -234,9 +228,7 @@ class PickleSerializer(MessageSerializer):
             return RestrictedUnpickler(io.BytesIO(decompressed)).load()
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to deserialize from pickle: {e!s}", "pickle", e
-            )
+            raise SerializationError(f"Failed to deserialize from pickle: {e!s}", "pickle", e)
 
 
 class ProtobufSerializer(MessageSerializer):
@@ -248,9 +240,7 @@ class ProtobufSerializer(MessageSerializer):
             self.config.format = SerializationFormat.PROTOBUF
 
         if not self.config.protobuf_message_type:
-            raise SerializationError(
-                "Protobuf message type must be specified", "protobuf"
-            )
+            raise SerializationError("Protobuf message type must be specified", "protobuf")
 
     def serialize(self, data: Any) -> bytes:
         """Serialize data to protobuf bytes."""
@@ -272,9 +262,7 @@ class ProtobufSerializer(MessageSerializer):
             return self.compress(proto_bytes)
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to serialize to protobuf: {e!s}", "protobuf", e
-            )
+            raise SerializationError(f"Failed to serialize to protobuf: {e!s}", "protobuf", e)
 
     def deserialize(self, data: bytes) -> Any:
         """Deserialize protobuf bytes to data."""
@@ -285,9 +273,7 @@ class ProtobufSerializer(MessageSerializer):
             return message
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to deserialize from protobuf: {e!s}", "protobuf", e
-            )
+            raise SerializationError(f"Failed to deserialize from protobuf: {e!s}", "protobuf", e)
 
 
 class AvroSerializer(MessageSerializer):
@@ -360,9 +346,7 @@ class AvroSerializer(MessageSerializer):
             return datum_reader.read(decoder)
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to deserialize from Avro: {e!s}", "avro", e
-            )
+            raise SerializationError(f"Failed to deserialize from Avro: {e!s}", "avro", e)
 
 
 class MessagePackSerializer(MessageSerializer):
@@ -394,9 +378,7 @@ class MessagePackSerializer(MessageSerializer):
             return self.compress(msgpack_bytes)
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to serialize to MessagePack: {e!s}", "msgpack", e
-            )
+            raise SerializationError(f"Failed to serialize to MessagePack: {e!s}", "msgpack", e)
 
     def deserialize(self, data: bytes) -> Any:
         """Deserialize MessagePack bytes to data."""
@@ -408,9 +390,7 @@ class MessagePackSerializer(MessageSerializer):
             return self._msgpack.unpackb(decompressed, raw=False)
 
         except Exception as e:
-            raise SerializationError(
-                f"Failed to deserialize from MessagePack: {e!s}", "msgpack", e
-            )
+            raise SerializationError(f"Failed to deserialize from MessagePack: {e!s}", "msgpack", e)
 
 
 class SerializerFactory:
@@ -497,9 +477,7 @@ def create_protobuf_serializer(
     return ProtobufSerializer(config)
 
 
-def create_avro_serializer(
-    schema: builtins.dict, compressed: bool = False
-) -> AvroSerializer:
+def create_avro_serializer(schema: builtins.dict, compressed: bool = False) -> AvroSerializer:
     """Create Avro serializer with schema."""
     config = SerializationConfig(
         format=SerializationFormat.AVRO,

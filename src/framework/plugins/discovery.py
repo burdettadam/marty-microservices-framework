@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PluginInfo:
     """Information about a discovered plugin."""
+
     name: str
     version: str
     path: Path
@@ -99,7 +100,7 @@ class DirectoryPluginDiscoverer(PluginDiscoverer):
         plugins = []
 
         for plugin_file in directory.glob(self.pattern):
-            if plugin_file.is_file() and plugin_file.suffix == '.py':
+            if plugin_file.is_file() and plugin_file.suffix == ".py":
                 plugin_info = await self._load_plugin_from_file(plugin_file)
                 if plugin_info:
                     plugins.append(plugin_info)
@@ -150,8 +151,8 @@ class DirectoryPluginDiscoverer(PluginDiscoverer):
                     "description": metadata.description,
                     "author": metadata.author,
                     "dependencies": metadata.dependencies,
-                    "tags": metadata.tags
-                }
+                    "tags": metadata.tags,
+                },
             )
 
         except Exception as e:
@@ -161,7 +162,7 @@ class DirectoryPluginDiscoverer(PluginDiscoverer):
                 version="unknown",
                 path=plugin_file,
                 module_name="",
-                error=str(e)
+                error=str(e),
             )
 
     def _find_plugin_class(self, module) -> type[MMFPlugin] | None:
@@ -177,9 +178,7 @@ class DirectoryPluginDiscoverer(PluginDiscoverer):
             attr = getattr(module, attr_name)
 
             # Check if it's a class that inherits from MMFPlugin
-            if (isinstance(attr, type) and
-                issubclass(attr, MMFPlugin) and
-                attr is not MMFPlugin):
+            if isinstance(attr, type) and issubclass(attr, MMFPlugin) and attr is not MMFPlugin:
                 return attr
 
         return None
@@ -192,8 +191,7 @@ class PackagePluginDiscoverer(PluginDiscoverer):
     entry points or package naming conventions.
     """
 
-    def __init__(self, entry_point_group: str = "mmf.plugins",
-                 package_prefix: str = "mmf_plugin_"):
+    def __init__(self, entry_point_group: str = "mmf.plugins", package_prefix: str = "mmf_plugin_"):
         """Initialize package-based plugin discovery.
 
         Args:
@@ -235,10 +233,12 @@ class PackagePluginDiscoverer(PluginDiscoverer):
             # Try new importlib.metadata first (Python 3.8+)
             try:
                 from importlib.metadata import entry_points
+
                 eps = entry_points(group=self.entry_point_group)
             except ImportError:
                 # Fallback to pkg_resources
                 import pkg_resources
+
                 eps = pkg_resources.iter_entry_points(self.entry_point_group)
 
             for entry_point in eps:
@@ -253,19 +253,21 @@ class PackagePluginDiscoverer(PluginDiscoverer):
                     plugin_instance = plugin_class()
                     metadata = plugin_instance.metadata
 
-                    plugins.append(PluginInfo(
-                        name=metadata.name,
-                        version=metadata.version,
-                        path=Path(entry_point.dist.location),
-                        module_name=entry_point.module_name,
-                        plugin_class=plugin_class,
-                        metadata={
-                            "description": metadata.description,
-                            "author": metadata.author,
-                            "dependencies": metadata.dependencies,
-                            "tags": metadata.tags
-                        }
-                    ))
+                    plugins.append(
+                        PluginInfo(
+                            name=metadata.name,
+                            version=metadata.version,
+                            path=Path(entry_point.dist.location),
+                            module_name=entry_point.module_name,
+                            plugin_class=plugin_class,
+                            metadata={
+                                "description": metadata.description,
+                                "author": metadata.author,
+                                "dependencies": metadata.dependencies,
+                                "tags": metadata.tags,
+                            },
+                        )
+                    )
 
                 except Exception as e:
                     self.logger.error(f"Error loading entry point {entry_point.name}: {e}")
@@ -300,19 +302,21 @@ class PackagePluginDiscoverer(PluginDiscoverer):
                             plugin_instance = plugin_class()
                             metadata = plugin_instance.metadata
 
-                            plugins.append(PluginInfo(
-                                name=metadata.name,
-                                version=metadata.version,
-                                path=Path(module.__file__).parent,
-                                module_name=modname,
-                                plugin_class=plugin_class,
-                                metadata={
-                                    "description": metadata.description,
-                                    "author": metadata.author,
-                                    "dependencies": metadata.dependencies,
-                                    "tags": metadata.tags
-                                }
-                            ))
+                            plugins.append(
+                                PluginInfo(
+                                    name=metadata.name,
+                                    version=metadata.version,
+                                    path=Path(module.__file__).parent,
+                                    module_name=modname,
+                                    plugin_class=plugin_class,
+                                    metadata={
+                                        "description": metadata.description,
+                                        "author": metadata.author,
+                                        "dependencies": metadata.dependencies,
+                                        "tags": metadata.tags,
+                                    },
+                                )
+                            )
 
                     except Exception as e:
                         self.logger.error(f"Error loading package {modname}: {e}")
@@ -332,20 +336,18 @@ class PackagePluginDiscoverer(PluginDiscoverer):
             Plugin class or None if not found
         """
         # Check for 'plugin' attribute first (convention)
-        if hasattr(module, 'plugin'):
+        if hasattr(module, "plugin"):
             plugin_attr = module.plugin
             if isinstance(plugin_attr, type) and issubclass(plugin_attr, MMFPlugin):
                 return plugin_attr
 
         # Otherwise scan all attributes
         for attr_name in dir(module):
-            if attr_name.startswith('_'):
+            if attr_name.startswith("_"):
                 continue
 
             attr = getattr(module, attr_name)
-            if (isinstance(attr, type) and
-                issubclass(attr, MMFPlugin) and
-                attr is not MMFPlugin):
+            if isinstance(attr, type) and issubclass(attr, MMFPlugin) and attr is not MMFPlugin:
                 return attr
 
         return None

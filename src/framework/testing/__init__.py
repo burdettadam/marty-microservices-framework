@@ -416,9 +416,7 @@ class QuickStart:
         return ChaosTestCase(experiment)
 
     @staticmethod
-    def create_api_load_test(
-        url: str, users: int = 10, duration: int = 60
-    ) -> PerformanceTestCase:
+    def create_api_load_test(url: str, users: int = 10, duration: int = 60) -> PerformanceTestCase:
         """Create a simple API load test."""
         return create_load_test(
             name=f"Load Test - {url}",

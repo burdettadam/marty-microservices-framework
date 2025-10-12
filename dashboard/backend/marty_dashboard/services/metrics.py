@@ -82,9 +82,7 @@ class MetricsCollector:
                             return metrics
 
                 except Exception as exc:
-                    logger.error(
-                        f"Failed to collect metrics from {service_name}: {exc}"
-                    )
+                    logger.error(f"Failed to collect metrics from {service_name}: {exc}")
 
         except Exception as exc:
             logger.error(f"Failed to get service info for {service_name}: {exc}")
@@ -97,9 +95,7 @@ class MetricsCollector:
         """Get stored metrics for a service."""
         try:
             async with AsyncSessionLocal() as session:
-                stmt = select(ServiceMetrics).where(
-                    ServiceMetrics.service_name == service_name
-                )
+                stmt = select(ServiceMetrics).where(ServiceMetrics.service_name == service_name)
 
                 if metric_name:
                     stmt = stmt.where(ServiceMetrics.metric_name == metric_name)
@@ -149,9 +145,7 @@ class MetricsCollector:
                     try:
                         await self.collect_service_metrics(str(service.name))
                     except Exception as exc:
-                        logger.error(
-                            f"Failed to collect metrics from {service.name}: {exc}"
-                        )
+                        logger.error(f"Failed to collect metrics from {service.name}: {exc}")
 
         except Exception as exc:
             logger.error(f"Failed to get services for metrics collection: {exc}")

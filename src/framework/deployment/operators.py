@@ -54,9 +54,7 @@ class CustomResourceDefinition:
     plural: str
     scope: str = "Namespaced"
     schema: builtins.dict[str, Any] = field(default_factory=dict)
-    additional_printer_columns: builtins.list[builtins.dict[str, Any]] = field(
-        default_factory=list
-    )
+    additional_printer_columns: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
     subresources: builtins.dict[str, Any] = field(default_factory=dict)
 
 
@@ -220,9 +218,7 @@ class CustomResourceManager:
         """Update custom resource instance."""
         try:
             # Get current resource
-            current = await self.get_custom_resource(
-                group, version, plural, namespace, name
-            )
+            current = await self.get_custom_resource(group, version, plural, namespace, name)
             if not current:
                 return False
 
@@ -526,9 +522,7 @@ class MicroserviceOperator:
             self.reconciliation_events.append(event)
 
         except Exception as e:
-            logger.error(
-                f"Reconciliation failed for {microservice['metadata']['name']}: {e}"
-            )
+            logger.error(f"Reconciliation failed for {microservice['metadata']['name']}: {e}")
 
             event = ReconciliationEvent(
                 resource_name=microservice["metadata"]["name"],
@@ -547,17 +541,13 @@ class MicroserviceOperator:
         try:
             # Check if deployment exists
             try:
-                existing_deployment = (
-                    self.resource_manager.apps_v1.read_namespaced_deployment(
-                        name=name, namespace=namespace
-                    )
+                existing_deployment = self.resource_manager.apps_v1.read_namespaced_deployment(
+                    name=name, namespace=namespace
                 )
                 update_needed = False
 
                 # Check if spec has changed
-                current_image = existing_deployment.spec.template.spec.containers[
-                    0
-                ].image
+                current_image = existing_deployment.spec.template.spec.containers[0].image
                 if current_image != spec.get("image"):
                     update_needed = True
 
@@ -596,10 +586,7 @@ class MicroserviceOperator:
             name=name,
             image=spec["image"],
             ports=[client.V1ContainerPort(container_port=spec["port"])],
-            env=[
-                client.V1EnvVar(name=k, value=v)
-                for k, v in spec.get("environment", {}).items()
-            ],
+            env=[client.V1EnvVar(name=k, value=v) for k, v in spec.get("environment", {}).items()],
         )
 
         # Add resources if specified
@@ -627,9 +614,7 @@ class MicroserviceOperator:
         pod_spec = client.V1PodSpec(containers=[container])
 
         pod_template = client.V1PodTemplateSpec(
-            metadata=client.V1ObjectMeta(
-                labels={"app": name, "managed-by": "marty-operator"}
-            ),
+            metadata=client.V1ObjectMeta(labels={"app": name, "managed-by": "marty-operator"}),
             spec=pod_spec,
         )
 
@@ -695,9 +680,7 @@ class MicroserviceOperator:
             logger.error(f"Failed to ensure service {name}: {e}")
             raise
 
-    async def _ensure_hpa(
-        self, name: str, namespace: str, spec: builtins.dict[str, Any]
-    ) -> None:
+    async def _ensure_hpa(self, name: str, namespace: str, spec: builtins.dict[str, Any]) -> None:
         """Ensure HorizontalPodAutoscaler exists if autoscaling is enabled."""
         try:
             autoscaling_spec = spec.get("autoscaling", {})
@@ -788,9 +771,7 @@ class MicroserviceOperator:
                         "type": "Ready",
                         "status": "True" if phase == "Ready" else "False",
                         "lastTransitionTime": datetime.utcnow().isoformat() + "Z",
-                        "reason": "DeploymentReady"
-                        if phase == "Ready"
-                        else "DeploymentNotReady",
+                        "reason": "DeploymentReady" if phase == "Ready" else "DeploymentNotReady",
                         "message": f"Deployment has {ready_replicas}/{replicas} ready replicas",
                     }
                 ],
@@ -883,8 +864,7 @@ class MicroserviceOperator:
                     "period": config.health_check.period,
                 },
                 "autoscaling": {
-                    "enabled": config.resources.max_replicas
-                    > config.resources.min_replicas,
+                    "enabled": config.resources.max_replicas > config.resources.min_replicas,
                     "minReplicas": config.resources.min_replicas,
                     "maxReplicas": config.resources.max_replicas,
                     "targetCPU": 70,
@@ -933,13 +913,9 @@ class MicroserviceOperator:
             name=name,
         )
 
-    def get_reconciliation_events(
-        self, limit: int = 100
-    ) -> builtins.list[ReconciliationEvent]:
+    def get_reconciliation_events(self, limit: int = 100) -> builtins.list[ReconciliationEvent]:
         """Get recent reconciliation events."""
-        return sorted(
-            self.reconciliation_events[-limit:], key=lambda x: x.timestamp, reverse=True
-        )
+        return sorted(self.reconciliation_events[-limit:], key=lambda x: x.timestamp, reverse=True)
 
 
 class OperatorManager:
@@ -1054,9 +1030,7 @@ class OperatorManager:
                 )
 
                 try:
-                    resource_manager.rbac_v1.create_cluster_role_binding(
-                        body=cluster_role_binding
-                    )
+                    resource_manager.rbac_v1.create_cluster_role_binding(body=cluster_role_binding)
                 except ApiException as e:
                     if e.status != 409:  # Ignore if already exists
                         raise
@@ -1083,9 +1057,7 @@ class OperatorManager:
                                         client.V1EnvVar(name=k, value=v)
                                         for k, v in config.environment_variables.items()
                                     ],
-                                    resources=client.V1ResourceRequirements(
-                                        **config.resources
-                                    )
+                                    resources=client.V1ResourceRequirements(**config.resources)
                                     if config.resources
                                     else None,
                                 )
@@ -1106,9 +1078,7 @@ class OperatorManager:
             logger.error(f"Failed to deploy operator {config.name}: {e}")
             return False
 
-    async def start_operator(
-        self, operator_type: OperatorType, namespace: str = "default"
-    ) -> bool:
+    async def start_operator(self, operator_type: OperatorType, namespace: str = "default") -> bool:
         """Start an operator."""
         try:
             if operator_type == OperatorType.MICROSERVICE:
@@ -1119,9 +1089,7 @@ class OperatorManager:
                 asyncio.create_task(operator.start())
 
                 self.operators[f"{operator_type.value}-{namespace}"] = operator
-                logger.info(
-                    f"Started {operator_type.value} operator in namespace {namespace}"
-                )
+                logger.info(f"Started {operator_type.value} operator in namespace {namespace}")
                 return True
 
             return False
@@ -1130,9 +1098,7 @@ class OperatorManager:
             logger.error(f"Failed to start operator {operator_type.value}: {e}")
             return False
 
-    async def stop_operator(
-        self, operator_type: OperatorType, namespace: str = "default"
-    ) -> bool:
+    async def stop_operator(self, operator_type: OperatorType, namespace: str = "default") -> bool:
         """Stop an operator."""
         try:
             operator_key = f"{operator_type.value}-{namespace}"
@@ -1141,9 +1107,7 @@ class OperatorManager:
             if operator:
                 await operator.stop()
                 del self.operators[operator_key]
-                logger.info(
-                    f"Stopped {operator_type.value} operator in namespace {namespace}"
-                )
+                logger.info(f"Stopped {operator_type.value} operator in namespace {namespace}")
                 return True
 
             return False
@@ -1152,9 +1116,7 @@ class OperatorManager:
             logger.error(f"Failed to stop operator {operator_type.value}: {e}")
             return False
 
-    def get_operator(
-        self, operator_type: OperatorType, namespace: str = "default"
-    ) -> Any | None:
+    def get_operator(self, operator_type: OperatorType, namespace: str = "default") -> Any | None:
         """Get operator instance."""
         operator_key = f"{operator_type.value}-{namespace}"
         return self.operators.get(operator_key)
@@ -1176,10 +1138,7 @@ async def deploy_microservice_with_operator(
             while (datetime.utcnow() - start_time).total_seconds() < timeout:
                 microservice = await operator.get_microservice(name)
 
-                if (
-                    microservice
-                    and microservice.get("status", {}).get("phase") == "Ready"
-                ):
+                if microservice and microservice.get("status", {}).get("phase") == "Ready":
                     return True, f"Microservice {name} deployed and ready"
 
                 await asyncio.sleep(10)

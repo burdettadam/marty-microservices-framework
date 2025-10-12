@@ -110,16 +110,12 @@ class PerformanceProfiler:
         self.profiling_enabled = True
 
         # Resource monitoring
-        self.resource_history: deque = deque(
-            maxlen=1440
-        )  # 24 hours at 1-minute intervals
+        self.resource_history: deque = deque(maxlen=1440)  # 24 hours at 1-minute intervals
         self.monitoring_thread: threading.Thread | None = None
         self._stop_monitoring = threading.Event()
 
         # Function call tracking
-        self.function_calls: builtins.dict[str, builtins.list[float]] = defaultdict(
-            list
-        )
+        self.function_calls: builtins.dict[str, builtins.list[float]] = defaultdict(list)
         self.slow_functions: builtins.set[str] = set()
 
         # Memory tracking
@@ -225,14 +221,9 @@ class PerformanceProfiler:
 
             if profiler_type == ProfilerType.CPU_PROFILER and "profiler" in locals():
                 profiler.disable()
-                profile_result = self._analyze_cpu_profile(
-                    profiler, duration, function_name
-                )
+                profile_result = self._analyze_cpu_profile(profiler, duration, function_name)
                 self.profiles.append(profile_result)
-            elif (
-                profiler_type == ProfilerType.MEMORY_PROFILER
-                and "initial_memory" in locals()
-            ):
+            elif profiler_type == ProfilerType.MEMORY_PROFILER and "initial_memory" in locals():
                 final_memory = self._get_memory_usage()
                 profile_result = self._analyze_memory_profile(
                     initial_memory, final_memory, duration, function_name
@@ -270,9 +261,7 @@ class PerformanceProfiler:
                 hotspots.append(func_name)
 
         # Generate recommendations
-        recommendations = self._generate_cpu_recommendations(
-            function_stats, hotspots, duration
-        )
+        recommendations = self._generate_cpu_recommendations(function_stats, hotspots, duration)
 
         return PerformanceProfile(
             profiler_type=ProfilerType.CPU_PROFILER,
@@ -340,9 +329,7 @@ class PerformanceProfiler:
         recommendations = []
 
         if hotspots:
-            recommendations.append(
-                f"Optimize hotspot functions: {', '.join(hotspots[:3])}"
-            )
+            recommendations.append(f"Optimize hotspot functions: {', '.join(hotspots[:3])}")
 
         # Check for frequent function calls
         frequent_functions = [
@@ -350,9 +337,7 @@ class PerformanceProfiler:
         ]
 
         if frequent_functions:
-            recommendations.append(
-                "Consider caching results for frequently called functions"
-            )
+            recommendations.append("Consider caching results for frequently called functions")
 
         # Check for slow functions
         slow_functions = [
@@ -362,9 +347,7 @@ class PerformanceProfiler:
         ]
 
         if slow_functions:
-            recommendations.append(
-                "Optimize slow functions or consider async execution"
-            )
+            recommendations.append("Optimize slow functions or consider async execution")
 
         return recommendations
 
@@ -377,16 +360,12 @@ class PerformanceProfiler:
         # Check for memory growth
         rss_growth = memory_diff.get("rss", 0)
         if rss_growth > 100 * 1024 * 1024:  # 100MB growth
-            recommendations.append(
-                "Significant memory growth detected - check for memory leaks"
-            )
+            recommendations.append("Significant memory growth detected - check for memory leaks")
 
         # Check memory usage percentage
         percent_usage = memory_diff.get("percent", 0)
         if percent_usage > 10:  # 10% increase
-            recommendations.append(
-                "High memory usage increase - consider memory optimization"
-            )
+            recommendations.append("High memory usage increase - consider memory optimization")
 
         return recommendations
 
@@ -410,18 +389,14 @@ class PerformanceProfiler:
         for hotspot in all_hotspots:
             hotspot_counts[hotspot] += 1
 
-        top_hotspots = sorted(hotspot_counts.items(), key=lambda x: x[1], reverse=True)[
-            :5
-        ]
+        top_hotspots = sorted(hotspot_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
         # Resource utilization
         recent_metrics = list(self.resource_history)[-60:]  # Last hour
 
         if recent_metrics:
             avg_cpu = sum(m.cpu_percent for m in recent_metrics) / len(recent_metrics)
-            avg_memory = sum(m.memory_percent for m in recent_metrics) / len(
-                recent_metrics
-            )
+            avg_memory = sum(m.memory_percent for m in recent_metrics) / len(recent_metrics)
         else:
             avg_cpu = avg_memory = 0
 
@@ -450,18 +425,12 @@ class PerformanceProfiler:
         recent_metrics = list(self.resource_history)[-60:]
         if recent_metrics:
             avg_cpu = sum(m.cpu_percent for m in recent_metrics) / len(recent_metrics)
-            avg_memory = sum(m.memory_percent for m in recent_metrics) / len(
-                recent_metrics
-            )
+            avg_memory = sum(m.memory_percent for m in recent_metrics) / len(recent_metrics)
 
             if avg_cpu > 80:
-                recommendations.append(
-                    "High CPU usage detected - consider CPU optimization"
-                )
+                recommendations.append("High CPU usage detected - consider CPU optimization")
             if avg_memory > 80:
-                recommendations.append(
-                    "High memory usage detected - consider memory optimization"
-                )
+                recommendations.append("High memory usage detected - consider memory optimization")
 
         # Function-based recommendations
         if self.slow_functions:
@@ -498,12 +467,11 @@ class IntelligentCaching:
         self.access_predictor = None
         self.cache_efficiency_tracker = defaultdict(float)
 
-    async def initialize_distributed_cache(
-        self, redis_url: str = "redis://localhost:6379"
-    ):
+    async def initialize_distributed_cache(self, redis_url: str = "redis://localhost:6379"):
         """Initialize distributed cache (Redis)."""
         try:
             import redis.asyncio as redis
+
             self.distributed_cache = redis.from_url(redis_url)
         except Exception as e:
             print(f"Failed to initialize distributed cache: {e}")
@@ -536,9 +504,7 @@ class IntelligentCaching:
                     deserialized_value = json.loads(value)
                     self.l1_cache[cache_key] = deserialized_value
                     self.l2_cache[cache_key] = deserialized_value
-                    self._record_cache_hit(
-                        "distributed", cache_key, time.time() - start_time
-                    )
+                    self._record_cache_hit("distributed", cache_key, time.time() - start_time)
                     return deserialized_value
 
             # Cache miss
@@ -578,9 +544,7 @@ class IntelligentCaching:
             # Store in distributed cache if available
             if self.distributed_cache and strategy != CacheStrategy.WRITE_AROUND:
                 serialized_value = json.dumps(value, default=str)
-                await self.distributed_cache.setex(
-                    cache_key, ttl or 3600, serialized_value
-                )
+                await self.distributed_cache.setex(cache_key, ttl or 3600, serialized_value)
 
             # Update strategy and TTL mappings
             self.cache_strategies[cache_key] = strategy
@@ -690,34 +654,22 @@ class IntelligentCaching:
         hit_rates = {}
         for layer, stats in self.cache_stats.items():
             total_requests = stats["hits"] + stats["misses"]
-            hit_rates[layer] = (
-                stats["hits"] / total_requests if total_requests > 0 else 0
-            )
+            hit_rates[layer] = stats["hits"] / total_requests if total_requests > 0 else 0
 
         # Analyze performance
         recent_performance = list(self.cache_performance)[-100:]
 
-        hit_durations = [
-            p["duration"] for p in recent_performance if p["type"] == "hit"
-        ]
-        miss_durations = [
-            p["duration"] for p in recent_performance if p["type"] == "miss"
-        ]
+        hit_durations = [p["duration"] for p in recent_performance if p["type"] == "hit"]
+        miss_durations = [p["duration"] for p in recent_performance if p["type"] == "miss"]
 
-        avg_hit_duration = (
-            sum(hit_durations) / len(hit_durations) if hit_durations else 0
-        )
-        avg_miss_duration = (
-            sum(miss_durations) / len(miss_durations) if miss_durations else 0
-        )
+        avg_hit_duration = sum(hit_durations) / len(hit_durations) if hit_durations else 0
+        avg_miss_duration = sum(miss_durations) / len(miss_durations) if miss_durations else 0
 
         # Cache efficiency by strategy
         strategy_efficiency = {}
         for key, strategy in self.cache_strategies.items():
             key_hits = sum(
-                1
-                for p in recent_performance
-                if p.get("key") == key and p["type"] == "hit"
+                1 for p in recent_performance if p.get("key") == key and p["type"] == "hit"
             )
             key_total = sum(1 for p in recent_performance if p.get("key") == key)
 
@@ -759,18 +711,14 @@ class IntelligentCaching:
         overall_hit_rate = self._calculate_overall_hit_rate()
 
         if overall_hit_rate < 0.7:
-            recommendations.append(
-                "Consider increasing cache sizes or adjusting TTL values"
-            )
+            recommendations.append("Consider increasing cache sizes or adjusting TTL values")
 
         # Analyze cache efficiency
         if len(self.l1_cache) == self.l1_cache.maxsize:
             recommendations.append("L1 cache is full - consider increasing size")
 
         if len(self.l2_cache) == self.l2_cache.maxsize:
-            recommendations.append(
-                "L2 cache is full - consider increasing size or reducing TTL"
-            )
+            recommendations.append("L2 cache is full - consider increasing size or reducing TTL")
 
         # Strategy recommendations
         low_efficiency_strategies = [
@@ -842,21 +790,13 @@ class ResourceOptimizer:
         recommendations = []
 
         # CPU optimization
-        if (
-            resource_metrics.cpu_percent
-            > self.resource_targets["cpu_utilization"] * 100
-        ):
+        if resource_metrics.cpu_percent > self.resource_targets["cpu_utilization"] * 100:
             cpu_recommendations = self._optimize_cpu(resource_metrics, performance_data)
             recommendations.extend(cpu_recommendations)
 
         # Memory optimization
-        if (
-            resource_metrics.memory_percent
-            > self.resource_targets["memory_utilization"] * 100
-        ):
-            memory_recommendations = self._optimize_memory(
-                resource_metrics, performance_data
-            )
+        if resource_metrics.memory_percent > self.resource_targets["memory_utilization"] * 100:
+            memory_recommendations = self._optimize_memory(resource_metrics, performance_data)
             recommendations.extend(memory_recommendations)
 
         # IO optimization
@@ -869,9 +809,7 @@ class ResourceOptimizer:
         recommendations.extend(cache_recommendations)
 
         # Sort by priority and estimated impact
-        recommendations.sort(
-            key=lambda x: (x.priority, x.estimated_impact), reverse=True
-        )
+        recommendations.sort(key=lambda x: (x.priority, x.estimated_impact), reverse=True)
 
         return recommendations
 
@@ -990,7 +928,7 @@ class ResourceOptimizer:
                 OptimizationRecommendation(
                     optimization_type=OptimizationType.IO_OPTIMIZATION,
                     title="High I/O Usage Detected",
-                    description=f"Disk I/O is high: {read_rate/1024/1024:.1f}MB/s read, {write_rate/1024/1024:.1f}MB/s write",
+                    description=f"Disk I/O is high: {read_rate / 1024 / 1024:.1f}MB/s read, {write_rate / 1024 / 1024:.1f}MB/s write",
                     priority=5,
                     estimated_impact=0.2,
                     implementation_effort="medium",
@@ -1061,16 +999,12 @@ class ResourceOptimizer:
 
         try:
             if recommendation.optimization_type in self.optimization_strategies:
-                self.optimization_strategies[
-                    recommendation.optimization_type
-                ]
+                self.optimization_strategies[recommendation.optimization_type]
                 # Note: This is a simplified implementation
                 # In practice, these would trigger actual system changes
 
                 result["applied"] = True
-                result[
-                    "result"
-                ] = f"Applied {recommendation.optimization_type.value} optimization"
+                result["result"] = f"Applied {recommendation.optimization_type.value} optimization"
 
                 # Record optimization
                 self.optimization_history.append(
@@ -1106,9 +1040,7 @@ class PerformanceOptimizationEngine:
 
         # Performance monitoring
         self.performance_baseline: builtins.dict[str, float] = {}
-        self.performance_trends: builtins.dict[str, deque] = defaultdict(
-            lambda: deque(maxlen=100)
-        )
+        self.performance_trends: builtins.dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
 
     async def start_optimization_engine(self):
         """Start the performance optimization engine."""
@@ -1230,8 +1162,7 @@ class PerformanceOptimizationEngine:
             "cache_status": self.caching.get_cache_analytics(),
             "recent_optimizations": len(self.optimization_results),
             "performance_trends": {
-                name: list(trend)[-10:]
-                for name, trend in self.performance_trends.items()
+                name: list(trend)[-10:] for name, trend in self.performance_trends.items()
             },
         }
 

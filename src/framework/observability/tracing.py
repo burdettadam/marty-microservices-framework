@@ -18,6 +18,7 @@ try:
     from opentelemetry.sdk.resources import Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+
     OPENTELEMETRY_AVAILABLE = True
 except ImportError:
     OPENTELEMETRY_AVAILABLE = False
@@ -129,9 +130,7 @@ def init_tracing(service_name: str | None = None) -> None:
         trace.set_tracer_provider(provider)
 
         _instrumented = True
-        logger.info(
-            "OpenTelemetry tracing initialized for service: %s", final_service_name
-        )
+        logger.info("OpenTelemetry tracing initialized for service: %s", final_service_name)
 
     except Exception as e:
         logger.error("Failed to initialize OpenTelemetry: %s", e)

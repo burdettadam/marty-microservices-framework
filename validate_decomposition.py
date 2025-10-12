@@ -10,11 +10,12 @@ import os
 import sys
 
 # Add the src directory to path
-src_path = os.path.join(os.path.dirname(__file__), 'src')
+src_path = os.path.join(os.path.dirname(__file__), "src")
 sys.path.insert(0, src_path)
 
 print("🔍 Validating external_connectors decomposition...")
 print("=" * 60)
+
 
 def test_imports():
     """Test that all decomposed modules can be imported as a package."""
@@ -26,6 +27,7 @@ def test_imports():
             IntegrationPattern,
             TransformationType,
         )
+
         print("✅ Enums imported successfully")
 
         # Test config imports
@@ -35,18 +37,21 @@ def test_imports():
             IntegrationRequest,
             IntegrationResponse,
         )
+
         print("✅ Config classes imported successfully")
 
         # Test base connector
         from src.framework.integration.external_connectors.base import (
             ExternalSystemConnector,
         )
+
         print("✅ Base connector imported successfully")
 
         # Test transformation engine
         from src.framework.integration.external_connectors.transformation import (
             DataTransformationEngine,
         )
+
         print("✅ Transformation engine imported successfully")
 
         return True
@@ -54,6 +59,7 @@ def test_imports():
     except ImportError as e:
         print(f"❌ Import failed: {e}")
         return False
+
 
 def test_functionality():
     """Test basic functionality of the decomposed modules."""
@@ -74,7 +80,7 @@ def test_functionality():
             name="test-api",
             connector_type=ConnectorType.REST_API,
             base_url="https://api.example.com",
-            timeout=30.0
+            timeout=30.0,
         )
 
         print(f"✅ Config created: {config.name} ({config.connector_type.value})")
@@ -83,6 +89,7 @@ def test_functionality():
         from src.framework.integration.external_connectors.transformation import (
             DataTransformationEngine,
         )
+
         DataTransformationEngine()
         print("✅ Transformation engine created successfully")
 
@@ -91,6 +98,7 @@ def test_functionality():
     except Exception as e:
         print(f"❌ Functionality test failed: {e}")
         return False
+
 
 def main():
     """Main validation function."""
@@ -117,6 +125,7 @@ def main():
     else:
         print("❌ FAILED: Issues found in decomposition")
         return 1
+
 
 if __name__ == "__main__":
     exit_code = main()

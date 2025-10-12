@@ -4,6 +4,7 @@ Comprehensive tests for Load Balancing strategies with minimal mocking.
 This test suite focuses on testing the actual strategy implementations
 with real data structures to minimize mocking and maximize code coverage.
 """
+
 import random
 
 import pytest
@@ -31,10 +32,7 @@ class TestServiceInstance:
     def test_service_instance_creation(self):
         """Test creating a service instance with all attributes."""
         instance = ServiceInstance(
-            service_name="test-service",
-            instance_id="test-1",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test-1", host="localhost", port=8080
         )
 
         assert instance.instance_id == "test-1"
@@ -46,22 +44,13 @@ class TestServiceInstance:
     def test_service_instance_equality(self):
         """Test ServiceInstance equality comparison."""
         instance1 = ServiceInstance(
-            service_name="test-service",
-            instance_id="test-1",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test-1", host="localhost", port=8080
         )
         instance2 = ServiceInstance(
-            service_name="test-service",
-            instance_id="test-1",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test-1", host="localhost", port=8080
         )
         instance3 = ServiceInstance(
-            service_name="test-service",
-            instance_id="test-2",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test-2", host="localhost", port=8080
         )
 
         assert instance1 == instance2
@@ -86,22 +75,13 @@ class TestRoundRobinBalancer:
         """Create a set of real service instances with health status set."""
         instances = [
             ServiceInstance(
-                service_name="test-service",
-                instance_id="instance-1",
-                host="host1",
-                port=8080
+                service_name="test-service", instance_id="instance-1", host="host1", port=8080
             ),
             ServiceInstance(
-                service_name="test-service",
-                instance_id="instance-2",
-                host="host2",
-                port=8080
+                service_name="test-service", instance_id="instance-2", host="host2", port=8080
             ),
             ServiceInstance(
-                service_name="test-service",
-                instance_id="instance-3",
-                host="host3",
-                port=8080
+                service_name="test-service", instance_id="instance-3", host="host3", port=8080
             ),
         ]
         # Set all instances to healthy status
@@ -203,7 +183,10 @@ class TestWeightedRoundRobinBalancer:
             selections.append(instance.id)
 
         # Count selections per instance
-        counts = {instance_id: selections.count(instance_id) for instance_id in ["light", "medium", "heavy"]}
+        counts = {
+            instance_id: selections.count(instance_id)
+            for instance_id in ["light", "medium", "heavy"]
+        }
 
         # Should respect weight ratios: 1:2:3
         assert counts["light"] == 2  # 1/6 * 12
@@ -307,7 +290,10 @@ class TestRandomBalancer:
             selections.append(instance.id)
 
         # Count selections per instance
-        counts = {instance_id: selections.count(instance_id) for instance_id in ["service-1", "service-2", "service-3"]}
+        counts = {
+            instance_id: selections.count(instance_id)
+            for instance_id in ["service-1", "service-2", "service-3"]
+        }
 
         # Each should get roughly 1/3 of selections (allow some variance)
         for count in counts.values():
@@ -355,7 +341,10 @@ class TestWeightedRandomBalancer:
             selections.append(instance.id)
 
         # Count selections per instance
-        counts = {instance_id: selections.count(instance_id) for instance_id in ["light", "medium", "heavy"]}
+        counts = {
+            instance_id: selections.count(instance_id)
+            for instance_id in ["light", "medium", "heavy"]
+        }
 
         # Should respect weight ratios: 1:2:4 (total weight = 7)
         # Expected: light ~100, medium ~200, heavy ~400
@@ -530,7 +519,7 @@ class TestAdaptiveBalancer:
         return LoadBalancingConfig(
             strategy=LoadBalancingStrategy.ADAPTIVE,
             adaptive_window_size=10,
-            adaptive_adjustment_factor=0.1
+            adaptive_adjustment_factor=0.1,
         )
 
     @pytest.fixture
@@ -640,7 +629,7 @@ class TestLoadBalancingWithFallback:
     def config_with_fallback(self):
         return LoadBalancingConfig(
             strategy=LoadBalancingStrategy.LEAST_CONNECTIONS,
-            fallback_strategy=LoadBalancingStrategy.ROUND_ROBIN
+            fallback_strategy=LoadBalancingStrategy.ROUND_ROBIN,
         )
 
     @pytest.fixture

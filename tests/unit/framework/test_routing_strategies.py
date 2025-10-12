@@ -16,6 +16,7 @@ def test_import_routing_strategies():
             RoutingConfig,
             RoutingType,
         )
+
         assert issubclass(RoutingType, Enum)
         assert issubclass(MatchType, Enum)
         assert RoutingConfig is not None
@@ -30,12 +31,12 @@ def test_routing_type_enum():
         from src.framework.messaging.routing import RoutingType
 
         # Test enum members exist
-        assert hasattr(RoutingType, 'DIRECT')
-        assert hasattr(RoutingType, 'TOPIC')
-        assert hasattr(RoutingType, 'FANOUT')
-        assert hasattr(RoutingType, 'HEADERS')
-        assert hasattr(RoutingType, 'CONTENT')
-        assert hasattr(RoutingType, 'CUSTOM')
+        assert hasattr(RoutingType, "DIRECT")
+        assert hasattr(RoutingType, "TOPIC")
+        assert hasattr(RoutingType, "FANOUT")
+        assert hasattr(RoutingType, "HEADERS")
+        assert hasattr(RoutingType, "CONTENT")
+        assert hasattr(RoutingType, "CUSTOM")
 
         # Test enum values
         assert RoutingType.DIRECT.value == "direct"
@@ -57,10 +58,10 @@ def test_match_type_enum():
         from src.framework.messaging.routing import MatchType
 
         # Test enum members exist
-        assert hasattr(MatchType, 'EXACT')
-        assert hasattr(MatchType, 'WILDCARD')
-        assert hasattr(MatchType, 'REGEX')
-        assert hasattr(MatchType, 'GLOB')
+        assert hasattr(MatchType, "EXACT")
+        assert hasattr(MatchType, "WILDCARD")
+        assert hasattr(MatchType, "REGEX")
+        assert hasattr(MatchType, "GLOB")
 
         # Test enum values
         assert MatchType.EXACT.value == "exact"
@@ -89,9 +90,7 @@ def test_routing_config_creation():
 
         # Test custom configuration
         custom_config = RoutingConfig(
-            default_queue="test-queue",
-            allow_multiple_targets=False,
-            cache_ttl=600.0
+            default_queue="test-queue", allow_multiple_targets=False, cache_ttl=600.0
         )
         assert custom_config.default_queue == "test-queue"
         assert not custom_config.allow_multiple_targets
@@ -114,7 +113,7 @@ def test_routing_rule_creation():
             routing_type=RoutingType.DIRECT,
             pattern="test.key",
             match_type=MatchType.EXACT,
-            target_queues=["queue1", "queue2"]
+            target_queues=["queue1", "queue2"],
         )
 
         assert rule.name == "test-rule"
@@ -123,7 +122,7 @@ def test_routing_rule_creation():
         assert rule.match_type == MatchType.EXACT
         assert rule.target_queues == ["queue1", "queue2"]
         assert rule.enabled  # Default value
-        assert rule.priority == 0    # Default value
+        assert rule.priority == 0  # Default value
 
         print("✓ RoutingRule creation works correctly")
 
@@ -197,9 +196,9 @@ def test_routing_engine_creation():
         engine = RoutingEngine(config)
 
         assert engine.config == config
-        assert hasattr(engine, '_rules')
-        assert hasattr(engine, '_routing_cache')
-        assert hasattr(engine, '_total_routed')
+        assert hasattr(engine, "_rules")
+        assert hasattr(engine, "_routing_cache")
+        assert hasattr(engine, "_total_routed")
 
         print("✓ RoutingEngine creation works correctly")
 

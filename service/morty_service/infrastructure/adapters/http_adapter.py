@@ -176,24 +176,18 @@ class HTTPAdapter:
                 task_dto = await self._task_management.create_task(command)
                 return TaskResponse.from_dto(task_dto)
             except ValueError as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
         @self._router.get("/tasks/{task_id}", response_model=TaskResponse)
         async def get_task(task_id: UUID) -> TaskResponse:
             """Get a task by its ID."""
             task_dto = await self._task_management.get_task(task_id)
             if not task_dto:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
-                )
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
             return TaskResponse.from_dto(task_dto)
 
         @self._router.put("/tasks/{task_id}", response_model=TaskResponse)
-        async def update_task(
-            task_id: UUID, request: UpdateTaskRequest
-        ) -> TaskResponse:
+        async def update_task(task_id: UUID, request: UpdateTaskRequest) -> TaskResponse:
             """Update an existing task."""
             try:
                 command = UpdateTaskCommand(
@@ -205,14 +199,10 @@ class HTTPAdapter:
                 task_dto = await self._task_management.update_task(command)
                 return TaskResponse.from_dto(task_dto)
             except ValueError as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
         @self._router.post("/tasks/{task_id}/assign", response_model=TaskResponse)
-        async def assign_task(
-            task_id: UUID, request: AssignTaskRequest
-        ) -> TaskResponse:
+        async def assign_task(task_id: UUID, request: AssignTaskRequest) -> TaskResponse:
             """Assign a task to a user."""
             try:
                 command = AssignTaskCommand(
@@ -222,9 +212,7 @@ class HTTPAdapter:
                 task_dto = await self._task_management.assign_task(command)
                 return TaskResponse.from_dto(task_dto)
             except ValueError as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
         @self._router.post("/tasks/{task_id}/complete", response_model=TaskResponse)
         async def complete_task(task_id: UUID) -> TaskResponse:
@@ -233,9 +221,7 @@ class HTTPAdapter:
                 task_dto = await self._task_management.complete_task(task_id)
                 return TaskResponse.from_dto(task_dto)
             except ValueError as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
         @self._router.get("/tasks", response_model=builtins.list[TaskResponse])
         async def get_tasks(
@@ -259,9 +245,7 @@ class HTTPAdapter:
             """Delete a task."""
             deleted = await self._task_management.delete_task(task_id)
             if not deleted:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
-                )
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
         # User routes
         @self._router.post(
@@ -279,18 +263,14 @@ class HTTPAdapter:
                 user_dto = await self._user_management.create_user(command)
                 return UserResponse.from_dto(user_dto)
             except ValueError as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
         @self._router.get("/users/{user_id}", response_model=UserResponse)
         async def get_user(user_id: UUID) -> UserResponse:
             """Get a user by their ID."""
             user_dto = await self._user_management.get_user(user_id)
             if not user_dto:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-                )
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
             return UserResponse.from_dto(user_dto)
 
         @self._router.get("/users", response_model=builtins.list[UserResponse])
@@ -309,9 +289,7 @@ class HTTPAdapter:
                 user_dto = await self._user_management.activate_user(user_id)
                 return UserResponse.from_dto(user_dto)
             except ValueError as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
         @self._router.post("/users/{user_id}/deactivate", response_model=UserResponse)
         async def deactivate_user(user_id: UUID) -> UserResponse:
@@ -320,28 +298,20 @@ class HTTPAdapter:
                 user_dto = await self._user_management.deactivate_user(user_id)
                 return UserResponse.from_dto(user_dto)
             except ValueError as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-        @self._router.get(
-            "/users/{user_id}/workload", response_model=UserWorkloadResponse
-        )
+        @self._router.get("/users/{user_id}/workload", response_model=UserWorkloadResponse)
         async def get_user_workload(user_id: UUID) -> UserWorkloadResponse:
             """Get workload information for a user."""
             try:
                 workload_dto = await self._user_management.get_user_workload(user_id)
                 return UserWorkloadResponse.from_dto(workload_dto)
             except ValueError as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
         @self._router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
         async def delete_user(user_id: UUID) -> None:
             """Delete a user."""
             deleted = await self._user_management.delete_user(user_id)
             if not deleted:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-                )
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")

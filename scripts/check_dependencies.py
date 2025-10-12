@@ -35,10 +35,9 @@ def check_import(module_name: str, package_name: str | None = None) -> bool:
 def check_command(command: str) -> bool:
     """Check if a command is available."""
     try:
-        result = subprocess.run([command, "--version"],
-                              capture_output=True, text=True, timeout=10)
+        result = subprocess.run([command, "--version"], capture_output=True, text=True, timeout=10)
         if result.returncode == 0:
-            version = result.stdout.strip().split('\n')[0]
+            version = result.stdout.strip().split("\n")[0]
             print(f"✅ {command} - {version}")
             return True
         else:
@@ -107,6 +106,7 @@ def main():
     # Check if playwright browsers are installed
     try:
         from playwright.sync_api import sync_playwright
+
         with sync_playwright() as p:
             try:
                 browser = p.chromium.launch(headless=True)
@@ -127,8 +127,7 @@ def main():
     if check_command("kind"):
         # Kind is available, check version
         try:
-            result = subprocess.run(["kind", "version"],
-                                  capture_output=True, text=True)
+            result = subprocess.run(["kind", "version"], capture_output=True, text=True)
             if "v0." in result.stdout:
                 print("✅ Kind version is compatible")
         except (subprocess.SubprocessError, OSError) as version_error:

@@ -30,6 +30,7 @@ from playwright.async_api import async_playwright
 try:
     from kubernetes import client, config
     from kubernetes.client.rest import ApiException
+
     KUBERNETES_AVAILABLE = True
 except ImportError:
     KUBERNETES_AVAILABLE = False
@@ -52,32 +53,21 @@ class SimpleKindManager:
                 {
                     "role": "control-plane",
                     "extraPortMappings": [
-                        {
-                            "containerPort": 80,
-                            "hostPort": 8080,
-                            "protocol": "TCP"
-                        },
-                        {
-                            "containerPort": 443,
-                            "hostPort": 8443,
-                            "protocol": "TCP"
-                        }
-                    ]
+                        {"containerPort": 80, "hostPort": 8080, "protocol": "TCP"},
+                        {"containerPort": 443, "hostPort": 8443, "protocol": "TCP"},
+                    ],
                 }
-            ]
+            ],
         }
 
-        with open(self.config_file, 'w') as f:
+        with open(self.config_file, "w") as f:
             yaml.dump(config, f, default_flow_style=False)
 
     def cluster_exists(self) -> bool:
         """Check if the Kind cluster exists."""
         try:
             result = subprocess.run(
-                ["kind", "get", "clusters"],
-                capture_output=True,
-                text=True,
-                check=True
+                ["kind", "get", "clusters"], capture_output=True, text=True, check=True
             )
             return self.cluster_name in result.stdout.splitlines()
         except subprocess.CalledProcessError:
@@ -93,11 +83,18 @@ class SimpleKindManager:
         self.create_cluster_config()
 
         try:
-            subprocess.run([
-                "kind", "create", "cluster",
-                "--name", self.cluster_name,
-                "--config", str(self.config_file)
-            ], check=True)
+            subprocess.run(
+                [
+                    "kind",
+                    "create",
+                    "cluster",
+                    "--name",
+                    self.cluster_name,
+                    "--config",
+                    str(self.config_file),
+                ],
+                check=True,
+            )
             print(f"✅ Kind cluster '{self.cluster_name}' created successfully")
         except subprocess.CalledProcessError as e:
             raise Exception(f"Failed to create Kind cluster: {e}")
@@ -110,10 +107,7 @@ class SimpleKindManager:
 
         print(f"🗑️  Deleting Kind cluster '{self.cluster_name}'...")
         try:
-            subprocess.run([
-                "kind", "delete", "cluster",
-                "--name", self.cluster_name
-            ], check=True)
+            subprocess.run(["kind", "delete", "cluster", "--name", self.cluster_name], check=True)
             print(f"✅ Kind cluster '{self.cluster_name}' deleted successfully")
         except subprocess.CalledProcessError as e:
             print(f"⚠️  Warning: Failed to delete Kind cluster: {e}")
@@ -122,21 +116,19 @@ class SimpleKindManager:
         """Get cluster information."""
         try:
             # Get cluster info
-            result = subprocess.run([
-                "kubectl", "cluster-info",
-                "--context", f"kind-{self.cluster_name}"
-            ], capture_output=True, text=True, check=True)
+            result = subprocess.run(
+                ["kubectl", "cluster-info", "--context", f"kind-{self.cluster_name}"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
-            return {
-                "name": self.cluster_name,
-                "status": "running",
-                "info": result.stdout
-            }
+            return {"name": self.cluster_name, "status": "running", "info": result.stdout}
         except subprocess.CalledProcessError:
             return {
                 "name": self.cluster_name,
                 "status": "error",
-                "info": "Failed to get cluster info"
+                "info": "Failed to get cluster info",
             }
 
 
@@ -181,9 +173,7 @@ class SimpleServiceDeployer:
 
         try:
             # Create namespace
-            namespace = client.V1Namespace(
-                metadata=client.V1ObjectMeta(name="test-services")
-            )
+            namespace = client.V1Namespace(metadata=client.V1ObjectMeta(name="test-services"))
 
             try:
                 self.v1.create_namespace(namespace)
@@ -196,37 +186,29 @@ class SimpleServiceDeployer:
 
             # Create deployment
             deployment = client.V1Deployment(
-                metadata=client.V1ObjectMeta(
-                    name="nginx-test",
-                    namespace="test-services"
-                ),
+                metadata=client.V1ObjectMeta(name="nginx-test", namespace="test-services"),
                 spec=client.V1DeploymentSpec(
                     replicas=1,
-                    selector=client.V1LabelSelector(
-                        match_labels={"app": "nginx-test"}
-                    ),
+                    selector=client.V1LabelSelector(match_labels={"app": "nginx-test"}),
                     template=client.V1PodTemplateSpec(
-                        metadata=client.V1ObjectMeta(
-                            labels={"app": "nginx-test"}
-                        ),
+                        metadata=client.V1ObjectMeta(labels={"app": "nginx-test"}),
                         spec=client.V1PodSpec(
                             containers=[
                                 client.V1Container(
                                     name="nginx",
                                     image="nginx:alpine",
                                     ports=[client.V1ContainerPort(container_port=80)],
-                                    env=[client.V1EnvVar(name="NGINX_PORT", value="80")]
+                                    env=[client.V1EnvVar(name="NGINX_PORT", value="80")],
                                 )
                             ]
-                        )
-                    )
-                )
+                        ),
+                    ),
+                ),
             )
 
             try:
                 self.apps_v1.create_namespaced_deployment(
-                    namespace="test-services",
-                    body=deployment
+                    namespace="test-services", body=deployment
                 )
                 print("✅ Deployment 'nginx-test' created")
             except ApiException as e:
@@ -237,22 +219,16 @@ class SimpleServiceDeployer:
 
             # Create service
             service = client.V1Service(
-                metadata=client.V1ObjectMeta(
-                    name="nginx-test-service",
-                    namespace="test-services"
-                ),
+                metadata=client.V1ObjectMeta(name="nginx-test-service", namespace="test-services"),
                 spec=client.V1ServiceSpec(
                     selector={"app": "nginx-test"},
                     ports=[client.V1ServicePort(port=80, target_port=80)],
-                    type="ClusterIP"
-                )
+                    type="ClusterIP",
+                ),
             )
 
             try:
-                self.v1.create_namespaced_service(
-                    namespace="test-services",
-                    body=service
-                )
+                self.v1.create_namespaced_service(namespace="test-services", body=service)
                 print("✅ Service 'nginx-test-service' created")
             except ApiException as e:
                 if e.status == 409:  # Service already exists
@@ -280,12 +256,13 @@ class SimpleServiceDeployer:
         while time.time() - start_time < timeout:
             try:
                 deployment = self.apps_v1.read_namespaced_deployment(
-                    name=deployment_name,
-                    namespace=namespace
+                    name=deployment_name, namespace=namespace
                 )
 
-                if (deployment.status.ready_replicas is not None and
-                    deployment.status.ready_replicas > 0):
+                if (
+                    deployment.status.ready_replicas is not None
+                    and deployment.status.ready_replicas > 0
+                ):
                     return True
 
                 time.sleep(2)
@@ -305,10 +282,7 @@ class SimpleServiceDeployer:
         print("🧹 Cleaning up test services...")
         try:
             # Delete namespace (this will delete all resources in it)
-            self.v1.delete_namespace(
-                name="test-services",
-                body=client.V1DeleteOptions()
-            )
+            self.v1.delete_namespace(name="test-services", body=client.V1DeleteOptions())
             print("✅ Test services cleaned up successfully")
         except ApiException as e:
             if e.status == 404:  # Namespace doesn't exist
@@ -332,7 +306,7 @@ class SimplePlaywrightTester:
             "service_accessible": False,
             "title_check": False,
             "response_time": 0,
-            "error": None
+            "error": None,
         }
 
         try:
@@ -430,10 +404,7 @@ class TestSimpleKindPlaywright:
             assert len(pods.items) > 0
 
             # Check if at least one pod is running
-            running_pods = [
-                pod for pod in pods.items
-                if pod.status.phase == "Running"
-            ]
+            running_pods = [pod for pod in pods.items if pod.status.phase == "Running"]
             assert len(running_pods) > 0
             print(f"✅ Found {len(running_pods)} running pods")
 
@@ -451,8 +422,7 @@ class TestSimpleKindPlaywright:
         try:
             # Check if service exists
             service = deployed_services.v1.read_namespaced_service(
-                name="nginx-test-service",
-                namespace="test-services"
+                name="nginx-test-service", namespace="test-services"
             )
 
             print(f"✅ Service exists: {service.metadata.name}")
@@ -504,8 +474,7 @@ async def main():
             # Check if service exists and is accessible within cluster
             try:
                 service = deployer.v1.read_namespaced_service(
-                    name="nginx-test-service",
-                    namespace="test-services"
+                    name="nginx-test-service", namespace="test-services"
                 )
 
                 print("✅ Service verification:")
@@ -515,10 +484,7 @@ async def main():
 
                 # Check pods
                 pods = deployer.v1.list_namespaced_pod(namespace="test-services")
-                running_pods = [
-                    pod for pod in pods.items
-                    if pod.status.phase == "Running"
-                ]
+                running_pods = [pod for pod in pods.items if pod.status.phase == "Running"]
                 print(f"   Running Pods: {len(running_pods)}")
 
                 print("\n✅ Simple E2E test completed successfully!")

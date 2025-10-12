@@ -103,9 +103,7 @@ class MetricBuffer:
 
     def _cleanup_old_values(self):
         """Remove values outside the time window."""
-        cutoff_time = datetime.now(timezone.utc) - timedelta(
-            minutes=self.window_minutes
-        )
+        cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=self.window_minutes)
 
         while self.values and self.values[0][0] < cutoff_time:
             self.values.popleft()
@@ -133,17 +131,9 @@ class MetricBuffer:
         if aggregation == MetricAggregation.COUNT:
             return float(len(values))
         if aggregation == MetricAggregation.PERCENTILE_95:
-            return (
-                statistics.quantiles(values, n=20)[18]
-                if len(values) >= 20
-                else max(values)
-            )
+            return statistics.quantiles(values, n=20)[18] if len(values) >= 20 else max(values)
         if aggregation == MetricAggregation.PERCENTILE_99:
-            return (
-                statistics.quantiles(values, n=100)[98]
-                if len(values) >= 100
-                else max(values)
-            )
+            return statistics.quantiles(values, n=100)[98] if len(values) >= 100 else max(values)
 
         return None
 
@@ -564,9 +554,7 @@ def initialize_custom_metrics() -> CustomMetricsManager:
 
 
 # Convenience functions for common business metrics
-async def record_user_registration(
-    source: str = "web", registration_type: str = "email"
-):
+async def record_user_registration(source: str = "web", registration_type: str = "email"):
     """Record a user registration event."""
     manager = get_custom_metrics_manager()
     if manager:
@@ -584,9 +572,7 @@ async def record_transaction_result(success: bool):
         manager.record_business_metric("transaction_success_rate", success_value * 100)
 
 
-async def record_response_time_sla(
-    response_time_ms: float, sla_threshold_ms: float = 1000
-):
+async def record_response_time_sla(response_time_ms: float, sla_threshold_ms: float = 1000):
     """Record response time SLA compliance."""
     manager = get_custom_metrics_manager()
     if manager:
@@ -607,6 +593,4 @@ async def record_revenue(amount: float, currency: str = "USD", source: str = "we
     """Record revenue."""
     manager = get_custom_metrics_manager()
     if manager:
-        manager.record_business_metric(
-            "revenue", amount, {"currency": currency, "source": source}
-        )
+        manager.record_business_metric("revenue", amount, {"currency": currency, "source": source})

@@ -32,8 +32,7 @@ def pytest_collection_modifyitems(config, items):  # pylint: disable=unused-argu
         # Add unit marker if no other test type marker present
         test_markers = [mark.name for mark in item.iter_markers()]
         if not any(
-            marker in test_markers
-            for marker in ["unit", "integration", "performance", "e2e"]
+            marker in test_markers for marker in ["unit", "integration", "performance", "e2e"]
         ):
             item.add_marker(pytest.mark.unit)
 
@@ -75,9 +74,7 @@ def pytest_addoption(parser):
         default=False,
         help="run integration tests",
     )
-    parser.addoption(
-        "--unit-only", action="store_true", default=False, help="run only unit tests"
-    )
+    parser.addoption("--unit-only", action="store_true", default=False, help="run only unit tests")
 
 
 def pytest_ignore_collect(path, config):

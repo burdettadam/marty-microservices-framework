@@ -101,9 +101,7 @@ class MockDashboardServer:
 
     async def _handle_health(self, request):
         """Handle health check request."""
-        return web.json_response(
-            {"status": "healthy", "timestamp": "2025-10-08T10:00:00Z"}
-        )
+        return web.json_response({"status": "healthy", "timestamp": "2025-10-08T10:00:00Z"})
 
     def _create_dashboard_html(self):
         """Create HTML dashboard for testing."""
@@ -390,9 +388,7 @@ class TestPlaywrightVisual:
                 )
 
                 # Generate visual test report
-                report = self._generate_visual_test_report(
-                    test_results, test_report_dir
-                )
+                report = self._generate_visual_test_report(test_results, test_report_dir)
 
                 # Save report
                 report_file = test_report_dir / "visual_testing_report.json"
@@ -402,15 +398,15 @@ class TestPlaywrightVisual:
                 print(f"\\n📋 Visual test report saved to: {report_file}")
 
                 # Assertions
-                assert test_results["dashboard_load"][
-                    "success"
-                ], "Dashboard should load successfully"
-                assert test_results["responsive_design"][
-                    "mobile_compatible"
-                ], "Dashboard should be mobile compatible"
-                assert test_results["interactive_elements"][
-                    "all_buttons_functional"
-                ], "All buttons should be functional"
+                assert test_results["dashboard_load"]["success"], (
+                    "Dashboard should load successfully"
+                )
+                assert test_results["responsive_design"]["mobile_compatible"], (
+                    "Dashboard should be mobile compatible"
+                )
+                assert test_results["interactive_elements"]["all_buttons_functional"], (
+                    "All buttons should be functional"
+                )
 
                 # Print summary
                 self._print_visual_test_summary(report)
@@ -452,9 +448,7 @@ class TestPlaywrightVisual:
 
             # Test 2: Visual Regression Testing
             print("📸 Running visual regression tests...")
-            results["visual_regression"] = await self._test_visual_regression(
-                page, screenshots_dir
-            )
+            results["visual_regression"] = await self._test_visual_regression(page, screenshots_dir)
 
             # Test 3: Responsive Design Testing
             print("📱 Testing responsive design...")
@@ -476,9 +470,7 @@ class TestPlaywrightVisual:
 
             # Test 6: Accessibility Testing
             print("♿ Testing accessibility...")
-            results["accessibility"] = await self._test_accessibility(
-                page, screenshots_dir
-            )
+            results["accessibility"] = await self._test_accessibility(page, screenshots_dir)
 
         finally:
             await context.close()
@@ -530,16 +522,12 @@ class TestPlaywrightVisual:
                 "screenshot": "dashboard_load_error.png",
             }
 
-    async def _test_visual_regression(
-        self, page: Page, screenshots_dir: Path
-    ) -> builtins.dict:
+    async def _test_visual_regression(self, page: Page, screenshots_dir: Path) -> builtins.dict:
         """Test visual regression by comparing screenshots."""
 
         try:
             # Take full page screenshot
-            await page.screenshot(
-                path=screenshots_dir / "dashboard_full_page.png", full_page=True
-            )
+            await page.screenshot(path=screenshots_dir / "dashboard_full_page.png", full_page=True)
 
             # Take screenshots of specific components
             header = await page.query_selector(".header")
@@ -641,9 +629,7 @@ class TestPlaywrightVisual:
             "responsive_results": responsive_results,
         }
 
-    async def _test_interactive_elements(
-        self, page: Page, screenshots_dir: Path
-    ) -> builtins.dict:
+    async def _test_interactive_elements(self, page: Page, screenshots_dir: Path) -> builtins.dict:
         """Test interactive elements functionality."""
 
         try:
@@ -680,9 +666,7 @@ class TestPlaywrightVisual:
             await page.wait_for_timeout(500)
 
             # Take screenshot after interactions
-            await page.screenshot(
-                path=screenshots_dir / "dashboard_after_interactions.png"
-            )
+            await page.screenshot(path=screenshots_dir / "dashboard_after_interactions.png")
 
             # Check button states and hover effects
             button_count = await page.evaluate(
@@ -708,9 +692,7 @@ class TestPlaywrightVisual:
                 "screenshot": "interaction_test_error.png",
             }
 
-    async def _test_performance_metrics(
-        self, page: Page, screenshots_dir: Path
-    ) -> builtins.dict:
+    async def _test_performance_metrics(self, page: Page, screenshots_dir: Path) -> builtins.dict:
         """Test performance metrics display and accuracy."""
 
         try:
@@ -759,9 +741,7 @@ class TestPlaywrightVisual:
                 "error": str(e),
             }
 
-    async def _test_accessibility(
-        self, page: Page, screenshots_dir: Path
-    ) -> builtins.dict:
+    async def _test_accessibility(self, page: Page, screenshots_dir: Path) -> builtins.dict:
         """Test accessibility features."""
 
         try:
@@ -793,9 +773,7 @@ class TestPlaywrightVisual:
 
             # Check for keyboard navigation
             await page.focus("button")
-            focused_element = await page.evaluate(
-                "() => document.activeElement.tagName"
-            )
+            focused_element = await page.evaluate("() => document.activeElement.tagName")
 
             return {
                 "proper_heading_structure": heading_count > 0,
@@ -843,9 +821,9 @@ class TestPlaywrightVisual:
                 "responsive_across_devices": test_results["responsive_design"].get(
                     "mobile_compatible", False
                 ),
-                "interactive_elements_functional": test_results[
-                    "interactive_elements"
-                ].get("all_buttons_functional", False),
+                "interactive_elements_functional": test_results["interactive_elements"].get(
+                    "all_buttons_functional", False
+                ),
                 "metrics_display_accurate": test_results["performance_metrics"].get(
                     "metrics_displayed", False
                 ),
@@ -854,9 +832,7 @@ class TestPlaywrightVisual:
                 ),
             },
             "recommendations": self._generate_visual_recommendations(test_results),
-            "screenshots_generated": self._collect_screenshot_info(
-                test_report_dir / "screenshots"
-            ),
+            "screenshots_generated": self._collect_screenshot_info(test_report_dir / "screenshots"),
         }
 
     def _generate_visual_recommendations(
@@ -895,9 +871,7 @@ class TestPlaywrightVisual:
             )
 
         # Interactive elements recommendations
-        if not test_results["interactive_elements"].get(
-            "all_buttons_functional", False
-        ):
+        if not test_results["interactive_elements"].get("all_buttons_functional", False):
             recommendations.append(
                 {
                     "category": "User Interface",
@@ -929,9 +903,7 @@ class TestPlaywrightVisual:
 
         return recommendations
 
-    def _collect_screenshot_info(
-        self, screenshots_dir: Path
-    ) -> builtins.list[builtins.dict]:
+    def _collect_screenshot_info(self, screenshots_dir: Path) -> builtins.list[builtins.dict]:
         """Collect information about generated screenshots."""
         if not screenshots_dir.exists():
             return []
@@ -963,21 +935,13 @@ class TestPlaywrightVisual:
         print(f"📸 Screenshots generated: {len(report['screenshots_generated'])}")
 
         print("\\n🎯 QUALITY METRICS:")
-        print(
-            f"   🔄 Dashboard loads: {'✅' if quality['dashboard_loads_successfully'] else '❌'}"
-        )
-        print(
-            f"   📱 Mobile responsive: {'✅' if quality['responsive_across_devices'] else '❌'}"
-        )
+        print(f"   🔄 Dashboard loads: {'✅' if quality['dashboard_loads_successfully'] else '❌'}")
+        print(f"   📱 Mobile responsive: {'✅' if quality['responsive_across_devices'] else '❌'}")
         print(
             f"   🖱️ Interactive elements: {'✅' if quality['interactive_elements_functional'] else '❌'}"
         )
-        print(
-            f"   📊 Metrics display: {'✅' if quality['metrics_display_accurate'] else '❌'}"
-        )
-        print(
-            f"   ♿ Accessibility: {'✅' if quality['accessibility_compliant'] else '❌'}"
-        )
+        print(f"   📊 Metrics display: {'✅' if quality['metrics_display_accurate'] else '❌'}")
+        print(f"   ♿ Accessibility: {'✅' if quality['accessibility_compliant'] else '❌'}")
 
         recommendations = report["recommendations"]
         if recommendations:

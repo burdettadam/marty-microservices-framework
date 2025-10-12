@@ -87,9 +87,7 @@ class SecurityHardeningFramework:
             resource="auth_system",
             action="authenticate",
             result="success" if token else "failure",
-            threat_level=SecurityThreatLevel.LOW
-            if token
-            else SecurityThreatLevel.MEDIUM,
+            threat_level=SecurityThreatLevel.LOW if token else SecurityThreatLevel.MEDIUM,
         )
 
         return token
@@ -120,9 +118,7 @@ class SecurityHardeningFramework:
             resource=resource,
             action=action,
             result="success" if authorized else "blocked",
-            threat_level=SecurityThreatLevel.LOW
-            if authorized
-            else SecurityThreatLevel.MEDIUM,
+            threat_level=SecurityThreatLevel.LOW if authorized else SecurityThreatLevel.MEDIUM,
         )
 
         return authorized
@@ -143,16 +139,12 @@ class SecurityHardeningFramework:
 
         # Scan configuration
         if "config" in scan_targets:
-            config_vulns = self.security_scanner.scan_configuration(
-                scan_targets["config"]
-            )
+            config_vulns = self.security_scanner.scan_configuration(scan_targets["config"])
             results["configuration"] = config_vulns
 
         # Scan dependencies
         if "dependencies" in scan_targets:
-            dep_vulns = self.security_scanner.scan_dependencies(
-                scan_targets["dependencies"]
-            )
+            dep_vulns = self.security_scanner.scan_dependencies(scan_targets["dependencies"])
             results["dependencies"] = dep_vulns
 
         return results

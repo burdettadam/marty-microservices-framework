@@ -34,6 +34,7 @@ except ImportError:
 try:
     # Storage backend availability checks
     import importlib.util
+
     GCS_AVAILABLE = importlib.util.find_spec("google.cloud.storage") is not None
 except ImportError:
     GCS_AVAILABLE = False
@@ -191,9 +192,7 @@ class PromotionRequest:
             "requested_at": self.requested_at.isoformat(),
             "approved_at": self.approved_at.isoformat() if self.approved_at else None,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
 
 
@@ -246,15 +245,11 @@ class ArtifactStorageBackend:
         """Delete artifact from backend"""
         raise NotImplementedError
 
-    async def list_artifacts(
-        self, prefix: str = "", limit: int = 100
-    ) -> builtins.list[str]:
+    async def list_artifacts(self, prefix: str = "", limit: int = 100) -> builtins.list[str]:
         """List artifacts in backend"""
         raise NotImplementedError
 
-    async def get_artifact_info(
-        self, artifact_id: str
-    ) -> builtins.dict[str, Any] | None:
+    async def get_artifact_info(self, artifact_id: str) -> builtins.dict[str, Any] | None:
         """Get artifact information from backend"""
         raise NotImplementedError
 
@@ -275,9 +270,7 @@ class LocalStorageBackend(ArtifactStorageBackend):
         try:
             # Create artifact directory
             artifact_dir = (
-                self.base_path
-                / artifact_metadata.environment
-                / artifact_metadata.artifact_id
+                self.base_path / artifact_metadata.environment / artifact_metadata.artifact_id
             )
             artifact_dir.mkdir(parents=True, exist_ok=True)
 
@@ -294,9 +287,7 @@ class LocalStorageBackend(ArtifactStorageBackend):
                 ".tar",
             ]:
                 # Compress artifact
-                compressed_path = destination_path.with_suffix(
-                    destination_path.suffix + ".gz"
-                )
+                compressed_path = destination_path.with_suffix(destination_path.suffix + ".gz")
                 await self._compress_file(source_path, compressed_path)
                 destination_path = compressed_path
             else:
@@ -334,9 +325,7 @@ class LocalStorageBackend(ArtifactStorageBackend):
 
             # Find artifact file (exclude metadata)
             artifact_files = [
-                f
-                for f in artifact_dir.iterdir()
-                if f.is_file() and f.name != "metadata.json"
+                f for f in artifact_dir.iterdir() if f.is_file() and f.name != "metadata.json"
             ]
 
             if not artifact_files:
@@ -372,9 +361,7 @@ class LocalStorageBackend(ArtifactStorageBackend):
             print(f"Failed to delete artifact: {e}")
             return False
 
-    async def list_artifacts(
-        self, prefix: str = "", limit: int = 100
-    ) -> builtins.list[str]:
+    async def list_artifacts(self, prefix: str = "", limit: int = 100) -> builtins.list[str]:
         """List artifacts in local storage"""
 
         artifacts = []
@@ -401,9 +388,7 @@ class LocalStorageBackend(ArtifactStorageBackend):
 
         return artifacts
 
-    async def get_artifact_info(
-        self, artifact_id: str
-    ) -> builtins.dict[str, Any] | None:
+    async def get_artifact_info(self, artifact_id: str) -> builtins.dict[str, Any] | None:
         """Get artifact information"""
 
         try:
@@ -494,9 +479,7 @@ class S3StorageBackend(ArtifactStorageBackend):
                 upload_args["ServerSideEncryption"] = "AES256"
 
             # Upload file
-            self.s3_client.upload_file(
-                file_path, self.bucket_name, s3_key, ExtraArgs=upload_args
-            )
+            self.s3_client.upload_file(file_path, self.bucket_name, s3_key, ExtraArgs=upload_args)
 
             # Store metadata separately
             metadata_key = f"{s3_key}.metadata.json"
@@ -528,15 +511,11 @@ class S3StorageBackend(ArtifactStorageBackend):
         try:
             # Find artifact by listing objects
             prefix = f"{self.config.base_path}/"
-            response = self.s3_client.list_objects_v2(
-                Bucket=self.bucket_name, Prefix=prefix
-            )
+            response = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
 
             artifact_key = None
             for obj in response.get("Contents", []):
-                if artifact_id in obj["Key"] and not obj["Key"].endswith(
-                    ".metadata.json"
-                ):
+                if artifact_id in obj["Key"] and not obj["Key"].endswith(".metadata.json"):
                     artifact_key = obj["Key"]
                     break
 
@@ -544,9 +523,7 @@ class S3StorageBackend(ArtifactStorageBackend):
                 return False
 
             # Download artifact
-            self.s3_client.download_file(
-                self.bucket_name, artifact_key, destination_path
-            )
+            self.s3_client.download_file(self.bucket_name, artifact_key, destination_path)
 
             return True
 
@@ -560,9 +537,7 @@ class S3StorageBackend(ArtifactStorageBackend):
         try:
             # Find all objects for this artifact
             prefix = f"{self.config.base_path}/"
-            response = self.s3_client.list_objects_v2(
-                Bucket=self.bucket_name, Prefix=prefix
-            )
+            response = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
 
             delete_objects = []
             for obj in response.get("Contents", []):
@@ -580,9 +555,7 @@ class S3StorageBackend(ArtifactStorageBackend):
             print(f"Failed to delete artifact from S3: {e}")
             return False
 
-    async def list_artifacts(
-        self, prefix: str = "", limit: int = 100
-    ) -> builtins.list[str]:
+    async def list_artifacts(self, prefix: str = "", limit: int = 100) -> builtins.list[str]:
         """List artifacts in S3"""
 
         try:
@@ -611,17 +584,13 @@ class S3StorageBackend(ArtifactStorageBackend):
             print(f"Failed to list artifacts in S3: {e}")
             return []
 
-    async def get_artifact_info(
-        self, artifact_id: str
-    ) -> builtins.dict[str, Any] | None:
+    async def get_artifact_info(self, artifact_id: str) -> builtins.dict[str, Any] | None:
         """Get artifact information from S3"""
 
         try:
             # Find metadata file
             prefix = f"{self.config.base_path}/"
-            response = self.s3_client.list_objects_v2(
-                Bucket=self.bucket_name, Prefix=prefix
-            )
+            response = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=prefix)
 
             metadata_key = None
             for obj in response.get("Contents", []):
@@ -633,9 +602,7 @@ class S3StorageBackend(ArtifactStorageBackend):
                 return None
 
             # Download metadata
-            response = self.s3_client.get_object(
-                Bucket=self.bucket_name, Key=metadata_key
-            )
+            response = self.s3_client.get_object(Bucket=self.bucket_name, Key=metadata_key)
 
             metadata = json.loads(response["Body"].read().decode("utf-8"))
             return metadata
@@ -662,22 +629,16 @@ class ArtifactManager:
         self.storage_backends: builtins.dict[str, ArtifactStorageBackend] = {}
 
         # Initialize default backend
-        self.storage_backends["default"] = self._create_storage_backend(
-            default_storage_config
-        )
+        self.storage_backends["default"] = self._create_storage_backend(default_storage_config)
 
         # Artifact registry
         self.artifacts: builtins.dict[str, ArtifactMetadata] = {}
         self.promotion_requests: builtins.dict[str, PromotionRequest] = {}
         self.retention_policies: builtins.list[RetentionPolicy] = []
 
-        print(
-            f"🗃️ Artifact Manager initialized with {default_storage_config.backend.value} backend"
-        )
+        print(f"🗃️ Artifact Manager initialized with {default_storage_config.backend.value} backend")
 
-    def _create_storage_backend(
-        self, config: StorageConfiguration
-    ) -> ArtifactStorageBackend:
+    def _create_storage_backend(self, config: StorageConfiguration) -> ArtifactStorageBackend:
         """Create storage backend instance"""
 
         if config.backend == StorageBackend.LOCAL:
@@ -707,7 +668,9 @@ class ArtifactManager:
         """Store artifact in specified backend"""
 
         # Generate artifact ID
-        artifact_id = f"{name}_{version}_{int(datetime.now().timestamp())}_{hash(file_path) % 10000:04d}"
+        artifact_id = (
+            f"{name}_{version}_{int(datetime.now().timestamp())}_{hash(file_path) % 10000:04d}"
+        )
 
         # Calculate file metadata
         file_path_obj = Path(file_path)
@@ -756,9 +719,7 @@ class ArtifactManager:
             # Register artifact
             self.artifacts[artifact_id] = artifact_metadata
 
-            print(
-                f"📦 Stored artifact: {artifact_id} ({artifact_type.value}) in {backend_name}"
-            )
+            print(f"📦 Stored artifact: {artifact_id} ({artifact_type.value}) in {backend_name}")
             return artifact_id
 
         except Exception as e:
@@ -880,9 +841,7 @@ class ArtifactManager:
 
             try:
                 # Retrieve artifact
-                success = await self.retrieve_artifact(
-                    promotion_request.artifact_id, temp_path
-                )
+                success = await self.retrieve_artifact(promotion_request.artifact_id, temp_path)
 
                 if not success:
                     raise Exception("Failed to retrieve source artifact")
@@ -907,9 +866,7 @@ class ArtifactManager:
 
                 # Update promotion tracking
                 source_artifact.promoted_to.append(target_artifact_id)
-                self.artifacts[
-                    target_artifact_id
-                ].promoted_from = promotion_request.artifact_id
+                self.artifacts[target_artifact_id].promoted_from = promotion_request.artifact_id
 
                 # Complete promotion
                 promotion_request.status = PromotionStatus.COMPLETED
@@ -933,9 +890,7 @@ class ArtifactManager:
             print(f"❌ Promotion failed: {e}")
             return False
 
-    async def delete_artifact(
-        self, artifact_id: str, backend_name: str = "default"
-    ) -> bool:
+    async def delete_artifact(self, artifact_id: str, backend_name: str = "default") -> bool:
         """Delete artifact from storage"""
 
         if artifact_id not in self.artifacts:
@@ -996,9 +951,7 @@ class ArtifactManager:
         )
         return results
 
-    async def _apply_retention_policy(
-        self, policy: RetentionPolicy
-    ) -> builtins.dict[str, int]:
+    async def _apply_retention_policy(self, policy: RetentionPolicy) -> builtins.dict[str, int]:
         """Apply single retention policy"""
 
         result = {"processed": 0, "deleted": 0, "archived": 0}
@@ -1009,10 +962,7 @@ class ArtifactManager:
 
         for artifact_id, artifact in self.artifacts.items():
             # Check artifact type filter
-            if (
-                policy.artifact_types
-                and artifact.artifact_type not in policy.artifact_types
-            ):
+            if policy.artifact_types and artifact.artifact_type not in policy.artifact_types:
                 continue
 
             # Check environment filter
@@ -1022,8 +972,7 @@ class ArtifactManager:
             # Check tag filters
             if policy.tag_filters:
                 if not all(
-                    artifact.tags.get(key) == value
-                    for key, value in policy.tag_filters.items()
+                    artifact.tags.get(key) == value for key, value in policy.tag_filters.items()
                 ):
                     continue
 
@@ -1113,9 +1062,7 @@ class ArtifactManager:
                 continue
 
             if tags:
-                if not all(
-                    artifact.tags.get(key) == value for key, value in tags.items()
-                ):
+                if not all(artifact.tags.get(key) == value for key, value in tags.items()):
                     continue
 
             filtered_artifacts.append(artifact)
@@ -1164,9 +1111,7 @@ class ArtifactManager:
 
         for artifact in self.artifacts.values():
             # Count by environment
-            environments[artifact.environment] = (
-                environments.get(artifact.environment, 0) + 1
-            )
+            environments[artifact.environment] = environments.get(artifact.environment, 0) + 1
 
             # Count by type
             type_name = artifact.artifact_type.value
@@ -1230,9 +1175,7 @@ async def demo_artifact_management():
                 pipeline_execution_id=f"exec_{i}",
                 name="test_app",
                 version=f"1.{i}.0",
-                artifact_type=ArtifactType.BINARY
-                if i == 0
-                else ArtifactType.CONTAINER_IMAGE,
+                artifact_type=ArtifactType.BINARY if i == 0 else ArtifactType.CONTAINER_IMAGE,
                 file_path=test_file,
                 environment="development",
                 tags={"component": "api", "team": "platform"},
@@ -1271,9 +1214,7 @@ async def demo_artifact_management():
         print("\n📥 Testing Artifact Retrieval")
 
         retrieval_path = "retrieved_artifact.txt"
-        success = await artifact_manager.retrieve_artifact(
-            artifact_ids[0], retrieval_path
-        )
+        success = await artifact_manager.retrieve_artifact(artifact_ids[0], retrieval_path)
 
         if success:
             print(f"Successfully retrieved artifact to: {retrieval_path}")
@@ -1284,15 +1225,11 @@ async def demo_artifact_management():
         # List artifacts
         print("\n📋 Artifact Listing")
 
-        dev_artifacts = artifact_manager.list_artifacts(
-            environment="development", limit=10
-        )
+        dev_artifacts = artifact_manager.list_artifacts(environment="development", limit=10)
 
         print(f"Development artifacts: {len(dev_artifacts)}")
         for artifact in dev_artifacts:
-            print(
-                f"  - {artifact.name} v{artifact.version} ({artifact.artifact_type.value})"
-            )
+            print(f"  - {artifact.name} v{artifact.version} ({artifact.artifact_type.value})")
 
         # Show metrics
         print("\n📊 Artifact Metrics")

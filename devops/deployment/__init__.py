@@ -145,9 +145,7 @@ def create_simple_deployment_target(
     Returns:
         DeploymentTarget: Configured deployment target
     """
-    return DeploymentTarget(
-        name=name, namespace=namespace, replicas=replicas, image=image, tag=tag
-    )
+    return DeploymentTarget(name=name, namespace=namespace, replicas=replicas, image=image, tag=tag)
 
 
 def create_standard_validation() -> DeploymentValidation:
@@ -163,9 +161,7 @@ def create_standard_validation() -> DeploymentValidation:
         performance_check_enabled=True,
         auto_rollback_enabled=True,
         error_threshold=0.05,
-        custom_validations=[
-            {"name": "database_connectivity", "type": "database_connectivity"}
-        ],
+        custom_validations=[{"name": "database_connectivity", "type": "database_connectivity"}],
     )
 
 

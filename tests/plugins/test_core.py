@@ -28,7 +28,7 @@ class TestPluginMetadata:
             description="Test plugin for unit testing",
             author="Test Author",
             dependencies=["dependency1", "dependency2"],
-            optional_dependencies=["optional1"]
+            optional_dependencies=["optional1"],
         )
 
         assert metadata.name == "test-plugin"
@@ -40,10 +40,7 @@ class TestPluginMetadata:
 
     def test_metadata_defaults(self):
         """Test metadata with default values."""
-        metadata = PluginMetadata(
-            name="minimal-plugin",
-            version="1.0.0"
-        )
+        metadata = PluginMetadata(name="minimal-plugin", version="1.0.0")
 
         assert metadata.name == "minimal-plugin"
         assert metadata.version == "1.0.0"
@@ -51,6 +48,7 @@ class TestPluginMetadata:
         assert metadata.author == ""
         assert metadata.dependencies == []
         assert metadata.optional_dependencies == []
+
 
 class TestPluginContext:
     """Test plugin context functionality."""
@@ -90,6 +88,7 @@ class TestPluginContext:
         )
         assert is_valid is True
 
+
 class TestPluginLifecycle:
     """Test plugin lifecycle management."""
 
@@ -123,6 +122,7 @@ class TestPluginLifecycle:
         health = await plugin.get_health_status()
         assert health["status"] == "stopped"
 
+
 class TestPluginManager:
     """Test plugin manager functionality."""
 
@@ -135,11 +135,7 @@ class TestPluginManager:
     async def test_manager_register_plugin(self, plugin_manager, mock_context):
         """Test plugin registration with manager."""
         plugin = TestPlugin()
-        metadata = PluginMetadata(
-            name="test-plugin",
-            version="1.0.0",
-            description="Test plugin"
-        )
+        metadata = PluginMetadata(name="test-plugin", version="1.0.0", description="Test plugin")
 
         await plugin_manager.register_plugin("test-plugin", plugin, metadata)
 
@@ -185,11 +181,7 @@ class TestPluginManager:
 
         # Add plugin and test info
         plugin = TestPlugin()
-        metadata = PluginMetadata(
-            name="test-plugin",
-            version="1.0.0",
-            description="Test plugin"
-        )
+        metadata = PluginMetadata(name="test-plugin", version="1.0.0", description="Test plugin")
 
         asyncio.run(plugin_manager.register_plugin("test-plugin", plugin, metadata))
 
@@ -229,12 +221,14 @@ class TestPluginManager:
         with pytest.raises(ValueError, match="Plugin 'test-plugin' is already registered"):
             await plugin_manager.register_plugin("test-plugin", plugin2, metadata)
 
+
 class TestPluginErrorHandling:
     """Test error handling in plugin operations."""
 
     @pytest.mark.asyncio
     async def test_plugin_initialization_error(self, mock_context):
         """Test handling of plugin initialization errors."""
+
         class FailingPlugin(MMFPlugin):
             @property
             def metadata(self) -> PluginMetadata:
@@ -260,6 +254,7 @@ class TestPluginErrorHandling:
     @pytest.mark.asyncio
     async def test_plugin_start_error(self, mock_context):
         """Test handling of plugin start errors."""
+
         class FailingStartPlugin(MMFPlugin):
             @property
             def metadata(self) -> PluginMetadata:

@@ -79,14 +79,10 @@ class ServerSideDiscovery(ServiceDiscoveryClient):
         except Exception as e:
             resolution_time = time.time() - start_time
             self.record_resolution(False, resolution_time)
-            logger.error(
-                "Server-side discovery failed for %s: %s", query.service_name, e
-            )
+            logger.error("Server-side discovery failed for %s: %s", query.service_name, e)
             raise
 
-    async def _query_discovery_service(
-        self, query: ServiceQuery
-    ) -> builtins.list[ServiceInstance]:
+    async def _query_discovery_service(self, query: ServiceQuery) -> builtins.list[ServiceInstance]:
         """Query the external discovery service."""
         session = await self._get_http_session()
 
@@ -118,9 +114,7 @@ class ServerSideDiscovery(ServiceDiscoveryClient):
                 if response.status == 404:
                     return []
                 error_text = await response.text()
-                raise RuntimeError(
-                    f"Discovery service error {response.status}: {error_text}"
-                )
+                raise RuntimeError(f"Discovery service error {response.status}: {error_text}")
 
         except aiohttp.ClientError as e:
             logger.error("HTTP client error querying discovery service: %s", e)
@@ -171,9 +165,7 @@ class ServerSideDiscovery(ServiceDiscoveryClient):
                 instances.append(instance)
 
             except (KeyError, ValueError) as e:
-                logger.warning(
-                    "Failed to parse discovery response item %s: %s", item, e
-                )
+                logger.warning("Failed to parse discovery response item %s: %s", item, e)
                 continue
 
         return instances

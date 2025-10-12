@@ -142,7 +142,7 @@ class TestMessagePriorities:
             (MessagePriority.LOW, 1),
             (MessagePriority.NORMAL, 5),
             (MessagePriority.HIGH, 10),
-            (MessagePriority.CRITICAL, 15)
+            (MessagePriority.CRITICAL, 15),
         ]
 
         for priority, expected_value in priorities:
@@ -218,11 +218,8 @@ class TestMessagingIntegration:
         order_data = {
             "order_id": "order-123",
             "customer_id": "customer-456",
-            "items": [
-                {"product_id": "p1", "quantity": 2},
-                {"product_id": "p2", "quantity": 1}
-            ],
-            "total_amount": 89.99
+            "items": [{"product_id": "p1", "quantity": 2}, {"product_id": "p2", "quantity": 1}],
+            "total_amount": 89.99,
         }
 
         headers = MessageHeaders()
@@ -259,7 +256,7 @@ class TestMessagingIntegration:
 
             message = Message(
                 body={"batch_id": "batch-123", "item_id": f"item-{i}", "data": f"data-{i}"},
-                headers=headers
+                headers=headers,
             )
             messages.append(message)
 
@@ -298,18 +295,18 @@ class TestMessagingIntegration:
             {
                 "body": {"event": "user.created", "user_id": 123},
                 "routing_key": "user.events",
-                "priority": MessagePriority.NORMAL
+                "priority": MessagePriority.NORMAL,
             },
             {
                 "body": {"event": "order.placed", "order_id": "order-456"},
                 "routing_key": "order.events",
-                "priority": MessagePriority.HIGH
+                "priority": MessagePriority.HIGH,
             },
             {
                 "body": {"event": "payment.failed", "payment_id": "pay-789"},
                 "routing_key": "payment.events",
-                "priority": MessagePriority.CRITICAL
-            }
+                "priority": MessagePriority.CRITICAL,
+            },
         ]
 
         # Create and route messages

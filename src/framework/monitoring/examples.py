@@ -78,9 +78,7 @@ async def basic_monitoring_example():
         engine = create_engine("sqlite:///examples/monitoring.db")
         SessionLocal = sessionmaker(bind=engine)
 
-        monitoring_manager.add_health_check(
-            DatabaseHealthCheck("database", SessionLocal)
-        )
+        monitoring_manager.add_health_check(DatabaseHealthCheck("database", SessionLocal))
 
     # Add external service health check
     monitoring_manager.add_health_check(
@@ -227,9 +225,7 @@ if FASTAPI_AVAILABLE:
         async def startup():
             # Add health checks
             monitoring_manager.add_health_check(
-                ExternalServiceHealthCheck(
-                    "external_service", "https://httpbin.org/status/200"
-                )
+                ExternalServiceHealthCheck("external_service", "https://httpbin.org/status/200")
             )
 
             # Start custom metrics monitoring
@@ -249,9 +245,7 @@ if FASTAPI_AVAILABLE:
             await asyncio.sleep(processing_time)
 
             # Record business metrics
-            await record_response_time_sla(
-                processing_time * 1000, 1000
-            )  # Convert to ms
+            await record_response_time_sla(processing_time * 1000, 1000)  # Convert to ms
 
             if user_id == "error":
                 await record_error_rate(True)
@@ -362,12 +356,10 @@ async def advanced_health_checks_example():
     # Perform health checks multiple times
     for i in range(8):
         health_status = await monitoring_manager.get_service_health()
-        print(f"Health Check {i+1}: {health_status['status']}")
+        print(f"Health Check {i + 1}: {health_status['status']}")
 
         for check_name, check_result in health_status["checks"].items():
-            print(
-                f"  {check_name}: {check_result['status']} - {check_result['message']}"
-            )
+            print(f"  {check_name}: {check_result['status']} - {check_result['message']}")
 
         await asyncio.sleep(1)
 

@@ -75,7 +75,7 @@ def check_file_lengths(src_dir: str = "src/framework/", max_lines: int = 500) ->
             continue
 
         try:
-            with open(py_file, encoding='utf-8') as f:
+            with open(py_file, encoding="utf-8") as f:
                 line_count = sum(1 for _ in f)
 
             if line_count > max_lines:
@@ -116,17 +116,19 @@ def check_function_lengths(src_dir: str = "src/framework/", max_lines: int = 50)
             continue
 
         try:
-            with open(py_file, encoding='utf-8') as f:
+            with open(py_file, encoding="utf-8") as f:
                 content = f.read()
 
             tree = ast.parse(content, filename=str(py_file))
 
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-                    if hasattr(node, 'end_lineno') and node.end_lineno:
+                    if hasattr(node, "end_lineno") and node.end_lineno:
                         length = node.end_lineno - node.lineno + 1
                         if length > max_lines:
-                            long_functions.append(f"{py_file}:{node.lineno} - {node.name}() has {length} lines")
+                            long_functions.append(
+                                f"{py_file}:{node.lineno} - {node.name}() has {length} lines"
+                            )
         except (SyntaxError, OSError, UnicodeDecodeError):
             continue
 

@@ -316,9 +316,7 @@ class ServiceInstance:
         avg_response_time = self.get_average_response_time()
         if avg_response_time > 0:
             # Lower weight for slower responses
-            time_factor = max(
-                0.1, 1.0 - (avg_response_time / 5000)
-            )  # 5 second baseline
+            time_factor = max(0.1, 1.0 - (avg_response_time / 5000))  # 5 second baseline
             weight *= time_factor
 
         # Adjust based on active connections
@@ -438,9 +436,7 @@ class ServiceRegistry(ABC):
         """Discover all instances of a service."""
 
     @abstractmethod
-    async def get_instance(
-        self, service_name: str, instance_id: str
-    ) -> ServiceInstance | None:
+    async def get_instance(self, service_name: str, instance_id: str) -> ServiceInstance | None:
         """Get a specific service instance."""
 
     @abstractmethod
@@ -452,9 +448,7 @@ class ServiceRegistry(ABC):
         """List all registered services."""
 
     @abstractmethod
-    async def get_healthy_instances(
-        self, service_name: str
-    ) -> builtins.list[ServiceInstance]:
+    async def get_healthy_instances(self, service_name: str) -> builtins.list[ServiceInstance]:
         """Get healthy instances of a service."""
 
     @abstractmethod

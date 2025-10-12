@@ -308,9 +308,7 @@ class EventProcessor:
                             try:
                                 await handler.handle(record.event)
                             except Exception as e:
-                                logger.error(
-                                    f"Handler error for event {record.event.id}: {e}"
-                                )
+                                logger.error(f"Handler error for event {record.event.id}: {e}")
 
                     self.position = max(self.position, record.position + 1)
 
@@ -535,9 +533,7 @@ class EventStreamManager:
         expected_version: int | None = None,
     ) -> bool:
         """Append events to stream."""
-        success = await self.event_store.append_events(
-            stream_id, events, expected_version
-        )
+        success = await self.event_store.append_events(stream_id, events, expected_version)
 
         # Publish to event bus
         if success:

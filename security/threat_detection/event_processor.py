@@ -24,6 +24,7 @@ try:
     import aiohttp
     import redis.asyncio as redis
     from prometheus_client import Counter, Gauge, Histogram
+
     REDIS_AVAILABLE = True
 
     STREAMING_AVAILABLE = True
@@ -261,10 +262,7 @@ class SecurityEventProcessor:
 
             # Clean old entries
             cutoff = now - 60  # 1 minute window
-            while (
-                self.rate_limiter[source_ip]
-                and self.rate_limiter[source_ip][0] < cutoff
-            ):
+            while self.rate_limiter[source_ip] and self.rate_limiter[source_ip][0] < cutoff:
                 self.rate_limiter[source_ip].popleft()
 
             # Check rate limit (100 events per minute per IP)
@@ -300,9 +298,7 @@ class SecurityEventProcessor:
         while True:
             try:
                 # Get event from queue with timeout
-                event_data = await asyncio.wait_for(
-                    self.processing_queue.get(), timeout=1.0
-                )
+                event_data = await asyncio.wait_for(self.processing_queue.get(), timeout=1.0)
 
                 start_time = time.time()
 
@@ -319,9 +315,7 @@ class SecurityEventProcessor:
                         self.event_processing_time.observe(processing_time)
 
                         # Update threat score distribution
-                        self.threat_score_distribution.observe(
-                            processed_event.threat_score
-                        )
+                        self.threat_score_distribution.observe(processed_event.threat_score)
 
             except asyncio.TimeoutError:
                 # No events to process, continue
@@ -411,8 +405,7 @@ class SecurityEventProcessor:
             if filter_config.user_patterns:
                 user_id = event_data.get("user_id", "")
                 if not any(
-                    self._match_pattern(pattern, user_id)
-                    for pattern in filter_config.user_patterns
+                    self._match_pattern(pattern, user_id) for pattern in filter_config.user_patterns
                 ):
                     continue
 
@@ -449,9 +442,7 @@ class SecurityEventProcessor:
         # Service context enrichment
         service_name = event_data.get("service_name", "")
         if service_name:
-            enrichments["service_context"] = await self._get_service_context(
-                service_name
-            )
+            enrichments["service_context"] = await self._get_service_context(service_name)
 
         # Request analysis
         if "request_body" in event_data or "request_params" in event_data:
@@ -474,9 +465,7 @@ class SecurityEventProcessor:
             "country": "US" if ip_address.startswith("192.168") else "Unknown",
             "region": "Internal" if ip_address.startswith("192.168") else "External",
             "is_internal": ip_address.startswith(("192.168", "10.", "172.")),
-            "risk_score": 0.1
-            if ip_address.startswith(("192.168", "10.", "172."))
-            else 0.5,
+            "risk_score": 0.1 if ip_address.startswith(("192.168", "10.", "172.")) else 0.5,
         }
 
     async def _get_user_context(self, user_id: str) -> builtins.dict[str, Any]:
@@ -496,16 +485,11 @@ class SecurityEventProcessor:
             "service_tier": "critical"
             if any(x in service_name.lower() for x in ["payment", "auth", "user"])
             else "standard",
-            "data_classification": "sensitive"
-            if "payment" in service_name.lower()
-            else "internal",
-            "public_facing": "gateway" in service_name.lower()
-            or "api" in service_name.lower(),
+            "data_classification": "sensitive" if "payment" in service_name.lower() else "internal",
+            "public_facing": "gateway" in service_name.lower() or "api" in service_name.lower(),
         }
 
-    def _analyze_request(
-        self, event_data: builtins.dict[str, Any]
-    ) -> builtins.dict[str, Any]:
+    def _analyze_request(self, event_data: builtins.dict[str, Any]) -> builtins.dict[str, Any]:
         """Analyze request content for threats"""
         analysis = {
             "suspicious_patterns": [],
@@ -700,9 +684,7 @@ class SecurityEventProcessor:
             "active_rules": len([r for r in self.rules.values() if r.enabled]),
         }
 
-    def get_recent_events(
-        self, limit: int = 100
-    ) -> builtins.list[ProcessedSecurityEvent]:
+    def get_recent_events(self, limit: int = 100) -> builtins.list[ProcessedSecurityEvent]:
         """Get recent processed events"""
         return list(self.processed_events)[-limit:]
 
@@ -710,9 +692,7 @@ class SecurityEventProcessor:
         self, threshold: float = 0.7
     ) -> builtins.list[ProcessedSecurityEvent]:
         """Get events with high threat scores"""
-        return [
-            event for event in self.processed_events if event.threat_score >= threshold
-        ]
+        return [event for event in self.processed_events if event.threat_score >= threshold]
 
 
 # Example usage

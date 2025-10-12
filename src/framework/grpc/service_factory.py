@@ -343,9 +343,7 @@ class ServiceRegistry:
             )
 
         except (AttributeError, TypeError) as e:
-            logger.error(
-                "Failed to create service definition for %s: %s", cls.__name__, e
-            )
+            logger.error("Failed to create service definition for %s: %s", cls.__name__, e)
             return None
 
 

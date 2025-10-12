@@ -14,10 +14,12 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def plugin_service(name: str | None = None,
-                  version: str = "1.0.0",
-                  description: str = "",
-                  dependencies: list[str] | None = None):
+def plugin_service(
+    name: str | None = None,
+    version: str = "1.0.0",
+    description: str = "",
+    dependencies: list[str] | None = None,
+):
     """Decorator to mark a class as a plugin service.
 
     Args:
@@ -26,18 +28,20 @@ def plugin_service(name: str | None = None,
         description: Service description
         dependencies: List of service dependencies
     """
+
     def decorator(cls):
         cls._mmf_service_name = name or cls.__name__
         cls._mmf_service_version = version
         cls._mmf_service_description = description
         cls._mmf_service_dependencies = dependencies or []
         return cls
+
     return decorator
 
 
-def requires_auth(roles: list[str] | None = None,
-                 permissions: list[str] | None = None,
-                 optional: bool = False):
+def requires_auth(
+    roles: list[str] | None = None, permissions: list[str] | None = None, optional: bool = False
+):
     """Decorator to require authentication for a method.
 
     Args:
@@ -45,24 +49,23 @@ def requires_auth(roles: list[str] | None = None,
         permissions: Required permissions
         optional: Whether auth is optional
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(self, *args, **kwargs):
             # Authentication logic would be implemented by MMF security
             # This is a placeholder for the decorator structure
 
-            if hasattr(self, 'context') and self.context.security:
+            if hasattr(self, "context") and self.context.security:
                 auth_result = await self.context.security.authenticate_request(
-                    roles=roles,
-                    permissions=permissions,
-                    optional=optional
+                    roles=roles, permissions=permissions, optional=optional
                 )
 
                 if not auth_result.authenticated and not optional:
                     raise PermissionError("Authentication required")
 
                 # Add auth info to kwargs for the method
-                kwargs['_auth_result'] = auth_result
+                kwargs["_auth_result"] = auth_result
 
             return await func(self, *args, **kwargs)
 
@@ -73,13 +76,16 @@ def requires_auth(roles: list[str] | None = None,
         wrapper._auth_optional = optional
 
         return wrapper
+
     return decorator
 
 
-def track_metrics(metric_name: str | None = None,
-                 labels: dict[str, str] | None = None,
-                 timing: bool = True,
-                 counter: bool = True):
+def track_metrics(
+    metric_name: str | None = None,
+    labels: dict[str, str] | None = None,
+    timing: bool = True,
+    counter: bool = True,
+):
     """Decorator to track metrics for a method.
 
     Args:
@@ -88,6 +94,7 @@ def track_metrics(metric_name: str | None = None,
         timing: Whether to track execution time
         counter: Whether to track call count
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(self, *args, **kwargs):
@@ -95,7 +102,7 @@ def track_metrics(metric_name: str | None = None,
             metric_name_actual = metric_name or func.__name__
             labels_actual = labels or {}
 
-            if hasattr(self, 'context') and self.context.observability:
+            if hasattr(self, "context") and self.context.observability:
                 metrics = self.context.observability.get_metrics_collector()
 
                 # Start timing if enabled
@@ -116,7 +123,11 @@ def track_metrics(metric_name: str | None = None,
                 except Exception as e:
                     # Increment error counter
                     if counter:
-                        error_labels = {**labels_actual, "status": "error", "error_type": type(e).__name__}
+                        error_labels = {
+                            **labels_actual,
+                            "status": "error",
+                            "error_type": type(e).__name__,
+                        }
                         metrics.increment_counter(f"{metric_name_actual}_total", error_labels)
                     raise
 
@@ -133,13 +144,16 @@ def track_metrics(metric_name: str | None = None,
         wrapper._metric_labels = labels or {}
 
         return wrapper
+
     return decorator
 
 
-def trace_operation(operation_name: str | None = None,
-                   tags: dict[str, str] | None = None,
-                   log_inputs: bool = False,
-                   log_outputs: bool = False):
+def trace_operation(
+    operation_name: str | None = None,
+    tags: dict[str, str] | None = None,
+    log_inputs: bool = False,
+    log_outputs: bool = False,
+):
     """Decorator to add distributed tracing to a method.
 
     Args:
@@ -148,13 +162,14 @@ def trace_operation(operation_name: str | None = None,
         log_inputs: Whether to log input parameters
         log_outputs: Whether to log output values
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(self, *args, **kwargs):
             operation_name_actual = operation_name or func.__name__
             tags_actual = tags or {}
 
-            if hasattr(self, 'context') and self.context.observability:
+            if hasattr(self, "context") and self.context.observability:
                 tracer = self.context.observability.get_tracer()
 
                 with tracer.start_span(operation_name_actual) as span:
@@ -191,13 +206,16 @@ def trace_operation(operation_name: str | None = None,
         wrapper._trace_tags = tags or {}
 
         return wrapper
+
     return decorator
 
 
-def event_handler(event_type: str,
-                 filter_condition: Callable[[Any], bool] | None = None,
-                 retry_attempts: int = 3,
-                 async_processing: bool = False):
+def event_handler(
+    event_type: str,
+    filter_condition: Callable[[Any], bool] | None = None,
+    retry_attempts: int = 3,
+    async_processing: bool = False,
+):
     """Decorator to mark a method as an event handler.
 
     Args:
@@ -206,6 +224,7 @@ def event_handler(event_type: str,
         retry_attempts: Number of retry attempts on failure
         async_processing: Whether to process events asynchronously
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(self, event, *args, **kwargs):
@@ -220,7 +239,7 @@ def event_handler(event_type: str,
                 try:
                     if async_processing:
                         # Schedule for background processing
-                        if hasattr(self, 'context') and self.context.event_bus:
+                        if hasattr(self, "context") and self.context.event_bus:
                             await self.context.event_bus.process_async(
                                 func, self, event, *args, **kwargs
                             )
@@ -230,9 +249,13 @@ def event_handler(event_type: str,
 
                 except Exception as e:
                     if attempt < retry_attempts:
-                        logger.warning(f"Event handler {func.__name__} failed (attempt {attempt + 1}), retrying: {e}")
+                        logger.warning(
+                            f"Event handler {func.__name__} failed (attempt {attempt + 1}), retrying: {e}"
+                        )
                     else:
-                        logger.error(f"Event handler {func.__name__} failed after {retry_attempts + 1} attempts: {e}")
+                        logger.error(
+                            f"Event handler {func.__name__} failed after {retry_attempts + 1} attempts: {e}"
+                        )
                         raise
 
         # Mark function as event handler using setattr to avoid type checker issues
@@ -243,12 +266,13 @@ def event_handler(event_type: str,
         wrapper._async_processing = async_processing
 
         return wrapper
+
     return decorator
 
 
-def cache_result(ttl: int = 300,
-                key_generator: Callable | None = None,
-                invalidate_on: list[str] | None = None):
+def cache_result(
+    ttl: int = 300, key_generator: Callable | None = None, invalidate_on: list[str] | None = None
+):
     """Decorator to cache method results.
 
     Args:
@@ -256,10 +280,11 @@ def cache_result(ttl: int = 300,
         key_generator: Function to generate cache key
         invalidate_on: List of events that should invalidate cache
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(self, *args, **kwargs):
-            if hasattr(self, 'context') and self.context.cache:
+            if hasattr(self, "context") and self.context.cache:
                 cache = self.context.cache
 
                 # Generate cache key
@@ -288,12 +313,15 @@ def cache_result(ttl: int = 300,
         wrapper._invalidate_on = invalidate_on or []
 
         return wrapper
+
     return decorator
 
 
-def rate_limit(requests_per_second: int = 10,
-              burst_size: int | None = None,
-              key_generator: Callable | None = None):
+def rate_limit(
+    requests_per_second: int = 10,
+    burst_size: int | None = None,
+    key_generator: Callable | None = None,
+):
     """Decorator to apply rate limiting to a method.
 
     Args:
@@ -301,10 +329,11 @@ def rate_limit(requests_per_second: int = 10,
         burst_size: Maximum burst size (defaults to requests_per_second)
         key_generator: Function to generate rate limit key
     """
+
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         async def wrapper(self, *args, **kwargs):
-            if hasattr(self, 'context') and self.context.security:
+            if hasattr(self, "context") and self.context.security:
                 rate_limiter = self.context.security.get_rate_limiter()
 
                 # Generate rate limit key
@@ -317,7 +346,7 @@ def rate_limit(requests_per_second: int = 10,
                 allowed = await rate_limiter.check_rate_limit(
                     key=rate_key,
                     requests_per_second=requests_per_second,
-                    burst_size=burst_size or requests_per_second
+                    burst_size=burst_size or requests_per_second,
                 )
 
                 if not allowed:
@@ -332,4 +361,5 @@ def rate_limit(requests_per_second: int = 10,
         wrapper._rate_key_generator = key_generator
 
         return wrapper
+
     return decorator

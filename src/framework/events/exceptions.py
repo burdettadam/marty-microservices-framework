@@ -5,16 +5,10 @@ Custom exceptions for event publishing operations.
 """
 
 
-
 class EventPublishingError(Exception):
     """Base exception for event publishing errors."""
 
-    def __init__(
-        self,
-        message: str,
-        event_id: str | None = None,
-        cause: Exception | None = None
-    ):
+    def __init__(self, message: str, event_id: str | None = None, cause: Exception | None = None):
         super().__init__(message)
         self.event_id = event_id
         self.cause = cause

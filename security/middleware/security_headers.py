@@ -29,12 +29,8 @@ class SecurityHeadersConfig:
     # Content Security Policy
     csp_default_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
     csp_script_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
-    csp_style_src: builtins.list[str] = field(
-        default_factory=lambda: ["'self'", "'unsafe-inline'"]
-    )
-    csp_img_src: builtins.list[str] = field(
-        default_factory=lambda: ["'self'", "data:", "https:"]
-    )
+    csp_style_src: builtins.list[str] = field(default_factory=lambda: ["'self'", "'unsafe-inline'"])
+    csp_img_src: builtins.list[str] = field(default_factory=lambda: ["'self'", "data:", "https:"])
     csp_font_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
     csp_connect_src: builtins.list[str] = field(default_factory=lambda: ["'self'"])
     csp_object_src: builtins.list[str] = field(default_factory=lambda: ["'none'"])
@@ -185,25 +181,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # Cross-Origin policies
         if self.config.cross_origin_embedder_policy:
-            headers[
-                "Cross-Origin-Embedder-Policy"
-            ] = self.config.cross_origin_embedder_policy
+            headers["Cross-Origin-Embedder-Policy"] = self.config.cross_origin_embedder_policy
 
         if self.config.cross_origin_opener_policy:
-            headers[
-                "Cross-Origin-Opener-Policy"
-            ] = self.config.cross_origin_opener_policy
+            headers["Cross-Origin-Opener-Policy"] = self.config.cross_origin_opener_policy
 
         if self.config.cross_origin_resource_policy:
-            headers[
-                "Cross-Origin-Resource-Policy"
-            ] = self.config.cross_origin_resource_policy
+            headers["Cross-Origin-Resource-Policy"] = self.config.cross_origin_resource_policy
 
         # X-Permitted-Cross-Domain-Policies
         if self.config.x_permitted_cross_domain_policies:
-            headers[
-                "X-Permitted-Cross-Domain-Policies"
-            ] = self.config.x_permitted_cross_domain_policies
+            headers["X-Permitted-Cross-Domain-Policies"] = (
+                self.config.x_permitted_cross_domain_policies
+            )
 
         # Expect-CT
         if self.config.expect_ct:
@@ -273,9 +263,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # Frame ancestors
         if self.config.csp_frame_ancestors:
-            directives.append(
-                f"frame-ancestors {' '.join(self.config.csp_frame_ancestors)}"
-            )
+            directives.append(f"frame-ancestors {' '.join(self.config.csp_frame_ancestors)}")
 
         # Upgrade insecure requests
         if self.config.csp_upgrade_insecure_requests:
@@ -314,8 +302,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         # Check if origin is allowed
         if origin and (
-            "*" in self.config.cors_allow_origins
-            or origin in self.config.cors_allow_origins
+            "*" in self.config.cors_allow_origins or origin in self.config.cors_allow_origins
         ):
             response.headers["Access-Control-Allow-Origin"] = origin
         elif "*" in self.config.cors_allow_origins:
@@ -444,9 +431,7 @@ import string
 
 def generate_csp_nonce() -> str:
     """Generate a cryptographically secure nonce for CSP"""
-    return "".join(
-        secrets.choice(string.ascii_letters + string.digits) for _ in range(32)
-    )
+    return "".join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
 
 
 # FastAPI dependency for CSP nonce

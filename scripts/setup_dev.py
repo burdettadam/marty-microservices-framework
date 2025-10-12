@@ -41,9 +41,7 @@ def main():
 
     if not in_venv:
         print("⚠️  Warning: Not in a virtual environment")
-        print(
-            "   Consider creating one with: python3 -m venv venv && source venv/bin/activate"
-        )
+        print("   Consider creating one with: python3 -m venv venv && source venv/bin/activate")
 
     print(f"🐍 Using Python: {sys.executable}")
 

@@ -122,9 +122,7 @@ class EmailNotificationService(NotificationPort):
 
         await self._send_email(user_email, subject, body)
 
-    async def send_user_workload_alert(
-        self, user_email: str, pending_task_count: int
-    ) -> None:
+    async def send_user_workload_alert(self, user_email: str, pending_task_count: int) -> None:
         """Send alert when user workload is high."""
         subject = "High Workload Alert"
         body = f"""

@@ -55,20 +55,17 @@ __all__ = [
     "PluginManager",
     "PluginMetadata",
     "PluginError",
-
     # Service management
     "ServiceDefinition",
     "PluginService",
     "ServiceRegistry",
     "Route",
-
     # Plugin discovery
     "PluginDiscoverer",
     "DirectoryPluginDiscoverer",
     "PackagePluginDiscoverer",
     "CompositePluginDiscoverer",
     "PluginInfo",
-
     # Decorators
     "plugin_service",
     "requires_auth",

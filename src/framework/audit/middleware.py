@@ -75,9 +75,7 @@ class AuditMiddlewareConfig:
         self.large_response_threshold: int = 1 * 1024 * 1024  # 1MB
 
 
-def should_log_request(
-    request_path: str, method: str, config: AuditMiddlewareConfig
-) -> bool:
+def should_log_request(request_path: str, method: str, config: AuditMiddlewareConfig) -> bool:
     """Determine if request should be logged based on configuration."""
 
     # Check excluded paths
@@ -175,9 +173,7 @@ if FASTAPI_AVAILABLE:
             self.config = config or AuditMiddlewareConfig()
             logger.info("FastAPI audit middleware initialized")
 
-        async def dispatch(
-            self, request: Request, call_next: RequestResponseEndpoint
-        ) -> Response:
+        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
             """Process request and response with audit logging."""
 
             start_time = time.time()
@@ -253,11 +249,7 @@ if FASTAPI_AVAILABLE:
                 )
 
                 # Log additional details if configured
-                if (
-                    self.config.log_headers
-                    or self.config.log_body
-                    or self.config.log_query_params
-                ):
+                if self.config.log_headers or self.config.log_body or self.config.log_query_params:
                     details = {}
 
                     if self.config.log_headers:
@@ -478,9 +470,7 @@ if GRPC_AVAILABLE:
 
             try:
                 severity = (
-                    AuditSeverity.INFO
-                    if outcome == AuditOutcome.SUCCESS
-                    else AuditSeverity.MEDIUM
+                    AuditSeverity.INFO if outcome == AuditOutcome.SUCCESS else AuditSeverity.MEDIUM
                 )
 
                 builder = (
@@ -501,9 +491,7 @@ if GRPC_AVAILABLE:
 
                 # Add metadata details if configured
                 if self.config.log_headers:
-                    sanitized_metadata = sanitize_headers(
-                        metadata, self.config.sensitive_headers
-                    )
+                    sanitized_metadata = sanitize_headers(metadata, self.config.sensitive_headers)
                     builder.detail("metadata", sanitized_metadata)
 
                 await audit_logger.log_event(builder.build())
@@ -529,9 +517,7 @@ if GRPC_AVAILABLE:
                 logger.error(f"Failed to log gRPC audit event: {e}")
 
 
-def setup_fastapi_audit_middleware(
-    app: FastAPI, config: AuditMiddlewareConfig = None
-) -> None:
+def setup_fastapi_audit_middleware(app: FastAPI, config: AuditMiddlewareConfig = None) -> None:
     """Setup FastAPI audit middleware."""
 
     if not FASTAPI_AVAILABLE:

@@ -44,7 +44,9 @@ class AsyncResilienceClientInterceptor(grpc.aio.UnaryUnaryClientInterceptor):
 
     async def intercept_unary_unary(
         self,
-        continuation: Callable[[grpc.aio.ClientCallDetails, Any], Awaitable[grpc.aio.UnaryUnaryCall]],
+        continuation: Callable[
+            [grpc.aio.ClientCallDetails, Any], Awaitable[grpc.aio.UnaryUnaryCall]
+        ],
         client_call_details: grpc.aio.ClientCallDetails,
         request: Any,
     ) -> grpc.aio.UnaryUnaryCall:
@@ -84,7 +86,9 @@ class EnhancedResilienceServerInterceptor(grpc.aio.ServerInterceptor):
         finally:
             if self.collect_metrics:
                 duration = time.time() - start_time
-                logger.debug("gRPC call to %s completed in %.3fs", handler_call_details.method, duration)
+                logger.debug(
+                    "gRPC call to %s completed in %.3fs", handler_call_details.method, duration
+                )
 
 
 class CompositeResilienceInterceptor:

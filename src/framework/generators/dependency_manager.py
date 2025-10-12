@@ -108,10 +108,7 @@ class DependencyGraph:
         self.dependencies[service_name].append(dependency)
 
         # Add edge to graph if dependency is a service
-        if (
-            dependency.type == DependencyType.SERVICE
-            and dependency.name in self.services
-        ):
+        if dependency.type == DependencyType.SERVICE and dependency.name in self.services:
             self.graph.add_edge(service_name, dependency.name, dependency=dependency)
 
     def get_dependencies(self, service_name: str) -> builtins.list[DependencySpec]:
@@ -137,9 +134,7 @@ class DependencyGraph:
         except nx.NetworkXError:
             return []
 
-    def get_critical_path(
-        self, start_service: str, end_service: str
-    ) -> builtins.list[str]:
+    def get_critical_path(self, start_service: str, end_service: str) -> builtins.list[str]:
         """Get the critical path between two services."""
         try:
             return nx.shortest_path(self.graph, start_service, end_service)
@@ -172,9 +167,7 @@ class ServiceDiscovery:
         """Discover a service by name."""
         return self.registry.get(service_name)
 
-    async def discover_services_by_tag(
-        self, tag: str
-    ) -> builtins.list[ServiceRegistration]:
+    async def discover_services_by_tag(self, tag: str) -> builtins.list[ServiceRegistration]:
         """Discover services by tag."""
         return [service for service in self.registry.values() if tag in service.tags]
 
@@ -214,9 +207,7 @@ class DependencyInjectionContainer:
         self.factories: builtins.dict[str, callable] = {}
         self.lifecycle_managers: builtins.dict[str, ServiceLifecycleManager] = {}
 
-    def register_dependency(
-        self, spec: DependencySpec, factory: callable | None = None
-    ) -> None:
+    def register_dependency(self, spec: DependencySpec, factory: callable | None = None) -> None:
         """Register a dependency."""
         self.dependencies[spec.name] = spec
         if factory:
@@ -523,9 +514,7 @@ class SmartDependencyManager:
             },
         }
 
-        output_path.write_text(
-            yaml.dump(config, default_flow_style=False), encoding="utf-8"
-        )
+        output_path.write_text(yaml.dump(config, default_flow_style=False), encoding="utf-8")
 
     def analyze_dependencies(self, service_name: str) -> builtins.dict[str, Any]:
         """Analyze dependencies for a service."""
@@ -576,9 +565,7 @@ class SmartDependencyManager:
 
     async def _load_configuration(self) -> None:
         """Load dependency configuration files."""
-        config_files = list(self.config_dir.glob("*.yaml")) + list(
-            self.config_dir.glob("*.yml")
-        )
+        config_files = list(self.config_dir.glob("*.yaml")) + list(self.config_dir.glob("*.yml"))
 
         for config_file in config_files:
             try:
@@ -697,6 +684,4 @@ def create_dependency_config_template(service_name: str, output_path: Path) -> N
         ]
     }
 
-    output_path.write_text(
-        yaml.dump(template, default_flow_style=False), encoding="utf-8"
-    )
+    output_path.write_text(yaml.dump(template, default_flow_style=False), encoding="utf-8")

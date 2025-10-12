@@ -17,13 +17,14 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, TypeVar
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
 
 class ChaosType(Enum):
     """Types of chaos experiments."""
+
     LATENCY = "latency"
     EXCEPTION = "exception"
     TIMEOUT = "timeout"
@@ -36,6 +37,7 @@ class ChaosType(Enum):
 
 class ExperimentStatus(Enum):
     """Status of chaos experiments."""
+
     CREATED = "created"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -46,6 +48,7 @@ class ExperimentStatus(Enum):
 @dataclass
 class ChaosConfig:
     """Configuration for chaos experiments."""
+
     name: str
     chaos_type: ChaosType
     probability: float = 0.1  # Probability of chaos activation (0.0 to 1.0)
@@ -62,6 +65,7 @@ class ChaosConfig:
 @dataclass
 class ExperimentResult:
     """Result of a chaos experiment."""
+
     experiment_id: str
     name: str
     chaos_type: ChaosType
@@ -115,8 +119,7 @@ class LatencyChaos:
 
     def _should_activate(self) -> bool:
         """Check if chaos should be activated."""
-        return (self.config.enabled and
-                random.random() < self.config.probability)
+        return self.config.enabled and random.random() < self.config.probability
 
 
 class ExceptionChaos:
@@ -143,8 +146,7 @@ class ExceptionChaos:
 
     def _should_activate(self) -> bool:
         """Check if chaos should be activated."""
-        return (self.config.enabled and
-                random.random() < self.config.probability)
+        return self.config.enabled and random.random() < self.config.probability
 
 
 class ResourceExhaustionChaos:
@@ -191,8 +193,7 @@ class ResourceExhaustionChaos:
 
     def _should_activate(self) -> bool:
         """Check if chaos should be activated."""
-        return (self.config.enabled and
-                random.random() < self.config.probability)
+        return self.config.enabled and random.random() < self.config.probability
 
 
 class NetworkPartitionChaos:
@@ -234,8 +235,7 @@ class NetworkPartitionChaos:
 
     def _should_activate(self) -> bool:
         """Check if chaos should be activated."""
-        return (self.config.enabled and
-                random.random() < self.config.probability)
+        return self.config.enabled and random.random() < self.config.probability
 
 
 class ChaosExperiment:
@@ -248,7 +248,7 @@ class ChaosExperiment:
             name=config.name,
             chaos_type=config.chaos_type,
             status=ExperimentStatus.CREATED,
-            start_time=time.time()
+            start_time=time.time(),
         )
         self._chaos_injector = self._create_chaos_injector()
         self._running = False
@@ -377,16 +377,14 @@ class ChaosMonkey:
     def get_all_results(self) -> dict[str, ExperimentResult]:
         """Get results for all experiments."""
         with self._lock:
-            return {
-                name: experiment.result
-                for name, experiment in self._experiments.items()
-            }
+            return {name: experiment.result for name, experiment in self._experiments.items()}
 
     def cleanup_completed(self) -> None:
         """Remove completed experiments."""
         with self._lock:
             completed = [
-                name for name, exp in self._experiments.items()
+                name
+                for name, exp in self._experiments.items()
                 if exp.result.status in [ExperimentStatus.COMPLETED, ExperimentStatus.ABORTED]
             ]
             for name in completed:
@@ -404,6 +402,7 @@ class ChaosMonkey:
 # Decorators for chaos injection
 def with_chaos(chaos_config: ChaosConfig):
     """Decorator for injecting chaos into functions."""
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         def wrapper(*args, **kwargs) -> T:
             experiment = ChaosExperiment(chaos_config)
@@ -415,12 +414,15 @@ def with_chaos(chaos_config: ChaosConfig):
                     experiment.stop()
             else:
                 return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 def with_async_chaos(chaos_config: ChaosConfig):
     """Decorator for injecting chaos into async functions."""
+
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         async def wrapper(*args, **kwargs) -> T:
             experiment = ChaosExperiment(chaos_config)
@@ -432,7 +434,9 @@ def with_async_chaos(chaos_config: ChaosConfig):
                     experiment.stop()
             else:
                 return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -443,21 +447,20 @@ default_chaos_monkey = ChaosMonkey()
 def create_latency_chaos(name: str, probability: float = 0.1, max_delay: float = 2.0) -> str:
     """Create and register a latency chaos experiment."""
     config = ChaosConfig(
-        name=name,
-        chaos_type=ChaosType.LATENCY,
-        probability=probability,
-        max_delay=max_delay
+        name=name, chaos_type=ChaosType.LATENCY, probability=probability, max_delay=max_delay
     )
     return default_chaos_monkey.register_experiment(config)
 
 
-def create_exception_chaos(name: str, probability: float = 0.1, exception_type: type = Exception) -> str:
+def create_exception_chaos(
+    name: str, probability: float = 0.1, exception_type: type = Exception
+) -> str:
     """Create and register an exception chaos experiment."""
     config = ChaosConfig(
         name=name,
         chaos_type=ChaosType.EXCEPTION,
         probability=probability,
-        exception_type=exception_type
+        exception_type=exception_type,
     )
     return default_chaos_monkey.register_experiment(config)
 
@@ -465,11 +468,12 @@ def create_exception_chaos(name: str, probability: float = 0.1, exception_type: 
 # Utility functions for enabling/disabling chaos based on environment
 def is_chaos_enabled() -> bool:
     """Check if chaos engineering is enabled via environment variable."""
-    return os.getenv('CHAOS_ENABLED', 'false').lower() in ['true', '1', 'yes']
+    return os.getenv("CHAOS_ENABLED", "false").lower() in ["true", "1", "yes"]
 
 
 def setup_emergency_stop() -> None:
     """Setup emergency stop signal handler."""
+
     def emergency_handler(signum, frame):
         logger.critical("Emergency stop signal received - stopping all chaos experiments")
         default_chaos_monkey.emergency_stop_all()

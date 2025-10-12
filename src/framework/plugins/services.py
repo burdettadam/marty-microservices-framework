@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class RouteMethod(Enum):
     """HTTP methods supported by service routes."""
+
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -34,6 +35,7 @@ class RouteMethod(Enum):
 @dataclass
 class Route:
     """Service route definition."""
+
     path: str
     methods: list[RouteMethod] = field(default_factory=lambda: [RouteMethod.GET])
     handler: Callable | None = None
@@ -44,13 +46,14 @@ class Route:
 
     def __post_init__(self):
         """Validate route configuration."""
-        if not self.path.startswith('/'):
-            self.path = f'/{self.path}'
+        if not self.path.startswith("/"):
+            self.path = f"/{self.path}"
 
 
 @dataclass
 class ServiceMountInfo:
     """Information about mounted service routes."""
+
     plugin_name: str
     service_name: str
     routes: dict[str, Any]
@@ -59,6 +62,7 @@ class ServiceMountInfo:
 @dataclass
 class ServiceDefinition:
     """Definition of a service provided by a plugin."""
+
     name: str
     handler_class: type = None
     routes: dict[str, Any] = field(default_factory=dict)
@@ -87,6 +91,7 @@ class PluginService(ABC):
 
     def __init__(self, context: "PluginContext" = None):
         from .core import PluginContext
+
         self.context: PluginContext = context
         self.logger = logging.getLogger(f"service.{self.__class__.__name__}")
 
@@ -115,7 +120,7 @@ class PluginService(ABC):
         return {
             "status": "healthy",
             "service": self.__class__.__name__,
-            "timestamp": asyncio.get_event_loop().time()
+            "timestamp": asyncio.get_event_loop().time(),
         }
 
 
@@ -124,6 +129,7 @@ class ServiceRegistry:
 
     def __init__(self, plugin_manager: "PluginManager"):
         from .core import PluginManager
+
         self.plugin_manager: PluginManager = plugin_manager
         self.services: dict[str, ServiceDefinition] = {}
         self.service_instances: dict[str, PluginService] = {}
@@ -146,7 +152,9 @@ class ServiceRegistry:
         for service_def in service_definitions:
             await self._register_service(service_def, plugin_name)
 
-    async def register_service(self, plugin_name: str, service_def: ServiceDefinition, service_instance: PluginService) -> None:
+    async def register_service(
+        self, plugin_name: str, service_def: ServiceDefinition, service_instance: PluginService
+    ) -> None:
         """Register a service with provided instance (mainly for testing).
 
         Args:
@@ -167,9 +175,9 @@ class ServiceRegistry:
                 raise ValueError(f"Service dependency not found: {dep}")
 
         # Set context if available
-        if hasattr(service_instance, 'context') and service_instance.context is None:
+        if hasattr(service_instance, "context") and service_instance.context is None:
             plugin = self.plugin_manager.get_plugin(plugin_name)
-            if plugin and hasattr(plugin, 'context'):
+            if plugin and hasattr(plugin, "context"):
                 service_instance.context = plugin.context
 
         # Initialize service
@@ -266,19 +274,21 @@ class ServiceRegistry:
         for service_name, service_def in self.services.items():
             service_instance = self.service_instances.get(service_name)
 
-            service_info.append({
-                "name": service_def.name,
-                "version": service_def.version,
-                "description": service_def.description,
-                "routes": service_def.routes,
-                "health_check_path": service_def.health_check_path,
-                "metrics_enabled": service_def.metrics_enabled,
-                "database_required": service_def.database_required,
-                "dependencies": service_def.dependencies,
-                "middleware": service_def.middleware,
-                "instance_available": service_instance is not None,
-                "plugin": self.plugin_services.get(service_name, "unknown")
-            })
+            service_info.append(
+                {
+                    "name": service_def.name,
+                    "version": service_def.version,
+                    "description": service_def.description,
+                    "routes": service_def.routes,
+                    "health_check_path": service_def.health_check_path,
+                    "metrics_enabled": service_def.metrics_enabled,
+                    "database_required": service_def.database_required,
+                    "dependencies": service_def.dependencies,
+                    "middleware": service_def.middleware,
+                    "instance_available": service_instance is not None,
+                    "plugin": self.plugin_services.get(service_name, "unknown"),
+                }
+            )
 
         return service_info
 
@@ -314,7 +324,7 @@ class ServiceRegistry:
                 health_results[service_name] = {
                     "status": "unhealthy",
                     "error": str(e),
-                    "service": service_name
+                    "service": service_name,
                 }
 
         return health_results
@@ -350,11 +360,11 @@ class ServiceRegistry:
         for service_name, service_def in self.services.items():
             plugin_name = self.plugin_services.get(service_name, "unknown")
 
-            mount_info.append(ServiceMountInfo(
-                plugin_name=plugin_name,
-                service_name=service_name,
-                routes=service_def.routes
-            ))
+            mount_info.append(
+                ServiceMountInfo(
+                    plugin_name=plugin_name, service_name=service_name, routes=service_def.routes
+                )
+            )
 
         return mount_info
 
@@ -375,13 +385,15 @@ class ServiceRegistry:
                 self._logger.error(f"Error shutting down service {service_name}: {e}")
 
 
-def create_route(path: str,
-                methods: list[str | RouteMethod] = None,
-                handler: Callable = None,
-                middleware: list[str] = None,
-                auth_required: bool = True,
-                rate_limit: dict[str, Any] = None,
-                description: str = "") -> Route:
+def create_route(
+    path: str,
+    methods: list[str | RouteMethod] = None,
+    handler: Callable = None,
+    middleware: list[str] = None,
+    auth_required: bool = True,
+    rate_limit: dict[str, Any] = None,
+    description: str = "",
+) -> Route:
     """Create a route definition.
 
     Args:
@@ -409,5 +421,5 @@ def create_route(path: str,
         middleware=middleware or [],
         auth_required=auth_required,
         rate_limit=rate_limit,
-        description=description
+        description=description,
     )

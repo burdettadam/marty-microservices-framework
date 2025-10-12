@@ -384,12 +384,10 @@ class FeatureStore:
         self.feature_groups: builtins.dict[str, FeatureGroup] = {}
 
         # Feature data storage (in-memory for demo)
-        self.online_store: builtins.dict[
-            str, builtins.dict[str, Any]
-        ] = {}  # entity_id -> features
-        self.offline_store: builtins.dict[
-            str, builtins.list[builtins.dict[str, Any]]
-        ] = defaultdict(list)
+        self.online_store: builtins.dict[str, builtins.dict[str, Any]] = {}  # entity_id -> features
+        self.offline_store: builtins.dict[str, builtins.list[builtins.dict[str, Any]]] = (
+            defaultdict(list)
+        )
 
         # Feature statistics
         self.feature_stats: builtins.dict[str, builtins.dict[str, Any]] = {}
@@ -434,9 +432,7 @@ class FeatureStore:
 
             return result
 
-    def set_online_features(
-        self, entity_id: str, features: builtins.dict[str, Any]
-    ) -> bool:
+    def set_online_features(self, entity_id: str, features: builtins.dict[str, Any]) -> bool:
         """Set online features for an entity."""
         try:
             with self._lock:
@@ -479,9 +475,7 @@ class FeatureStore:
 
             return result
 
-    def add_offline_features(
-        self, entity_id: str, features: builtins.dict[str, Any]
-    ) -> bool:
+    def add_offline_features(self, entity_id: str, features: builtins.dict[str, Any]) -> bool:
         """Add offline features for an entity."""
         try:
             with self._lock:
@@ -562,9 +556,7 @@ class FeatureStore:
                 continue  # Skip other validations for null values
 
             # Type validation
-            if feature.feature_type == FeatureType.NUMERICAL and not isinstance(
-                value, int | float
-            ):
+            if feature.feature_type == FeatureType.NUMERICAL and not isinstance(value, int | float):
                 validation_errors[feature_name].append("Expected numerical value")
 
             # Range validation
@@ -573,18 +565,14 @@ class FeatureStore:
                 and isinstance(value, int | float)
                 and value < feature.min_value
             ):
-                validation_errors[feature_name].append(
-                    f"Value below minimum: {feature.min_value}"
-                )
+                validation_errors[feature_name].append(f"Value below minimum: {feature.min_value}")
 
             if (
                 feature.max_value is not None
                 and isinstance(value, int | float)
                 and value > feature.max_value
             ):
-                validation_errors[feature_name].append(
-                    f"Value above maximum: {feature.max_value}"
-                )
+                validation_errors[feature_name].append(f"Value above maximum: {feature.max_value}")
 
             # Allowed values validation
             if feature.allowed_values and value not in feature.allowed_values:
@@ -610,9 +598,7 @@ class ModelServer:
         self.prediction_cache: builtins.dict[str, ModelPrediction] = {}
 
         # Performance tracking
-        self.model_metrics: builtins.dict[
-            str, builtins.list[ModelMetrics]
-        ] = defaultdict(list)
+        self.model_metrics: builtins.dict[str, builtins.list[ModelMetrics]] = defaultdict(list)
 
         # Thread safety
         self._lock = threading.RLock()
@@ -725,9 +711,7 @@ class ModelServer:
             return prediction
 
         except Exception as e:
-            self._update_model_metrics(
-                model_id, (time.time() - start_time) * 1000, success=False
-            )
+            self._update_model_metrics(model_id, (time.time() - start_time) * 1000, success=False)
             logging.exception(f"Prediction error for model {model_id}: {e}")
             return None
 
@@ -775,9 +759,7 @@ class ModelServer:
         if framework == "tensorflow":
             # Simulate TensorFlow prediction
             prediction = np.random.random(10)  # Multi-class prediction
-            probabilities = {
-                f"class_{i}": float(pred) for i, pred in enumerate(prediction)
-            }
+            probabilities = {f"class_{i}": float(pred) for i, pred in enumerate(prediction)}
 
             return {
                 "prediction": int(np.argmax(prediction)),
@@ -788,9 +770,7 @@ class ModelServer:
         # Generic prediction
         return {"prediction": np.random.random(), "confidence": np.random.random()}
 
-    def _generate_cache_key(
-        self, model_id: str, input_data: builtins.dict[str, Any]
-    ) -> str:
+    def _generate_cache_key(self, model_id: str, input_data: builtins.dict[str, Any]) -> str:
         """Generate cache key for prediction."""
         # Create deterministic hash of model_id and input_data
         cache_input = {"model_id": model_id, "input_data": input_data}
@@ -805,20 +785,14 @@ class ModelServer:
             current_metrics = self.model_metrics[model_id]
 
             if not current_metrics or len(current_metrics) == 0:
-                metrics = ModelMetrics(
-                    model_id=model_id, timestamp=datetime.now(timezone.utc)
-                )
+                metrics = ModelMetrics(model_id=model_id, timestamp=datetime.now(timezone.utc))
                 self.model_metrics[model_id].append(metrics)
             else:
                 metrics = current_metrics[-1]
 
                 # Create new metrics if current one is too old (> 1 minute)
-                if (
-                    datetime.now(timezone.utc) - metrics.timestamp
-                ).total_seconds() > 60:
-                    metrics = ModelMetrics(
-                        model_id=model_id, timestamp=datetime.now(timezone.utc)
-                    )
+                if (datetime.now(timezone.utc) - metrics.timestamp).total_seconds() > 60:
+                    metrics = ModelMetrics(model_id=model_id, timestamp=datetime.now(timezone.utc))
                     self.model_metrics[model_id].append(metrics)
 
             # Update metrics
@@ -851,8 +825,7 @@ class ModelServer:
         with self._lock:
             total_models = len(self.loaded_models)
             total_requests = sum(
-                sum(m.request_count for m in metrics)
-                for metrics in self.model_metrics.values()
+                sum(m.request_count for m in metrics) for metrics in self.model_metrics.values()
             )
 
             return {
@@ -872,9 +845,9 @@ class ABTestManager:
         self.experiments: builtins.dict[str, ABTestExperiment] = {}
 
         # Experiment data
-        self.experiment_data: builtins.dict[
-            str, builtins.list[builtins.dict[str, Any]]
-        ] = defaultdict(list)
+        self.experiment_data: builtins.dict[str, builtins.list[builtins.dict[str, Any]]] = (
+            defaultdict(list)
+        )
 
         # Traffic routing
         self.traffic_router = TrafficRouter()
@@ -1001,9 +974,7 @@ class ABTestManager:
             logging.exception(f"Failed to record feedback: {e}")
             return False
 
-    def _analyze_experiment_results(
-        self, experiment: ABTestExperiment
-    ) -> builtins.dict[str, Any]:
+    def _analyze_experiment_results(self, experiment: ABTestExperiment) -> builtins.dict[str, Any]:
         """Analyze A/B test results."""
         experiment_records = self.experiment_data.get(experiment.experiment_id, [])
 
@@ -1022,24 +993,15 @@ class ABTestManager:
         for model_id, records in model_results.items():
             total_predictions = len(records)
             avg_latency = np.mean([r["latency_ms"] for r in records])
-            avg_confidence = np.mean(
-                [r["confidence"] for r in records if r["confidence"]]
-            )
+            avg_confidence = np.mean([r["confidence"] for r in records if r["confidence"]])
 
             # Calculate primary metric (if feedback available)
             primary_metric_values = []
             for record in records:
-                if (
-                    "feedback" in record
-                    and experiment.primary_metric in record["feedback"]
-                ):
-                    primary_metric_values.append(
-                        record["feedback"][experiment.primary_metric]
-                    )
+                if "feedback" in record and experiment.primary_metric in record["feedback"]:
+                    primary_metric_values.append(record["feedback"][experiment.primary_metric])
 
-            avg_primary_metric = (
-                np.mean(primary_metric_values) if primary_metric_values else None
-            )
+            avg_primary_metric = np.mean(primary_metric_values) if primary_metric_values else None
 
             model_metrics[model_id] = {
                 "total_predictions": total_predictions,
@@ -1064,9 +1026,7 @@ class ABTestManager:
             "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-    def get_experiment_status(
-        self, experiment_id: str
-    ) -> builtins.dict[str, Any] | None:
+    def get_experiment_status(self, experiment_id: str) -> builtins.dict[str, Any] | None:
         """Get experiment status and results."""
         with self._lock:
             experiment = self.experiments.get(experiment_id)
@@ -1084,12 +1044,8 @@ class ABTestManager:
                 "results": experiment.results,
                 "winner_model_id": experiment.winner_model_id,
                 "created_at": experiment.created_at.isoformat(),
-                "started_at": experiment.started_at.isoformat()
-                if experiment.started_at
-                else None,
-                "ended_at": experiment.ended_at.isoformat()
-                if experiment.ended_at
-                else None,
+                "started_at": experiment.started_at.isoformat() if experiment.started_at else None,
+                "ended_at": experiment.ended_at.isoformat() if experiment.ended_at else None,
             }
 
 
@@ -1105,18 +1061,14 @@ class TrafficRouter:
         """Configure experiment for traffic routing."""
         self.experiment_configs[experiment.experiment_id] = experiment
 
-    def route_request(
-        self, experiment_id: str, input_data: builtins.dict[str, Any]
-    ) -> str | None:
+    def route_request(self, experiment_id: str, input_data: builtins.dict[str, Any]) -> str | None:
         """Route request to appropriate model."""
         experiment = self.experiment_configs.get(experiment_id)
         if not experiment:
             return None
 
         # Generate deterministic routing based on user ID or session
-        user_id = input_data.get(
-            "user_id", input_data.get("session_id", str(uuid.uuid4()))
-        )
+        user_id = input_data.get("user_id", input_data.get("session_id", str(uuid.uuid4())))
 
         # Create hash for consistent routing
         hash_input = f"{experiment_id}:{user_id}"
@@ -1145,9 +1097,7 @@ class MLObservability:
         self.dashboards: builtins.dict[str, builtins.dict[str, Any]] = {}
 
         # Monitoring data
-        self.monitoring_data: builtins.dict[str, deque] = defaultdict(
-            lambda: deque(maxlen=1000)
-        )
+        self.monitoring_data: builtins.dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
 
         # Alert state
         self.alert_states: builtins.dict[str, bool] = {}
@@ -1226,9 +1176,7 @@ class MLObservability:
 
                 if alert_triggered and not previous_state:
                     # Alert fired
-                    await self._fire_alert(
-                        rule_name, metric_name, latest_value, threshold
-                    )
+                    await self._fire_alert(rule_name, metric_name, latest_value, threshold)
                     self.alert_states[rule_name] = True
                 elif not alert_triggered and previous_state:
                     # Alert resolved
@@ -1243,15 +1191,12 @@ class MLObservability:
     ):
         """Fire alert."""
         logging.warning(
-            f"ALERT FIRED: {rule_name} - {metric_name} = {current_value} "
-            f"(threshold: {threshold})"
+            f"ALERT FIRED: {rule_name} - {metric_name} = {current_value} (threshold: {threshold})"
         )
 
         # In practice, this would send notifications (email, Slack, PagerDuty, etc.)
 
-    async def _resolve_alert(
-        self, rule_name: str, metric_name: str, current_value: float
-    ):
+    async def _resolve_alert(self, rule_name: str, metric_name: str, current_value: float):
         """Resolve alert."""
         logging.info(f"ALERT RESOLVED: {rule_name} - {metric_name} = {current_value}")
 
@@ -1282,9 +1227,7 @@ class MLObservability:
             "min": np.min(values),
             "max": np.max(values),
             "latest": values[-1] if values else None,
-            "trend": "increasing"
-            if len(values) >= 2 and values[-1] > values[0]
-            else "decreasing",
+            "trend": "increasing" if len(values) >= 2 and values[-1] > values[0] else "decreasing",
         }
 
 

@@ -10,7 +10,7 @@ import sys
 import unittest
 
 # Add the project root to path
-project_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..')
+project_root = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
 sys.path.insert(0, project_root)
 
 
@@ -29,11 +29,11 @@ class TestDiscoveryImprovements(unittest.TestCase):
             from framework.discovery.results import DiscoveryResult
 
             # Basic tests to ensure classes are properly defined
-            self.assertTrue(hasattr(ServiceQuery, 'service_name'))
-            self.assertTrue(hasattr(DiscoveryResult, 'instances'))
-            self.assertTrue(hasattr(ClientSideDiscovery, 'discover_instances'))
-            self.assertTrue(hasattr(ServerSideDiscovery, 'discover_instances'))
-            self.assertTrue(hasattr(ServiceMeshDiscovery, 'discover_instances'))
+            self.assertTrue(hasattr(ServiceQuery, "service_name"))
+            self.assertTrue(hasattr(DiscoveryResult, "instances"))
+            self.assertTrue(hasattr(ClientSideDiscovery, "discover_instances"))
+            self.assertTrue(hasattr(ServerSideDiscovery, "discover_instances"))
+            self.assertTrue(hasattr(ServiceMeshDiscovery, "discover_instances"))
 
         except ImportError as e:
             self.fail(f"Failed to import discovery classes: {e}")
@@ -55,7 +55,7 @@ class TestDiscoveryImprovements(unittest.TestCase):
                 service_name="user-service",
                 version="1.0.0",
                 environment="production",
-                include_unhealthy=True
+                include_unhealthy=True,
             )
 
             self.assertEqual(query_with_params.service_name, "user-service")
@@ -80,7 +80,7 @@ class TestDiscoveryImprovements(unittest.TestCase):
                 source="cache",
                 cached=True,
                 cache_age=5.5,
-                resolution_time=0.1
+                resolution_time=0.1,
             )
 
             self.assertEqual(result.cache_age, 5.5)
@@ -104,15 +104,15 @@ class TestDiscoveryImprovements(unittest.TestCase):
             discovery = ServerSideDiscovery("http://discovery.example.com", config)
 
             # Check that HTTP client related attributes exist
-            self.assertTrue(hasattr(discovery, 'discovery_service_url'))
-            self.assertTrue(hasattr(discovery, '_http_session'))
-            self.assertTrue(hasattr(discovery, '_timeout'))
+            self.assertTrue(hasattr(discovery, "discovery_service_url"))
+            self.assertTrue(hasattr(discovery, "_http_session"))
+            self.assertTrue(hasattr(discovery, "_timeout"))
 
             # Check that HTTP client methods exist
-            self.assertTrue(hasattr(discovery, '_get_http_session'))
-            self.assertTrue(hasattr(discovery, 'close'))
-            self.assertTrue(hasattr(discovery, '_query_discovery_service'))
-            self.assertTrue(hasattr(discovery, '_parse_discovery_response'))
+            self.assertTrue(hasattr(discovery, "_get_http_session"))
+            self.assertTrue(hasattr(discovery, "close"))
+            self.assertTrue(hasattr(discovery, "_query_discovery_service"))
+            self.assertTrue(hasattr(discovery, "_parse_discovery_response"))
 
         except ImportError as e:
             self.fail(f"Failed to import ServerSideDiscovery: {e}")
@@ -126,29 +126,29 @@ class TestDiscoveryImprovements(unittest.TestCase):
             # Create discovery config and mesh config
             config = DiscoveryConfig()
             mesh_config = {
-                'type': 'istio',
-                'namespace': 'default',
-                'istio_namespace': 'istio-system',
-                'allow_stub': True,
+                "type": "istio",
+                "namespace": "default",
+                "istio_namespace": "istio-system",
+                "allow_stub": True,
             }
 
             # Test ServiceMeshDiscovery initialization
             discovery = ServiceMeshDiscovery(mesh_config, config)
 
             # Check that mesh integration attributes exist
-            self.assertTrue(hasattr(discovery, 'mesh_config'))
-            self.assertTrue(hasattr(discovery, 'mesh_type'))
-            self.assertTrue(hasattr(discovery, 'namespace'))
-            self.assertTrue(hasattr(discovery, 'control_plane_namespace'))
+            self.assertTrue(hasattr(discovery, "mesh_config"))
+            self.assertTrue(hasattr(discovery, "mesh_type"))
+            self.assertTrue(hasattr(discovery, "namespace"))
+            self.assertTrue(hasattr(discovery, "control_plane_namespace"))
 
             # Check configuration
-            self.assertEqual(discovery.mesh_type, 'istio')
-            self.assertEqual(discovery.namespace, 'default')
-            self.assertEqual(discovery.control_plane_namespace, 'istio-system')
+            self.assertEqual(discovery.mesh_type, "istio")
+            self.assertEqual(discovery.namespace, "default")
+            self.assertEqual(discovery.control_plane_namespace, "istio-system")
 
             # Check that mesh-specific methods exist
-            self.assertTrue(hasattr(discovery, '_get_k8s_client'))
-            self.assertTrue(hasattr(discovery, '_discover_from_mesh'))
+            self.assertTrue(hasattr(discovery, "_get_k8s_client"))
+            self.assertTrue(hasattr(discovery, "_discover_from_mesh"))
 
         except ImportError as e:
             self.fail(f"Failed to import ServiceMeshDiscovery: {e}")
@@ -159,11 +159,11 @@ class TestDiscoveryImprovements(unittest.TestCase):
             from framework.discovery.clients import MockKubernetesClient
 
             # Test client initialization
-            mesh_config = {'type': 'istio', 'allow_stub': True}
+            mesh_config = {"type": "istio", "allow_stub": True}
             client = MockKubernetesClient(mesh_config)
 
-            self.assertTrue(hasattr(client, 'mesh_config'))
-            self.assertTrue(hasattr(client, 'get_service_endpoints'))
+            self.assertTrue(hasattr(client, "mesh_config"))
+            self.assertTrue(hasattr(client, "get_service_endpoints"))
 
         except ImportError as e:
             self.fail(f"Failed to import MockKubernetesClient: {e}")
@@ -185,14 +185,14 @@ class TestDiscoveryFunctionality(unittest.TestCase):
             # Test cache initialization
             cache = ServiceCache(config)
 
-            self.assertTrue(hasattr(cache, '_cache'))
-            self.assertTrue(hasattr(cache, '_stats'))
-            self.assertTrue(hasattr(cache, '_generate_cache_key'))
+            self.assertTrue(hasattr(cache, "_cache"))
+            self.assertTrue(hasattr(cache, "_stats"))
+            self.assertTrue(hasattr(cache, "_generate_cache_key"))
 
             # Test cache stats
             stats = cache.get_stats()
-            self.assertIn('hits', stats)
-            self.assertIn('misses', stats)
+            self.assertIn("hits", stats)
+            self.assertIn("misses", stats)
 
         except ImportError as e:
             self.fail(f"Failed to import cache classes: {e}")
@@ -209,5 +209,5 @@ class TestDiscoveryFunctionality(unittest.TestCase):
         self.assertIsNotNone(True)  # Basic test placeholder
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

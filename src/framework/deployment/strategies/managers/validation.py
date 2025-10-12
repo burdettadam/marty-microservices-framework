@@ -30,9 +30,9 @@ class ValidationManager:
 
     def __init__(self):
         """Initialize validation manager."""
-        self.validation_results: builtins.dict[
-            str, builtins.list[ValidationRunResult]
-        ] = defaultdict(list)
+        self.validation_results: builtins.dict[str, builtins.list[ValidationRunResult]] = (
+            defaultdict(list)
+        )
 
     async def run_validations(
         self,
@@ -58,17 +58,13 @@ class ValidationManager:
 
         try:
             if validation.type == "health_check":
-                result = await self._run_health_check_validation(
-                    validation, environment
-                )
+                result = await self._run_health_check_validation(validation, environment)
             elif validation.type == "performance_test":
                 result = await self._run_performance_validation(validation, environment)
             elif validation.type == "smoke_test":
                 result = await self._run_smoke_test_validation(validation, environment)
             elif validation.type == "integration_test":
-                result = await self._run_integration_test_validation(
-                    validation, environment
-                )
+                result = await self._run_integration_test_validation(validation, environment)
             else:
                 result = ValidationResult.SKIP
 
@@ -111,9 +107,7 @@ class ValidationManager:
         # Simulate performance test
         await asyncio.sleep(3)
 
-        return (
-            ValidationResult.PASS if random.random() > 0.05 else ValidationResult.FAIL
-        )
+        return ValidationResult.PASS if random.random() > 0.05 else ValidationResult.FAIL
 
     async def _run_smoke_test_validation(
         self, validation: DeploymentValidation, environment: builtins.dict[str, Any]
@@ -122,9 +116,7 @@ class ValidationManager:
         # Simulate smoke test
         await asyncio.sleep(2)
 
-        return (
-            ValidationResult.PASS if random.random() > 0.02 else ValidationResult.FAIL
-        )
+        return ValidationResult.PASS if random.random() > 0.02 else ValidationResult.FAIL
 
     async def _run_integration_test_validation(
         self, validation: DeploymentValidation, environment: builtins.dict[str, Any]
@@ -133,6 +125,4 @@ class ValidationManager:
         # Simulate integration test
         await asyncio.sleep(5)
 
-        return (
-            ValidationResult.PASS if random.random() > 0.03 else ValidationResult.FAIL
-        )
+        return ValidationResult.PASS if random.random() > 0.03 else ValidationResult.FAIL

@@ -100,9 +100,7 @@ class CompensationAction:
     max_retries: int = 3
     retry_delay: timedelta = field(default_factory=lambda: timedelta(seconds=5))
 
-    async def execute(
-        self, context: SagaContext, command_bus: CommandBus = None
-    ) -> bool:
+    async def execute(self, context: SagaContext, command_bus: CommandBus = None) -> bool:
         """Execute compensation action."""
         try:
             if self.command and command_bus:
@@ -151,9 +149,7 @@ class SagaStep:
             return self.condition(context)
         return True
 
-    async def execute(
-        self, context: SagaContext, command_bus: CommandBus = None
-    ) -> bool:
+    async def execute(self, context: SagaContext, command_bus: CommandBus = None) -> bool:
         """Execute saga step."""
         self.status = StepStatus.EXECUTING
         self.started_at = datetime.utcnow()
@@ -198,9 +194,7 @@ class SagaStep:
             self.error_message = str(e)
             return False
 
-    async def compensate(
-        self, context: SagaContext, command_bus: CommandBus = None
-    ) -> bool:
+    async def compensate(self, context: SagaContext, command_bus: CommandBus = None) -> bool:
         """Execute compensation for this step."""
         if not self.compensation_action:
             logger.info(f"No compensation action for step {self.step_id}")
@@ -318,9 +312,7 @@ class Saga(ABC):
             self.completed_at = datetime.utcnow()
             return False
 
-    async def _execute_step_with_retries(
-        self, step: SagaStep, command_bus: CommandBus
-    ) -> bool:
+    async def _execute_step_with_retries(self, step: SagaStep, command_bus: CommandBus) -> bool:
         """Execute step with retry logic."""
         while step.retry_count <= step.max_retries:
             success = await step.execute(self.context, command_bus)
@@ -330,14 +322,10 @@ class Saga(ABC):
 
             step.retry_count += 1
             if step.retry_count <= step.max_retries:
-                logger.info(
-                    f"Retrying step {step.step_id} (attempt {step.retry_count})"
-                )
+                logger.info(f"Retrying step {step.step_id} (attempt {step.retry_count})")
                 await asyncio.sleep(step.retry_delay.total_seconds())
             else:
-                logger.error(
-                    f"Step {step.step_id} failed after {step.max_retries} retries"
-                )
+                logger.error(f"Step {step.step_id} failed after {step.max_retries} retries")
                 return False
 
         return False
@@ -355,9 +343,7 @@ class Saga(ABC):
     async def _compensate_sequential(self, command_bus: CommandBus) -> bool:
         """Compensate steps in reverse order."""
         completed_steps = [
-            s
-            for s in self.steps[: self.current_step_index]
-            if s.status == StepStatus.COMPLETED
+            s for s in self.steps[: self.current_step_index] if s.status == StepStatus.COMPLETED
         ]
 
         # Reverse order for compensation
@@ -372,21 +358,15 @@ class Saga(ABC):
     async def _compensate_parallel(self, command_bus: CommandBus) -> bool:
         """Compensate all completed steps in parallel."""
         completed_steps = [
-            s
-            for s in self.steps[: self.current_step_index]
-            if s.status == StepStatus.COMPLETED
+            s for s in self.steps[: self.current_step_index] if s.status == StepStatus.COMPLETED
         ]
 
         tasks = []
         for step in completed_steps:
-            tasks.append(
-                asyncio.create_task(step.compensate(self.context, command_bus))
-            )
+            tasks.append(asyncio.create_task(step.compensate(self.context, command_bus)))
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        return all(
-            result is True for result in results if not isinstance(result, Exception)
-        )
+        return all(result is True for result in results if not isinstance(result, Exception))
 
     async def _compensate_custom(self, command_bus: CommandBus) -> bool:
         """Custom compensation logic (override in subclasses)."""
@@ -402,9 +382,7 @@ class Saga(ABC):
             "current_step_index": self.current_step_index,
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "error_message": self.error_message,
             "context": self.context.to_dict(),
             "steps": [
@@ -413,12 +391,8 @@ class Saga(ABC):
                     "step_name": step.step_name,
                     "step_order": step.step_order,
                     "status": step.status.value,
-                    "started_at": step.started_at.isoformat()
-                    if step.started_at
-                    else None,
-                    "completed_at": step.completed_at.isoformat()
-                    if step.completed_at
-                    else None,
+                    "started_at": step.started_at.isoformat() if step.started_at else None,
+                    "completed_at": step.completed_at.isoformat() if step.completed_at else None,
                     "error_message": step.error_message,
                     "retry_count": step.retry_count,
                 }
@@ -437,9 +411,7 @@ class SagaOrchestrator:
         self._saga_types: builtins.dict[str, builtins.type[Saga]] = {}
         self._lock = asyncio.Lock()
 
-    def register_saga_type(
-        self, saga_type: str, saga_class: builtins.type[Saga]
-    ) -> None:
+    def register_saga_type(self, saga_type: str, saga_class: builtins.type[Saga]) -> None:
         """Register saga type."""
         self._saga_types[saga_type] = saga_class
 

@@ -15,13 +15,14 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, TypeVar
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
 
 class BulkheadType(Enum):
     """Types of bulkhead isolation patterns."""
+
     THREAD_POOL = "thread_pool"
     CONNECTION_POOL = "connection_pool"
     CIRCUIT_BREAKER = "circuit_breaker"
@@ -31,6 +32,7 @@ class BulkheadType(Enum):
 
 class ResourceStatus(Enum):
     """Status of a bulkhead resource."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     FAILED = "failed"
@@ -40,6 +42,7 @@ class ResourceStatus(Enum):
 @dataclass
 class BulkheadConfig:
     """Configuration for bulkhead isolation."""
+
     name: str
     bulkhead_type: BulkheadType
     max_concurrent: int = 10
@@ -54,6 +57,7 @@ class BulkheadConfig:
 @dataclass
 class BulkheadMetrics:
     """Metrics for bulkhead monitoring."""
+
     total_requests: int = 0
     active_requests: int = 0
     queued_requests: int = 0
@@ -106,8 +110,7 @@ class ResourcePool:
             # Update average response time using exponential moving average
             alpha = 0.1
             self.metrics.average_response_time = (
-                alpha * response_time +
-                (1 - alpha) * self.metrics.average_response_time
+                alpha * response_time + (1 - alpha) * self.metrics.average_response_time
             )
 
 
@@ -117,8 +120,7 @@ class ThreadPoolBulkhead(ResourcePool):
     def __init__(self, config: BulkheadConfig):
         super().__init__(config)
         self._executor = ThreadPoolExecutor(
-            max_workers=config.max_concurrent,
-            thread_name_prefix=f"bulkhead-{config.name}"
+            max_workers=config.max_concurrent, thread_name_prefix=f"bulkhead-{config.name}"
         )
         self._active_futures: dict[str, Future] = {}
 
@@ -168,10 +170,7 @@ class SemaphoreBulkhead(ResourcePool):
         """Acquire semaphore asynchronously."""
         try:
             if timeout:
-                await asyncio.wait_for(
-                    self._semaphore.acquire(),
-                    timeout=timeout
-                )
+                await asyncio.wait_for(self._semaphore.acquire(), timeout=timeout)
             else:
                 await self._semaphore.acquire()
 
@@ -228,23 +227,18 @@ class BulkheadManager:
     def get_all_metrics(self) -> dict[str, BulkheadMetrics]:
         """Get metrics for all bulkheads."""
         with self._lock:
-            return {
-                name: bulkhead.metrics
-                for name, bulkhead in self._bulkheads.items()
-            }
+            return {name: bulkhead.metrics for name, bulkhead in self._bulkheads.items()}
 
     def health_check(self) -> dict[str, bool]:
         """Perform health check on all bulkheads."""
         with self._lock:
-            return {
-                name: bulkhead.is_healthy()
-                for name, bulkhead in self._bulkheads.items()
-            }
+            return {name: bulkhead.is_healthy() for name, bulkhead in self._bulkheads.items()}
 
 
 # Decorator for automatic bulkhead protection
 def with_bulkhead(bulkhead_name: str, manager: BulkheadManager):
     """Decorator to protect function calls with bulkhead pattern."""
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         def wrapper(*args, **kwargs) -> T:
             bulkhead = manager.get_bulkhead(bulkhead_name)
@@ -272,6 +266,7 @@ def with_bulkhead(bulkhead_name: str, manager: BulkheadManager):
                 bulkhead.release()
 
         return wrapper
+
     return decorator
 
 
@@ -282,9 +277,7 @@ default_bulkhead_manager = BulkheadManager()
 def create_thread_pool_bulkhead(name: str, max_workers: int = 10) -> ThreadPoolBulkhead:
     """Create and register a thread pool bulkhead."""
     config = BulkheadConfig(
-        name=name,
-        bulkhead_type=BulkheadType.THREAD_POOL,
-        max_concurrent=max_workers
+        name=name, bulkhead_type=BulkheadType.THREAD_POOL, max_concurrent=max_workers
     )
     bulkhead = ThreadPoolBulkhead(config)
     default_bulkhead_manager.register_bulkhead(bulkhead)
@@ -294,9 +287,7 @@ def create_thread_pool_bulkhead(name: str, max_workers: int = 10) -> ThreadPoolB
 def create_semaphore_bulkhead(name: str, max_concurrent: int = 10) -> SemaphoreBulkhead:
     """Create and register a semaphore bulkhead."""
     config = BulkheadConfig(
-        name=name,
-        bulkhead_type=BulkheadType.SEMAPHORE,
-        max_concurrent=max_concurrent
+        name=name, bulkhead_type=BulkheadType.SEMAPHORE, max_concurrent=max_concurrent
     )
     bulkhead = SemaphoreBulkhead(config)
     default_bulkhead_manager.register_bulkhead(bulkhead)

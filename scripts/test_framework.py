@@ -66,9 +66,7 @@ def test_template_validation() -> bool:
     # Use uv run python for proper environment
     python_cmd = "uv run python"
 
-    result = run_command(
-        f"cd {framework_root} && {python_cmd} scripts/validate_templates.py"
-    )
+    result = run_command(f"cd {framework_root} && {python_cmd} scripts/validate_templates.py")
 
     if result["success"]:
         print("✅ Template validation: PASSED")
@@ -124,9 +122,7 @@ def test_service_generation() -> bool:
                     print(f"      Error: {result['stderr']}")
 
     # Summary
-    success_count = sum(
-        1 for r in results.values() if r["success"] and r.get("syntax_valid", True)
-    )
+    success_count = sum(1 for r in results.values() if r["success"] and r.get("syntax_valid", True))
     total_count = len(service_types)
 
     print(f"\n📊 Service Generation Summary: {success_count}/{total_count} passed")
@@ -216,9 +212,7 @@ def test_template_features() -> bool:
     ]
     found_templates = [name for name in feature_summary if name in expected_templates]
 
-    print(
-        f"\n📊 Core service templates found: {len(found_templates)}/{len(expected_templates)}"
-    )
+    print(f"\n📊 Core service templates found: {len(found_templates)}/{len(expected_templates)}")
 
     return len(found_templates) == len(expected_templates)
 
@@ -302,9 +296,7 @@ def main() -> int:
             failed_tests.append(test_name)
 
     success_rate = (len(passed_tests) / len(tests)) * 100
-    print(
-        f"\nOverall: {len(passed_tests)}/{len(tests)} tests passed ({success_rate:.1f}%)"
-    )
+    print(f"\nOverall: {len(passed_tests)}/{len(tests)} tests passed ({success_rate:.1f}%)")
 
     if failed_tests:
         print(f"\n⚠️ {len(failed_tests)} test(s) failed")

@@ -83,10 +83,7 @@ class InMemoryServiceRegistry(ServiceRegistry):
                 self._services[service_name] = {}
 
             # Check instance limit
-            if (
-                len(self._services[service_name])
-                >= self.config.max_instances_per_service
-            ):
+            if len(self._services[service_name]) >= self.config.max_instances_per_service:
                 logger.warning(
                     "Cannot register instance %s for service %s: instance limit reached",
                     instance_id,
@@ -96,9 +93,7 @@ class InMemoryServiceRegistry(ServiceRegistry):
 
             # Check service limit
             if len(self._services) >= self.config.max_services:
-                logger.warning(
-                    "Cannot register service %s: service limit reached", service_name
-                )
+                logger.warning("Cannot register service %s: service limit reached", service_name)
                 return False
 
             # Update instance status
@@ -151,15 +146,11 @@ class InMemoryServiceRegistry(ServiceRegistry):
             event = ServiceEvent("deregister", service_name, instance_id, instance)
             await self._notify_watchers(event)
 
-            logger.info(
-                "Deregistered service instance: %s[%s]", service_name, instance_id
-            )
+            logger.info("Deregistered service instance: %s[%s]", service_name, instance_id)
             return True
 
         except Exception as e:
-            logger.error(
-                "Failed to deregister instance %s[%s]: %s", service_name, instance_id, e
-            )
+            logger.error("Failed to deregister instance %s[%s]: %s", service_name, instance_id, e)
             return False
 
     async def discover(self, service_name: str) -> builtins.list[ServiceInstance]:
@@ -171,16 +162,12 @@ class InMemoryServiceRegistry(ServiceRegistry):
 
         # Filter out terminated instances
         instances = [
-            instance
-            for instance in instances
-            if instance.status != ServiceStatus.TERMINATED
+            instance for instance in instances if instance.status != ServiceStatus.TERMINATED
         ]
 
         return instances
 
-    async def get_instance(
-        self, service_name: str, instance_id: str
-    ) -> ServiceInstance | None:
+    async def get_instance(self, service_name: str, instance_id: str) -> ServiceInstance | None:
         """Get a specific service instance."""
         if service_name not in self._services:
             return None
@@ -209,9 +196,7 @@ class InMemoryServiceRegistry(ServiceRegistry):
         """List all registered services."""
         return list(self._services.keys())
 
-    async def get_healthy_instances(
-        self, service_name: str
-    ) -> builtins.list[ServiceInstance]:
+    async def get_healthy_instances(self, service_name: str) -> builtins.list[ServiceInstance]:
         """Get healthy instances of a service."""
         instances = await self.discover(service_name)
         return [instance for instance in instances if instance.is_healthy()]
@@ -288,17 +273,11 @@ class InMemoryServiceRegistry(ServiceRegistry):
                     ):
                         # Perform health check
                         health_status = await self._check_instance_health(instance)
-                        await self.update_health_status(
-                            service_name, instance_id, health_status
-                        )
+                        await self.update_health_status(service_name, instance_id, health_status)
 
                 except Exception as e:
-                    logger.error(
-                        "Error checking health for instance %s: %s", instance, e
-                    )
-                    await self.update_health_status(
-                        service_name, instance_id, HealthStatus.ERROR
-                    )
+                    logger.error("Error checking health for instance %s: %s", instance, e)
+                    await self.update_health_status(service_name, instance_id, HealthStatus.ERROR)
 
     async def _check_instance_health(self, instance: ServiceInstance) -> HealthStatus:
         """Check health of a single instance."""
@@ -323,9 +302,7 @@ class InMemoryServiceRegistry(ServiceRegistry):
             logger.debug("Health check failed for %s: %s", instance, e)
             return HealthStatus.ERROR
 
-    async def _http_health_check(
-        self, instance: ServiceInstance, health_check
-    ) -> HealthStatus:
+    async def _http_health_check(self, instance: ServiceInstance, health_check) -> HealthStatus:
         """Perform HTTP health check."""
         try:
             import aiohttp
@@ -354,18 +331,14 @@ class InMemoryServiceRegistry(ServiceRegistry):
         except Exception:
             return HealthStatus.UNHEALTHY
 
-    async def _tcp_health_check(
-        self, instance: ServiceInstance, health_check
-    ) -> HealthStatus:
+    async def _tcp_health_check(self, instance: ServiceInstance, health_check) -> HealthStatus:
         """Perform TCP health check."""
         try:
             host = instance.endpoint.host
             port = health_check.tcp_port or instance.endpoint.port
 
             future = asyncio.open_connection(host, port)
-            reader, writer = await asyncio.wait_for(
-                future, timeout=health_check.timeout
-            )
+            reader, writer = await asyncio.wait_for(future, timeout=health_check.timeout)
 
             writer.close()
             await writer.wait_closed()
@@ -375,9 +348,7 @@ class InMemoryServiceRegistry(ServiceRegistry):
         except Exception:
             return HealthStatus.UNHEALTHY
 
-    async def _custom_health_check(
-        self, instance: ServiceInstance, health_check
-    ) -> HealthStatus:
+    async def _custom_health_check(self, instance: ServiceInstance, health_check) -> HealthStatus:
         """Perform custom health check."""
         # This would execute a custom health check command or function
         # For now, return unknown
@@ -409,9 +380,7 @@ class InMemoryServiceRegistry(ServiceRegistry):
         # Remove expired instances
         for service_name, instance_id in expired_instances:
             await self.deregister(service_name, instance_id)
-            logger.info(
-                "Cleaned up expired instance: %s[%s]", service_name, instance_id
-            )
+            logger.info("Cleaned up expired instance: %s[%s]", service_name, instance_id)
 
     def _update_counts(self):
         """Update service and instance counts."""
@@ -463,9 +432,7 @@ class ConsulServiceRegistry(ServiceRegistry):
                     )
 
             except ImportError:
-                raise RuntimeError(
-                    "python-consul package required for ConsulServiceRegistry"
-                )
+                raise RuntimeError("python-consul package required for ConsulServiceRegistry")
 
         return self._consul
 
@@ -566,9 +533,7 @@ class ConsulServiceRegistry(ServiceRegistry):
             logger.error("Error discovering services from Consul: %s", e)
             return []
 
-    async def get_instance(
-        self, service_name: str, instance_id: str
-    ) -> ServiceInstance | None:
+    async def get_instance(self, service_name: str, instance_id: str) -> ServiceInstance | None:
         """Get a specific service instance from Consul."""
         instances = await self.discover(service_name)
 
@@ -599,9 +564,7 @@ class ConsulServiceRegistry(ServiceRegistry):
             logger.error("Error listing services from Consul: %s", e)
             return []
 
-    async def get_healthy_instances(
-        self, service_name: str
-    ) -> builtins.list[ServiceInstance]:
+    async def get_healthy_instances(self, service_name: str) -> builtins.list[ServiceInstance]:
         """Get healthy instances of a service from Consul."""
         try:
             consul = await self._get_consul_client()
@@ -693,9 +656,7 @@ class ConsulServiceRegistry(ServiceRegistry):
 class EtcdServiceRegistry(ServiceRegistry):
     """etcd-based service registry implementation."""
 
-    def __init__(
-        self, config: ServiceRegistryConfig, etcd_config: builtins.dict[str, Any] = None
-    ):
+    def __init__(self, config: ServiceRegistryConfig, etcd_config: builtins.dict[str, Any] = None):
         self.config = config
         self.etcd_config = etcd_config or {}
         self._etcd = None
@@ -752,13 +713,9 @@ class EtcdServiceRegistry(ServiceRegistry):
             deleted = etcd.delete(key)
 
             if deleted:
-                logger.info(
-                    "Deregistered service from etcd: %s[%s]", service_name, instance_id
-                )
+                logger.info("Deregistered service from etcd: %s[%s]", service_name, instance_id)
                 return True
-            logger.warning(
-                "Service not found in etcd: %s[%s]", service_name, instance_id
-            )
+            logger.warning("Service not found in etcd: %s[%s]", service_name, instance_id)
             return False
 
         except Exception as e:
@@ -787,9 +744,7 @@ class EtcdServiceRegistry(ServiceRegistry):
             logger.error("Error discovering services from etcd: %s", e)
             return []
 
-    async def get_instance(
-        self, service_name: str, instance_id: str
-    ) -> ServiceInstance | None:
+    async def get_instance(self, service_name: str, instance_id: str) -> ServiceInstance | None:
         """Get a specific service instance from etcd."""
         try:
             etcd = await self._get_etcd_client()
@@ -830,9 +785,7 @@ class EtcdServiceRegistry(ServiceRegistry):
             logger.error("Error listing services from etcd: %s", e)
             return []
 
-    async def get_healthy_instances(
-        self, service_name: str
-    ) -> builtins.list[ServiceInstance]:
+    async def get_healthy_instances(self, service_name: str) -> builtins.list[ServiceInstance]:
         """Get healthy instances of a service from etcd."""
         instances = await self.discover(service_name)
         return [instance for instance in instances if instance.is_healthy()]
@@ -847,9 +800,7 @@ class EtcdServiceRegistry(ServiceRegistry):
             return await self.update_instance(instance)
         return False
 
-    def _dict_to_instance(
-        self, data: builtins.dict[str, Any]
-    ) -> ServiceInstance | None:
+    def _dict_to_instance(self, data: builtins.dict[str, Any]) -> ServiceInstance | None:
         """Convert dictionary data to ServiceInstance."""
         try:
             from .core import ServiceEndpoint, ServiceMetadata
@@ -908,9 +859,7 @@ class EtcdServiceRegistry(ServiceRegistry):
 class KubernetesServiceRegistry(ServiceRegistry):
     """Kubernetes-based service registry implementation."""
 
-    def __init__(
-        self, config: ServiceRegistryConfig, k8s_config: builtins.dict[str, Any] = None
-    ):
+    def __init__(self, config: ServiceRegistryConfig, k8s_config: builtins.dict[str, Any] = None):
         self.config = config
         self.k8s_config = k8s_config or {}
         self._k8s_client = None
@@ -926,15 +875,11 @@ class KubernetesServiceRegistry(ServiceRegistry):
                 if self.k8s_config.get("in_cluster", False):
                     k8s_config.load_incluster_config()
                 else:
-                    k8s_config.load_kube_config(
-                        config_file=self.k8s_config.get("config_file")
-                    )
+                    k8s_config.load_kube_config(config_file=self.k8s_config.get("config_file"))
 
                 self._k8s_client = client.CoreV1Api()
             except ImportError:
-                raise RuntimeError(
-                    "kubernetes package required for KubernetesServiceRegistry"
-                )
+                raise RuntimeError("kubernetes package required for KubernetesServiceRegistry")
 
         return self._k8s_client
 
@@ -956,18 +901,14 @@ class KubernetesServiceRegistry(ServiceRegistry):
             k8s = await self._get_k8s_client()
 
             # Get service endpoints
-            endpoints = k8s.read_namespaced_endpoints(
-                name=service_name, namespace=self._namespace
-            )
+            endpoints = k8s.read_namespaced_endpoints(name=service_name, namespace=self._namespace)
 
             instances = []
             if endpoints.subsets:
                 for subset in endpoints.subsets:
                     for address in subset.addresses or []:
                         for port in subset.ports or []:
-                            instance = self._k8s_endpoint_to_instance(
-                                service_name, address, port
-                            )
+                            instance = self._k8s_endpoint_to_instance(service_name, address, port)
                             if instance:
                                 instances.append(instance)
 
@@ -977,9 +918,7 @@ class KubernetesServiceRegistry(ServiceRegistry):
             logger.error("Error discovering services from Kubernetes: %s", e)
             return []
 
-    async def get_instance(
-        self, service_name: str, instance_id: str
-    ) -> ServiceInstance | None:
+    async def get_instance(self, service_name: str, instance_id: str) -> ServiceInstance | None:
         """Get a specific service instance from Kubernetes."""
         instances = await self.discover(service_name)
 
@@ -1011,9 +950,7 @@ class KubernetesServiceRegistry(ServiceRegistry):
             logger.error("Error listing services from Kubernetes: %s", e)
             return []
 
-    async def get_healthy_instances(
-        self, service_name: str
-    ) -> builtins.list[ServiceInstance]:
+    async def get_healthy_instances(self, service_name: str) -> builtins.list[ServiceInstance]:
         """Get healthy instances of a service from Kubernetes."""
         instances = await self.discover(service_name)
         # In Kubernetes, endpoints are typically only included if healthy

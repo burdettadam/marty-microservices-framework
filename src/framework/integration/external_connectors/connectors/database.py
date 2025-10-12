@@ -9,6 +9,7 @@ from ..config import ExternalSystemConfig, IntegrationRequest, IntegrationRespon
 try:
     from sqlalchemy import create_engine, text
     from sqlalchemy.orm import sessionmaker
+
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
@@ -98,31 +99,28 @@ class DatabaseConnector(ExternalSystemConnector):
                 result_data = {"status": "success", "rows_affected": 0, "mock": True}
             else:
                 # Real database execution
-                query = request.data.get('query') if request.data else None
-                params = request.data.get('params', {}) if request.data else {}
-                operation = request.data.get('operation', 'select') if request.data else 'select'
+                query = request.data.get("query") if request.data else None
+                params = request.data.get("params", {}) if request.data else {}
+                operation = request.data.get("operation", "select") if request.data else "select"
 
                 if not query:
                     raise ValueError("No query provided in request data")
 
                 with self.session_factory() as session:
-                    if operation.lower() in ['select', 'show', 'describe']:
+                    if operation.lower() in ["select", "show", "describe"]:
                         # Read operations
                         result = session.execute(text(query), params)
                         rows = result.fetchall()
                         result_data = {
                             "rows": [dict(row._mapping) for row in rows],
                             "row_count": len(rows),
-                            "operation": operation
+                            "operation": operation,
                         }
                     else:
                         # Write operations (insert, update, delete)
                         result = session.execute(text(query), params)
                         session.commit()
-                        result_data = {
-                            "rows_affected": result.rowcount,
-                            "operation": operation
-                        }
+                        result_data = {"rows_affected": result.rowcount, "operation": operation}
 
             latency = (time.time() - start_time) * 1000
             self.record_success()

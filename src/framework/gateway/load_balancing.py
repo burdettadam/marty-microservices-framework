@@ -157,9 +157,7 @@ class UpstreamGroup:
 
     # Runtime state
     current_index: int = 0
-    sessions: builtins.dict[str, str] = field(
-        default_factory=dict
-    )  # session_id -> server_id
+    sessions: builtins.dict[str, str] = field(default_factory=dict)  # session_id -> server_id
 
     def add_server(self, server: UpstreamServer):
         """Add server to group."""
@@ -178,9 +176,7 @@ class LoadBalancer(ABC):
     """Abstract load balancer interface."""
 
     @abstractmethod
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server from group for request."""
         raise NotImplementedError
 
@@ -188,9 +184,7 @@ class LoadBalancer(ABC):
 class RoundRobinBalancer(LoadBalancer):
     """Round-robin load balancer."""
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server using round-robin algorithm."""
         healthy_servers = group.get_healthy_servers()
         if not healthy_servers:
@@ -209,9 +203,7 @@ class WeightedRoundRobinBalancer(LoadBalancer):
     def __init__(self):
         self._current_weights: builtins.dict[str, builtins.dict[str, int]] = {}
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server using weighted round-robin algorithm."""
         healthy_servers = group.get_healthy_servers()
         if not healthy_servers:
@@ -251,9 +243,7 @@ class WeightedRoundRobinBalancer(LoadBalancer):
 class LeastConnectionsBalancer(LoadBalancer):
     """Least connections load balancer."""
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server with least connections."""
         healthy_servers = group.get_healthy_servers()
         if not healthy_servers:
@@ -266,9 +256,7 @@ class LeastConnectionsBalancer(LoadBalancer):
 class WeightedLeastConnectionsBalancer(LoadBalancer):
     """Weighted least connections load balancer."""
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server based on weighted least connections."""
         healthy_servers = group.get_healthy_servers()
         if not healthy_servers:
@@ -284,9 +272,7 @@ class WeightedLeastConnectionsBalancer(LoadBalancer):
 class RandomBalancer(LoadBalancer):
     """Random load balancer."""
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select random server."""
         healthy_servers = group.get_healthy_servers()
         if not healthy_servers:
@@ -298,9 +284,7 @@ class RandomBalancer(LoadBalancer):
 class WeightedRandomBalancer(LoadBalancer):
     """Weighted random load balancer."""
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server using weighted random selection."""
         healthy_servers = group.get_healthy_servers()
         if not healthy_servers:
@@ -334,9 +318,7 @@ class ConsistentHashBalancer(LoadBalancer):
             str, builtins.dict[int, str]
         ] = {}  # group_name -> {hash -> server_id}
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server using consistent hashing."""
         healthy_servers = group.get_healthy_servers()
         if not healthy_servers:
@@ -365,9 +347,7 @@ class ConsistentHashBalancer(LoadBalancer):
         server_id = hash_ring[sorted_hashes[0]]
         return next((s for s in healthy_servers if s.id == server_id), None)
 
-    def _update_hash_ring(
-        self, group: UpstreamGroup, servers: builtins.list[UpstreamServer]
-    ):
+    def _update_hash_ring(self, group: UpstreamGroup, servers: builtins.list[UpstreamServer]):
         """Update hash ring for server group."""
         if group.name not in self._hash_ring:
             self._hash_ring[group.name] = {}
@@ -387,11 +367,7 @@ class ConsistentHashBalancer(LoadBalancer):
     def _generate_request_key(self, request: GatewayRequest) -> str:
         """Generate hash key for request."""
         # Use client IP for consistent routing
-        ip = (
-            request.get_header("X-Forwarded-For")
-            or request.get_header("X-Real-IP")
-            or "unknown"
-        )
+        ip = request.get_header("X-Forwarded-For") or request.get_header("X-Real-IP") or "unknown"
         return ip.split(",")[0].strip()
 
     def _hash_function(self, key: str) -> int:
@@ -402,20 +378,14 @@ class ConsistentHashBalancer(LoadBalancer):
 class IPHashBalancer(LoadBalancer):
     """IP hash load balancer."""
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server based on client IP hash."""
         healthy_servers = group.get_healthy_servers()
         if not healthy_servers:
             return None
 
         # Get client IP
-        ip = (
-            request.get_header("X-Forwarded-For")
-            or request.get_header("X-Real-IP")
-            or "unknown"
-        )
+        ip = request.get_header("X-Forwarded-For") or request.get_header("X-Real-IP") or "unknown"
         ip = ip.split(",")[0].strip()
 
         # Hash IP to select server
@@ -428,9 +398,7 @@ class IPHashBalancer(LoadBalancer):
 class LeastResponseTimeBalancer(LoadBalancer):
     """Least response time load balancer."""
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server with least average response time."""
         healthy_servers = group.get_healthy_servers()
         if not healthy_servers:
@@ -446,9 +414,7 @@ class StickySessionBalancer(LoadBalancer):
     def __init__(self, underlying_balancer: LoadBalancer):
         self.underlying_balancer = underlying_balancer
 
-    def select_server(
-        self, group: UpstreamGroup, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group: UpstreamGroup, request: GatewayRequest) -> UpstreamServer | None:
         """Select server using sticky sessions."""
         if not group.sticky_sessions:
             return self.underlying_balancer.select_server(group, request)
@@ -594,9 +560,7 @@ class LoadBalancingManager:
         """Get upstream group by name."""
         return self.groups.get(name)
 
-    def select_server(
-        self, group_name: str, request: GatewayRequest
-    ) -> UpstreamServer | None:
+    def select_server(self, group_name: str, request: GatewayRequest) -> UpstreamServer | None:
         """Select server from group for request."""
         group = self.groups.get(group_name)
         if not group:
@@ -715,9 +679,7 @@ def create_round_robin_group(
 
     for i, (host, port) in enumerate(servers):
         weight = weights[i] if weights and i < len(weights) else 1
-        server = UpstreamServer(
-            id=f"{name}_server_{i}", host=host, port=port, weight=weight
-        )
+        server = UpstreamServer(id=f"{name}_server_{i}", host=host, port=port, weight=weight)
         group.add_server(server)
 
     return group
@@ -727,14 +689,10 @@ def create_weighted_group(
     name: str, servers: builtins.list[builtins.tuple[str, int, int]]
 ) -> UpstreamGroup:
     """Create weighted upstream group."""
-    group = UpstreamGroup(
-        name=name, algorithm=LoadBalancingAlgorithm.WEIGHTED_ROUND_ROBIN
-    )
+    group = UpstreamGroup(name=name, algorithm=LoadBalancingAlgorithm.WEIGHTED_ROUND_ROBIN)
 
     for i, (host, port, weight) in enumerate(servers):
-        server = UpstreamServer(
-            id=f"{name}_server_{i}", host=host, port=port, weight=weight
-        )
+        server = UpstreamServer(id=f"{name}_server_{i}", host=host, port=port, weight=weight)
         group.add_server(server)
 
     return group

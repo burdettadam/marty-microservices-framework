@@ -48,7 +48,7 @@ class TestCircuitBreaker:
             failure_threshold=5,
             timeout_seconds=30,
             use_failure_rate=True,
-            failure_rate_threshold=0.5
+            failure_rate_threshold=0.5,
         )
         cb = CircuitBreaker("custom-cb", config)
 
@@ -91,7 +91,9 @@ class TestCircuitBreaker:
         assert cb.state == CircuitBreakerState.OPEN
 
         # Subsequent calls should raise CircuitBreakerError
-        with pytest.raises((CircuitBreakerError, ValueError)):  # Could be CircuitBreakerError or the function exception
+        with pytest.raises(
+            (CircuitBreakerError, ValueError)
+        ):  # Could be CircuitBreakerError or the function exception
             await cb.call(failing_operation)
 
 
@@ -104,10 +106,11 @@ class TestRetryMechanism:
         config = RetryConfig(
             max_attempts=3,
             base_delay=0.01,  # Small delay for fast tests
-            strategy=RetryStrategy.EXPONENTIAL
+            strategy=RetryStrategy.EXPONENTIAL,
         )
 
         attempt_count = 0
+
         async def flaky_operation():
             nonlocal attempt_count
             attempt_count += 1
@@ -122,13 +125,10 @@ class TestRetryMechanism:
     @pytest.mark.asyncio
     async def test_retry_with_constant_backoff(self):
         """Test retry with constant backoff strategy."""
-        config = RetryConfig(
-            max_attempts=3,
-            base_delay=0.01,
-            strategy=RetryStrategy.CONSTANT
-        )
+        config = RetryConfig(max_attempts=3, base_delay=0.01, strategy=RetryStrategy.CONSTANT)
 
         attempt_count = 0
+
         async def always_failing():
             nonlocal attempt_count
             attempt_count += 1
@@ -156,6 +156,7 @@ class TestTimeoutManagement:
     @pytest.mark.asyncio
     async def test_timeout_with_fast_operation(self):
         """Test timeout with operation that completes quickly."""
+
         async def fast_operation():
             await asyncio.sleep(0.01)
             return "quick_result"
@@ -166,6 +167,7 @@ class TestTimeoutManagement:
     @pytest.mark.asyncio
     async def test_timeout_with_slow_operation(self):
         """Test timeout with operation that exceeds timeout."""
+
         async def slow_operation():
             await asyncio.sleep(1.0)
             return "should_not_reach"
@@ -190,7 +192,7 @@ class TestResilienceManager:
         config = ResilienceConfig(
             circuit_breaker_config=CircuitBreakerConfig(failure_threshold=5),
             retry_config=RetryConfig(max_attempts=3),
-            timeout_seconds=30.0
+            timeout_seconds=30.0,
         )
         manager = ResilienceManager(config)
 
@@ -201,10 +203,7 @@ class TestResilienceManager:
     @pytest.mark.asyncio
     async def test_resilience_manager_execution(self):
         """Test resilience manager executing operations."""
-        config = ResilienceConfig(
-            timeout_seconds=1.0,
-            execution_order=[ResiliencePattern.TIMEOUT]
-        )
+        config = ResilienceConfig(timeout_seconds=1.0, execution_order=[ResiliencePattern.TIMEOUT])
         manager = ResilienceManager(config)
 
         async def test_operation():
@@ -234,7 +233,7 @@ class TestResilienceInitialization:
         """Test resilience initialization."""
         config = ResilienceConfig(
             circuit_breaker_config=CircuitBreakerConfig(failure_threshold=10),
-            retry_config=RetryConfig(max_attempts=5)
+            retry_config=RetryConfig(max_attempts=5),
         )
 
         manager = initialize_resilience(config)
@@ -256,12 +255,13 @@ class TestResilienceIntegration:
             execution_order=[
                 ResiliencePattern.TIMEOUT,
                 ResiliencePattern.RETRY,
-                ResiliencePattern.CIRCUIT_BREAKER
-            ]
+                ResiliencePattern.CIRCUIT_BREAKER,
+            ],
         )
         manager = ResilienceManager(config)
 
         call_count = 0
+
         async def sometimes_failing_operation():
             nonlocal call_count
             call_count += 1
@@ -270,8 +270,7 @@ class TestResilienceIntegration:
             return f"success_on_call_{call_count}"
 
         result = await manager.execute_with_patterns(
-            sometimes_failing_operation,
-            "integration_test"
+            sometimes_failing_operation, "integration_test"
         )
         assert result == "success_on_call_2"
         assert call_count == 2
@@ -301,8 +300,7 @@ class TestResilienceErrorHandling:
     async def test_error_propagation(self):
         """Test proper error propagation through resilience layers."""
         config = ResilienceConfig(
-            retry_config=RetryConfig(max_attempts=2, base_delay=0.01),
-            timeout_seconds=1.0
+            retry_config=RetryConfig(max_attempts=2, base_delay=0.01), timeout_seconds=1.0
         )
         manager = ResilienceManager(config)
 
@@ -310,10 +308,7 @@ class TestResilienceErrorHandling:
             raise ValueError("Persistent failure")
 
         with pytest.raises(RetryError):  # RetryError is raised when all retry attempts fail
-            await manager.execute_with_patterns(
-                consistently_failing_operation,
-                "error_test"
-            )
+            await manager.execute_with_patterns(consistently_failing_operation, "error_test")
 
     @pytest.mark.asyncio
     async def test_timeout_error_handling(self):

@@ -152,9 +152,7 @@ class ServiceMeshSecurityManager:
             "metadata": {"name": "health-check-allow", "namespace": "istio-system"},
             "spec": {
                 "action": "ALLOW",
-                "rules": [
-                    {"to": [{"operation": {"paths": ["/health", "/ready", "/live"]}}]}
-                ],
+                "rules": [{"to": [{"operation": {"paths": ["/health", "/ready", "/live"]}}]}],
             },
         }
         policies.append(health_check)
@@ -247,9 +245,7 @@ class ServiceMeshSecurityManager:
         """Create policy for inter-service communication"""
 
         # Define source
-        source = {
-            "principals": [f"cluster.local/ns/{source_namespace}/sa/{source_service}"]
-        }
+        source = {"principals": [f"cluster.local/ns/{source_namespace}/sa/{source_service}"]}
 
         # Define operation constraints
         operations = []
@@ -278,11 +274,7 @@ class ServiceMeshSecurityManager:
         ingress_rules = [
             {
                 "from": [
-                    {
-                        "podSelector": {
-                            "matchLabels": {"marty.io/segment": segment_name}
-                        }
-                    },
+                    {"podSelector": {"matchLabels": {"marty.io/segment": segment_name}}},
                     {"namespaceSelector": {"matchLabels": {"name": "istio-system"}}},
                 ],
                 "ports": [
@@ -295,11 +287,7 @@ class ServiceMeshSecurityManager:
 
         # Allow egress to same segment, DNS, and external (controlled)
         egress_rules = [
-            {
-                "to": [
-                    {"podSelector": {"matchLabels": {"marty.io/segment": segment_name}}}
-                ]
-            },
+            {"to": [{"podSelector": {"matchLabels": {"marty.io/segment": segment_name}}}]},
             {
                 "to": [{"namespaceSelector": {"matchLabels": {"name": "kube-system"}}}],
                 "ports": [{"protocol": "UDP", "port": 53}],  # DNS
@@ -348,9 +336,7 @@ class ServiceMeshSecurityManager:
                             {
                                 "match": {"metric": "ALL_METRICS"},
                                 "tagOverrides": {
-                                    "source_security_level": {
-                                        "value": "%{SOURCE_APP | 'unknown'}"
-                                    },
+                                    "source_security_level": {"value": "%{SOURCE_APP | 'unknown'}"},
                                     "destination_security_level": {
                                         "value": "%{DESTINATION_APP | 'unknown'}"
                                     },
@@ -421,30 +407,18 @@ class ServiceMeshSecurityManager:
                 if "/" in source:  # namespace/service format
                     src_namespace, src_service = source.split("/")
                     sources.append(
-                        {
-                            "principals": [
-                                f"cluster.local/ns/{src_namespace}/sa/{src_service}"
-                            ]
-                        }
+                        {"principals": [f"cluster.local/ns/{src_namespace}/sa/{src_service}"]}
                     )
                 else:  # just service name, same namespace
-                    sources.append(
-                        {"principals": [f"cluster.local/ns/{namespace}/sa/{source}"]}
-                    )
+                    sources.append({"principals": [f"cluster.local/ns/{namespace}/sa/{source}"]})
 
         if external_access:
             # Allow ingress gateway
             sources.append(
-                {
-                    "principals": [
-                        "cluster.local/ns/istio-system/sa/istio-ingressgateway"
-                    ]
-                }
+                {"principals": ["cluster.local/ns/istio-system/sa/istio-ingressgateway"]}
             )
 
-        auth_policy = self.create_service_authorization_policy(
-            service_name, namespace, sources
-        )
+        auth_policy = self.create_service_authorization_policy(service_name, namespace, sources)
         configs.append(auth_policy.to_istio_authorization_policy())
 
         # 2. Network segment
@@ -526,17 +500,13 @@ def create_production_security_policies() -> ServiceMeshSecurityManager:
     )
 
     # Create network segments
-    manager.create_network_segment(
-        "frontend-tier", "production", ["api-gateway"], "internal"
-    )
+    manager.create_network_segment("frontend-tier", "production", ["api-gateway"], "internal")
 
     manager.create_network_segment(
         "business-tier", "production", ["user-service", "order-service"], "confidential"
     )
 
-    manager.create_network_segment(
-        "payment-tier", "production", ["payment-service"], "restricted"
-    )
+    manager.create_network_segment("payment-tier", "production", ["payment-service"], "restricted")
 
     return manager
 
@@ -566,6 +536,4 @@ if __name__ == "__main__":
         external_access=False,
     )
 
-    print(
-        f"\nGenerated {len(new_service_configs)} security configs for notification-service"
-    )
+    print(f"\nGenerated {len(new_service_configs)} security configs for notification-service")

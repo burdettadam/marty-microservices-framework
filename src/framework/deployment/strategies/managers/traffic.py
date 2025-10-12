@@ -13,9 +13,7 @@ class TrafficManager:
         """Initialize traffic manager."""
         self.traffic_configurations: builtins.dict[str, TrafficSplit] = {}
 
-    async def switch_traffic(
-        self, target: DeploymentTarget, from_version: str, to_version: str
-    ):
+    async def switch_traffic(self, target: DeploymentTarget, from_version: str, to_version: str):
         """Switch traffic from one version to another."""
         # Simulate traffic switching
         await asyncio.sleep(1)
@@ -24,18 +22,14 @@ class TrafficManager:
 
         self.traffic_configurations[target.environment.value] = traffic_split
 
-    async def update_traffic_split(
-        self, target: DeploymentTarget, traffic_split: TrafficSplit
-    ):
+    async def update_traffic_split(self, target: DeploymentTarget, traffic_split: TrafficSplit):
         """Update traffic split configuration."""
         # Simulate traffic split update
         await asyncio.sleep(0.5)
 
         self.traffic_configurations[target.environment.value] = traffic_split
 
-    async def configure_ab_test(
-        self, target: DeploymentTarget, traffic_split: TrafficSplit
-    ):
+    async def configure_ab_test(self, target: DeploymentTarget, traffic_split: TrafficSplit):
         """Configure A/B test traffic routing."""
         # Simulate A/B test configuration
         await asyncio.sleep(1)

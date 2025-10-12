@@ -46,9 +46,7 @@ class MTLSConfig:
 
     def __post_init__(self):
         if self.verify_client_cert and not self.ca_cert_path:
-            raise ValueError(
-                "CA certificate path required when client verification enabled"
-            )
+            raise ValueError("CA certificate path required when client verification enabled")
 
 
 @dataclass
@@ -60,9 +58,7 @@ class APIKeyConfig:
     allow_header: bool = True
     allow_query_param: bool = False
     valid_keys: builtins.list[str] = field(default_factory=list)
-    key_sources: builtins.list[str] = field(
-        default_factory=list
-    )  # URLs, files, databases
+    key_sources: builtins.list[str] = field(default_factory=list)  # URLs, files, databases
 
 
 @dataclass
@@ -148,12 +144,8 @@ class SecurityConfig:
             config.jwt_config = JWTConfig(
                 secret_key=jwt_secret,
                 algorithm=os.getenv("JWT_ALGORITHM", "HS256"),
-                access_token_expire_minutes=int(
-                    os.getenv("JWT_ACCESS_TOKEN_EXPIRE", "30")
-                ),
-                refresh_token_expire_days=int(
-                    os.getenv("JWT_REFRESH_TOKEN_EXPIRE", "7")
-                ),
+                access_token_expire_minutes=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE", "30")),
+                refresh_token_expire_days=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRE", "7")),
                 issuer=os.getenv("JWT_ISSUER"),
                 audience=os.getenv("JWT_AUDIENCE"),
             )
@@ -166,8 +158,7 @@ class SecurityConfig:
                 ca_cert_path=ca_cert_path,
                 cert_path=os.getenv("MTLS_CERT_PATH"),
                 key_path=os.getenv("MTLS_KEY_PATH"),
-                verify_client_cert=os.getenv("MTLS_VERIFY_CLIENT", "true").lower()
-                == "true",
+                verify_client_cert=os.getenv("MTLS_VERIFY_CLIENT", "true").lower() == "true",
             )
             config.enable_mtls = True
 
@@ -177,10 +168,8 @@ class SecurityConfig:
             config.api_key_config = APIKeyConfig(
                 valid_keys=api_keys,
                 header_name=os.getenv("API_KEY_HEADER", "X-API-Key"),
-                allow_header=os.getenv("API_KEY_ALLOW_HEADER", "true").lower()
-                == "true",
-                allow_query_param=os.getenv("API_KEY_ALLOW_QUERY", "false").lower()
-                == "true",
+                allow_header=os.getenv("API_KEY_ALLOW_HEADER", "true").lower() == "true",
+                allow_query_param=os.getenv("API_KEY_ALLOW_QUERY", "false").lower() == "true",
             )
             config.enable_api_keys = True
 
@@ -194,9 +183,7 @@ class SecurityConfig:
         )
 
         # Feature flags from environment
-        config.enable_rate_limiting = (
-            os.getenv("ENABLE_RATE_LIMITING", "true").lower() == "true"
-        )
+        config.enable_rate_limiting = os.getenv("ENABLE_RATE_LIMITING", "true").lower() == "true"
         config.enable_request_logging = (
             os.getenv("ENABLE_REQUEST_LOGGING", "true").lower() == "true"
         )

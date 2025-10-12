@@ -153,9 +153,7 @@ class EventBus:
             )
             raise
 
-    def register_handler(
-        self, topic: str, handler: Callable[[EventMessage], None]
-    ) -> None:
+    def register_handler(self, topic: str, handler: Callable[[EventMessage], None]) -> None:
         """
         Register an event handler for a specific topic
 

@@ -117,9 +117,7 @@ class RouteRule:
     """Route matching rule."""
 
     path_pattern: str
-    methods: builtins.list[RoutingMethod] = field(
-        default_factory=lambda: [RoutingMethod.ANY]
-    )
+    methods: builtins.list[RoutingMethod] = field(default_factory=lambda: [RoutingMethod.ANY])
     host_pattern: str | None = None
     headers: builtins.dict[str, str] = field(default_factory=dict)
     query_params: builtins.dict[str, str] = field(default_factory=dict)
@@ -324,9 +322,7 @@ class RoundRobinLoadBalancer(LoadBalancer):
         if service_key not in self.counters:
             self.counters[service_key] = 0
 
-        instance = healthy_instances[
-            self.counters[service_key] % len(healthy_instances)
-        ]
+        instance = healthy_instances[self.counters[service_key] % len(healthy_instances)]
         self.counters[service_key] += 1
 
         return instance
@@ -466,9 +462,7 @@ class ServiceRegistry:
         self.health_check_interval = 30.0
         self._health_check_task: asyncio.Task | None = None
 
-    async def register_service(
-        self, service_name: str, instance: ServiceInstance
-    ) -> None:
+    async def register_service(self, service_name: str, instance: ServiceInstance) -> None:
         """Register service instance."""
         if service_name not in self.services:
             self.services[service_name] = []
@@ -489,9 +483,7 @@ class ServiceRegistry:
             ]
             logger.info(f"Deregistered service instance: {service_name}/{instance_id}")
 
-    async def get_service_instances(
-        self, service_name: str
-    ) -> builtins.list[ServiceInstance]:
+    async def get_service_instances(self, service_name: str) -> builtins.list[ServiceInstance]:
         """Get healthy service instances."""
         return self.services.get(service_name, [])
 
@@ -586,9 +578,7 @@ class APIGateway:
         """Add authenticator."""
         self.authenticators[name] = authenticator
 
-    async def register_service(
-        self, service_name: str, instance: ServiceInstance
-    ) -> None:
+    async def register_service(self, service_name: str, instance: ServiceInstance) -> None:
         """Register service instance."""
         await self.service_registry.register_service(service_name, instance)
 
@@ -605,9 +595,7 @@ class APIGateway:
                 return self._create_error_response(404, "Route not found")
 
             # Rate limiting
-            if route.rate_limit and not await self._check_rate_limit(
-                route, request_data
-            ):
+            if route.rate_limit and not await self._check_rate_limit(route, request_data):
                 self.stats.rate_limited_requests += 1
                 return self._create_error_response(429, "Rate limit exceeded")
 
@@ -635,9 +623,7 @@ class APIGateway:
             self.stats.record_request(False, response_time)
             return self._create_error_response(500, "Internal server error")
 
-    async def _find_route(
-        self, request_data: builtins.dict[str, Any]
-    ) -> RouteConfig | None:
+    async def _find_route(self, request_data: builtins.dict[str, Any]) -> RouteConfig | None:
         """Find matching route for request."""
         method = request_data.get("method", "GET")
         path = request_data.get("path", "/")
@@ -689,9 +675,7 @@ class APIGateway:
         self, route: RouteConfig, request_data: builtins.dict[str, Any]
     ) -> ServiceInstance | None:
         """Select service instance using load balancing."""
-        instances = await self.service_registry.get_service_instances(
-            route.target_service
-        )
+        instances = await self.service_registry.get_service_instances(route.target_service)
 
         if not instances:
             return None
@@ -777,9 +761,7 @@ class APIGateway:
                     "body": response_body,
                 }
 
-    def _create_error_response(
-        self, status: int, message: str
-    ) -> builtins.dict[str, Any]:
+    def _create_error_response(self, status: int, message: str) -> builtins.dict[str, Any]:
         """Create error response."""
         return {
             "status": status,
@@ -831,9 +813,7 @@ def create_jwt_auth_route(
     """Create route with JWT authentication."""
     return RouteConfig(
         name=name,
-        rule=RouteRule(
-            path_pattern=path_pattern, methods=methods or [RoutingMethod.ANY]
-        ),
+        rule=RouteRule(path_pattern=path_pattern, methods=methods or [RoutingMethod.ANY]),
         target_service=target_service,
         auth=AuthConfig(type=AuthenticationType.JWT, secret_key=secret_key),
     )
@@ -849,9 +829,7 @@ def create_rate_limited_route(
     """Create route with rate limiting."""
     return RouteConfig(
         name=name,
-        rule=RouteRule(
-            path_pattern=path_pattern, methods=methods or [RoutingMethod.ANY]
-        ),
+        rule=RouteRule(path_pattern=path_pattern, methods=methods or [RoutingMethod.ANY]),
         target_service=target_service,
         rate_limit=RateLimitConfig(requests_per_second=requests_per_second),
     )

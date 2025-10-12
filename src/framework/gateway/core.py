@@ -143,9 +143,7 @@ class GatewayRequest:
     def is_form_data(self) -> bool:
         """Check if request has form data content type."""
         content_type = self.get_content_type()
-        return (
-            content_type and "application/x-www-form-urlencoded" in content_type.lower()
-        )
+        return content_type and "application/x-www-form-urlencoded" in content_type.lower()
 
     def is_multipart(self) -> bool:
         """Check if request has multipart content type."""
@@ -754,9 +752,7 @@ class APIGateway:
             context.route = route
 
             # Process through global middleware
-            global_chain = self.context.middleware_registry.create_chain(
-                self.config.middleware
-            )
+            global_chain = self.context.middleware_registry.create_chain(self.config.middleware)
             should_continue = await global_chain.process_request(context)
 
             if not should_continue:

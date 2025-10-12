@@ -292,9 +292,7 @@ class IntegrationFlow:
     # Flow configuration
     source: builtins.dict[str, Any]
     destination: builtins.dict[str, Any]
-    transformations: builtins.list[builtins.dict[str, Any]] = field(
-        default_factory=list
-    )
+    transformations: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Error handling
     error_handling: builtins.dict[str, Any] = field(default_factory=dict)
@@ -326,9 +324,7 @@ class APIGateway:
         self.route_cache: builtins.dict[str, str] = {}
 
         # Rate limiting
-        self.rate_limiters: builtins.dict[str, builtins.dict[str, Any]] = defaultdict(
-            dict
-        )
+        self.rate_limiters: builtins.dict[str, builtins.dict[str, Any]] = defaultdict(dict)
 
         # Circuit breakers
         self.circuit_breakers: builtins.dict[str, builtins.dict[str, Any]] = {}
@@ -338,9 +334,7 @@ class APIGateway:
 
         # Metrics
         self.metrics: builtins.dict[str, Any] = defaultdict(int)
-        self.latency_metrics: builtins.dict[str, builtins.list[float]] = defaultdict(
-            list
-        )
+        self.latency_metrics: builtins.dict[str, builtins.list[float]] = defaultdict(list)
 
         # Thread safety
         self._lock = threading.RLock()
@@ -429,9 +423,7 @@ class APIGateway:
                 route, client_ip, security_result.get("user_id")
             )
             if not rate_limit_result["allowed"]:
-                return self._create_error_response(
-                    429, "Rate limit exceeded", request_id
-                )
+                return self._create_error_response(429, "Rate limit exceeded", request_id)
 
             # Check cache
             cache_key = self._generate_cache_key(route, method, path, headers, body)
@@ -515,9 +507,7 @@ class APIGateway:
 
         # Authentication
         if route.authentication != AuthenticationType.NONE:
-            auth_result = await self._authenticate_request(
-                route.authentication, headers
-            )
+            auth_result = await self._authenticate_request(route.authentication, headers)
 
             if not auth_result["valid"]:
                 return {
@@ -555,9 +545,9 @@ class APIGateway:
     ) -> builtins.dict[str, Any]:
         """Authenticate request based on authentication type."""
         if auth_type == AuthenticationType.API_KEY:
-            api_key = headers.get("X-API-Key") or headers.get(
-                "Authorization", ""
-            ).replace("ApiKey ", "")
+            api_key = headers.get("X-API-Key") or headers.get("Authorization", "").replace(
+                "ApiKey ", ""
+            )
             if not api_key:
                 return {"valid": False, "message": "API key required"}
 
@@ -619,9 +609,7 @@ class APIGateway:
                 import base64
 
                 encoded_credentials = auth_header[6:]
-                decoded_credentials = base64.b64decode(encoded_credentials).decode(
-                    "utf-8"
-                )
+                decoded_credentials = base64.b64decode(encoded_credentials).decode("utf-8")
                 username, password = decoded_credentials.split(":", 1)
 
                 # Validate credentials (simplified)
@@ -893,9 +881,7 @@ class APIGateway:
 
         return None
 
-    def _cache_response(
-        self, cache_key: str, response: builtins.dict[str, Any], ttl: int
-    ):
+    def _cache_response(self, cache_key: str, response: builtins.dict[str, Any], ttl: int):
         """Cache response."""
         self.response_cache[cache_key] = {
             "response": response,
@@ -926,9 +912,7 @@ class APIGateway:
         """Record request metrics."""
         with self._lock:
             self.metrics["total_requests"] += 1
-            self.metrics[f"requests_{route_id}"] = (
-                self.metrics.get(f"requests_{route_id}", 0) + 1
-            )
+            self.metrics[f"requests_{route_id}"] = self.metrics.get(f"requests_{route_id}", 0) + 1
 
             if 200 <= status_code < 300:
                 self.metrics["successful_requests"] += 1
@@ -960,8 +944,7 @@ class APIGateway:
                 "average_latencies": avg_latencies,
                 "cache_size": len(self.response_cache),
                 "circuit_breaker_status": {
-                    service_id: cb["state"]
-                    for service_id, cb in self.circuit_breakers.items()
+                    service_id: cb["state"] for service_id, cb in self.circuit_breakers.items()
                 },
             }
 

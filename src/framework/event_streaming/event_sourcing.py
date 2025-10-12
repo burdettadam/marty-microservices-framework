@@ -324,9 +324,7 @@ class EventSourcedRepository(ABC, Generic[T]):
 
         try:
             # Save events
-            await self.event_store.append_events(
-                stream_id, uncommitted_events, expected_version
-            )
+            await self.event_store.append_events(stream_id, uncommitted_events, expected_version)
 
             # Mark events as committed
             aggregate.mark_events_as_committed()
@@ -430,9 +428,7 @@ class AggregateFactory:
         """Register aggregate type."""
         self._aggregate_types[aggregate_type] = aggregate_class
 
-    def create_aggregate(
-        self, aggregate_type: str, aggregate_id: str = None
-    ) -> AggregateRoot:
+    def create_aggregate(self, aggregate_type: str, aggregate_id: str = None) -> AggregateRoot:
         """Create aggregate instance."""
         if aggregate_type not in self._aggregate_types:
             raise ValueError(f"Unknown aggregate type: {aggregate_type}")

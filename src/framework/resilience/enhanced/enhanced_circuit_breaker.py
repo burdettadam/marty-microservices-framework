@@ -38,7 +38,7 @@ class DefaultErrorClassifier:
     def __init__(
         self,
         counted_exceptions: tuple[type[Exception], ...] = (Exception,),
-        ignored_exceptions: tuple[type[Exception], ...] = ()
+        ignored_exceptions: tuple[type[Exception], ...] = (),
     ):
         self.counted_exceptions = counted_exceptions
         self.ignored_exceptions = ignored_exceptions
@@ -230,9 +230,10 @@ class EnhancedCircuitBreaker:
             should_open = True
 
         # Check failure rate threshold (if we have enough data)
-        if (len(self.call_results) >= self.config.minimum_throughput and
-            self.config.failure_rate_threshold > 0):
-
+        if (
+            len(self.call_results) >= self.config.minimum_throughput
+            and self.config.failure_rate_threshold > 0
+        ):
             recent_failures = sum(1 for result in self.call_results if not result)
             failure_rate = recent_failures / len(self.call_results)
 
@@ -261,7 +262,9 @@ class EnhancedCircuitBreaker:
         if self.config.log_state_changes:
             logger.info(
                 "Circuit breaker '%s' state changed from %s to %s",
-                self.name, old_state.value, new_state.value
+                self.name,
+                old_state.value,
+                new_state.value,
             )
 
     async def force_open(self) -> None:
@@ -319,8 +322,7 @@ _circuit_breakers: dict[str, EnhancedCircuitBreaker] = {}
 
 
 def get_circuit_breaker(
-    name: str,
-    config: EnhancedCircuitBreakerConfig | None = None
+    name: str, config: EnhancedCircuitBreakerConfig | None = None
 ) -> EnhancedCircuitBreaker:
     """Get or create a circuit breaker."""
     if name not in _circuit_breakers:
@@ -335,11 +337,9 @@ def get_all_circuit_breakers() -> dict[str, EnhancedCircuitBreaker]:
     return _circuit_breakers.copy()
 
 
-async def circuit_breaker_decorator(
-    name: str,
-    config: EnhancedCircuitBreakerConfig | None = None
-):
+async def circuit_breaker_decorator(name: str, config: EnhancedCircuitBreakerConfig | None = None):
     """Decorator for circuit breaker protection."""
+
     def decorator(func: Callable[..., Any]):
         circuit_breaker = get_circuit_breaker(name, config)
 
@@ -347,4 +347,5 @@ async def circuit_breaker_decorator(
             return await circuit_breaker.call(func, *args, **kwargs)
 
         return wrapper
+
     return decorator

@@ -9,7 +9,7 @@ import sys
 import unittest
 
 # Add the project root to path
-project_root = os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', '..')
+project_root = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..")
 sys.path.insert(0, project_root)
 
 
@@ -21,13 +21,13 @@ class TestExternalConnectorsStructure(unittest.TestCase):
         base_dir = os.path.dirname(os.path.dirname(__file__))
 
         expected_files = [
-            'enums.py',
-            'config.py',
-            'base.py',
-            'transformation.py',
-            '__init__.py',
-            'connectors/__init__.py',
-            'connectors/rest_api.py'
+            "enums.py",
+            "config.py",
+            "base.py",
+            "transformation.py",
+            "__init__.py",
+            "connectors/__init__.py",
+            "connectors/rest_api.py",
         ]
 
         for file_path in expected_files:
@@ -78,7 +78,7 @@ class TestExternalConnectorsStructure(unittest.TestCase):
                 system_id="test_system",
                 name="Test System",
                 connector_type=ConnectorType.REST_API,
-                endpoint_url="https://api.example.com"
+                endpoint_url="https://api.example.com",
             )
 
             self.assertEqual(config.system_id, "test_system")
@@ -90,7 +90,7 @@ class TestExternalConnectorsStructure(unittest.TestCase):
                 request_id="req_123",
                 system_id="test_system",
                 operation="/users",
-                data={"method": "GET"}
+                data={"method": "GET"},
             )
 
             self.assertEqual(request.request_id, "req_123")
@@ -107,10 +107,10 @@ class TestExternalConnectorsStructure(unittest.TestCase):
             )
 
             # Test that it's an abstract class
-            self.assertTrue(hasattr(ExternalSystemConnector, 'connect'))
-            self.assertTrue(hasattr(ExternalSystemConnector, 'disconnect'))
-            self.assertTrue(hasattr(ExternalSystemConnector, 'execute_request'))
-            self.assertTrue(hasattr(ExternalSystemConnector, 'health_check'))
+            self.assertTrue(hasattr(ExternalSystemConnector, "connect"))
+            self.assertTrue(hasattr(ExternalSystemConnector, "disconnect"))
+            self.assertTrue(hasattr(ExternalSystemConnector, "execute_request"))
+            self.assertTrue(hasattr(ExternalSystemConnector, "health_check"))
 
         except ImportError as e:
             self.fail(f"Failed to import base connector: {e}")
@@ -143,10 +143,10 @@ class TestExternalConnectorsStructure(unittest.TestCase):
             )
 
             # Test that it has expected methods
-            self.assertTrue(hasattr(RESTAPIConnector, 'connect'))
-            self.assertTrue(hasattr(RESTAPIConnector, 'disconnect'))
-            self.assertTrue(hasattr(RESTAPIConnector, 'execute_request'))
-            self.assertTrue(hasattr(RESTAPIConnector, 'health_check'))
+            self.assertTrue(hasattr(RESTAPIConnector, "connect"))
+            self.assertTrue(hasattr(RESTAPIConnector, "disconnect"))
+            self.assertTrue(hasattr(RESTAPIConnector, "execute_request"))
+            self.assertTrue(hasattr(RESTAPIConnector, "health_check"))
 
         except ImportError as e:
             self.fail(f"Failed to import REST API connector: {e}")
@@ -161,6 +161,7 @@ class TestTransformationEngine(unittest.TestCase):
             from src.framework.integration.external_connectors.transformation import (
                 DataTransformationEngine,
             )
+
             self.engine = DataTransformationEngine()
         except ImportError:
             self.skipTest("Cannot import transformation engine")
@@ -182,19 +183,13 @@ class TestTransformationEngine(unittest.TestCase):
 
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[0]['name'], 'John')
-        self.assertEqual(result[1]['name'], 'Jane')
+        self.assertEqual(result[0]["name"], "John")
+        self.assertEqual(result[1]["name"], "Jane")
 
     def test_flatten_json(self):
         """Test JSON flattening."""
         nested_data = {
-            "user": {
-                "name": "John",
-                "address": {
-                    "street": "123 Main St",
-                    "city": "New York"
-                }
-            }
+            "user": {"name": "John", "address": {"street": "123 Main St", "city": "New York"}}
         }
 
         result = self.engine._flatten_json(nested_data)
@@ -205,5 +200,5 @@ class TestTransformationEngine(unittest.TestCase):
         self.assertEqual(result["user.address.city"], "New York")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

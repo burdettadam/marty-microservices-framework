@@ -122,9 +122,7 @@ class ServiceTemplatePlugin(TemplatePlugin):
         """Return Kubernetes deployment manifests for this service type."""
 
     @abstractmethod
-    def get_helm_chart_templates(
-        self, context: TemplateContext
-    ) -> builtins.dict[str, str]:
+    def get_helm_chart_templates(self, context: TemplateContext) -> builtins.dict[str, str]:
         """Return Helm chart templates for this service type."""
 
 
@@ -132,9 +130,7 @@ class ComponentTemplatePlugin(TemplatePlugin):
     """Specialized plugin for infrastructure component templates."""
 
     @abstractmethod
-    def get_integration_templates(
-        self, context: TemplateContext
-    ) -> builtins.dict[str, str]:
+    def get_integration_templates(self, context: TemplateContext) -> builtins.dict[str, str]:
         """Return integration templates for this component."""
 
     @abstractmethod
@@ -149,12 +145,12 @@ class PluginRegistry:
         """Initialize the plugin registry."""
         self.framework_root = framework_root
         self.plugins: builtins.dict[str, TemplatePlugin] = {}
-        self.plugins_by_type: builtins.dict[
-            TemplateType, builtins.list[TemplatePlugin]
-        ] = {template_type: [] for template_type in TemplateType}
-        self.plugins_by_phase: builtins.dict[
-            PluginPhase, builtins.list[TemplatePlugin]
-        ] = {phase: [] for phase in PluginPhase}
+        self.plugins_by_type: builtins.dict[TemplateType, builtins.list[TemplatePlugin]] = {
+            template_type: [] for template_type in TemplateType
+        }
+        self.plugins_by_phase: builtins.dict[PluginPhase, builtins.list[TemplatePlugin]] = {
+            phase: [] for phase in PluginPhase
+        }
 
         # Plugin discovery paths
         self.plugin_paths = [
@@ -191,9 +187,7 @@ class PluginRegistry:
         """Get plugin by name."""
         return self.plugins.get(name)
 
-    def get_plugins_by_type(
-        self, template_type: TemplateType
-    ) -> builtins.list[TemplatePlugin]:
+    def get_plugins_by_type(self, template_type: TemplateType) -> builtins.list[TemplatePlugin]:
         """Get all plugins of a specific type."""
         return self.plugins_by_type.get(template_type, [])
 
@@ -316,9 +310,7 @@ class TemplateEngine:
             plugins = self.plugin_registry.get_plugins_by_type(TemplateType.SERVICE)
 
         # Pre-generation phase
-        for plugin in self.plugin_registry.get_plugins_by_phase(
-            PluginPhase.PRE_GENERATION
-        ):
+        for plugin in self.plugin_registry.get_plugins_by_phase(PluginPhase.PRE_GENERATION):
             if plugin in plugins:
                 context = plugin.pre_generation_hook(context)
 
@@ -336,9 +328,7 @@ class TemplateEngine:
                     print(f"Warning: Plugin {plugin.get_metadata().name} failed: {e}")
 
         # Post-generation phase
-        for plugin in self.plugin_registry.get_plugins_by_phase(
-            PluginPhase.POST_GENERATION
-        ):
+        for plugin in self.plugin_registry.get_plugins_by_phase(PluginPhase.POST_GENERATION):
             if plugin in plugins:
                 plugin.post_generation_hook(context, generated_files)
 
@@ -346,9 +336,7 @@ class TemplateEngine:
         for plugin in self.plugin_registry.get_plugins_by_phase(PluginPhase.VALIDATION):
             if plugin in plugins:
                 if not plugin.validate_generated_files(context, generated_files):
-                    print(
-                        f"Warning: Validation failed for plugin {plugin.get_metadata().name}"
-                    )
+                    print(f"Warning: Validation failed for plugin {plugin.get_metadata().name}")
 
         return results
 
@@ -455,13 +443,11 @@ spec:
       - name: {context.service_name}
         image: {context.service_name}:latest
         ports:
-        - containerPort: {context.template_variables.get('http_port', 8000)}
+        - containerPort: {context.template_variables.get("http_port", 8000)}
 """
         }
 
-    def get_helm_chart_templates(
-        self, context: TemplateContext
-    ) -> builtins.dict[str, str]:
+    def get_helm_chart_templates(self, context: TemplateContext) -> builtins.dict[str, str]:
         """Return Helm chart templates."""
         return {
             "Chart.yaml": f"""apiVersion: v2
@@ -476,7 +462,7 @@ image:
   tag: latest
 service:
   type: ClusterIP
-  port: {context.template_variables.get('http_port', 8000)}
+  port: {context.template_variables.get("http_port", 8000)}
 """,
         }
 
@@ -565,13 +551,11 @@ spec:
       - name: {context.service_name}
         image: {context.service_name}:latest
         ports:
-        - containerPort: {context.template_variables.get('grpc_port', 50051)}
+        - containerPort: {context.template_variables.get("grpc_port", 50051)}
 """
         }
 
-    def get_helm_chart_templates(
-        self, context: TemplateContext
-    ) -> builtins.dict[str, str]:
+    def get_helm_chart_templates(self, context: TemplateContext) -> builtins.dict[str, str]:
         """Return Helm chart templates."""
         return {
             "Chart.yaml": f"""apiVersion: v2
@@ -586,7 +570,7 @@ image:
   tag: latest
 service:
   type: ClusterIP
-  port: {context.template_variables.get('grpc_port', 50051)}
+  port: {context.template_variables.get("grpc_port", 50051)}
 """,
         }
 
@@ -605,16 +589,14 @@ def register_builtin_plugins(registry: PluginRegistry) -> None:
         registry.register_plugin(plugin)
 
 
-def create_plugin_template(
-    plugin_name: str, plugin_type: TemplateType, output_dir: Path
-) -> None:
+def create_plugin_template(plugin_name: str, plugin_type: TemplateType, output_dir: Path) -> None:
     """Create a template for a new plugin."""
     plugin_dir = output_dir / plugin_name
     plugin_dir.mkdir(parents=True, exist_ok=True)
 
     # Create plugin.py file
     plugin_template = f'''"""
-{plugin_name.title().replace('_', ' ')} Plugin for Marty Framework
+{plugin_name.title().replace("_", " ")} Plugin for Marty Framework
 
 This plugin provides custom template generation for {plugin_type.value} components.
 """
@@ -627,7 +609,7 @@ from src.framework.generators.plugin_system import (
 )
 
 
-class {plugin_name.title().replace('_', '')}Plugin(TemplatePlugin):
+class {plugin_name.title().replace("_", "")}Plugin(TemplatePlugin):
     """Custom {plugin_name} plugin."""
 
     def get_metadata(self) -> TemplateMetadata:
@@ -695,7 +677,7 @@ if __name__ == "__main__":
     (templates_dir / "example.py.j2").write_text(example_template, encoding="utf-8")
 
     # Create README
-    readme = f"""# {plugin_name.title().replace('_', ' ')} Plugin
+    readme = f"""# {plugin_name.title().replace("_", " ")} Plugin
 
 This plugin provides custom template generation for {plugin_type.value} components.
 

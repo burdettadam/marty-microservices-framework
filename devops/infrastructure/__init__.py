@@ -114,9 +114,7 @@ class InfrastructureResource:
             "resource_type": self.resource_type.value,
             "provider": self.provider.value,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "last_modified": self.last_modified.isoformat()
-            if self.last_modified
-            else None,
+            "last_modified": self.last_modified.isoformat() if self.last_modified else None,
         }
 
 
@@ -163,9 +161,7 @@ class InfrastructureStack:
             "tool": self.tool.value,
             "resources": [resource.to_dict() for resource in self.resources],
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "last_deployed": self.last_deployed.isoformat()
-            if self.last_deployed
-            else None,
+            "last_deployed": self.last_deployed.isoformat() if self.last_deployed else None,
         }
 
 
@@ -205,9 +201,7 @@ class InfrastructureOperation:
             **asdict(self),
             "status": self.status.value,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
 
 
@@ -287,9 +281,7 @@ class TerraformProvider(IaCProviderBase):
             await self._generate_terraform_config(stack, stack_dir)
 
             # Initialize Terraform
-            init_result = await self._run_terraform_command(
-                ["init"], working_dir=stack_dir
-            )
+            init_result = await self._run_terraform_command(["init"], working_dir=stack_dir)
 
             if init_result["returncode"] != 0:
                 print(f"❌ Terraform init failed: {init_result['stderr']}")
@@ -308,9 +300,7 @@ class TerraformProvider(IaCProviderBase):
                     )
 
                     if select_result["returncode"] != 0:
-                        print(
-                            f"⚠️ Could not create or select workspace: {stack.workspace}"
-                        )
+                        print(f"⚠️ Could not create or select workspace: {stack.workspace}")
 
             stack.created_at = datetime.now()
             self.stacks[stack.name] = stack
@@ -383,9 +373,7 @@ class TerraformProvider(IaCProviderBase):
 
         finally:
             operation.completed_at = datetime.now()
-            operation.duration = (
-                operation.completed_at - operation.started_at
-            ).total_seconds()
+            operation.duration = (operation.completed_at - operation.started_at).total_seconds()
 
         return operation
 
@@ -427,9 +415,7 @@ class TerraformProvider(IaCProviderBase):
                 apply_cmd.append("tfplan")
 
             # Run terraform apply
-            apply_result = await self._run_terraform_command(
-                apply_cmd, working_dir=stack_dir
-            )
+            apply_result = await self._run_terraform_command(apply_cmd, working_dir=stack_dir)
 
             operation.apply_output = apply_result["stdout"]
 
@@ -452,9 +438,7 @@ class TerraformProvider(IaCProviderBase):
 
         finally:
             operation.completed_at = datetime.now()
-            operation.duration = (
-                operation.completed_at - operation.started_at
-            ).total_seconds()
+            operation.duration = (operation.completed_at - operation.started_at).total_seconds()
 
         return operation
 
@@ -489,9 +473,7 @@ class TerraformProvider(IaCProviderBase):
                 destroy_cmd.append("-auto-approve")
 
             # Run terraform destroy
-            destroy_result = await self._run_terraform_command(
-                destroy_cmd, working_dir=stack_dir
-            )
+            destroy_result = await self._run_terraform_command(destroy_cmd, working_dir=stack_dir)
 
             if destroy_result["returncode"] == 0:
                 operation.status = OperationStatus.SUCCEEDED
@@ -515,9 +497,7 @@ class TerraformProvider(IaCProviderBase):
 
         finally:
             operation.completed_at = datetime.now()
-            operation.duration = (
-                operation.completed_at - operation.started_at
-            ).total_seconds()
+            operation.duration = (operation.completed_at - operation.started_at).total_seconds()
 
         return operation
 
@@ -538,9 +518,7 @@ class TerraformProvider(IaCProviderBase):
             if show_result["returncode"] == 0:
                 state_data = json.loads(show_result["stdout"])
                 return state_data
-            print(
-                f"⚠️ Could not retrieve state for {stack_name}: {show_result['stderr']}"
-            )
+            print(f"⚠️ Could not retrieve state for {stack_name}: {show_result['stderr']}")
             return {}
 
         except Exception as e:
@@ -574,13 +552,9 @@ class TerraformProvider(IaCProviderBase):
                     if "diagnostics" in error_data:
                         for diagnostic in error_data["diagnostics"]:
                             if diagnostic["severity"] == "error":
-                                validation_result["errors"].append(
-                                    diagnostic["summary"]
-                                )
+                                validation_result["errors"].append(diagnostic["summary"])
                             else:
-                                validation_result["warnings"].append(
-                                    diagnostic["summary"]
-                                )
+                                validation_result["warnings"].append(diagnostic["summary"])
                 except (json.JSONDecodeError, KeyError) as parse_error:
                     validation_result["errors"].append(validate_result["stderr"])
                     print(f"Warning: Unable to parse terraform validation output: {parse_error}")
@@ -592,16 +566,12 @@ class TerraformProvider(IaCProviderBase):
 
         return validation_result
 
-    async def _generate_terraform_config(
-        self, stack: InfrastructureStack, stack_dir: str
-    ):
+    async def _generate_terraform_config(self, stack: InfrastructureStack, stack_dir: str):
         """Generate Terraform configuration files"""
 
         # Main configuration file
         main_tf = {
-            "terraform": {
-                "required_providers": self._get_required_providers(stack.provider)
-            }
+            "terraform": {"required_providers": self._get_required_providers(stack.provider)}
         }
 
         # Add backend configuration
@@ -641,9 +611,7 @@ class TerraformProvider(IaCProviderBase):
         with open(os.path.join(stack_dir, "main.tf"), "w") as f:
             self._write_tf_config(f, {**main_tf, **resources_tf})
 
-    def _get_required_providers(
-        self, provider: CloudProvider
-    ) -> builtins.dict[str, Any]:
+    def _get_required_providers(self, provider: CloudProvider) -> builtins.dict[str, Any]:
         """Get required Terraform providers"""
 
         providers = {}
@@ -662,9 +630,7 @@ class TerraformProvider(IaCProviderBase):
 
         return providers
 
-    def _get_provider_config(
-        self, provider: CloudProvider, region: str
-    ) -> builtins.dict[str, Any]:
+    def _get_provider_config(self, provider: CloudProvider, region: str) -> builtins.dict[str, Any]:
         """Get provider configuration"""
 
         if provider == CloudProvider.AWS:
@@ -707,10 +673,7 @@ class TerraformProvider(IaCProviderBase):
 
         # Add tags
         if resource.tags:
-            if (
-                resource.provider == CloudProvider.AWS
-                or resource.provider == CloudProvider.AZURE
-            ):
+            if resource.provider == CloudProvider.AWS or resource.provider == CloudProvider.AZURE:
                 resource_config["tags"] = resource.tags
             elif resource.provider == CloudProvider.GCP:
                 resource_config["labels"] = resource.tags
@@ -764,9 +727,7 @@ class TerraformProvider(IaCProviderBase):
                 file_handle.write(str(value))
 
         for key, value in config.items():
-            if key.startswith(
-                ("resource", "variable", "output", "terraform", "provider")
-            ):
+            if key.startswith(("resource", "variable", "output", "terraform", "provider")):
                 file_handle.write(f"{key} ")
                 write_value(value)
                 file_handle.write("\n\n")
@@ -803,9 +764,7 @@ class TerraformProvider(IaCProviderBase):
         except Exception as e:
             return {"returncode": -1, "stdout": "", "stderr": str(e)}
 
-    async def _parse_plan_output(
-        self, operation: InfrastructureOperation, plan_output: str
-    ):
+    async def _parse_plan_output(self, operation: InfrastructureOperation, plan_output: str):
         """Parse Terraform plan output"""
 
         # Simple parsing - in production would use structured JSON output
@@ -878,10 +837,7 @@ class PulumiProvider(IaCProviderBase):
                 ["stack", "init", stack.name], working_dir=stack_dir
             )
 
-            if (
-                init_result["returncode"] != 0
-                and "already exists" not in init_result["stderr"]
-            ):
+            if init_result["returncode"] != 0 and "already exists" not in init_result["stderr"]:
                 print(f"❌ Pulumi stack init failed: {init_result['stderr']}")
                 return False
 
@@ -940,9 +896,7 @@ class PulumiProvider(IaCProviderBase):
 
         finally:
             operation.completed_at = datetime.now()
-            operation.duration = (
-                operation.completed_at - operation.started_at
-            ).total_seconds()
+            operation.duration = (operation.completed_at - operation.started_at).total_seconds()
 
         return operation
 
@@ -997,9 +951,7 @@ class PulumiProvider(IaCProviderBase):
 
         finally:
             operation.completed_at = datetime.now()
-            operation.duration = (
-                operation.completed_at - operation.started_at
-            ).total_seconds()
+            operation.duration = (operation.completed_at - operation.started_at).total_seconds()
 
         return operation
 
@@ -1034,9 +986,7 @@ class PulumiProvider(IaCProviderBase):
                 destroy_cmd.append("--yes")
 
             # Run pulumi destroy
-            destroy_result = await self._run_pulumi_command(
-                destroy_cmd, working_dir=stack_dir
-            )
+            destroy_result = await self._run_pulumi_command(destroy_cmd, working_dir=stack_dir)
 
             if destroy_result["returncode"] == 0:
                 operation.status = OperationStatus.SUCCEEDED
@@ -1063,9 +1013,7 @@ class PulumiProvider(IaCProviderBase):
 
         finally:
             operation.completed_at = datetime.now()
-            operation.duration = (
-                operation.completed_at - operation.started_at
-            ).total_seconds()
+            operation.duration = (operation.completed_at - operation.started_at).total_seconds()
 
         return operation
 
@@ -1086,9 +1034,7 @@ class PulumiProvider(IaCProviderBase):
             if export_result["returncode"] == 0:
                 state_data = json.loads(export_result["stdout"])
                 return state_data
-            print(
-                f"⚠️ Could not retrieve state for {stack_name}: {export_result['stderr']}"
-            )
+            print(f"⚠️ Could not retrieve state for {stack_name}: {export_result['stderr']}")
             return {}
 
         except Exception as e:
@@ -1115,9 +1061,7 @@ class PulumiProvider(IaCProviderBase):
                 print(f"✅ Configuration valid for {stack_name}")
             else:
                 validation_result["valid"] = False
-                validation_result["errors"].append(
-                    preview_op.error_message or "Preview failed"
-                )
+                validation_result["errors"].append(preview_op.error_message or "Preview failed")
                 print(f"❌ Configuration invalid for {stack_name}")
 
         except Exception as e:
@@ -1126,9 +1070,7 @@ class PulumiProvider(IaCProviderBase):
 
         return validation_result
 
-    async def _generate_pulumi_program(
-        self, stack: InfrastructureStack, stack_dir: str
-    ):
+    async def _generate_pulumi_program(self, stack: InfrastructureStack, stack_dir: str):
         """Generate Pulumi program"""
 
         # Create Pulumi.yaml
@@ -1294,9 +1236,7 @@ class InfrastructureOrchestrator:
 
     def __init__(self):
         # IaC providers
-        self.providers: builtins.dict[
-            builtins.tuple[IaCTool, CloudProvider], IaCProviderBase
-        ] = {}
+        self.providers: builtins.dict[builtins.tuple[IaCTool, CloudProvider], IaCProviderBase] = {}
 
         # Stack registry
         self.stacks: builtins.dict[str, InfrastructureStack] = {}
@@ -1357,9 +1297,7 @@ class InfrastructureOrchestrator:
             if validate_first:
                 validation = await iac_provider.validate_configuration(stack.name)
                 if not validation["valid"]:
-                    raise Exception(
-                        f"Configuration validation failed: {validation['errors']}"
-                    )
+                    raise Exception(f"Configuration validation failed: {validation['errors']}")
 
             # Generate plan
             plan_operation = await iac_provider.plan_stack(stack.name)
@@ -1481,9 +1419,7 @@ class InfrastructureOrchestrator:
         stack = self.stacks[stack_name]
 
         # Get recent operations
-        stack_operations = [
-            op for op in self.operations.values() if op.stack_name == stack_name
-        ]
+        stack_operations = [op for op in self.operations.values() if op.stack_name == stack_name]
 
         stack_operations.sort(key=lambda x: x.started_at, reverse=True)
 
@@ -1504,16 +1440,12 @@ class InfrastructureOrchestrator:
                 "tool": stack.tool.value,
                 "environment": stack.environment,
                 "resource_count": len(stack.resources),
-                "last_deployed": stack.last_deployed.isoformat()
-                if stack.last_deployed
-                else None,
+                "last_deployed": stack.last_deployed.isoformat() if stack.last_deployed else None,
             }
             for name, stack in self.stacks.items()
         ]
 
-    async def generate_cost_report(
-        self, stack_name: str | None = None
-    ) -> builtins.dict[str, Any]:
+    async def generate_cost_report(self, stack_name: str | None = None) -> builtins.dict[str, Any]:
         """Generate cost analysis report"""
 
         # Mock cost analysis - in production would integrate with cloud billing APIs
@@ -1668,9 +1600,7 @@ async def main():
     # Generate cost report
     print("\n💰 Cost Analysis")
     cost_report = await orchestrator.generate_cost_report()
-    print(
-        f"Total estimated monthly cost: ${cost_report['total_estimated_monthly_cost']:.2f}"
-    )
+    print(f"Total estimated monthly cost: ${cost_report['total_estimated_monthly_cost']:.2f}")
 
     for stack_name, stack_cost in cost_report["stacks"].items():
         print(f"  {stack_name}: ${stack_cost['monthly_cost']:.2f}/month")

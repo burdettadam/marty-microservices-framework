@@ -106,14 +106,9 @@ class ServiceCache:
                 self._stats["misses"] += 1
                 return None
 
-            if (
-                self.config.cache_strategy == CacheStrategy.REFRESH_AHEAD
-                and refresh_callback
-            ):
+            if self.config.cache_strategy == CacheStrategy.REFRESH_AHEAD and refresh_callback:
                 if entry.should_refresh(self.config.refresh_ahead_factor) and not entry._refreshing:
-                    asyncio.create_task(
-                        self._refresh_entry(cache_key, entry, refresh_callback)
-                    )
+                    asyncio.create_task(self._refresh_entry(cache_key, entry, refresh_callback))
 
             self._stats["hits"] += 1
             return entry.access()

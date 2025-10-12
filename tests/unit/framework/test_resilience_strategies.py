@@ -31,6 +31,7 @@ try:
         RetryManager,
         RetryStrategy,
     )
+
     RESILIENCE_IMPORTS_AVAILABLE = True
 except ImportError as e:
     print(f"Resilience imports not available: {e}")
@@ -59,9 +60,9 @@ def test_import_resilience_strategies():
 def test_retry_strategy_enum():
     """Test RetryStrategy enum values and functionality."""
     # Test expected enum values exist
-    assert hasattr(RetryStrategy, 'EXPONENTIAL')
-    assert hasattr(RetryStrategy, 'LINEAR')
-    assert hasattr(RetryStrategy, 'CONSTANT')
+    assert hasattr(RetryStrategy, "EXPONENTIAL")
+    assert hasattr(RetryStrategy, "LINEAR")
+    assert hasattr(RetryStrategy, "CONSTANT")
 
     # Test enum value equality
     assert RetryStrategy.EXPONENTIAL == RetryStrategy.EXPONENTIAL
@@ -88,6 +89,7 @@ def test_static_fallback_creation():
 @pytest.mark.skipif(not RESILIENCE_IMPORTS_AVAILABLE, reason="Resilience modules not importable")
 def test_function_fallback_creation():
     """Test FunctionFallback strategy creation and functionality."""
+
     # Create function fallback
     def test_fallback_func(*args, **kwargs):
         return {"status": "fallback", "source": "function", "args": args}
@@ -111,11 +113,11 @@ def test_fallback_config_creation():
     assert default_config is not None
 
     # Test config with custom parameters (check what parameters exist)
-    config_attrs = [attr for attr in dir(FallbackConfig) if not attr.startswith('_')]
+    config_attrs = [attr for attr in dir(FallbackConfig) if not attr.startswith("_")]
     print(f"Available FallbackConfig attributes: {config_attrs}")
 
     # Try to create config with reasonable parameters
-    if hasattr(FallbackConfig, 'max_fallback_attempts'):
+    if hasattr(FallbackConfig, "max_fallback_attempts"):
         custom_config = FallbackConfig(max_fallback_attempts=5)
         assert custom_config is not None
     else:
@@ -131,14 +133,11 @@ def test_retry_config_creation():
     assert default_config is not None
 
     # Test config with exponential backoff
-    if hasattr(default_config, 'strategy'):
-        exponential_config = RetryConfig(
-            strategy=RetryStrategy.EXPONENTIAL,
-            max_attempts=5
-        )
+    if hasattr(default_config, "strategy"):
+        exponential_config = RetryConfig(strategy=RetryStrategy.EXPONENTIAL, max_attempts=5)
         assert exponential_config is not None
         assert exponential_config.strategy == RetryStrategy.EXPONENTIAL
-        if hasattr(exponential_config, 'max_attempts'):
+        if hasattr(exponential_config, "max_attempts"):
             assert exponential_config.max_attempts == 5
 
 
@@ -153,12 +152,12 @@ def test_fallback_manager_basic_functionality():
     static_fallback = StaticFallback("test_static", {"status": "ok"})
 
     # Try to register fallback (check if method exists)
-    if hasattr(manager, 'register_fallback'):
+    if hasattr(manager, "register_fallback"):
         manager.register_fallback(static_fallback)
         print("Successfully registered fallback strategy")
 
     # Test manager has strategies (check different possible attribute names)
-    possible_attrs = ['strategies', '_strategies', 'fallbacks', '_fallbacks']
+    possible_attrs = ["strategies", "_strategies", "fallbacks", "_fallbacks"]
     for attr in possible_attrs:
         if hasattr(manager, attr):
             strategies = getattr(manager, attr)
@@ -202,7 +201,7 @@ async def test_static_fallback_execution():
     static_fallback = StaticFallback("test_execution", fallback_value)
 
     # Test execution if method exists
-    if hasattr(static_fallback, 'execute_fallback'):
+    if hasattr(static_fallback, "execute_fallback"):
         try:
             # Try executing with a mock exception
             result = await static_fallback.execute_fallback(
@@ -232,7 +231,7 @@ def test_discover_resilience_strategy_classes():
         # Find strategy-related classes in fallback module
         fallback_classes = []
         for name in dir(fallback_module):
-            if not name.startswith('_'):
+            if not name.startswith("_"):
                 obj = getattr(fallback_module, name)
                 if inspect.isclass(obj):
                     fallback_classes.append(name)
@@ -240,15 +239,20 @@ def test_discover_resilience_strategy_classes():
         # Find strategy-related classes in retry module
         retry_classes = []
         for name in dir(retry_module):
-            if not name.startswith('_'):
+            if not name.startswith("_"):
                 obj = getattr(retry_module, name)
                 if inspect.isclass(obj):
                     retry_classes.append(name)
 
         # Combine and filter strategy-related classes
-        strategy_classes = [name for name in fallback_classes + retry_classes
-                           if 'strategy' in name.lower() or 'fallback' in name.lower()
-                           or 'retry' in name.lower() or 'backoff' in name.lower()]
+        strategy_classes = [
+            name
+            for name in fallback_classes + retry_classes
+            if "strategy" in name.lower()
+            or "fallback" in name.lower()
+            or "retry" in name.lower()
+            or "backoff" in name.lower()
+        ]
 
         print(f"Discovered resilience strategy classes: {strategy_classes}")
         assert len(strategy_classes) > 0
@@ -263,18 +267,17 @@ async def test_resilience_strategy_integration():
     """Integration test for resilience strategies working together."""
     # Create retry configuration
     retry_config = RetryConfig()
-    if hasattr(retry_config, 'strategy'):
+    if hasattr(retry_config, "strategy"):
         retry_config.strategy = RetryStrategy.EXPONENTIAL
 
     # Create fallback strategy
     static_fallback = StaticFallback(
-        "integration_fallback",
-        {"status": "degraded", "message": "Using cached data"}
+        "integration_fallback", {"status": "degraded", "message": "Using cached data"}
     )
 
     # Create fallback manager and register strategy
     manager = FallbackManager()
-    if hasattr(manager, 'register_fallback'):
+    if hasattr(manager, "register_fallback"):
         manager.register_fallback(static_fallback)
 
     # Test integration
@@ -300,5 +303,5 @@ def test_chain_fallback_creation():
 
     assert chain_fallback is not None
     assert chain_fallback.name == "test_chain"
-    if hasattr(chain_fallback, 'fallback_strategies'):
+    if hasattr(chain_fallback, "fallback_strategies"):
         assert len(chain_fallback.fallback_strategies) == 2

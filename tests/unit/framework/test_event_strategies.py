@@ -12,6 +12,7 @@ def test_import_event_types():
     """Test that event types can be imported."""
     try:
         from src.framework.events.types import EventPriority
+
         assert issubclass(EventPriority, Enum)
         print("✓ EventPriority imported successfully")
     except ImportError as e:
@@ -24,10 +25,10 @@ def test_event_priority_enum():
         from src.framework.events.types import EventPriority
 
         # Test enum members exist
-        assert hasattr(EventPriority, 'LOW')
-        assert hasattr(EventPriority, 'NORMAL')
-        assert hasattr(EventPriority, 'HIGH')
-        assert hasattr(EventPriority, 'CRITICAL')
+        assert hasattr(EventPriority, "LOW")
+        assert hasattr(EventPriority, "NORMAL")
+        assert hasattr(EventPriority, "HIGH")
+        assert hasattr(EventPriority, "CRITICAL")
 
         # Test enum values
         assert EventPriority.LOW.value == "low"
@@ -91,7 +92,7 @@ def test_event_data_creation():
             "source": "user-service",
             "data": {"user_id": "123", "email": "test@example.com"},
             "timestamp": datetime.now(timezone.utc),
-            "priority": EventPriority.NORMAL
+            "priority": EventPriority.NORMAL,
         }
 
         # Test event can be created with all fields
@@ -118,7 +119,12 @@ def test_event_validation():
         assert EventPriority.HIGH != EventPriority.NORMAL
 
         # Test priority ordering (if supported)
-        priorities = [EventPriority.LOW, EventPriority.NORMAL, EventPriority.HIGH, EventPriority.CRITICAL]
+        priorities = [
+            EventPriority.LOW,
+            EventPriority.NORMAL,
+            EventPriority.HIGH,
+            EventPriority.CRITICAL,
+        ]
         assert len(set(priorities)) == 4  # All unique
 
         print("✓ Event validation passed")

@@ -71,7 +71,7 @@ class FileSystemConnector(ExternalSystemConnector):
 
             if operation == "read":
                 if full_path.exists():
-                    content = full_path.read_text(encoding='utf-8')
+                    content = full_path.read_text(encoding="utf-8")
                     result_data = {"content": content, "size": len(content), "path": str(file_path)}
                 else:
                     raise FileNotFoundError(f"File not found: {file_path}")
@@ -79,13 +79,13 @@ class FileSystemConnector(ExternalSystemConnector):
                 content = request.data.get("content", "") if request.data else ""
                 # Ensure parent directories exist
                 full_path.parent.mkdir(parents=True, exist_ok=True)
-                full_path.write_text(content, encoding='utf-8')
+                full_path.write_text(content, encoding="utf-8")
                 result_data = {"bytes_written": len(content), "path": str(file_path)}
             elif operation == "append":
                 content = request.data.get("content", "") if request.data else ""
                 # Ensure parent directories exist
                 full_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(full_path, 'a', encoding='utf-8') as f:
+                with open(full_path, "a", encoding="utf-8") as f:
                     f.write(content)
                 result_data = {"bytes_appended": len(content), "path": str(file_path)}
             elif operation == "delete":
@@ -101,12 +101,21 @@ class FileSystemConnector(ExternalSystemConnector):
                 if full_path.is_dir():
                     files = [f.name for f in full_path.iterdir() if f.is_file()]
                     dirs = [d.name for d in full_path.iterdir() if d.is_dir()]
-                    result_data = {"files": files, "directories": dirs, "total_files": len(files), "path": str(file_path)}
+                    result_data = {
+                        "files": files,
+                        "directories": dirs,
+                        "total_files": len(files),
+                        "path": str(file_path),
+                    }
                 else:
                     files = [f.name for f in self.base_path.iterdir() if f.is_file()]
                     result_data = {"files": files, "count": len(files), "path": str(self.base_path)}
             elif operation == "exists":
-                result_data = {"exists": full_path.exists(), "is_file": full_path.is_file(), "path": str(file_path)}
+                result_data = {
+                    "exists": full_path.exists(),
+                    "is_file": full_path.is_file(),
+                    "path": str(file_path),
+                }
             elif operation == "info":
                 if full_path.exists():
                     stat = full_path.stat()
@@ -159,7 +168,11 @@ class FileSystemConnector(ExternalSystemConnector):
         """Check file system health."""
         try:
             # Check if base path is accessible
-            return self.connected and self.base_path.exists() and os.access(self.base_path, os.R_OK | os.W_OK)
+            return (
+                self.connected
+                and self.base_path.exists()
+                and os.access(self.base_path, os.R_OK | os.W_OK)
+            )
         except Exception as e:
             logging.exception("File system health check failed: %s", e)
             return False

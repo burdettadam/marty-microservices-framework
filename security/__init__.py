@@ -82,9 +82,7 @@ def get_availability_status():
         },
         "security_headers": {
             "available": _security_headers_available,
-            "error": _security_headers_import_error
-            if not _security_headers_available
-            else None,
+            "error": _security_headers_import_error if not _security_headers_available else None,
         },
     }
     return status
@@ -96,9 +94,7 @@ def check_dependencies():
     all_available = all(component["available"] for component in status.values())
 
     if not all_available:
-        print(
-            "⚠️ Some security components are not available due to missing dependencies:"
-        )
+        print("⚠️ Some security components are not available due to missing dependencies:")
         for name, info in status.items():
             if not info["available"]:
                 print(f"❌ {name}: {info['error']}")

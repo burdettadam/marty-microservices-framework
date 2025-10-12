@@ -84,9 +84,7 @@ class ServiceDiscoveryClient(ABC):
                 preferred_instances = zone_instances
 
         elif self.config.region_aware and query.prefer_region:
-            region_instances = [
-                i for i in instances if i.metadata.region == query.prefer_region
-            ]
+            region_instances = [i for i in instances if i.metadata.region == query.prefer_region]
             if region_instances:
                 preferred_instances = region_instances
 

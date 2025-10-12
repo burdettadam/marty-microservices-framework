@@ -72,9 +72,7 @@ class PolicyEngine:
 
         return False
 
-    def _get_context_value(
-        self, attribute: str, context: builtins.dict[str, Any]
-    ) -> Any:
+    def _get_context_value(self, attribute: str, context: builtins.dict[str, Any]) -> Any:
         """Get value from context using dot notation."""
         keys = attribute.split(".")
         value = context
@@ -107,9 +105,9 @@ class AuthorizationManager:
         self.policy_engine = PolicyEngine()
 
         # Access control lists
-        self.resource_acls: builtins.dict[
-            str, builtins.dict[str, builtins.set[str]]
-        ] = defaultdict(lambda: defaultdict(set))
+        self.resource_acls: builtins.dict[str, builtins.dict[str, builtins.set[str]]] = defaultdict(
+            lambda: defaultdict(set)
+        )
 
         # Initialize default roles and permissions
         self._initialize_default_rbac()
@@ -221,9 +219,7 @@ class AuthorizationManager:
         # For now, we'll just track the assignment
         return True
 
-    def check_permission(
-        self, principal: SecurityPrincipal, resource: str, action: str
-    ) -> bool:
+    def check_permission(self, principal: SecurityPrincipal, resource: str, action: str) -> bool:
         """Check if principal has permission to perform action on resource."""
         try:
             # Check direct permissions
@@ -249,9 +245,7 @@ class AuthorizationManager:
             print(f"Permission check error: {e}")
             return False
 
-    def _get_effective_permissions(
-        self, roles: builtins.list[str]
-    ) -> builtins.set[str]:
+    def _get_effective_permissions(self, roles: builtins.list[str]) -> builtins.set[str]:
         """Get effective permissions from roles including inheritance."""
         effective_permissions = set()
 
@@ -284,9 +278,7 @@ class AuthorizationManager:
 
         return self.policy_engine.evaluate_policies(self.policies, context)
 
-    def _check_acl_permission(
-        self, principal_id: str, resource: str, action: str
-    ) -> bool:
+    def _check_acl_permission(self, principal_id: str, resource: str, action: str) -> bool:
         """Check access control list permissions."""
         if resource in self.resource_acls:
             acl = self.resource_acls[resource]

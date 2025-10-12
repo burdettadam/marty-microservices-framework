@@ -39,9 +39,7 @@ async def setup_observability(
     event_bus = None
 
     if enable_metrics:
-        metrics_config = MetricsConfig(
-            service_name=service_name, service_version=service_version
-        )
+        metrics_config = MetricsConfig(service_name=service_name, service_version=service_version)
         metrics_collector = MetricsCollector(metrics_config)
 
     if enable_events:

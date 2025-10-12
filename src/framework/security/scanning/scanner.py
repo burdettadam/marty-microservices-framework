@@ -74,9 +74,7 @@ class SecurityScanner:
             },
         }
 
-    def scan_code(
-        self, code: str, file_path: str = ""
-    ) -> builtins.list[SecurityVulnerability]:
+    def scan_code(self, code: str, file_path: str = "") -> builtins.list[SecurityVulnerability]:
         """Scan code for security vulnerabilities."""
         vulnerabilities = []
 
@@ -92,7 +90,9 @@ class SecurityScanner:
                     title=f"{vuln_type.replace('_', ' ').title()} in {file_path or 'code'}",
                     description=pattern_info["description"],
                     severity=pattern_info["severity"],
-                    affected_component=f"{file_path}:{line_number}" if file_path else f"line:{line_number}",
+                    affected_component=f"{file_path}:{line_number}"
+                    if file_path
+                    else f"line:{line_number}",
                     remediation=self._get_remediation_advice(vuln_type),
                 )
 
@@ -134,10 +134,11 @@ class SecurityScanner:
                     if key in insecure_configs:
                         config_info = insecure_configs[key]
 
-                        if (key == "debug" and value is True) or \
-                           (key == "ssl_verify" and value is False) or \
-                           (key == "allow_origins" and value == "*"):
-
+                        if (
+                            (key == "debug" and value is True)
+                            or (key == "ssl_verify" and value is False)
+                            or (key == "allow_origins" and value == "*")
+                        ):
                             vulnerability = SecurityVulnerability(
                                 vulnerability_id=str(uuid.uuid4()),
                                 title=f"Insecure Configuration: {current_path}",
@@ -183,10 +184,7 @@ class SecurityScanner:
                 vuln_info = known_vulns[package_name]
 
                 # Simplified version checking
-                if any(
-                    version.startswith(v.replace("< ", ""))
-                    for v in vuln_info["versions"]
-                ):
+                if any(version.startswith(v.replace("< ", "")) for v in vuln_info["versions"]):
                     vulnerability = SecurityVulnerability(
                         vulnerability_id=str(uuid.uuid4()),
                         title=f"Vulnerable Dependency: {package_name}",
@@ -240,10 +238,6 @@ class SecurityScanner:
             "total_vulnerabilities": len(self.vulnerabilities),
             "by_severity": dict(by_severity),
             "by_component": dict(by_component),
-            "open_vulnerabilities": len(
-                [v for v in self.vulnerabilities if v.status == "open"]
-            ),
-            "fixed_vulnerabilities": len(
-                [v for v in self.vulnerabilities if v.status == "fixed"]
-            ),
+            "open_vulnerabilities": len([v for v in self.vulnerabilities if v.status == "open"]),
+            "fixed_vulnerabilities": len([v for v in self.vulnerabilities if v.status == "fixed"]),
         }

@@ -102,9 +102,7 @@ class SQLAlchemyTaskRepository(TaskRepositoryPort):
 
         return [self._model_to_entity(model) for model in task_models]
 
-    async def find_all(
-        self, limit: int | None = None, offset: int = 0
-    ) -> builtins.list[Task]:
+    async def find_all(self, limit: int | None = None, offset: int = 0) -> builtins.list[Task]:
         """Find all tasks with optional pagination."""
         stmt = (
             sa.select(TaskModel)
@@ -145,9 +143,7 @@ class SQLAlchemyTaskRepository(TaskRepositoryPort):
             assignee = User(
                 name=PersonName(model.assignee.first_name, model.assignee.last_name),
                 email=Email(model.assignee.email),
-                phone=PhoneNumber(model.assignee.phone)
-                if model.assignee.phone
-                else None,
+                phone=PhoneNumber(model.assignee.phone) if model.assignee.phone else None,
                 entity_id=model.assignee.id,
             )
             assignee._active = model.assignee.active
@@ -235,19 +231,13 @@ class SQLAlchemyUserRepository(UserRepositoryPort):
 
     async def find_active_users(self) -> builtins.list[User]:
         """Find all active users."""
-        stmt = (
-            sa.select(UserModel)
-            .where(UserModel.active)
-            .order_by(UserModel.created_at.desc())
-        )
+        stmt = sa.select(UserModel).where(UserModel.active).order_by(UserModel.created_at.desc())
         result = await self._session.execute(stmt)
         user_models = result.scalars().all()
 
         return [self._model_to_entity(model) for model in user_models]
 
-    async def find_all(
-        self, limit: int | None = None, offset: int = 0
-    ) -> builtins.list[User]:
+    async def find_all(self, limit: int | None = None, offset: int = 0) -> builtins.list[User]:
         """Find all users with optional pagination."""
         stmt = sa.select(UserModel).order_by(UserModel.created_at.desc()).offset(offset)
 

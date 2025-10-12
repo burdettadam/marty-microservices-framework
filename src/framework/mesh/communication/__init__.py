@@ -7,6 +7,15 @@ This package provides comprehensive service communication functionality includin
 - Service-to-service communication management
 - Service dependency management
 - Advanced service discovery
+
+Migration note: This package consolidates all communication functionality.
+The previous communication.py file has been merged into this __init__.py to prevent
+divergent entry points and duplicate exports.
+
+For new development, import directly from this package:
+- from marty_mmf.framework.mesh.communication import ServiceHealthChecker
+- from marty_mmf.framework.mesh.communication import CommunicationProtocol
+- etc.
 """
 
 from .health_checker import ServiceHealthChecker

@@ -118,9 +118,7 @@ class DistributedTracing:
             trace.set_tracer_provider(self.tracer_provider)
 
             # Create tracer
-            self.tracer = trace.get_tracer(
-                self.config.service_name, self.config.service_version
-            )
+            self.tracer = trace.get_tracer(self.config.service_name, self.config.service_version)
 
             # Setup metrics if enabled
             if self.config.enable_prometheus_metrics:
@@ -200,9 +198,7 @@ class DistributedTracing:
             metrics.set_meter_provider(self.meter_provider)
 
             # Create meter
-            self.meter = metrics.get_meter(
-                self.config.service_name, self.config.service_version
-            )
+            self.meter = metrics.get_meter(self.config.service_name, self.config.service_version)
 
             logger.info("OpenTelemetry metrics with Prometheus configured")
 
@@ -394,9 +390,7 @@ class DistributedTracing:
 
         return span
 
-    def add_span_event(
-        self, name: str, attributes: builtins.dict[str, Any] | None = None
-    ):
+    def add_span_event(self, name: str, attributes: builtins.dict[str, Any] | None = None):
         """Add an event to the current span"""
         current_span = trace.get_current_span()
         if current_span and current_span.is_recording():
@@ -449,9 +443,7 @@ class TracingMiddleware(BaseHTTPMiddleware):
                 current_span.set_attribute(
                     "http.request.size", request.headers.get("content-length", "0")
                 )
-                current_span.set_attribute(
-                    "http.user_agent", request.headers.get("user-agent", "")
-                )
+                current_span.set_attribute("http.user_agent", request.headers.get("user-agent", ""))
                 current_span.set_attribute(
                     "http.client_ip", request.client.host if request.client else ""
                 )
@@ -461,9 +453,7 @@ class TracingMiddleware(BaseHTTPMiddleware):
 
             # Add response information to span
             if current_span and current_span.is_recording():
-                current_span.set_attribute(
-                    "http.response.status_code", response.status_code
-                )
+                current_span.set_attribute("http.response.status_code", response.status_code)
                 current_span.set_attribute(
                     "http.response.size", response.headers.get("content-length", "0")
                 )
@@ -490,9 +480,7 @@ def trace_grpc_method(method_name: str | None = None):
 
     def decorator(func):
         span_name = method_name or f"grpc.{func.__name__}"
-        return DistributedTracing.trace_function(
-            span_name, {"grpc.method": func.__name__}
-        )(func)
+        return DistributedTracing.trace_function(span_name, {"grpc.method": func.__name__})(func)
 
     return decorator
 

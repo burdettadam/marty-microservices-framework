@@ -41,7 +41,7 @@ class TestEvent:
             aggregate_id="user-123",
             event_type="user.created",
             event_data={"user_id": "123", "name": "Alice"},
-            metadata=EventMetadata(correlation_id="corr-123")
+            metadata=EventMetadata(correlation_id="corr-123"),
         )
 
         assert event.aggregate_id == "user-123"
@@ -55,10 +55,7 @@ class TestEvent:
             aggregate_id="user-123",
             event_type="user.created",
             event_data={"user_id": "123"},
-            metadata=EventMetadata(
-                event_id="event1",
-                correlation_id="corr-123"
-            )
+            metadata=EventMetadata(event_id="event1", correlation_id="corr-123"),
         )
 
         event2 = Event(
@@ -67,8 +64,8 @@ class TestEvent:
             event_data={"user_id": "123"},
             metadata=EventMetadata(
                 event_id="event2",  # Different event ID
-                correlation_id="corr-123"
-            )
+                correlation_id="corr-123",
+            ),
         )
 
         # Events should be different due to different event IDs
@@ -86,6 +83,7 @@ class TestEventBus:
     @pytest.fixture
     def user_handler(self):
         """Create a test event handler."""
+
         class UserEventHandler(EventHandler):
             def __init__(self):
                 self.handled_events = []
@@ -110,7 +108,7 @@ class TestEventBus:
         event = Event(
             aggregate_id="user-123",
             event_type="user.created",
-            event_data={"user_id": "123", "name": "Alice"}
+            event_data={"user_id": "123", "name": "Alice"},
         )
 
         await event_bus.publish(event)
@@ -125,6 +123,7 @@ class TestEventSourcing:
 
     def test_aggregate_creation(self):
         """Test creating an aggregate root."""
+
         class TestUser(AggregateRoot):
             def __init__(self, user_id: str = None):
                 super().__init__(user_id)
@@ -150,6 +149,7 @@ class TestEventSourcing:
     @pytest.mark.asyncio
     async def test_aggregate_event_application(self):
         """Test applying events to aggregate."""
+
         class TestUser(AggregateRoot):
             def __init__(self, user_id: str = None):
                 super().__init__(user_id)
@@ -182,11 +182,7 @@ class TestEventSourcing:
 
         # Create events
         events = [
-            Event(
-                aggregate_id=stream_id,
-                event_type="user.created",
-                event_data={"name": "Charlie"}
-            )
+            Event(aggregate_id=stream_id, event_type="user.created", event_data={"name": "Charlie"})
         ]
 
         # Store events - start with empty stream (version 0)
@@ -205,6 +201,7 @@ class TestCQRS:
     @pytest.fixture
     def command_handler(self):
         """Create a test command handler."""
+
         class UserCommandHandler(CommandHandler):
             def __init__(self):
                 pass
@@ -213,7 +210,7 @@ class TestCQRS:
                 return CommandResult(
                     command_id=command.command_id,
                     status=CommandStatus.COMPLETED,
-                    result_data={"user_id": "123"}
+                    result_data={"user_id": "123"},
                 )
 
             def can_handle(self, command: Command) -> bool:
@@ -224,15 +221,14 @@ class TestCQRS:
     @pytest.fixture
     def query_handler(self):
         """Create a test query handler."""
+
         class UserQueryHandler(QueryHandler):
             def __init__(self):
                 pass
 
             async def handle(self, query: Query) -> QueryResult:
                 return QueryResult(
-                    query_id=query.query_id,
-                    data={"user_id": "123", "name": "Alice"},
-                    total_count=1
+                    query_id=query.query_id, data={"user_id": "123", "name": "Alice"}, total_count=1
                 )
 
             def can_handle(self, query: Query) -> bool:
@@ -291,6 +287,7 @@ class TestSagaPatterns:
 
     def test_saga_creation(self):
         """Test creating a saga."""
+
         class OrderSaga(Saga):
             def __init__(self, saga_id: str = None):
                 super().__init__(saga_id)
@@ -300,7 +297,7 @@ class TestSagaPatterns:
                 self.steps = [
                     SagaStep(step_name="reserve_inventory", step_order=1),
                     SagaStep(step_name="process_payment", step_order=2),
-                    SagaStep(step_name="ship_order", step_order=3)
+                    SagaStep(step_name="ship_order", step_order=3),
                 ]
 
         saga = OrderSaga(saga_id="order-123")
@@ -311,6 +308,7 @@ class TestSagaPatterns:
     @pytest.mark.asyncio
     async def test_saga_manager_workflow(self):
         """Test saga manager workflow."""
+
         class OrderSaga(Saga):
             def __init__(self, saga_id: str = None):
                 super().__init__(saga_id)
@@ -327,7 +325,9 @@ class TestSagaPatterns:
         orchestrator.register_saga_type("order_processing", OrderSaga)
 
         # Create and start saga
-        saga_id = await saga_manager.create_and_start_saga("order_processing", {"order_id": "order-789"})
+        saga_id = await saga_manager.create_and_start_saga(
+            "order_processing", {"order_id": "order-789"}
+        )
 
         assert saga_id is not None
 
@@ -345,13 +345,13 @@ class TestEventStreamingIntegration:
             Event(
                 aggregate_id="user-replay",
                 event_type="user.created",
-                event_data={"name": "Alice", "email": "alice@example.com"}
+                event_data={"name": "Alice", "email": "alice@example.com"},
             ),
             Event(
                 aggregate_id="user-replay",
                 event_type="user.updated",
-                event_data={"email": "alice.smith@example.com"}
-            )
+                event_data={"email": "alice.smith@example.com"},
+            ),
         ]
 
         await event_store.append_events("user-replay", events, expected_version=0)

@@ -48,9 +48,7 @@ class ServiceGenerator:
             autoescape=True,
         )
 
-    def generate_service(
-        self, service_type: str, service_name: str, **options: Any
-    ) -> None:
+    def generate_service(self, service_type: str, service_name: str, **options: Any) -> None:
         """
         Generate a new service from templates.
 
@@ -90,9 +88,7 @@ class ServiceGenerator:
         print("   2. Add any new dependencies with: uv add <package-name>")
         print("   3. Implement your business logic in the service class")
         print("   4. Add your API endpoints or gRPC methods")
-        print(
-            f"   5. Run tests: uv run pytest src/{template_vars['service_package']}/tests/"
-        )
+        print(f"   5. Run tests: uv run pytest src/{template_vars['service_package']}/tests/")
         print(
             f"   6. Build Docker image: docker build -f src/{template_vars['service_package']}/Dockerfile ."
         )
@@ -100,19 +96,13 @@ class ServiceGenerator:
         # Add service mesh deployment instructions
         if template_vars.get("service_mesh_enabled", False):
             print("🕸️  Service Mesh Configuration:")
-            print(
-                "   7. Deploy with service mesh: kubectl apply -k k8s/overlays/service-mesh/"
-            )
-            print(
-                "   8. Apply service mesh policies: kubectl apply -f k8s/service-mesh/"
-            )
+            print("   7. Deploy with service mesh: kubectl apply -k k8s/overlays/service-mesh/")
+            print("   8. Apply service mesh policies: kubectl apply -f k8s/service-mesh/")
             print(
                 f"   9. Verify mesh injection: kubectl get pods -n {template_vars.get('namespace', 'default')} -o wide"
             )
 
-    def _prepare_template_vars(
-        self, service_name: str, **options: Any
-    ) -> dict[str, Any]:
+    def _prepare_template_vars(self, service_name: str, **options: Any) -> dict[str, Any]:
         """
         Prepare template variables from service name and options.
 
@@ -200,9 +190,7 @@ class ServiceGenerator:
 
         # Generate files from templates
         for template_file in template_dir.glob("*.j2"):
-            self._generate_file(
-                template_file, template_subdir, service_dir, template_vars
-            )
+            self._generate_file(template_file, template_subdir, service_dir, template_vars)
 
     def _generate_file(
         self,
@@ -277,9 +265,7 @@ class ServiceGenerator:
         # Copy base Kubernetes templates
         template_k8s_dir = self.templates_dir / "microservice_project_template" / "k8s"
         if template_k8s_dir.exists():
-            self._copy_and_render_k8s_templates(
-                template_k8s_dir, k8s_dir, template_vars
-            )
+            self._copy_and_render_k8s_templates(template_k8s_dir, k8s_dir, template_vars)
 
         print(
             f"  🎛️  Generated Kubernetes manifests in {k8s_dir.relative_to(self.output_dir.parent)}"
@@ -327,9 +313,7 @@ class ServiceGenerator:
                     # Copy non-template files as-is
                     target_path.write_bytes(item.read_bytes())
 
-                print(
-                    f"    📄 Generated K8s: {target_path.relative_to(target_dir.parent)}"
-                )
+                print(f"    📄 Generated K8s: {target_path.relative_to(target_dir.parent)}")
 
 
 def main() -> None:
@@ -366,9 +350,7 @@ Service Mesh:
         help="Type of service to generate",
     )
 
-    parser.add_argument(
-        "service_name", help="Name of the service (e.g., document-validator)"
-    )
+    parser.add_argument("service_name", help="Name of the service (e.g., document-validator)")
 
     parser.add_argument("--description", help="Service description")
 
@@ -378,9 +360,7 @@ Service Mesh:
         help="Author name (default: Marty Development Team)",
     )
 
-    parser.add_argument(
-        "--grpc-port", type=int, default=50051, help="gRPC port (default: 50051)"
-    )
+    parser.add_argument("--grpc-port", type=int, default=50051, help="gRPC port (default: 50051)")
 
     parser.add_argument(
         "--http-port",
@@ -389,9 +369,7 @@ Service Mesh:
         help="HTTP port for FastAPI services (default: 8080)",
     )
 
-    parser.add_argument(
-        "--output-dir", type=Path, help="Output directory (default: ./src)"
-    )
+    parser.add_argument("--output-dir", type=Path, help="Output directory (default: ./src)")
 
     # Service mesh options
     parser.add_argument(
@@ -427,24 +405,18 @@ Service Mesh:
 
     # Validate inputs
     if not (templates_dir / "service").exists():
-        print(
-            f"Error: Service templates directory not found: {templates_dir / 'service'}"
-        )
+        print(f"Error: Service templates directory not found: {templates_dir / 'service'}")
         sys.exit(1)
 
     # Validate service name
     if not re.match(r"^[a-z][a-z0-9-]*[a-z0-9]$", args.service_name):
-        print(
-            "Error: Service name must be lowercase with hyphens (e.g., document-validator)"
-        )
+        print("Error: Service name must be lowercase with hyphens (e.g., document-validator)")
         sys.exit(1)
 
     # Check if service already exists
     service_package = args.service_name.replace("-", "_")
     if (output_dir / service_package).exists():
-        response = input(
-            f"Service '{service_package}' already exists. Overwrite? (y/N): "
-        )
+        response = input(f"Service '{service_package}' already exists. Overwrite? (y/N): ")
         if response.lower() != "y":
             print("Generation cancelled.")
             sys.exit(0)

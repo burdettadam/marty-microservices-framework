@@ -73,9 +73,7 @@ class TestTimeoutDetection:
             print(f"\\n🔄 Starting phase: {phase['name']}")
 
             # Configure plugins for this phase
-            await self._configure_phase(
-                simulation_plugin, circuit_breaker_plugin, phase
-            )
+            await self._configure_phase(simulation_plugin, circuit_breaker_plugin, phase)
 
             # Execute phase test
             phase_results = await self._execute_timeout_test_phase(
@@ -96,14 +94,10 @@ class TestTimeoutDetection:
             await asyncio.sleep(3)
 
         # Analyze timeout patterns
-        timeout_analysis = await self._analyze_timeout_patterns(
-            results, timeout_monitor
-        )
+        timeout_analysis = await self._analyze_timeout_patterns(results, timeout_monitor)
 
         # Generate comprehensive report
-        report = self._generate_timeout_report(
-            results, timeout_analysis, timeout_monitor
-        )
+        report = self._generate_timeout_report(results, timeout_analysis, timeout_monitor)
 
         # Save report
         report_file = test_report_dir / "timeout_detection_report.json"
@@ -114,12 +108,12 @@ class TestTimeoutDetection:
 
         # Assertions
         assert len(results) == len(test_phases), "Should have results for all phases"
-        assert any(
-            phase["timeouts"] > 0 for phase in results.values()
-        ), "Should detect timeouts under high load"
-        assert any(
-            phase["circuit_breaker_trips"] > 0 for phase in results.values()
-        ), "Circuit breaker should trip under stress"
+        assert any(phase["timeouts"] > 0 for phase in results.values()), (
+            "Should detect timeouts under high load"
+        )
+        assert any(phase["circuit_breaker_trips"] > 0 for phase in results.values()), (
+            "Circuit breaker should trip under stress"
+        )
 
         # Print summary
         self._print_timeout_summary(report)
@@ -199,9 +193,9 @@ class TestTimeoutDetection:
 
         # Calculate final metrics
         if phase_metrics["response_times"]:
-            phase_metrics["avg_response_time"] = sum(
+            phase_metrics["avg_response_time"] = sum(phase_metrics["response_times"]) / len(
                 phase_metrics["response_times"]
-            ) / len(phase_metrics["response_times"])
+            )
             phase_metrics["max_response_time"] = max(phase_metrics["response_times"])
 
         return phase_metrics
@@ -281,15 +275,11 @@ class TestTimeoutDetection:
             # Brief pause between operations
             await asyncio.sleep(0.1)
 
-    async def _simulate_potentially_slow_operation(
-        self, simulation_plugin, operation_name
-    ):
+    async def _simulate_potentially_slow_operation(self, simulation_plugin, operation_name):
         """Simulate an operation that might be slow or timeout."""
 
         # Check if we should inject a timeout (make operation artificially slow)
-        timeout_injection_rate = getattr(
-            simulation_plugin.config, "timeout_injection_rate", 0.0
-        )
+        timeout_injection_rate = getattr(simulation_plugin.config, "timeout_injection_rate", 0.0)
 
         import random
 
@@ -334,8 +324,7 @@ class TestTimeoutDetection:
 
             # Circuit breaker effectiveness
             cb_trip_rate = (
-                phase_results["circuit_breaker_trips"]
-                / max(phase_results["timeouts"], 1)
+                phase_results["circuit_breaker_trips"] / max(phase_results["timeouts"], 1)
                 if phase_results["timeouts"] > 0
                 else 0
             )
@@ -362,9 +351,7 @@ class TestTimeoutDetection:
         for phase_name, phase_results in results.items():
             operations = phase_results["operations_attempted"]
             success_rate = (
-                phase_results["operations_succeeded"] / operations * 100
-                if operations > 0
-                else 0
+                phase_results["operations_succeeded"] / operations * 100 if operations > 0 else 0
             )
 
             patterns["load_impact_analysis"][phase_name] = {
@@ -398,9 +385,7 @@ class TestTimeoutDetection:
             "phase_results": results,
             "timeout_monitor_report": timeout_monitor.get_timeout_report(),
             "insights": self._generate_timeout_insights(results, timeout_analysis),
-            "recommendations": self._generate_timeout_recommendations(
-                results, timeout_analysis
-            ),
+            "recommendations": self._generate_timeout_recommendations(results, timeout_analysis),
         }
 
     def _generate_timeout_insights(self, results, patterns):
@@ -424,9 +409,7 @@ class TestTimeoutDetection:
 
         # Check circuit breaker effectiveness
         cb_effectiveness = patterns["circuit_breaker_effectiveness"]
-        avg_trip_rate = sum(cb["trip_rate"] for cb in cb_effectiveness) / len(
-            cb_effectiveness
-        )
+        avg_trip_rate = sum(cb["trip_rate"] for cb in cb_effectiveness) / len(cb_effectiveness)
         if avg_trip_rate > 0.8:
             insights.append(
                 {
@@ -447,9 +430,7 @@ class TestTimeoutDetection:
             )
 
         # Check response time degradation
-        response_times = [
-            p["avg_response_time"] for p in patterns["response_time_degradation"]
-        ]
+        response_times = [p["avg_response_time"] for p in patterns["response_time_degradation"]]
         if len(response_times) > 1 and response_times[-1] > response_times[0] * 3:
             insights.append(
                 {
@@ -470,9 +451,7 @@ class TestTimeoutDetection:
         recommendations = []
 
         # High timeout rate recommendations
-        max_timeout_rate = max(
-            p["timeout_rate"] for p in patterns["timeout_progression"]
-        )
+        max_timeout_rate = max(p["timeout_rate"] for p in patterns["timeout_progression"])
         if max_timeout_rate > 15:
             recommendations.append(
                 {

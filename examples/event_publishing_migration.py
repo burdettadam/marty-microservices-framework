@@ -26,6 +26,7 @@ from framework.events import (
 # Example 1: Migrating DTC Engine Event Publishing
 # ==============================================================================
 
+
 class DTCEngineOld:
     """Original DTC Engine with custom event publishing logic."""
 
@@ -45,6 +46,7 @@ class DTCEngineOld:
 
         async def handler(db_session) -> None:
             from marty_common.infrastructure import OutboxRepository
+
             outbox = OutboxRepository(db_session)
             await outbox.enqueue(
                 topic=topic,
@@ -69,9 +71,9 @@ class DTCEngineOld:
                 "dtc_id": dtc_data["id"],
                 "status": result["status"],
                 "timestamp": datetime.utcnow().isoformat(),
-                "validation_details": result
+                "validation_details": result,
             },
-            key=dtc_data["id"]
+            key=dtc_data["id"],
         )
 
         return result
@@ -89,7 +91,7 @@ class DTCEngineNew:
         event_type="dtc_validation_completed",
         aggregate_id_field="dtc_id",
         include_args=True,
-        include_result=True
+        include_result=True,
     )
     async def validate_dtc_new(self, dtc_id: str, dtc_data: dict[str, Any]) -> dict[str, Any]:
         """Migrated validation method using decorator."""
@@ -111,8 +113,8 @@ class DTCEngineNew:
             event_data={
                 "status": result["status"],
                 "validation_details": result,
-                "dtc_data": dtc_data
-            }
+                "dtc_data": dtc_data,
+            },
         )
 
         return result
@@ -121,6 +123,7 @@ class DTCEngineNew:
 # ==============================================================================
 # Example 2: Migrating CMC Engine Event Publishing
 # ==============================================================================
+
 
 class CMCEngineOld:
     """Original CMC Engine with direct event bus usage."""
@@ -154,10 +157,12 @@ class CMCEngineOld:
     async def _create_certificate(self, request):
         """Mock certificate creation."""
         from datetime import datetime, timezone
-        return type('CMC', (), {
-            'created_at': datetime.now(timezone.utc),
-            'document_number': request.document_number
-        })()
+
+        return type(
+            "CMC",
+            (),
+            {"created_at": datetime.now(timezone.utc), "document_number": request.document_number},
+        )()
 
 
 class CMCEngineNew:
@@ -167,16 +172,12 @@ class CMCEngineNew:
         self.storage = storage
         self.event_publisher = get_event_publisher()
 
-    @domain_event(
-        aggregate_type="cmc",
-        event_type="cmc_created",
-        aggregate_id_field="cmc_id"
-    )
+    @domain_event(aggregate_type="cmc", event_type="cmc_created", aggregate_id_field="cmc_id")
     @audit_event(
         event_type=AuditEventType.CERTIFICATE_ISSUED,
         action="create_cmc_certificate",
         resource_type="cmc_certificate",
-        resource_id_field="cmc_id"
+        resource_id_field="cmc_id",
     )
     async def create_cmc_new(self, cmc_id: str, request) -> str:
         """Migrated CMC creation using decorators."""
@@ -206,7 +207,7 @@ class CMCEngineNew:
                 "issuing_country": request.issuing_country,
                 "security_model": request.security_model,
                 "created_at": cmc_certificate.created_at.isoformat(),
-            }
+            },
         )
 
         # Publish audit event
@@ -218,8 +219,8 @@ class CMCEngineNew:
             operation_details={
                 "document_number": request.document_number,
                 "issuing_country": request.issuing_country,
-                "security_model": request.security_model
-            }
+                "security_model": request.security_model,
+            },
         )
 
         # Publish notification if needed
@@ -229,7 +230,7 @@ class CMCEngineNew:
                 recipient_type="user",
                 recipient_ids=[request.user_id],
                 subject="CMC Certificate Issued",
-                message=f"Your CMC certificate {cmc_id} has been issued successfully."
+                message=f"Your CMC certificate {cmc_id} has been issued successfully.",
             )
 
         return cmc_id
@@ -237,15 +238,18 @@ class CMCEngineNew:
     async def _create_certificate(self, request):
         """Mock certificate creation."""
         from datetime import datetime, timezone
-        return type('CMC', (), {
-            'created_at': datetime.now(timezone.utc),
-            'document_number': request.document_number
-        })()
+
+        return type(
+            "CMC",
+            (),
+            {"created_at": datetime.now(timezone.utc), "document_number": request.document_number},
+        )()
 
 
 # ==============================================================================
 # Example 3: Migrating Base Service Event Publishing
 # ==============================================================================
+
 
 class BaseServiceOld:
     """Original base service with custom event publishing."""
@@ -269,6 +273,7 @@ class BaseServiceOld:
 
         try:
             from marty_common.infrastructure import OutboxRepository
+
             serialized = json.dumps(payload).encode("utf-8")
 
             async def handler(db_session) -> None:
@@ -296,7 +301,7 @@ class BaseServiceNew:
         self.logger = None
         # Get event publisher with database session support
         self.event_publisher = get_event_publisher(
-            database_session=getattr(dependencies, 'database_session', None)
+            database_session=getattr(dependencies, "database_session", None)
         )
 
     async def publish_domain_event(
@@ -306,7 +311,7 @@ class BaseServiceNew:
         event_type: str,
         event_data: dict[str, Any],
         *,
-        session: Any = None
+        session: Any = None,
     ) -> str | None:
         """Publish domain events using unified publisher."""
         try:
@@ -318,7 +323,7 @@ class BaseServiceNew:
                 aggregate_type=aggregate_type,
                 aggregate_id=aggregate_id,
                 event_type=event_type,
-                event_data=event_data
+                event_data=event_data,
             )
 
             return event_id
@@ -333,7 +338,7 @@ class BaseServiceNew:
         action: str,
         resource_type: str,
         resource_id: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> str | None:
         """Publish audit events using unified publisher."""
         try:
@@ -342,7 +347,7 @@ class BaseServiceNew:
                 action=action,
                 resource_type=resource_type,
                 resource_id=resource_id,
-                **kwargs
+                **kwargs,
             )
 
             return event_id
@@ -356,6 +361,7 @@ class BaseServiceNew:
 # Example 4: User Service with Authentication Events
 # ==============================================================================
 
+
 class UserServiceMigrated:
     """Complete example of migrated user service."""
 
@@ -364,17 +370,13 @@ class UserServiceMigrated:
         self.email_service = email_service
         self.event_publisher = get_event_publisher()
 
-    @domain_event(
-        aggregate_type="user",
-        event_type="user_created",
-        aggregate_id_field="user_id"
-    )
+    @domain_event(aggregate_type="user", event_type="user_created", aggregate_id_field="user_id")
     @audit_event(
         event_type=AuditEventType.DATA_CREATED,
         action="create_user",
         resource_type="user",
         resource_id_field="user_id",
-        include_args=True
+        include_args=True,
     )
     async def create_user(self, user_id: str, user_data: dict[str, Any]) -> dict[str, Any]:
         """Create user with automatic event publishing."""
@@ -388,27 +390,19 @@ class UserServiceMigrated:
             recipient_ids=[user_id],
             subject="Welcome to Marty!",
             message="Your account has been created successfully.",
-            channels=["email"]
+            channels=["email"],
         )
 
         return user
 
-    @publish_on_success(
-        topic="auth.events",
-        event_type="login_successful",
-        key_field="user_id"
-    )
-    @publish_on_error(
-        topic="auth.events",
-        event_type="login_failed",
-        key_field="user_id"
-    )
+    @publish_on_success(topic="auth.events", event_type="login_successful", key_field="user_id")
+    @publish_on_error(topic="auth.events", event_type="login_failed", key_field="user_id")
     @audit_event(
         event_type=AuditEventType.USER_LOGIN,
         action="authenticate_user",
         resource_type="user",
         resource_id_field="user_id",
-        success_only=False  # Log both success and failure
+        success_only=False,  # Log both success and failure
     )
     async def authenticate(self, user_id: str, password: str, ip_address: str) -> bool:
         """Authenticate user with comprehensive event publishing."""
@@ -426,11 +420,7 @@ class UserServiceMigrated:
 
         return True
 
-    @domain_event(
-        aggregate_type="user",
-        event_type="user_updated",
-        aggregate_id_field="user_id"
-    )
+    @domain_event(aggregate_type="user", event_type="user_updated", aggregate_id_field="user_id")
     async def update_user(self, user_id: str, updates: dict[str, Any]) -> dict[str, Any]:
         """Update user with domain event."""
         user = await self.repository.update(user_id, updates)
@@ -443,10 +433,7 @@ class UserServiceMigrated:
                 action="update_critical_user_data",
                 resource_type="user",
                 resource_id=user_id,
-                operation_details={
-                    "updated_fields": list(updates.keys()),
-                    "critical_update": True
-                }
+                operation_details={"updated_fields": list(updates.keys()), "critical_update": True},
             )
 
         return user
@@ -460,6 +447,7 @@ class UserServiceMigrated:
 # Migration Utility Functions
 # ==============================================================================
 
+
 def create_migration_config() -> EventConfig:
     """Create configuration for migrated services."""
     return EventConfig(
@@ -470,7 +458,7 @@ def create_migration_config() -> EventConfig:
         audit_topic="audit.events",
         notification_topic="notification.events",
         enable_tracing=True,
-        enable_metrics=True
+        enable_metrics=True,
     )
 
 
@@ -496,14 +484,14 @@ async def migrate_service_events():
                     aggregate_type="user",
                     aggregate_id=old_event["data"]["user_id"],
                     event_type="user_created",
-                    event_data=old_event["data"]
+                    event_data=old_event["data"],
                 )
             elif old_event["topic"] == "dtc.validated":
                 await publisher.publish_domain_event(
                     aggregate_type="dtc",
                     aggregate_id=old_event["data"]["dtc_id"],
                     event_type="dtc_validated",
-                    event_data=old_event["data"]
+                    event_data=old_event["data"],
                 )
 
         print("Migration completed successfully")
@@ -515,6 +503,7 @@ async def migrate_service_events():
 # ==============================================================================
 # Testing Examples
 # ==============================================================================
+
 
 async def test_migration_examples():
     """Test the migration examples."""

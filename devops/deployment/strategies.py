@@ -148,9 +148,7 @@ class DeploymentValidation:
     min_success_rate: float = 0.95
 
     # Custom validation
-    custom_validations: builtins.list[builtins.dict[str, Any]] = field(
-        default_factory=list
-    )
+    custom_validations: builtins.list[builtins.dict[str, Any]] = field(default_factory=list)
 
     # Rollback triggers
     auto_rollback_enabled: bool = True
@@ -202,15 +200,9 @@ class DeploymentOperation:
             "strategy": self.strategy.value,
             "current_phase": self.current_phase.value,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
-            "target_config": self.target_config.to_dict()
-            if self.target_config
-            else None,
-            "traffic_config": self.traffic_config.to_dict()
-            if self.traffic_config
-            else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "target_config": self.target_config.to_dict() if self.target_config else None,
+            "traffic_config": self.traffic_config.to_dict() if self.traffic_config else None,
             "validation_config": self.validation_config.to_dict()
             if self.validation_config
             else None,
@@ -246,15 +238,11 @@ class DeploymentStrategyBase(ABC):
         """Execute deployment strategy"""
 
     @abstractmethod
-    async def rollback(
-        self, operation_id: str, reason: str = "Manual rollback"
-    ) -> bool:
+    async def rollback(self, operation_id: str, reason: str = "Manual rollback") -> bool:
         """Rollback deployment"""
 
     @abstractmethod
-    async def validate_deployment(
-        self, operation: DeploymentOperation
-    ) -> builtins.dict[str, Any]:
+    async def validate_deployment(self, operation: DeploymentOperation) -> builtins.dict[str, Any]:
         """Validate deployment success"""
 
     def _update_operation_phase(
@@ -268,9 +256,7 @@ class DeploymentStrategyBase(ABC):
         if progress is not None:
             operation.progress_percentage = progress
 
-        print(
-            f"📊 {operation.application_name} - {phase.value} ({operation.progress_percentage}%)"
-        )
+        print(f"📊 {operation.application_name} - {phase.value} ({operation.progress_percentage}%)")
 
 
 class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
@@ -325,9 +311,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
             if not validation_results.get("success", False):
                 operation.status = "failed"
-                operation.error_message = (
-                    f"Validation failed: {validation_results.get('error')}"
-                )
+                operation.error_message = f"Validation failed: {validation_results.get('error')}"
                 await self._cleanup_green_environment(operation)
                 return False
 
@@ -339,9 +323,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
             if not switch_success:
                 operation.status = "failed"
-                operation.error_message = (
-                    "Failed to switch traffic to green environment"
-                )
+                operation.error_message = "Failed to switch traffic to green environment"
                 await self.rollback(operation.operation_id, "Traffic switch failed")
                 return False
 
@@ -372,9 +354,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
             if METRICS_AVAILABLE:
                 self.deployments_total.labels(status="failed").inc()
 
-            print(
-                f"❌ Blue-Green deployment failed for {operation.application_name}: {e}"
-            )
+            print(f"❌ Blue-Green deployment failed for {operation.application_name}: {e}")
             return False
 
     async def _prepare_deployment(self, operation: DeploymentOperation):
@@ -384,9 +364,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
         operation.blue_deployment = await self._get_current_deployment(operation)
 
         # Generate green deployment name
-        operation.green_deployment = (
-            f"{operation.application_name}-green-{int(time.time())}"
-        )
+        operation.green_deployment = f"{operation.application_name}-green-{int(time.time())}"
 
         print(f"📋 Blue deployment: {operation.blue_deployment}")
         print(f"📋 Green deployment: {operation.green_deployment}")
@@ -442,9 +420,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
             core_v1 = client.CoreV1Api()
 
             service_patch = {
-                "spec": {
-                    "selector": {"app": operation.application_name, "version": "green"}
-                }
+                "spec": {"selector": {"app": operation.application_name, "version": "green"}}
             }
 
             core_v1.patch_namespaced_service(
@@ -484,9 +460,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
         """Cleanup green environment after failed deployment"""
 
         try:
-            print(
-                f"🧹 Cleaning up failed green environment: {operation.green_deployment}"
-            )
+            print(f"🧹 Cleaning up failed green environment: {operation.green_deployment}")
 
             if not self.kubernetes_client and KUBERNETES_AVAILABLE:
                 # Mock cleanup
@@ -503,9 +477,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
         except Exception as e:
             print(f"⚠️ Warning: Failed to cleanup green environment: {e}")
 
-    async def rollback(
-        self, operation_id: str, reason: str = "Manual rollback"
-    ) -> bool:
+    async def rollback(self, operation_id: str, reason: str = "Manual rollback") -> bool:
         """Rollback Blue-Green deployment"""
 
         if operation_id not in self.operations:
@@ -554,9 +526,7 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
             core_v1 = client.CoreV1Api()
 
             service_patch = {
-                "spec": {
-                    "selector": {"app": operation.application_name, "version": "blue"}
-                }
+                "spec": {"selector": {"app": operation.application_name, "version": "blue"}}
             }
 
             core_v1.patch_namespaced_service(
@@ -571,18 +541,13 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
             print(f"❌ Failed to switch traffic back to blue: {e}")
             return False
 
-    async def validate_deployment(
-        self, operation: DeploymentOperation
-    ) -> builtins.dict[str, Any]:
+    async def validate_deployment(self, operation: DeploymentOperation) -> builtins.dict[str, Any]:
         """Validate Blue-Green deployment"""
 
         validation_results = {"success": False, "checks": {}, "error": None}
 
         try:
-            if (
-                not operation.validation_config
-                or not operation.validation_config.enabled
-            ):
+            if not operation.validation_config or not operation.validation_config.enabled:
                 validation_results["success"] = True
                 return validation_results
 
@@ -608,15 +573,13 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
 
             # Custom validations
             for custom_validation in config.custom_validations:
-                custom_check = await self._perform_custom_validation(
-                    operation, custom_validation
-                )
+                custom_check = await self._perform_custom_validation(operation, custom_validation)
                 validation_results["checks"][custom_validation["name"]] = custom_check
 
                 if not custom_check["success"]:
-                    validation_results[
-                        "error"
-                    ] = f"Custom validation failed: {custom_validation['name']}"
+                    validation_results["error"] = (
+                        f"Custom validation failed: {custom_validation['name']}"
+                    )
                     return validation_results
 
             validation_results["success"] = True
@@ -737,13 +700,9 @@ class BlueGreenDeploymentStrategy(DeploymentStrategyBase):
             },
             "spec": {
                 "replicas": target.replicas,
-                "selector": {
-                    "matchLabels": {"app": operation.application_name, "version": color}
-                },
+                "selector": {"matchLabels": {"app": operation.application_name, "version": color}},
                 "template": {
-                    "metadata": {
-                        "labels": {"app": operation.application_name, "version": color}
-                    },
+                    "metadata": {"labels": {"app": operation.application_name, "version": color}},
                     "spec": {
                         "containers": [
                             {
@@ -822,16 +781,12 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
             # Phase 3: Gradual traffic shifting
             for i, traffic_percentage in enumerate(self.default_canary_steps):
                 progress = 20 + (i * 15)  # Progress from 20% to 95%
-                self._update_operation_phase(
-                    operation, DeploymentPhase.PROMOTING, progress
-                )
+                self._update_operation_phase(operation, DeploymentPhase.PROMOTING, progress)
 
                 print(f"🔄 Shifting {traffic_percentage}% traffic to canary")
 
                 # Update traffic split
-                success = await self._update_traffic_split(
-                    operation, traffic_percentage
-                )
+                success = await self._update_traffic_split(operation, traffic_percentage)
                 if not success:
                     await self.rollback(operation.operation_id, "Traffic split failed")
                     return False
@@ -841,9 +796,7 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
 
                 # Validate canary performance
                 validation_results = await self.validate_deployment(operation)
-                operation.validation_results[
-                    f"step_{traffic_percentage}"
-                ] = validation_results
+                operation.validation_results[f"step_{traffic_percentage}"] = validation_results
 
                 if not validation_results.get("success", False):
                     await self.rollback(
@@ -888,9 +841,7 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
         """Prepare canary deployment"""
 
         # Generate canary deployment name
-        operation.canary_deployment = (
-            f"{operation.application_name}-canary-{int(time.time())}"
-        )
+        operation.canary_deployment = f"{operation.application_name}-canary-{int(time.time())}"
 
         print(f"📋 Canary deployment: {operation.canary_deployment}")
 
@@ -917,9 +868,7 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
         try:
             stable_percentage = 100 - canary_percentage
 
-            print(
-                f"📊 Traffic split - Stable: {stable_percentage}%, Canary: {canary_percentage}%"
-            )
+            print(f"📊 Traffic split - Stable: {stable_percentage}%, Canary: {canary_percentage}%")
 
             # Mock traffic split update
             await asyncio.sleep(1)
@@ -942,9 +891,7 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
         except Exception as e:
             print(f"⚠️ Warning: Failed to complete canary promotion: {e}")
 
-    async def rollback(
-        self, operation_id: str, reason: str = "Manual rollback"
-    ) -> bool:
+    async def rollback(self, operation_id: str, reason: str = "Manual rollback") -> bool:
         """Rollback canary deployment"""
 
         if operation_id not in self.operations:
@@ -990,18 +937,13 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
         except Exception as e:
             print(f"⚠️ Warning: Failed to remove canary deployment: {e}")
 
-    async def validate_deployment(
-        self, operation: DeploymentOperation
-    ) -> builtins.dict[str, Any]:
+    async def validate_deployment(self, operation: DeploymentOperation) -> builtins.dict[str, Any]:
         """Validate canary deployment performance"""
 
         validation_results = {"success": False, "metrics": {}, "error": None}
 
         try:
-            if (
-                not operation.validation_config
-                or not operation.validation_config.enabled
-            ):
+            if not operation.validation_config or not operation.validation_config.enabled:
                 validation_results["success"] = True
                 return validation_results
 
@@ -1019,15 +961,15 @@ class CanaryDeploymentStrategy(DeploymentStrategyBase):
 
             # Check thresholds
             if error_rate > config.error_threshold:
-                validation_results[
-                    "error"
-                ] = f"Error rate {error_rate:.3f} exceeds threshold {config.error_threshold}"
+                validation_results["error"] = (
+                    f"Error rate {error_rate:.3f} exceeds threshold {config.error_threshold}"
+                )
                 return validation_results
 
             if avg_latency > config.latency_threshold:
-                validation_results[
-                    "error"
-                ] = f"Latency {avg_latency}ms exceeds threshold {config.latency_threshold}ms"
+                validation_results["error"] = (
+                    f"Latency {avg_latency}ms exceeds threshold {config.latency_threshold}ms"
+                )
                 return validation_results
 
             validation_results["success"] = True
@@ -1145,9 +1087,7 @@ class RollingDeploymentStrategy(DeploymentStrategyBase):
             for i in range(5):
                 await asyncio.sleep(1)
                 progress = 50 + (i * 8)  # Progress from 50% to 82%
-                self._update_operation_phase(
-                    operation, DeploymentPhase.VALIDATING, progress
-                )
+                self._update_operation_phase(operation, DeploymentPhase.VALIDATING, progress)
                 print(f"📊 Rollout progress: {i + 1}/5 pods updated")
 
             return True
@@ -1156,9 +1096,7 @@ class RollingDeploymentStrategy(DeploymentStrategyBase):
             print(f"❌ Rollout monitoring failed: {e}")
             return False
 
-    async def rollback(
-        self, operation_id: str, reason: str = "Manual rollback"
-    ) -> bool:
+    async def rollback(self, operation_id: str, reason: str = "Manual rollback") -> bool:
         """Rollback rolling deployment"""
 
         if operation_id not in self.operations:
@@ -1179,20 +1117,14 @@ class RollingDeploymentStrategy(DeploymentStrategyBase):
             operation.status = "rolled_back"
             operation.completed_at = datetime.now()
 
-            print(
-                f"✅ Rolling deployment rollback completed for {operation.application_name}"
-            )
+            print(f"✅ Rolling deployment rollback completed for {operation.application_name}")
             return True
 
         except Exception as e:
-            print(
-                f"❌ Rolling deployment rollback error for {operation.application_name}: {e}"
-            )
+            print(f"❌ Rolling deployment rollback error for {operation.application_name}: {e}")
             return False
 
-    async def validate_deployment(
-        self, operation: DeploymentOperation
-    ) -> builtins.dict[str, Any]:
+    async def validate_deployment(self, operation: DeploymentOperation) -> builtins.dict[str, Any]:
         """Validate rolling deployment"""
 
         validation_results = {"success": False, "pod_status": {}, "error": None}
@@ -1300,9 +1232,7 @@ class DeploymentOrchestrator:
 
         return operation
 
-    async def rollback_deployment(
-        self, operation_id: str, reason: str = "Manual rollback"
-    ) -> bool:
+    async def rollback_deployment(self, operation_id: str, reason: str = "Manual rollback") -> bool:
         """Rollback deployment operation"""
 
         if operation_id not in self.operations:
@@ -1318,9 +1248,7 @@ class DeploymentOrchestrator:
 
         return await strategy_impl.rollback(operation_id, reason)
 
-    def get_deployment_status(
-        self, operation_id: str
-    ) -> builtins.dict[str, Any] | None:
+    def get_deployment_status(self, operation_id: str) -> builtins.dict[str, Any] | None:
         """Get deployment operation status"""
 
         if operation_id not in self.operations:
@@ -1402,9 +1330,7 @@ async def main():
         performance_check_enabled=True,
         auto_rollback_enabled=True,
         error_threshold=0.05,
-        custom_validations=[
-            {"name": "database_connectivity", "type": "database_connectivity"}
-        ],
+        custom_validations=[{"name": "database_connectivity", "type": "database_connectivity"}],
     )
 
     # Demo Blue-Green deployment

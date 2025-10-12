@@ -1,4 +1,5 @@
 """Rollback management for deployment strategies."""
+
 import asyncio
 import logging
 import uuid
@@ -52,9 +53,7 @@ class RollbackManager:
             return success
 
         except Exception as e:
-            logging.exception(
-                f"Rollback failed for deployment {deployment.deployment_id}: {e}"
-            )
+            logging.exception(f"Rollback failed for deployment {deployment.deployment_id}: {e}")
 
             if self.rollback_history:
                 self.rollback_history[-1]["status"] = "failed"

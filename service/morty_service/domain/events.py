@@ -158,9 +158,7 @@ class TaskStatusChanged(DomainEvent):
 class UserActivated(DomainEvent):
     """Event raised when a user is activated."""
 
-    def __init__(
-        self, user_id: UUID, activated_by: UUID, occurred_at: datetime | None = None
-    ):
+    def __init__(self, user_id: UUID, activated_by: UUID, occurred_at: datetime | None = None):
         super().__init__(occurred_at)
         self._user_id = user_id
         self._activated_by = activated_by

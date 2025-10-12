@@ -31,9 +31,7 @@ class ServiceTemplateValidator:
         self.service_templates_dir = templates_dir / "service"
 
         if not self.service_templates_dir.exists():
-            raise ValueError(
-                f"Service templates directory not found: {self.service_templates_dir}"
-            )
+            raise ValueError(f"Service templates directory not found: {self.service_templates_dir}")
 
         # Initialize Jinja2 environment
         self.env = Environment(
@@ -62,8 +60,7 @@ class ServiceTemplateValidator:
         template_dirs = [
             d
             for d in self.service_templates_dir.iterdir()
-            if d.is_dir()
-            and d.name not in ["morty_service"]  # Exclude concrete implementations
+            if d.is_dir() and d.name not in ["morty_service"]  # Exclude concrete implementations
         ]
         results["total"] = len(template_dirs)
 
@@ -131,9 +128,7 @@ class ServiceTemplateValidator:
 
         if not template_files:
             result["valid"] = False
-            cast(builtins.list[str], result["errors"]).append(
-                "No template files (.j2) found"
-            )
+            cast(builtins.list[str], result["errors"]).append("No template files (.j2) found")
             return result
 
         # Validate each template file
@@ -150,9 +145,7 @@ class ServiceTemplateValidator:
 
             except Exception as e:
                 result["valid"] = False
-                cast(builtins.list[str], result["errors"]).append(
-                    f"{template_file.name}: {e!s}"
-                )
+                cast(builtins.list[str], result["errors"]).append(f"{template_file.name}: {e!s}")
 
         return result
 
@@ -174,9 +167,7 @@ class ServiceTemplateValidator:
         except TemplateSyntaxError as e:
             raise Exception(f"Jinja2 syntax error: {e!s}")
 
-    def _validate_python_generation(
-        self, template_file: Path, template_dir: Path
-    ) -> None:
+    def _validate_python_generation(self, template_file: Path, template_dir: Path) -> None:
         """
         Validate that a Python template generates valid Python code.
 

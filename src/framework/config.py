@@ -107,7 +107,9 @@ class DatabaseConfigSection(BaseConfigSection):
     @property
     def connection_url(self) -> str:
         """Get database connection URL."""
-        return f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
+        return (
+            f"postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
+        )
 
 
 @dataclass
@@ -197,9 +199,7 @@ class SecurityConfigSection(BaseConfigSection):
                 raise ValidationError("JWT secret is required when JWT is enabled")
 
         if self.authz.enabled and not self.authz.policy_config:
-            raise ValidationError(
-                "Policy config path is required when authorization is enabled"
-            )
+            raise ValidationError("Policy config path is required when authorization is enabled")
 
 
 @dataclass
@@ -217,9 +217,7 @@ class LoggingConfigSection(BaseConfigSection):
     def from_dict(cls, data: builtins.dict[str, Any]) -> "LoggingConfigSection":
         return cls(
             level=data.get("level", "INFO"),
-            format=data.get(
-                "format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            ),
+            format=data.get("format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s"),
             handlers=data.get("handlers", ["console"]),
             file=data.get("file"),
             max_bytes=data.get("max_bytes", 10485760),
@@ -268,9 +266,7 @@ class MonitoringConfigSection(BaseConfigSection):
         if self.metrics_port <= 0 or self.metrics_port > 65535:
             raise ValidationError(f"Invalid metrics port: {self.metrics_port}")
         if self.health_check_port <= 0 or self.health_check_port > 65535:
-            raise ValidationError(
-                f"Invalid health check port: {self.health_check_port}"
-            )
+            raise ValidationError(f"Invalid health check port: {self.health_check_port}")
         if self.tracing_enabled and not self.jaeger_endpoint:
             raise ValidationError("Jaeger endpoint required when tracing is enabled")
 
@@ -496,9 +492,7 @@ class ServiceConfig:
         config_path: Path | None = None,
     ):
         self.service_name = service_name
-        self.environment = (
-            Environment(environment) if isinstance(environment, str) else environment
-        )
+        self.environment = Environment(environment) if isinstance(environment, str) else environment
         self.config_path = config_path
 
         self._raw_config: builtins.dict[str, Any] = {}
@@ -580,9 +574,7 @@ class ServiceConfig:
         except OSError as e:
             raise ConfigurationError(f"Error reading file {path}: {e}")
 
-    def _merge_configs(
-        self, *configs: builtins.dict[str, Any]
-    ) -> builtins.dict[str, Any]:
+    def _merge_configs(self, *configs: builtins.dict[str, Any]) -> builtins.dict[str, Any]:
         """Merge multiple configuration dictionaries."""
         result = {}
         for config in configs:
@@ -597,11 +589,7 @@ class ServiceConfig:
         result = base.copy()
 
         for key, value in override.items():
-            if (
-                key in result
-                and isinstance(result[key], dict)
-                and isinstance(value, dict)
-            ):
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
                 result[key] = self._deep_merge(result[key], value)
             else:
                 result[key] = value
@@ -634,13 +622,8 @@ class ServiceConfig:
     def _validate_configuration(self) -> None:
         """Validate the loaded configuration."""
         # Validate required service-specific configuration exists
-        if (
-            "services" in self._raw_config
-            and self.service_name not in self._raw_config["services"]
-        ):
-            logger.warning(
-                "No service-specific configuration found for %s", self.service_name
-            )
+        if "services" in self._raw_config and self.service_name not in self._raw_config["services"]:
+            logger.warning("No service-specific configuration found for %s", self.service_name)
 
     @property
     def database(self) -> DatabaseConfigSection:
@@ -758,8 +741,12 @@ class ServiceConfig:
                     service_trust["trust_anchor"] = {
                         "certificate_store_path": service_config["certificate_store_path"],
                         "update_interval_hours": service_config.get("update_interval_hours", 24),
-                        "validation_timeout_seconds": service_config.get("validation_timeout_seconds", 30),
-                        "enable_online_verification": service_config.get("enable_online_verification", False),
+                        "validation_timeout_seconds": service_config.get(
+                            "validation_timeout_seconds", 30
+                        ),
+                        "enable_online_verification": service_config.get(
+                            "enable_online_verification", False
+                        ),
                     }
 
                 # Merge with main trust config

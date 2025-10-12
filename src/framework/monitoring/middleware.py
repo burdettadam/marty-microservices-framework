@@ -94,9 +94,7 @@ if FASTAPI_AVAILABLE:
             self.config = config or MonitoringMiddlewareConfig()
             logger.info("FastAPI monitoring middleware initialized")
 
-        async def dispatch(
-            self, request: Request, call_next: RequestResponseEndpoint
-        ) -> Response:
+        async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
             """Process request and response with monitoring."""
 
             start_time = time.time()
@@ -231,9 +229,7 @@ if FASTAPI_AVAILABLE:
             monitoring_manager = get_monitoring_manager()
 
             if not monitoring_manager:
-                return Response(
-                    "# Monitoring not initialized\n", media_type="text/plain"
-                )
+                return Response("# Monitoring not initialized\n", media_type="text/plain")
 
             metrics_text = monitoring_manager.get_metrics_text()
             if metrics_text:
@@ -335,22 +331,16 @@ if GRPC_AVAILABLE:
                         import asyncio
 
                         if asyncio.get_event_loop().is_running():
-                            asyncio.create_task(
-                                monitoring_manager.record_error(type(e).__name__)
-                            )
+                            asyncio.create_task(monitoring_manager.record_error(type(e).__name__))
                     except Exception as record_error:
-                        logger.warning(
-                            f"Failed to record gRPC error metrics: {record_error}"
-                        )
+                        logger.warning(f"Failed to record gRPC error metrics: {record_error}")
 
                     raise
 
             return monitoring_wrapper
 
 
-def setup_fastapi_monitoring(
-    app: FastAPI, config: MonitoringMiddlewareConfig = None
-) -> None:
+def setup_fastapi_monitoring(app: FastAPI, config: MonitoringMiddlewareConfig = None) -> None:
     """Setup FastAPI monitoring middleware."""
 
     if not FASTAPI_AVAILABLE:

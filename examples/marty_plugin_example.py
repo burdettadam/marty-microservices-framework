@@ -24,8 +24,7 @@ async def main():
     try:
         # 1. Setup configuration management
         config_manager = create_plugin_config_manager(
-            config_dir="./config",
-            plugin_config_dir="./config/plugins"
+            config_dir="./config", plugin_config_dir="./config/plugins"
         )
 
         # 2. Create plugin context with MMF services
@@ -37,7 +36,7 @@ async def main():
             security_manager=MockSecurityService(),
             observability_manager=MockObservabilityService(),
             cache_manager=MockCacheService(),
-            event_bus=MockEventBus()
+            event_bus=MockEventBus(),
         )
 
         # 3. Initialize plugin manager
@@ -74,10 +73,7 @@ async def demonstrate_plugin_usage(plugin: MartyTrustPKIPlugin):
     if doc_signer:
         # Sign a document
         test_document = b"This is a test document to sign"
-        signature_result = await doc_signer.sign_document(
-            test_document,
-            "RSA-SHA256"
-        )
+        signature_result = await doc_signer.sign_document(test_document, "RSA-SHA256")
         logger.info("Document signed: %s", signature_result.get("algorithm"))
 
         # Verify the signature
@@ -111,6 +107,7 @@ async def demonstrate_plugin_usage(plugin: MartyTrustPKIPlugin):
 # Mock MMF services for demonstration
 class MockDatabaseService:
     """Mock database service."""
+
     async def execute_query(self, query: str, params=None):
         logger.debug("Mock database query: %s", query)
         return {"rows": []}
@@ -118,6 +115,7 @@ class MockDatabaseService:
 
 class MockSecurityService:
     """Mock security service."""
+
     async def sign_data(self, data: bytes, key_id: str):
         logger.debug("Mock signing data with key: %s", key_id)
         return b"mock_signature"
@@ -129,6 +127,7 @@ class MockSecurityService:
 
 class MockObservabilityService:
     """Mock observability service."""
+
     def get_metrics_collector(self):
         return MockMetricsCollector()
 
@@ -138,6 +137,7 @@ class MockObservabilityService:
 
 class MockMetricsCollector:
     """Mock metrics collector."""
+
     def increment_counter(self, name: str, labels=None):
         logger.debug("Mock metric counter: %s", name)
 
@@ -147,18 +147,21 @@ class MockMetricsCollector:
 
 class MockTimer:
     """Mock timer."""
+
     def stop(self):
         logger.debug("Mock timer stopped")
 
 
 class MockTracer:
     """Mock tracer."""
+
     def start_span(self, name: str):
         return MockSpan()
 
 
 class MockSpan:
     """Mock span."""
+
     def __enter__(self):
         return self
 
@@ -171,6 +174,7 @@ class MockSpan:
 
 class MockCacheService:
     """Mock cache service."""
+
     async def get(self, key: str):
         logger.debug("Mock cache get: %s", key)
         return None
@@ -181,6 +185,7 @@ class MockCacheService:
 
 class MockEventBus:
     """Mock event bus."""
+
     async def publish(self, event_type: str, data):
         logger.debug("Mock event published: %s", event_type)
 

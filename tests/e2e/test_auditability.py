@@ -29,9 +29,7 @@ class AuditTrailCollector:
         self.business_events: builtins.list[builtins.dict] = []
         self.security_events: builtins.list[builtins.dict] = []
         self.performance_events: builtins.list[builtins.dict] = []
-        self.correlation_map: builtins.dict[
-            str, builtins.list[str]
-        ] = {}  # request_id -> event_ids
+        self.correlation_map: builtins.dict[str, builtins.list[str]] = {}  # request_id -> event_ids
 
         # Setup structured logging
         self.logger = self._setup_structured_logger()
@@ -126,9 +124,7 @@ class AuditTrailCollector:
             "request_id": event.request_id,
         }
 
-    def get_events_by_correlation(
-        self, correlation_id: str
-    ) -> builtins.list[builtins.dict]:
+    def get_events_by_correlation(self, correlation_id: str) -> builtins.list[builtins.dict]:
         """Get all events for a specific correlation ID."""
         if correlation_id not in self.correlation_map:
             return []
@@ -229,15 +225,11 @@ class AuditTrailCollector:
             },
             "traceability_metrics": {
                 "total_correlation_chains": len(self.correlation_map),
-                "avg_events_per_chain": sum(
-                    len(events) for events in self.correlation_map.values()
-                )
+                "avg_events_per_chain": sum(len(events) for events in self.correlation_map.values())
                 / len(self.correlation_map)
                 if self.correlation_map
                 else 0,
-                "max_chain_length": max(
-                    len(events) for events in self.correlation_map.values()
-                )
+                "max_chain_length": max(len(events) for events in self.correlation_map.values())
                 if self.correlation_map
                 else 0,
             },
@@ -261,9 +253,7 @@ class AuditTrailCollector:
 
         # Check 2: Critical events have correlation IDs
         critical_events = [
-            e
-            for e in self.audit_events
-            if e.severity in ["error", "critical"] and not e.request_id
+            e for e in self.audit_events if e.severity in ["error", "critical"] and not e.request_id
         ]
         checks.append(
             {
@@ -362,9 +352,7 @@ class TestAuditability:
             await asyncio.sleep(2)
 
         # Analyze audit trail completeness
-        audit_analysis = await self._analyze_audit_completeness(
-            audit_collector, results
-        )
+        audit_analysis = await self._analyze_audit_completeness(audit_collector, results)
 
         # Generate compliance report
         compliance_report = audit_collector.generate_compliance_report()
@@ -382,23 +370,19 @@ class TestAuditability:
         print(f"\\n📋 Audit report saved to: {report_file}")
 
         # Assertions
-        assert len(results) == len(
-            test_scenarios
-        ), "Should have results for all scenarios"
+        assert len(results) == len(test_scenarios), "Should have results for all scenarios"
         assert len(audit_collector.audit_events) > 0, "Should generate audit events"
         assert len(audit_collector.error_events) > 0, "Should capture error events"
-        assert (
-            len(audit_collector.correlation_map) > 0
-        ), "Should have correlation tracking"
+        assert len(audit_collector.correlation_map) > 0, "Should have correlation tracking"
 
         # Compliance assertions
         compliance_checks = compliance_report["compliance_checks"]
         critical_failures = [
             c for c in compliance_checks if not c["passed"] and "critical" in c["check"]
         ]
-        assert (
-            len(critical_failures) == 0
-        ), f"Critical compliance checks failed: {critical_failures}"
+        assert len(critical_failures) == 0, (
+            f"Critical compliance checks failed: {critical_failures}"
+        )
 
         # Print summary
         self._print_audit_summary(report)
@@ -491,23 +475,15 @@ class TestAuditability:
         # Count events generated during this scenario
         end_time = datetime.now()
         scenario_events = [
-            e
-            for e in audit_collector.audit_events
-            if start_time <= e.timestamp <= end_time
+            e for e in audit_collector.audit_events if start_time <= e.timestamp <= end_time
         ]
 
         scenario_results.update(
             {
                 "events_generated": len(scenario_events),
-                "error_events": len(
-                    [e for e in scenario_events if e.event_type == "error"]
-                ),
-                "business_events": len(
-                    [e for e in scenario_events if e.event_type == "business"]
-                ),
-                "security_events": len(
-                    [e for e in scenario_events if e.event_type == "security"]
-                ),
+                "error_events": len([e for e in scenario_events if e.event_type == "error"]),
+                "business_events": len([e for e in scenario_events if e.event_type == "business"]),
+                "security_events": len([e for e in scenario_events if e.event_type == "security"]),
                 "performance_events": len(
                     [e for e in scenario_events if e.event_type == "performance"]
                 ),
@@ -605,9 +581,7 @@ class TestAuditability:
                 # Execute simulation
                 await simulation_plugin.simulate_work(
                     task_name=f"{worker_name}_op_{operation_count}",
-                    complexity=getattr(
-                        simulation_plugin.config, "complexity_multiplier", 1
-                    ),
+                    complexity=getattr(simulation_plugin.config, "complexity_multiplier", 1),
                 )
 
                 # Log successful completion
@@ -668,7 +642,7 @@ class TestAuditability:
                 audit_collector.record_event(
                     event_type="business",
                     severity="info",
-                    message=f'Pipeline job submitted: {job_data["id"]}',
+                    message=f"Pipeline job submitted: {job_data['id']}",
                     service="pipeline_service",
                     correlation_id=correlation_id,
                     user_id=scenario["user_context"],
@@ -685,7 +659,7 @@ class TestAuditability:
                 audit_collector.record_event(
                     event_type="business",
                     severity="info",
-                    message=f'Pipeline job completed: {job_data["id"]}',
+                    message=f"Pipeline job completed: {job_data['id']}",
                     service="pipeline_service",
                     correlation_id=correlation_id,
                     user_id=scenario["user_context"],
@@ -770,13 +744,9 @@ class TestAuditability:
         total_events = len(audit_collector.audit_events)
 
         # Completeness analysis
-        events_with_correlation = len(
-            [e for e in audit_collector.audit_events if e.request_id]
-        )
+        events_with_correlation = len([e for e in audit_collector.audit_events if e.request_id])
         events_with_user = len([e for e in audit_collector.audit_events if e.user_id])
-        events_with_metadata = len(
-            [e for e in audit_collector.audit_events if e.metadata]
-        )
+        events_with_metadata = len([e for e in audit_collector.audit_events if e.metadata])
 
         completeness_score = (
             (
@@ -819,19 +789,13 @@ class TestAuditability:
         if completeness_score < 0.8:
             analysis["gaps_identified"].append("Low audit trail completeness")
         if traceability_score < 0.7:
-            analysis["gaps_identified"].append(
-                "Poor event correlation and traceability"
-            )
+            analysis["gaps_identified"].append("Poor event correlation and traceability")
         if len(services_covered) < 3:
-            analysis["gaps_identified"].append(
-                "Insufficient service coverage in audit trails"
-            )
+            analysis["gaps_identified"].append("Insufficient service coverage in audit trails")
 
         return analysis
 
-    def _generate_audit_report(
-        self, results, audit_analysis, compliance_report, audit_collector
-    ):
+    def _generate_audit_report(self, results, audit_analysis, compliance_report, audit_collector):
         """Generate comprehensive audit report."""
         return {
             "test_summary": {
@@ -854,9 +818,7 @@ class TestAuditability:
                     audit_analysis, compliance_report
                 ),
             },
-            "sample_correlation_chains": self._get_sample_correlation_chains(
-                audit_collector
-            ),
+            "sample_correlation_chains": self._get_sample_correlation_chains(audit_collector),
         }
 
     def _generate_audit_recommendations(self, audit_analysis, compliance_report):
@@ -891,17 +853,14 @@ class TestAuditability:
                 }
             )
 
-        failed_compliance = [
-            c for c in compliance_report["compliance_checks"] if not c["passed"]
-        ]
+        failed_compliance = [c for c in compliance_report["compliance_checks"] if not c["passed"]]
         if failed_compliance:
             recommendations.append(
                 {
                     "category": "Compliance Remediation",
                     "priority": "critical",
                     "actions": [
-                        f'Fix compliance issue: {check["check"]}'
-                        for check in failed_compliance
+                        f"Fix compliance issue: {check['check']}" for check in failed_compliance
                     ]
                     + [
                         "Implement automated compliance checking",

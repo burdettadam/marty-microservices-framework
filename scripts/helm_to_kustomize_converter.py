@@ -145,7 +145,7 @@ class HelmToKustomizeConverter:
         kustomization = {
             "apiVersion": "kustomize.config.k8s.io/v1beta1",
             "kind": "Kustomization",
-            "resources": sorted(resources)
+            "resources": sorted(resources),
         }
 
         with open(base_dir / "kustomization.yaml", "w", encoding="utf-8") as f:
@@ -198,11 +198,8 @@ class HelmToKustomizeConverter:
                 "kind": "Namespace",
                 "metadata": {
                     "name": f"{self.service_name}-{env}",
-                    "labels": {
-                        "app.kubernetes.io/name": self.service_name,
-                        "environment": env
-                    }
-                }
+                    "labels": {"app.kubernetes.io/name": self.service_name, "environment": env},
+                },
             }
 
             with open(env_dir / "namespace.yaml", "w", encoding="utf-8") as f:
@@ -217,15 +214,15 @@ class HelmToKustomizeConverter:
                     "replicas": 1 if env == "dev" else 2,
                     "template": {
                         "spec": {
-                            "containers": [{
-                                "name": "microservice-template",
-                                "env": [
-                                    {"name": "APP_ENVIRONMENT", "value": env}
-                                ]
-                            }]
+                            "containers": [
+                                {
+                                    "name": "microservice-template",
+                                    "env": [{"name": "APP_ENVIRONMENT", "value": env}],
+                                }
+                            ]
                         }
-                    }
-                }
+                    },
+                },
             }
 
             with open(env_dir / "patch-deployment.yaml", "w", encoding="utf-8") as f:
@@ -236,21 +233,18 @@ class HelmToKustomizeConverter:
                 "apiVersion": "kustomize.config.k8s.io/v1beta1",
                 "kind": "Kustomization",
                 "namespace": f"{self.service_name}-{env}",
-                "resources": [
-                    "namespace.yaml",
-                    "../../base"
+                "resources": ["namespace.yaml", "../../base"],
+                "patches": [{"path": "patch-deployment.yaml"}],
+                "configMapGenerator": [
+                    {
+                        "name": "microservice-template-config",
+                        "behavior": "merge",
+                        "literals": [
+                            f"environment={env}",
+                            "otlp_endpoint=http://otel-collector.monitoring:4317",
+                        ],
+                    }
                 ],
-                "patches": [
-                    {"path": "patch-deployment.yaml"}
-                ],
-                "configMapGenerator": [{
-                    "name": "microservice-template-config",
-                    "behavior": "merge",
-                    "literals": [
-                        f"environment={env}",
-                        "otlp_endpoint=http://otel-collector.monitoring:4317"
-                    ]
-                }]
             }
 
             with open(env_dir / "kustomization.yaml", "w", encoding="utf-8") as f:
@@ -275,14 +269,16 @@ class HelmToKustomizeConverter:
 @click.option("--helm-chart-path", required=True, help="Path to Helm chart directory")
 @click.option("--output-path", required=True, help="Output path for Kustomize manifests")
 @click.option("--service-name", required=True, help="Name of the service")
-@click.option("--values-file", multiple=True, help="Helm values files to use (can specify multiple)")
+@click.option(
+    "--values-file", multiple=True, help="Helm values files to use (can specify multiple)"
+)
 @click.option("--validate/--no-validate", default=True, help="Validate conversion output")
 def convert_helm_to_kustomize(
     helm_chart_path: str,
     output_path: str,
     service_name: str,
     values_file: tuple[str, ...],
-    validate: bool
+    validate: bool,
 ):
     """Convert Helm charts to Kustomize manifests."""
     converter = HelmToKustomizeConverter(helm_chart_path, output_path, service_name)

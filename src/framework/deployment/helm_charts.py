@@ -127,9 +127,7 @@ class HelmTemplateGenerator:
             autoescape=True,
         )
 
-    def generate_microservice_chart(
-        self, service_name: str, config: DeploymentConfig
-    ) -> HelmChart:
+    def generate_microservice_chart(self, service_name: str, config: DeploymentConfig) -> HelmChart:
         """Generate Helm chart for microservice."""
         chart = HelmChart(
             name=service_name,
@@ -773,9 +771,7 @@ class HelmManager:
 
             if values:
                 # Create temporary values file
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".yaml", delete=False
-                ) as f:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
                     yaml.dump(values, f, default_flow_style=False)
                     values_file = f.name
 
@@ -824,9 +820,7 @@ class HelmManager:
 
             if values:
                 # Create temporary values file
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".yaml", delete=False
-                ) as f:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
                     yaml.dump(values, f, default_flow_style=False)
                     values_file = f.name
 
@@ -904,9 +898,7 @@ class HelmManager:
             logger.error(f"Helm uninstall error: {e}")
             return False
 
-    async def get_release_status(
-        self, release_name: str, namespace: str
-    ) -> HelmRelease | None:
+    async def get_release_status(self, release_name: str, namespace: str) -> HelmRelease | None:
         """Get Helm release status."""
         try:
             cmd = [
@@ -931,12 +923,8 @@ class HelmManager:
                 return HelmRelease(
                     name=status_data.get("name", ""),
                     namespace=status_data.get("namespace", ""),
-                    chart=status_data.get("chart", {})
-                    .get("metadata", {})
-                    .get("name", ""),
-                    version=status_data.get("chart", {})
-                    .get("metadata", {})
-                    .get("version", ""),
+                    chart=status_data.get("chart", {}).get("metadata", {}).get("name", ""),
+                    version=status_data.get("chart", {}).get("metadata", {}).get("version", ""),
                     status=info.get("status", ""),
                     updated=datetime.fromisoformat(
                         info.get("last_deployed", "").replace("Z", "+00:00")
@@ -950,9 +938,7 @@ class HelmManager:
             logger.error(f"Helm status error: {e}")
             return None
 
-    async def list_releases(
-        self, namespace: str | None = None
-    ) -> builtins.list[HelmRelease]:
+    async def list_releases(self, namespace: str | None = None) -> builtins.list[HelmRelease]:
         """List Helm releases."""
         try:
             cmd = [self.helm_binary, "list", "--output", "json"]
@@ -1013,9 +999,7 @@ class HelmManager:
 
             if values:
                 # Create temporary values file
-                with tempfile.NamedTemporaryFile(
-                    mode="w", suffix=".yaml", delete=False
-                ) as f:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
                     yaml.dump(values, f, default_flow_style=False)
                     values_file = f.name
 
@@ -1038,9 +1022,7 @@ class HelmManager:
             logger.error(f"Helm template error: {e}")
             return None
 
-    async def _run_helm_command(
-        self, cmd: builtins.list[str]
-    ) -> subprocess.CompletedProcess:
+    async def _run_helm_command(self, cmd: builtins.list[str]) -> subprocess.CompletedProcess:
         """Run Helm command."""
         process = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
@@ -1055,9 +1037,7 @@ class HelmManager:
             stderr=stderr.decode() if stderr else "",
         )
 
-    def generate_microservice_chart(
-        self, service_name: str, config: DeploymentConfig
-    ) -> HelmChart:
+    def generate_microservice_chart(self, service_name: str, config: DeploymentConfig) -> HelmChart:
         """Generate microservice Helm chart."""
         return self.template_generator.generate_microservice_chart(service_name, config)
 

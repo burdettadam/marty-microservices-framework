@@ -228,9 +228,7 @@ class ArithmeticOperatorMutator(CodeMutator):
 
     def can_mutate(self, node: ast.AST) -> bool:
         """Check if node is a binary operation with arithmetic operator."""
-        return (
-            isinstance(node, ast.BinOp) and type(node.op) in self.OPERATOR_REPLACEMENTS
-        )
+        return isinstance(node, ast.BinOp) and type(node.op) in self.OPERATOR_REPLACEMENTS
 
     def mutate(self, node: ast.AST) -> builtins.list[ast.AST]:
         """Generate arithmetic operator mutations."""
@@ -424,9 +422,7 @@ class MutationEngine:
                             if line_mutants >= self.max_mutants_per_line:
                                 break
 
-                            mutant = self._create_mutant(
-                                source_file, node, mutation, mutator
-                            )
+                            mutant = self._create_mutant(source_file, node, mutation, mutator)
 
                             if mutant:
                                 mutants.append(mutant)
@@ -559,9 +555,7 @@ class MutationEngine:
 
                 return self.generic_visit(node)
 
-        applier = MutationApplier(
-            mutant.line_number, mutant.column_number, mutant.mutated_code
-        )
+        applier = MutationApplier(mutant.line_number, mutant.column_number, mutant.mutated_code)
 
         return applier.visit(tree)
 
@@ -598,9 +592,7 @@ class TestRunner:
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(
-                    process.communicate(), timeout=self.timeout
-                )
+                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.timeout)
 
                 execution_time = time.time() - start_time
                 output = stdout.decode() + stderr.decode()
@@ -702,9 +694,7 @@ class MutationTester:
             # Store results
             self.results[session_id] = result
 
-            logging.info(
-                f"Mutation testing completed. Score: {result.mutation_score:.2%}"
-            )
+            logging.info(f"Mutation testing completed. Score: {result.mutation_score:.2%}")
             return result
 
         except Exception as e:
@@ -784,17 +774,13 @@ class MutationTester:
                 # Copy source structure
                 shutil.copy2(
                     mutant.original_file,
-                    os.path.join(
-                        temp_source_dir, os.path.basename(mutant.original_file)
-                    ),
+                    os.path.join(temp_source_dir, os.path.basename(mutant.original_file)),
                 )
 
                 # Replace with mutated version
                 shutil.copy2(
                     mutated_file,
-                    os.path.join(
-                        temp_source_dir, os.path.basename(mutant.original_file)
-                    ),
+                    os.path.join(temp_source_dir, os.path.basename(mutant.original_file)),
                 )
 
                 # Run tests
@@ -916,9 +902,7 @@ class QualityGateEngine:
         self.gates[gate.gate_id] = gate
         logging.info(f"Registered quality gate: {gate.name}")
 
-    def evaluate_gates(
-        self, metrics: builtins.dict[str, Any]
-    ) -> builtins.list[QualityGateResult]:
+    def evaluate_gates(self, metrics: builtins.dict[str, Any]) -> builtins.list[QualityGateResult]:
         """Evaluate all enabled quality gates."""
         results = []
 
@@ -987,9 +971,7 @@ class QualityReporter:
 
     def generate_mutation_report(self, result: MutationTestResult) -> str:
         """Generate mutation testing report."""
-        report_file = (
-            self.output_directory / f"mutation_report_{result.session_id}.html"
-        )
+        report_file = self.output_directory / f"mutation_report_{result.session_id}.html"
 
         # Generate HTML report
         html_content = self._generate_mutation_html_report(result)
@@ -1004,13 +986,10 @@ class QualityReporter:
         logging.info(f"Generated mutation testing report: {report_file}")
         return str(report_file)
 
-    def generate_quality_gates_report(
-        self, gate_results: builtins.list[QualityGateResult]
-    ) -> str:
+    def generate_quality_gates_report(self, gate_results: builtins.list[QualityGateResult]) -> str:
         """Generate quality gates report."""
         report_file = (
-            self.output_directory
-            / f"quality_gates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+            self.output_directory / f"quality_gates_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
         )
 
         html_content = self._generate_quality_gates_html_report(gate_results)
@@ -1094,9 +1073,7 @@ class QualityReporter:
 
         return html
 
-    def _generate_mutation_json_report(
-        self, result: MutationTestResult, output_file: Path
-    ):
+    def _generate_mutation_json_report(self, result: MutationTestResult, output_file: Path):
         """Generate JSON mutation testing report."""
         report_data = {
             "session_id": result.session_id,
@@ -1110,9 +1087,7 @@ class QualityReporter:
             "execution_time": result.execution_time,
             "test_effectiveness": result.test_effectiveness,
             "started_at": result.started_at.isoformat(),
-            "completed_at": result.completed_at.isoformat()
-            if result.completed_at
-            else None,
+            "completed_at": result.completed_at.isoformat() if result.completed_at else None,
             "mutants": [
                 {
                     "mutant_id": mutant.mutant_id,

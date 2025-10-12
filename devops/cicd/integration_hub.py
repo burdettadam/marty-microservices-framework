@@ -215,9 +215,7 @@ class SlackIntegration(IntegrationClient):
             fields = []
 
             if message.pipeline_name:
-                fields.append(
-                    {"title": "Pipeline", "value": message.pipeline_name, "short": True}
-                )
+                fields.append({"title": "Pipeline", "value": message.pipeline_name, "short": True})
 
             if message.execution_id:
                 fields.append(
@@ -229,14 +227,10 @@ class SlackIntegration(IntegrationClient):
                 )
 
             if message.branch:
-                fields.append(
-                    {"title": "Branch", "value": message.branch, "short": True}
-                )
+                fields.append({"title": "Branch", "value": message.branch, "short": True})
 
             if message.commit_sha:
-                fields.append(
-                    {"title": "Commit", "value": message.commit_sha[:8], "short": True}
-                )
+                fields.append({"title": "Commit", "value": message.commit_sha[:8], "short": True})
 
             if fields:
                 attachment["fields"] = fields
@@ -278,9 +272,7 @@ class SlackIntegration(IntegrationClient):
                 message += f" (Duration: {execution.duration:.1f}s)"
 
             # Send status update
-            response = await self._send_slack_message(
-                channel=self.channel, text=message
-            )
+            response = await self._send_slack_message(channel=self.channel, text=message)
 
             return response.get("ok", False)
 
@@ -292,9 +284,7 @@ class SlackIntegration(IntegrationClient):
         """Send Slack message with async wrapper"""
 
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            None, lambda: self.client.chat_postMessage(**kwargs).data
-        )
+        return await loop.run_in_executor(None, lambda: self.client.chat_postMessage(**kwargs).data)
 
 
 class TeamsIntegration(IntegrationClient):
@@ -391,9 +381,7 @@ class TeamsIntegration(IntegrationClient):
                 section.addFact("Duration", f"{execution.duration:.1f}s")
 
             if execution.completed_stages:
-                section.addFact(
-                    "Completed Stages", str(len(execution.completed_stages))
-                )
+                section.addFact("Completed Stages", str(len(execution.completed_stages)))
 
             if execution.failed_stages:
                 section.addFact("Failed Stages", str(len(execution.failed_stages)))
@@ -488,7 +476,7 @@ class EmailIntegration(IntegrationClient):
                 <h2>{message.title}</h2>
             </div>
             <div class="content">
-                <p>{message.content.replace(chr(10), '<br>')}</p>
+                <p>{message.content.replace(chr(10), "<br>")}</p>
 
                 <div class="metadata">
                     <strong>Pipeline Details:</strong>
@@ -504,13 +492,15 @@ class EmailIntegration(IntegrationClient):
             html += f'<div class="metadata-item"><strong>Branch:</strong> {message.branch}</div>'
 
         if message.commit_sha:
-            html += f'<div class="metadata-item"><strong>Commit:</strong> {message.commit_sha}</div>'
+            html += (
+                f'<div class="metadata-item"><strong>Commit:</strong> {message.commit_sha}</div>'
+            )
 
         html += f"""
                 </div>
             </div>
             <div class="footer">
-                <p>Sent by Marty CI/CD Pipeline at {message.timestamp.strftime('%Y-%m-%d %H:%M:%S')}</p>
+                <p>Sent by Marty CI/CD Pipeline at {message.timestamp.strftime("%Y-%m-%d %H:%M:%S")}</p>
             </div>
         </body>
         </html>
@@ -540,7 +530,9 @@ class EmailIntegration(IntegrationClient):
         if message.commit_sha:
             content += f"Commit: {message.commit_sha}\n"
 
-        content += f"\nSent by Marty CI/CD Pipeline at {message.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+        content += (
+            f"\nSent by Marty CI/CD Pipeline at {message.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+        )
 
         return content
 
@@ -641,9 +633,7 @@ class PrometheusIntegration(IntegrationClient):
         super().__init__(config)
 
         if not PROMETHEUS_AVAILABLE:
-            raise ImportError(
-                "prometheus_client is required for Prometheus integration"
-            )
+            raise ImportError("prometheus_client is required for Prometheus integration")
 
         self.gateway = config.base_url
         self.job_name = config.custom_config.get("job_name", "marty_cicd")
@@ -730,9 +720,7 @@ class PrometheusIntegration(IntegrationClient):
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(
             None,
-            lambda: push_to_gateway(
-                self.gateway, job=self.job_name, registry=self.registry
-            ),
+            lambda: push_to_gateway(self.gateway, job=self.job_name, registry=self.registry),
         )
 
 
@@ -794,9 +782,7 @@ class PipelineIntegrationHub:
             elif config.integration_type == IntegrationType.PROMETHEUS:
                 client = PrometheusIntegration(config)
             else:
-                raise ValueError(
-                    f"Unsupported integration type: {config.integration_type}"
-                )
+                raise ValueError(f"Unsupported integration type: {config.integration_type}")
 
             self.integrations[name] = client
             print(f"➕ Added integration: {name} ({config.integration_type.value})")
@@ -854,13 +840,9 @@ class PipelineIntegrationHub:
                 for integration_name in rule["integrations"]:
                     if integration_name in self.integrations:
                         try:
-                            await self.integrations[integration_name].send_notification(
-                                message
-                            )
+                            await self.integrations[integration_name].send_notification(message)
                         except Exception as e:
-                            print(
-                                f"❌ Failed to send notification via {integration_name}: {e}"
-                            )
+                            print(f"❌ Failed to send notification via {integration_name}: {e}")
 
         except Exception as e:
             print(f"❌ Failed to process pipeline event notification: {e}")
@@ -890,8 +872,7 @@ class PipelineIntegrationHub:
             # Check pipeline filters
             if rule["pipeline_filters"]:
                 if not any(
-                    pattern in execution.pipeline_name
-                    for pattern in rule["pipeline_filters"]
+                    pattern in execution.pipeline_name for pattern in rule["pipeline_filters"]
                 ):
                     continue
 

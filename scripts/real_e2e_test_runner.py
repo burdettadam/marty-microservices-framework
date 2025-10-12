@@ -59,9 +59,7 @@ class RealPerformanceAnalyzer:
             logger.error(f"Error collecting metrics: {e}")
             return {}
 
-    def analyze_bottlenecks(
-        self, metrics: builtins.dict, load_level: int
-    ) -> builtins.dict:
+    def analyze_bottlenecks(self, metrics: builtins.dict, load_level: int) -> builtins.dict:
         """Analyze bottlenecks based on real metrics."""
         bottlenecks = []
 
@@ -80,9 +78,7 @@ class RealPerformanceAnalyzer:
             bottlenecks.append(
                 {
                     "type": "memory",
-                    "severity": "high"
-                    if metrics["memory_usage_percent"] > 90
-                    else "medium",
+                    "severity": "high" if metrics["memory_usage_percent"] > 90 else "medium",
                     "value": metrics["memory_usage_percent"],
                     "threshold": 80,
                     "recommendation": "Investigate memory leaks or add more memory",
@@ -93,9 +89,7 @@ class RealPerformanceAnalyzer:
             bottlenecks.append(
                 {
                     "type": "disk",
-                    "severity": "critical"
-                    if metrics["disk_usage_percent"] > 95
-                    else "high",
+                    "severity": "critical" if metrics["disk_usage_percent"] > 95 else "high",
                     "value": metrics["disk_usage_percent"],
                     "threshold": 85,
                     "recommendation": "Clean up disk space or add storage",
@@ -150,9 +144,7 @@ class RealWorkloadSimulator:
             "errors": self.errors_encountered,
         }
 
-    async def simulate_memory_intensive_work(
-        self, duration: float, complexity: int = 1
-    ):
+    async def simulate_memory_intensive_work(self, duration: float, complexity: int = 1):
         """Simulate memory-intensive work."""
         start_time = time.time()
 
@@ -177,10 +169,7 @@ class RealWorkloadSimulator:
             return {
                 "processed_items": processed,
                 "duration": response_time,
-                "memory_allocated_mb": len(data)
-                * 100
-                * 8
-                / (1024 * 1024),  # Rough estimate
+                "memory_allocated_mb": len(data) * 100 * 8 / (1024 * 1024),  # Rough estimate
             }
 
         except Exception as e:
@@ -255,18 +244,14 @@ async def run_real_bottleneck_analysis():
         # Collect baseline metrics
         baseline_metrics = analyzer.collect_system_metrics()
         print(f"   Baseline CPU: {baseline_metrics.get('cpu_usage', 0):.1f}%")
-        print(
-            f"   Baseline Memory: {baseline_metrics.get('memory_usage_percent', 0):.1f}%"
-        )
+        print(f"   Baseline Memory: {baseline_metrics.get('memory_usage_percent', 0):.1f}%")
 
         # Run concurrent workload
         tasks = []
         for i in range(load_level):
             # Mix different types of work
             if i % 3 == 0:
-                task = asyncio.create_task(
-                    simulator.simulate_cpu_intensive_work(2.0, load_level)
-                )
+                task = asyncio.create_task(simulator.simulate_cpu_intensive_work(2.0, load_level))
             elif i % 3 == 1:
                 task = asyncio.create_task(
                     simulator.simulate_memory_intensive_work(1.5, load_level)
@@ -287,12 +272,8 @@ async def run_real_bottleneck_analysis():
         bottleneck_analysis = analyzer.analyze_bottlenecks(load_metrics, load_level)
 
         # Calculate performance summary
-        successful_tasks = [
-            r for r in workload_results if isinstance(r, dict) and "error" not in r
-        ]
-        failed_tasks = [
-            r for r in workload_results if isinstance(r, dict) and "error" in r
-        ]
+        successful_tasks = [r for r in workload_results if isinstance(r, dict) and "error" not in r]
+        failed_tasks = [r for r in workload_results if isinstance(r, dict) and "error" in r]
 
         result = {
             "load_level": load_level,
@@ -347,7 +328,7 @@ async def run_real_timeout_simulation():
 
     for scenario_name, base_delay, timeout_rate in timeout_scenarios:
         print(f"\n🔄 Testing Scenario: {scenario_name}")
-        print(f"   Base delay: {base_delay}s, Timeout rate: {timeout_rate*100}%")
+        print(f"   Base delay: {base_delay}s, Timeout rate: {timeout_rate * 100}%")
 
         operations_attempted = 20
         timeouts = 0
@@ -380,9 +361,7 @@ async def run_real_timeout_simulation():
                 logger.error(f"Operation {i} failed: {e}")
                 timeouts += 1
 
-        avg_response_time = (
-            sum(response_times) / len(response_times) if response_times else 0
-        )
+        avg_response_time = sum(response_times) / len(response_times) if response_times else 0
 
         result = {
             "scenario": scenario_name,
@@ -442,7 +421,7 @@ async def run_real_audit_simulation():
         for i in range(event_count):
             # Generate realistic event
             event_id = f"{scenario_name}_{i:03d}"
-            correlation_id = f"corr_{scenario_name}_{i//5:02d}"  # Group events
+            correlation_id = f"corr_{scenario_name}_{i // 5:02d}"  # Group events
 
             # Determine event type based on scenario
             if "error" in scenario_name and i % 4 == 0:
@@ -542,13 +521,9 @@ async def run_real_system_health_check():
         if current_usage["cpu_percent"] > 80:
             health_issues.append(f"High CPU usage: {current_usage['cpu_percent']:.1f}%")
         if current_usage["memory_percent"] > 85:
-            health_issues.append(
-                f"High memory usage: {current_usage['memory_percent']:.1f}%"
-            )
+            health_issues.append(f"High memory usage: {current_usage['memory_percent']:.1f}%")
         if current_usage["disk_percent"] > 90:
-            health_issues.append(
-                f"High disk usage: {current_usage['disk_percent']:.1f}%"
-            )
+            health_issues.append(f"High disk usage: {current_usage['disk_percent']:.1f}%")
 
         health_status = (
             "excellent"
@@ -577,12 +552,8 @@ async def run_real_system_health_check():
             "health_status": health_status,
             "health_issues": health_issues,
             "recommendations": [
-                "Monitor CPU usage trends"
-                if current_usage["cpu_percent"] > 60
-                else None,
-                "Consider memory optimization"
-                if current_usage["memory_percent"] > 70
-                else None,
+                "Monitor CPU usage trends" if current_usage["cpu_percent"] > 60 else None,
+                "Consider memory optimization" if current_usage["memory_percent"] > 70 else None,
                 "Clean up disk space" if current_usage["disk_percent"] > 80 else None,
             ],
         }
@@ -640,9 +611,7 @@ async def main():
 
         # CPU analysis
         if results["bottleneck_analysis"]["total_bottlenecks"] > 5:
-            insights.append(
-                "🔥 Multiple bottlenecks detected - consider performance optimization"
-            )
+            insights.append("🔥 Multiple bottlenecks detected - consider performance optimization")
 
         # Timeout analysis
         timeout_rate = results["timeout_detection"]["overall_timeout_rate"]
@@ -654,9 +623,7 @@ async def main():
         # System health
         health_status = results["system_health"]["health_status"]
         if health_status != "excellent":
-            insights.append(
-                f"🏥 System health: {health_status} - monitor resource usage"
-            )
+            insights.append(f"🏥 System health: {health_status} - monitor resource usage")
 
         # Audit compliance
         compliance_score = results["auditability"]["compliance_score"]
@@ -680,9 +647,7 @@ async def main():
             f"📋 Auditability: {results['auditability']['total_events']} events ({compliance_score:.1f}% compliance)"
         )
         print(f"🏥 System Health: {health_status}")
-        print(
-            f"⏰ Total Duration: {(end_time - start_time).total_seconds():.1f} seconds"
-        )
+        print(f"⏰ Total Duration: {(end_time - start_time).total_seconds():.1f} seconds")
 
         print("\n💡 KEY INSIGHTS:")
         for insight in insights:

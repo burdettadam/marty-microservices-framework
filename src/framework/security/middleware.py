@@ -66,9 +66,7 @@ class SecurityMiddleware:
             headers = request_info.get("headers", {})
             query_params = request_info.get("query_params", {})
 
-            api_key = self.authenticators["api_key"].extract_api_key(
-                headers, query_params
-            )
+            api_key = self.authenticators["api_key"].extract_api_key(headers, query_params)
             if api_key:
                 result = await self.authenticators["api_key"].validate_token(api_key)
                 if result.success:
@@ -160,9 +158,7 @@ class FastAPISecurityMiddleware(BaseHTTPMiddleware):
                     headers={
                         "Retry-After": str(rate_limit_info.get("retry_after", 60)),
                         "X-RateLimit-Limit": str(rate_limit_info.get("limit", "")),
-                        "X-RateLimit-Remaining": str(
-                            rate_limit_info.get("remaining", "")
-                        ),
+                        "X-RateLimit-Remaining": str(rate_limit_info.get("remaining", "")),
                         "X-RateLimit-Reset": str(rate_limit_info.get("reset_time", "")),
                     },
                 )
@@ -183,15 +179,11 @@ class FastAPISecurityMiddleware(BaseHTTPMiddleware):
 
             # Add rate limit headers
             if rate_limit_info:
-                response.headers["X-RateLimit-Limit"] = str(
-                    rate_limit_info.get("limit", "")
-                )
+                response.headers["X-RateLimit-Limit"] = str(rate_limit_info.get("limit", ""))
                 response.headers["X-RateLimit-Remaining"] = str(
                     rate_limit_info.get("remaining", "")
                 )
-                response.headers["X-RateLimit-Reset"] = str(
-                    rate_limit_info.get("reset_time", "")
-                )
+                response.headers["X-RateLimit-Reset"] = str(rate_limit_info.get("reset_time", ""))
 
             return response
 
@@ -207,9 +199,7 @@ class FastAPISecurityMiddleware(BaseHTTPMiddleware):
             )
         except Exception as e:
             logger.error("Unexpected security middleware error: %s", e)
-            return JSONResponse(
-                status_code=500, content={"error": "Internal security error"}
-            )
+            return JSONResponse(status_code=500, content={"error": "Internal security error"})
 
 
 class GRPCSecurityInterceptor(grpc.aio.ServerInterceptor):
@@ -312,9 +302,7 @@ def require_permission_dependency(permission: str):
     ) -> AuthenticatedUser:
         rbac = get_rbac()
         if not rbac.check_permission(user, permission):
-            raise HTTPException(
-                status_code=403, detail=f"Permission required: {permission}"
-            )
+            raise HTTPException(status_code=403, detail=f"Permission required: {permission}")
         return user
 
     return dependency

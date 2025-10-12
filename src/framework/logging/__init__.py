@@ -80,6 +80,7 @@ class CorrelationFilter(logging.Filter):
     def _generate_correlation_id(self) -> str:
         """Generate a new correlation ID."""
         import uuid
+
         return str(uuid.uuid4())
 
     def filter(self, record: logging.LogRecord) -> bool:
@@ -141,10 +142,31 @@ class UnifiedJSONFormatter(logging.Formatter):
         # Add extra fields from the record
         for key, value in record.__dict__.items():
             if key not in {
-                "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
-                "module", "lineno", "funcName", "created", "msecs", "relativeCreated",
-                "thread", "threadName", "processName", "process", "getMessage", "exc_info",
-                "exc_text", "stack_info", "service_name", "trace_id", "span_id", "correlation_id"
+                "name",
+                "msg",
+                "args",
+                "levelname",
+                "levelno",
+                "pathname",
+                "filename",
+                "module",
+                "lineno",
+                "funcName",
+                "created",
+                "msecs",
+                "relativeCreated",
+                "thread",
+                "threadName",
+                "processName",
+                "process",
+                "getMessage",
+                "exc_info",
+                "exc_text",
+                "stack_info",
+                "service_name",
+                "trace_id",
+                "span_id",
+                "correlation_id",
             }:
                 log_entry[key] = value
 
@@ -210,8 +232,7 @@ class UnifiedServiceLogger:
         # Choose formatter
         if self.enable_json_logging:
             formatter = UnifiedJSONFormatter(
-                include_trace=self.enable_trace_context,
-                include_correlation=self.enable_correlation
+                include_trace=self.enable_trace_context, include_correlation=self.enable_correlation
             )
         else:
             format_string = TRACE_LOG_FORMAT if self.enable_trace_context else DEFAULT_LOG_FORMAT
@@ -233,7 +254,7 @@ class UnifiedServiceLogger:
 
     def update_correlation_id(self, correlation_id: str) -> None:
         """Update the correlation ID for this logger."""
-        if self.enable_correlation and hasattr(self, 'correlation_filter'):
+        if self.enable_correlation and hasattr(self, "correlation_filter"):
             self.correlation_filter.update_correlation_id(correlation_id)
 
     def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
@@ -314,12 +335,7 @@ class UnifiedServiceLogger:
         self.info("Request started", extra=info)
 
     def log_request_end(
-        self,
-        request_id: str,
-        operation: str,
-        duration: float,
-        success: bool = True,
-        **context: Any
+        self, request_id: str, operation: str, duration: float, success: bool = True, **context: Any
     ) -> None:
         """Log end of request processing."""
         info = {
@@ -337,11 +353,7 @@ class UnifiedServiceLogger:
             self.error("Request failed", extra=info)
 
     def log_performance_metric(
-        self,
-        metric_name: str,
-        value: float,
-        unit: str = "ms",
-        **context: Any
+        self, metric_name: str, value: float, unit: str = "ms", **context: Any
     ) -> None:
         """Log performance metric."""
         info = {
@@ -386,9 +398,7 @@ class UnifiedServiceLogger:
 
 
 def get_unified_logger(
-    service_name: str,
-    module_name: str | None = None,
-    **kwargs: Any
+    service_name: str, module_name: str | None = None, **kwargs: Any
 ) -> UnifiedServiceLogger:
     """
     Get a unified service logger instance.
@@ -416,7 +426,9 @@ def setup_unified_logging(
     log_level = os.getenv("LOG_LEVEL", log_level)
     enable_json = os.getenv("LOG_FORMAT", "json" if enable_json else "text") == "json"
     enable_trace = os.getenv("ENABLE_TRACE_LOGGING", str(enable_trace)).lower() == "true"
-    enable_correlation = os.getenv("ENABLE_CORRELATION_LOGGING", str(enable_correlation)).lower() == "true"
+    enable_correlation = (
+        os.getenv("ENABLE_CORRELATION_LOGGING", str(enable_correlation)).lower() == "true"
+    )
 
     return UnifiedServiceLogger(
         service_name=service_name,

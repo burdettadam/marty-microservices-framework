@@ -38,15 +38,13 @@ class TestService(PluginService):
         self.started = False
 
     async def health_check(self) -> dict[str, Any]:
-        return {
-            "status": "healthy" if self.started else "stopped",
-            "service": "test-service"
-        }
+        return {"status": "healthy" if self.started else "stopped", "service": "test-service"}
 
     async def handle_request(self, path: str, method: str, **kwargs) -> dict[str, Any]:
         if path == "/test" and method == "GET":
             return {"message": "Test endpoint", "status": "ok"}
         return {"error": "Not found", "status": 404}
+
 
 class TestServiceDefinition:
     """Test service definition functionality."""
@@ -59,10 +57,10 @@ class TestServiceDefinition:
             description="Test service for unit testing",
             routes={
                 "/health": {"methods": ["GET"], "handler": "health_check"},
-                "/api/v1/data": {"methods": ["GET", "POST"], "handler": "data_handler"}
+                "/api/v1/data": {"methods": ["GET", "POST"], "handler": "data_handler"},
             },
             dependencies=["database", "cache"],
-            health_check_path="/health"
+            health_check_path="/health",
         )
 
         assert service_def.name == "test-service"
@@ -75,10 +73,7 @@ class TestServiceDefinition:
 
     def test_service_definition_defaults(self):
         """Test service definition with default values."""
-        service_def = ServiceDefinition(
-            name="minimal-service",
-            version="1.0.0"
-        )
+        service_def = ServiceDefinition(name="minimal-service", version="1.0.0")
 
         assert service_def.name == "minimal-service"
         assert service_def.version == "1.0.0"
@@ -86,6 +81,7 @@ class TestServiceDefinition:
         assert service_def.routes == {}
         assert service_def.dependencies == []
         assert service_def.health_check_path == "/health"
+
 
 class TestPluginService:
     """Test plugin service base class functionality."""
@@ -102,10 +98,7 @@ class TestPluginService:
             self.started = False
 
         async def health_check(self) -> dict[str, Any]:
-            return {
-                "status": "healthy" if self.started else "stopped",
-                "service": "test-service"
-            }
+            return {"status": "healthy" if self.started else "stopped", "service": "test-service"}
 
         async def handle_request(self, path: str, method: str, **kwargs) -> dict[str, Any]:
             if path == "/test" and method == "GET":
@@ -151,6 +144,7 @@ class TestPluginService:
         assert response["error"] == "Not found"
         assert response["status"] == 404
 
+
 class TestServiceRegistry:
     """Test service registry functionality."""
 
@@ -165,7 +159,7 @@ class TestServiceRegistry:
         service_def = ServiceDefinition(
             name="test-service",
             version="1.0.0",
-            routes={"/test": {"methods": ["GET"], "handler": "test_handler"}}
+            routes={"/test": {"methods": ["GET"], "handler": "test_handler"}},
         )
 
         service = TestService()
@@ -222,9 +216,7 @@ class TestServiceRegistry:
         # Add service and test info
         service = TestService()
         service_def = ServiceDefinition(
-            name="test-service",
-            version="1.0.0",
-            description="Test service"
+            name="test-service", version="1.0.0", description="Test service"
         )
 
         asyncio.run(service_registry.register_service("test-plugin", service_def, service))
@@ -264,8 +256,8 @@ class TestServiceRegistry:
             version="1.0.0",
             routes={
                 "/api/test": {"methods": ["GET"], "handler": "test_handler"},
-                "/api/status": {"methods": ["GET"], "handler": "status_handler"}
-            }
+                "/api/status": {"methods": ["GET"], "handler": "status_handler"},
+            },
         )
 
         service = TestService()
@@ -291,6 +283,7 @@ class TestServiceRegistry:
         with pytest.raises(ValueError, match="Service 'test-service' is already registered"):
             await service_registry.register_service("plugin2", service_def, service2)
 
+
 class TestServiceIntegration:
     """Test service integration with MMF infrastructure."""
 
@@ -304,13 +297,15 @@ class TestServiceIntegration:
 
         async def start(self) -> None:
             # Simulate database initialization
-            await self.context.database.execute_ddl("CREATE TABLE IF NOT EXISTS test_data (id INT, value TEXT)")
+            await self.context.database.execute_ddl(
+                "CREATE TABLE IF NOT EXISTS test_data (id INT, value TEXT)"
+            )
             self.database_ready = True
 
             # Test cache connectivity
             await self.context.cache.set("test_key", "test_value", ttl=300)
             cached_value = await self.context.cache.get("test_key")
-            self.cache_ready = (cached_value is not None)
+            self.cache_ready = cached_value is not None
 
         async def stop(self) -> None:
             await self.context.cache.delete_pattern("test_*")
@@ -321,7 +316,7 @@ class TestServiceIntegration:
             return {
                 "status": "healthy" if (self.database_ready and self.cache_ready) else "degraded",
                 "database": self.database_ready,
-                "cache": self.cache_ready
+                "cache": self.cache_ready,
             }
 
         async def handle_data_request(self, data_id: int) -> dict[str, Any]:
@@ -393,5 +388,6 @@ class TestServiceIntegration:
 
         # Verify cache was updated
         mock_context.cache.set.assert_called_with("data_456", "db_data", ttl=300)
+
 
 # Alias removed - no longer needed

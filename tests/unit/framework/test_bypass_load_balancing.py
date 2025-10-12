@@ -6,7 +6,7 @@ import sys
 import pytest
 
 # Add the source directory to the path to bypass package imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", "src"))
 
 
 def test_bypass_direct_import():
@@ -17,9 +17,11 @@ def test_bypass_direct_import():
         import framework.discovery.load_balancing as lb_module
 
         # Verify key classes exist
-        assert hasattr(lb_module, 'LoadBalancingStrategy')
-        assert hasattr(lb_module, 'RoundRobinBalancer')  # Fixed: it's RoundRobinBalancer, not RoundRobinLoadBalancer
-        assert hasattr(core_module, 'ServiceInstance')
+        assert hasattr(lb_module, "LoadBalancingStrategy")
+        assert hasattr(
+            lb_module, "RoundRobinBalancer"
+        )  # Fixed: it's RoundRobinBalancer, not RoundRobinLoadBalancer
+        assert hasattr(core_module, "ServiceInstance")
 
         print("Successfully bypassed import issues and accessed classes directly")
 
@@ -36,15 +38,11 @@ async def test_service_instance_creation_bypass():
         # Test ServiceInstance creation
         ServiceInstance = core_module.ServiceInstance
 
-        instance = ServiceInstance(
-            service_name="test-service",
-            host="localhost",
-            port=8080
-        )
+        instance = ServiceInstance(service_name="test-service", host="localhost", port=8080)
 
         # Basic assertions
         assert instance.service_name == "test-service"
-        assert hasattr(instance, 'endpoint')  # Should auto-create endpoint
+        assert hasattr(instance, "endpoint")  # Should auto-create endpoint
 
         print(f"Successfully created ServiceInstance: {instance}")
 
@@ -128,7 +126,7 @@ async def test_random_functionality_bypass():
         import framework.discovery.load_balancing as lb_module
 
         # Get classes if they exist
-        if hasattr(lb_module, 'RandomLoadBalancer'):
+        if hasattr(lb_module, "RandomLoadBalancer"):
             RandomLoadBalancer = lb_module.RandomLoadBalancer
             ServiceInstance = core_module.ServiceInstance
 
@@ -156,7 +154,7 @@ async def test_least_connections_functionality_bypass():
         import framework.discovery.load_balancing as lb_module
 
         # Get classes if they exist
-        if hasattr(lb_module, 'LeastConnectionsLoadBalancer'):
+        if hasattr(lb_module, "LeastConnectionsLoadBalancer"):
             LeastConnectionsLoadBalancer = lb_module.LeastConnectionsLoadBalancer
             ServiceInstance = core_module.ServiceInstance
 
@@ -185,9 +183,7 @@ def test_discover_all_load_balancing_strategies():
         strategies = []
         for name in dir(lb_module):
             obj = getattr(lb_module, name)
-            if (isinstance(obj, type) and
-                name.endswith('LoadBalancer') or
-                name.endswith('Strategy')):
+            if isinstance(obj, type) and name.endswith("LoadBalancer") or name.endswith("Strategy"):
                 strategies.append(name)
 
         print(f"Discovered load balancing strategies: {strategies}")

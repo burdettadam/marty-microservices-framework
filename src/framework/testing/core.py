@@ -98,9 +98,7 @@ class TestResult:
             "status": self.status.value,
             "execution_time": self.execution_time,
             "started_at": self.started_at.isoformat(),
-            "completed_at": self.completed_at.isoformat()
-            if self.completed_at
-            else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "error_message": self.error_message,
             "stack_trace": self.stack_trace,
             "metrics": self.metrics.__dict__ if self.metrics else None,
@@ -211,9 +209,7 @@ class TestSuite:
             ]
 
         if test_types:
-            filtered_tests = [
-                test for test in filtered_tests if test.test_type in test_types
-            ]
+            filtered_tests = [test for test in filtered_tests if test.test_type in test_types]
 
         return filtered_tests
 
@@ -351,9 +347,7 @@ class TestReporter:
             "errors": errors,
             "success_rate": (passed / total_tests * 100) if total_tests > 0 else 0,
             "total_execution_time": total_time,
-            "average_execution_time": total_time / total_tests
-            if total_tests > 0
-            else 0,
+            "average_execution_time": total_time / total_tests if total_tests > 0 else 0,
         }
 
     def _get_html_template(self) -> str:
@@ -461,9 +455,7 @@ class TestExecutor:
             await suite.teardown()
             await self.data_manager.cleanup()
 
-    async def _execute_parallel(
-        self, tests: builtins.list[TestCase]
-    ) -> builtins.list[TestResult]:
+    async def _execute_parallel(self, tests: builtins.list[TestCase]) -> builtins.list[TestResult]:
         """Execute tests in parallel."""
         semaphore = asyncio.Semaphore(self.config.max_workers)
 

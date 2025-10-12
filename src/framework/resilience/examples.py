@@ -50,9 +50,7 @@ async def unreliable_external_api(success_rate: float = 0.7) -> builtins.dict[st
     }
 
 
-async def slow_database_query(
-    delay_range: tuple = (0.1, 2.0)
-) -> builtins.dict[str, Any]:
+async def slow_database_query(delay_range: tuple = (0.1, 2.0)) -> builtins.dict[str, Any]:
     """Simulate a slow database query."""
     delay = random.uniform(*delay_range)
     await asyncio.sleep(delay)
@@ -93,9 +91,7 @@ async def example_circuit_breaker():
     # Test circuit breaker behavior
     for attempt in range(10):
         try:
-            result = await circuit.call(
-                unreliable_external_api, 0.3
-            )  # 30% success rate
+            result = await circuit.call(unreliable_external_api, 0.3)  # 30% success rate
             print(f"Attempt {attempt + 1}: SUCCESS - {result}")
         except Exception as e:
             print(f"Attempt {attempt + 1}: FAILED - {type(e).__name__}: {e}")
@@ -183,9 +179,7 @@ async def example_fallback_strategies():
                 return await func(*args, **kwargs)
             except Exception as e:
                 if strategy_name in self.strategies:
-                    return await self.strategies[strategy_name].execute_fallback(
-                        e, *args, **kwargs
-                    )
+                    return await self.strategies[strategy_name].execute_fallback(e, *args, **kwargs)
                 raise
 
     manager = SimpleFallbackManager()

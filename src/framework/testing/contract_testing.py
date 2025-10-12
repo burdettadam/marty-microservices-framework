@@ -212,9 +212,7 @@ class InteractionBuilder:
 class ContractValidator:
     """Validates contracts and responses."""
 
-    def __init__(
-        self, verification_level: VerificationLevel = VerificationLevel.STRICT
-    ):
+    def __init__(self, verification_level: VerificationLevel = VerificationLevel.STRICT):
         self.verification_level = verification_level
 
     def validate_response(
@@ -228,9 +226,7 @@ class ContractValidator:
         actual_status = actual_response.get("status_code")
 
         if actual_status != expected_status:
-            errors.append(
-                f"Status code mismatch: expected {expected_status}, got {actual_status}"
-            )
+            errors.append(f"Status code mismatch: expected {expected_status}, got {actual_status}")
 
         # Validate headers
         if self.verification_level == VerificationLevel.STRICT:
@@ -244,9 +240,7 @@ class ContractValidator:
         # Validate body schema
         if interaction.response.schema and actual_response.get("body"):
             try:
-                jsonschema.validate(
-                    actual_response["body"], interaction.response.schema
-                )
+                jsonschema.validate(actual_response["body"], interaction.response.schema)
             except jsonschema.ValidationError as e:
                 errors.append(f"Response body schema validation failed: {e.message}")
 
@@ -285,13 +279,8 @@ class ContractValidator:
             if not interaction.request.path:
                 errors.append(f"Interaction {i} request must have a path")
 
-            if (
-                interaction.response.status_code < 100
-                or interaction.response.status_code > 599
-            ):
-                errors.append(
-                    f"Interaction {i} response status code must be valid HTTP status"
-                )
+            if interaction.response.status_code < 100 or interaction.response.status_code > 599:
+                errors.append(f"Interaction {i} response status code must be valid HTTP status")
 
         return len(errors) == 0, errors
 
@@ -313,9 +302,7 @@ class ContractRepository:
 
         logger.info(f"Contract saved: {filepath}")
 
-    def load_contract(
-        self, consumer: str, provider: str, version: str = None
-    ) -> Contract | None:
+    def load_contract(self, consumer: str, provider: str, version: str = None) -> Contract | None:
         """Load contract from storage."""
         if version:
             filename = f"{consumer}_{provider}_{version}.json"
@@ -443,9 +430,7 @@ class ContractTestCase(TestCase):
 
         try:
             # Validate contract syntax first
-            is_valid, syntax_errors = self.validator.validate_contract_syntax(
-                self.contract
-            )
+            is_valid, syntax_errors = self.validator.validate_contract_syntax(self.contract)
             if not is_valid:
                 raise ValueError(f"Contract syntax errors: {', '.join(syntax_errors)}")
 
@@ -459,14 +444,11 @@ class ContractTestCase(TestCase):
 
                     if not is_valid:
                         errors.extend(
-                            [
-                                f"Interaction {i+1}: {error}"
-                                for error in validation_errors
-                            ]
+                            [f"Interaction {i + 1}: {error}" for error in validation_errors]
                         )
 
                 except Exception as e:
-                    errors.append(f"Interaction {i+1} failed: {e!s}")
+                    errors.append(f"Interaction {i + 1} failed: {e!s}")
 
             execution_time = (datetime.utcnow() - start_time).total_seconds()
 
@@ -604,9 +586,7 @@ class ContractManager:
         contract = self.repository.load_contract(consumer, provider, version)
 
         if not contract:
-            raise ValueError(
-                f"Contract not found: {consumer} -> {provider} (version: {version})"
-            )
+            raise ValueError(f"Contract not found: {consumer} -> {provider} (version: {version})")
 
         return ContractTestCase(contract, provider_url, verification_level)
 
@@ -636,9 +616,7 @@ class ContractManager:
                     parameters = spec.get("parameters", [])
                     for param in parameters:
                         if param.get("in") == "query":
-                            request.query_params[param["name"]] = param.get(
-                                "example", "test_value"
-                            )
+                            request.query_params[param["name"]] = param.get("example", "test_value")
 
                     # Build response (use first successful response)
                     responses = spec.get("responses", {})
@@ -671,9 +649,7 @@ class ContractManager:
 
 
 # Utility functions
-def pact_contract(
-    consumer: str, provider: str, version: str = "1.0.0"
-) -> ContractBuilder:
+def pact_contract(consumer: str, provider: str, version: str = "1.0.0") -> ContractBuilder:
     """Create a Pact-style contract builder."""
     return ContractBuilder(consumer, provider, version)
 
@@ -702,9 +678,7 @@ async def verify_contracts_for_provider(
 
         except Exception as e:
             error_result = TestResult(
-                test_id=str(
-                    hash(f"{contract_info['consumer']}_{contract_info['provider']}")
-                ),
+                test_id=str(hash(f"{contract_info['consumer']}_{contract_info['provider']}")),
                 name=f"Contract verification: {contract_info['consumer']} -> {contract_info['provider']}",
                 test_type=TestType.CONTRACT,
                 status=TestStatus.ERROR,

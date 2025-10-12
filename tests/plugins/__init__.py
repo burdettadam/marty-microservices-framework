@@ -33,6 +33,7 @@ def temp_dir():
     yield temp_path
     shutil.rmtree(temp_path)
 
+
 @pytest.fixture
 def mock_context():
     """Create mock plugin context with MMF services."""
@@ -68,6 +69,7 @@ def mock_context():
 
     return context
 
+
 # Mock classes for testing
 class MockMetricsCollector:
     def increment_counter(self, name: str, labels=None):
@@ -76,13 +78,16 @@ class MockMetricsCollector:
     def start_timer(self, name: str, labels=None):
         return MockTimer()
 
+
 class MockTimer:
     def stop(self):
         pass
 
+
 class MockTracer:
     def start_span(self, name: str):
         return MockSpan()
+
 
 class MockSpan:
     def __enter__(self):
@@ -93,6 +98,7 @@ class MockSpan:
 
     def set_attribute(self, key: str, value):
         pass
+
 
 # Simple test plugin for testing
 class TestPlugin(MMFPlugin):
@@ -108,7 +114,7 @@ class TestPlugin(MMFPlugin):
             name="test-plugin",
             version="1.0.0",
             description="Test plugin for unit testing",
-            author="Test Framework"
+            author="Test Framework",
         )
 
     async def initialize(self, context: PluginContext) -> None:
@@ -122,7 +128,4 @@ class TestPlugin(MMFPlugin):
         self.started = False
 
     async def get_health_status(self) -> dict[str, Any]:
-        return {
-            "status": "healthy" if self.started else "stopped",
-            "initialized": self.initialized
-        }
+        return {"status": "healthy" if self.started else "stopped", "initialized": self.initialized}

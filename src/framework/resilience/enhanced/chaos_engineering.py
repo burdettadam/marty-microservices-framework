@@ -148,9 +148,7 @@ class ChaosInjector:
 
 @asynccontextmanager
 async def chaos_context(
-    config: ChaosConfig,
-    target: str = "default",
-    injector: ChaosInjector | None = None
+    config: ChaosConfig, target: str = "default", injector: ChaosInjector | None = None
 ) -> AsyncIterator[ChaosInjector]:
     """Context manager for chaos injection."""
     if injector is None:
@@ -172,10 +170,7 @@ class ResilienceTestSuite:
         self.test_results: list[dict[str, Any]] = []
 
     async def test_network_resilience(
-        self,
-        target_function: Callable[..., Awaitable[Any]],
-        *args,
-        **kwargs
+        self, target_function: Callable[..., Awaitable[Any]], *args, **kwargs
     ) -> dict[str, Any]:
         """Test network resilience with various network chaos scenarios."""
         scenarios = [
@@ -216,7 +211,7 @@ class ResilienceTestSuite:
         target_function: Callable[..., Awaitable[Any]],
         *args,
         max_acceptable_latency: float = 5.0,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         """Test latency resilience with high latency scenarios."""
         scenarios = [
@@ -256,10 +251,7 @@ class ResilienceTestSuite:
         return results
 
     async def test_error_resilience(
-        self,
-        target_function: Callable[..., Awaitable[Any]],
-        *args,
-        **kwargs
+        self, target_function: Callable[..., Awaitable[Any]], *args, **kwargs
     ) -> dict[str, Any]:
         """Test error resilience with various error scenarios."""
         scenarios = [
@@ -296,10 +288,7 @@ class ResilienceTestSuite:
         return results
 
     async def run_comprehensive_test(
-        self,
-        target_function: Callable[..., Awaitable[Any]],
-        *args,
-        **kwargs
+        self, target_function: Callable[..., Awaitable[Any]], *args, **kwargs
     ) -> dict[str, Any]:
         """Run comprehensive resilience tests."""
         test_start = time.time()

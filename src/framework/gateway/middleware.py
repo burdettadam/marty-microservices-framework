@@ -280,9 +280,7 @@ class CachingMiddleware(Middleware):
                 cache_key = self._get_cache_key(request)
 
                 try:
-                    await self.cache.set(
-                        cache_key, json.dumps(response), ttl=self.default_ttl
-                    )
+                    await self.cache.set(cache_key, json.dumps(response), ttl=self.default_ttl)
                 except Exception as e:
                     logger.warning(f"Cache write error: {e}")
 
@@ -449,9 +447,7 @@ class MiddlewareChain:
         if middleware in self.middlewares:
             self.middlewares.remove(middleware)
 
-    async def process_request(
-        self, request_data: builtins.dict[str, Any]
-    ) -> MiddlewareContext:
+    async def process_request(self, request_data: builtins.dict[str, Any]) -> MiddlewareContext:
         """Process request through middleware chain."""
         context = MiddlewareContext(request_data=request_data)
 
@@ -465,9 +461,7 @@ class MiddlewareChain:
 
             except Exception as e:
                 context.error = e
-                logger.error(
-                    f"Middleware error in {middleware.__class__.__name__}: {e}"
-                )
+                logger.error(f"Middleware error in {middleware.__class__.__name__}: {e}")
                 break
 
         return context
@@ -479,9 +473,7 @@ class MiddlewareChain:
                 context = await middleware.process_response(context)
             except Exception as e:
                 context.error = e
-                logger.error(
-                    f"Middleware error in {middleware.__class__.__name__}: {e}"
-                )
+                logger.error(f"Middleware error in {middleware.__class__.__name__}: {e}")
 
         return context
 
@@ -491,9 +483,7 @@ class MiddlewareChain:
             try:
                 context = await middleware.process_error(context)
             except Exception as e:
-                logger.error(
-                    f"Error middleware error in {middleware.__class__.__name__}: {e}"
-                )
+                logger.error(f"Error middleware error in {middleware.__class__.__name__}: {e}")
 
         return context
 

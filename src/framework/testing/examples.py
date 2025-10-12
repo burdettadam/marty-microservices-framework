@@ -77,9 +77,7 @@ class TestEvent(BaseEvent):
 class User:
     """Example domain model."""
 
-    def __init__(
-        self, id: str | None = None, email: str | None = None, name: str | None = None
-    ):
+    def __init__(self, id: str | None = None, email: str | None = None, name: str | None = None):
         self.id = id
         self.email = email
         self.name = name
@@ -209,9 +207,7 @@ class TestUserServiceIntegration(AsyncTestCase, ServiceTestMixin):
     async def test_user_creation_flow(self):
         """Test complete user creation flow."""
         # Act - Create user
-        user = await self.user_service.create_user(
-            "integration@example.com", "Integration Test"
-        )
+        user = await self.user_service.create_user("integration@example.com", "Integration Test")
 
         # Assert - User was created
         assert user.email == "integration@example.com"
@@ -267,6 +263,7 @@ class TestUserServicePerformance(AsyncTestCase, ServiceTestMixin, PerformanceTes
         # Assert - Multiple events published
         assert len(self.event_collector.events) == 2
 
+
 # Specialized Test Patterns
 class TestEventDrivenPatterns(AsyncTestCase):
     """Test patterns for event-driven architecture."""
@@ -275,15 +272,11 @@ class TestEventDrivenPatterns(AsyncTestCase):
     async def test_event_handler_registration(self):
         """Test event handler registration pattern."""
         # Setup custom event collector for specific events
-        user_event_collector = TestEventCollector(
-            event_types=["user.created", "user.updated"]
-        )
+        user_event_collector = TestEventCollector(event_types=["user.created", "user.updated"])
         await self.test_event_bus.subscribe(user_event_collector)
 
         # Act - Publish various events
-        await self.test_event_bus.publish(
-            UserCreatedEvent("user_1", "user1@example.com")
-        )
+        await self.test_event_bus.publish(UserCreatedEvent("user_1", "user1@example.com"))
         await self.test_event_bus.publish(TestEvent("system.startup"))
 
         # Wait for event processing
@@ -383,7 +376,5 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         # Add unit marker if no other test type marker present
         test_markers = [mark.name for mark in item.iter_markers()]
-        if not any(
-            marker in test_markers for marker in ["unit", "integration", "performance"]
-        ):
+        if not any(marker in test_markers for marker in ["unit", "integration", "performance"]):
             item.add_marker(pytest.mark.unit)

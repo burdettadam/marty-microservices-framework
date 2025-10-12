@@ -18,13 +18,14 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, TypeVar
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
 
 class TimeoutType(Enum):
     """Types of timeout mechanisms."""
+
     ASYNC = "async"
     THREAD = "thread"
     SIGNAL = "signal"
@@ -33,6 +34,7 @@ class TimeoutType(Enum):
 
 class TimeoutAction(Enum):
     """Actions to take when timeout occurs."""
+
     RAISE_EXCEPTION = "raise_exception"
     RETURN_DEFAULT = "return_default"
     LOG_WARNING = "log_warning"
@@ -42,6 +44,7 @@ class TimeoutAction(Enum):
 @dataclass
 class TimeoutConfig:
     """Configuration for timeout operations."""
+
     name: str
     timeout_seconds: float
     timeout_type: TimeoutType = TimeoutType.ASYNC
@@ -56,12 +59,13 @@ class TimeoutConfig:
 @dataclass
 class TimeoutMetrics:
     """Metrics for timeout monitoring."""
+
     total_operations: int = 0
     successful_operations: int = 0
     timeout_operations: int = 0
     average_execution_time: float = 0.0
     max_execution_time: float = 0.0
-    min_execution_time: float = float('inf')
+    min_execution_time: float = float("inf")
 
 
 class TimeoutException(Exception):
@@ -81,9 +85,7 @@ class AsyncTimeoutManager:
         self.metrics = TimeoutMetrics()
         self._lock = threading.Lock()
 
-    async def execute(self,
-                     coro: Awaitable[T],
-                     timeout: float | None = None) -> T:
+    async def execute(self, coro: Awaitable[T], timeout: float | None = None) -> T:
         """Execute an async operation with timeout."""
         timeout_value = timeout or self.config.timeout_seconds
         start_time = time.time()
@@ -102,7 +104,7 @@ class AsyncTimeoutManager:
                 raise TimeoutException(
                     f"Operation timed out after {timeout_value} seconds",
                     timeout_value,
-                    self.config.name
+                    self.config.name,
                 ) from e
             elif self.config.action == TimeoutAction.RETURN_DEFAULT:
                 if self.config.enable_logging:
@@ -117,7 +119,7 @@ class AsyncTimeoutManager:
                 raise TimeoutException(
                     f"Operation timed out after {timeout_value} seconds",
                     timeout_value,
-                    self.config.name
+                    self.config.name,
                 ) from e
 
     def _update_metrics(self, success: bool, execution_time: float) -> None:
@@ -133,14 +135,10 @@ class AsyncTimeoutManager:
             # Update timing metrics
             alpha = 0.1
             self.metrics.average_execution_time = (
-                alpha * execution_time +
-                (1 - alpha) * self.metrics.average_execution_time
+                alpha * execution_time + (1 - alpha) * self.metrics.average_execution_time
             )
 
-            self.metrics.max_execution_time = max(
-                self.metrics.max_execution_time,
-                execution_time
-            )
+            self.metrics.max_execution_time = max(self.metrics.max_execution_time, execution_time)
 
             if execution_time < self.metrics.min_execution_time:
                 self.metrics.min_execution_time = execution_time
@@ -155,11 +153,7 @@ class ThreadTimeoutManager:
         self._executor = ThreadPoolExecutor(max_workers=4)
         self._lock = threading.Lock()
 
-    def execute(self,
-                func: Callable[..., T],
-                *args,
-                timeout: float | None = None,
-                **kwargs) -> T:
+    def execute(self, func: Callable[..., T], *args, timeout: float | None = None, **kwargs) -> T:
         """Execute a function with timeout in a separate thread."""
         timeout_value = timeout or self.config.timeout_seconds
         start_time = time.time()
@@ -179,7 +173,7 @@ class ThreadTimeoutManager:
                 raise TimeoutException(
                     f"Operation timed out after {timeout_value} seconds",
                     timeout_value,
-                    self.config.name
+                    self.config.name,
                 ) from e
             elif self.config.action == TimeoutAction.RETURN_DEFAULT:
                 if self.config.enable_logging:
@@ -205,14 +199,10 @@ class ThreadTimeoutManager:
             # Update timing metrics
             alpha = 0.1
             self.metrics.average_execution_time = (
-                alpha * execution_time +
-                (1 - alpha) * self.metrics.average_execution_time
+                alpha * execution_time + (1 - alpha) * self.metrics.average_execution_time
             )
 
-            self.metrics.max_execution_time = max(
-                self.metrics.max_execution_time,
-                execution_time
-            )
+            self.metrics.max_execution_time = max(self.metrics.max_execution_time, execution_time)
 
             if execution_time < self.metrics.min_execution_time:
                 self.metrics.min_execution_time = execution_time
@@ -227,11 +217,7 @@ class SignalTimeoutManager:
         self._lock = threading.Lock()
         self._original_handler = None
 
-    def execute(self,
-                func: Callable[..., T],
-                *args,
-                timeout: float | None = None,
-                **kwargs) -> T:
+    def execute(self, func: Callable[..., T], *args, timeout: float | None = None, **kwargs) -> T:
         """Execute a function with signal-based timeout."""
         timeout_value = timeout or self.config.timeout_seconds
         start_time = time.time()
@@ -240,7 +226,7 @@ class SignalTimeoutManager:
             raise TimeoutException(
                 f"Operation timed out after {timeout_value} seconds",
                 timeout_value,
-                self.config.name
+                self.config.name,
             )
 
         # Set up signal handler
@@ -286,7 +272,9 @@ class TimeoutManager:
     """Unified timeout manager supporting multiple timeout mechanisms."""
 
     def __init__(self):
-        self._managers: dict[str, AsyncTimeoutManager | ThreadTimeoutManager | SignalTimeoutManager] = {}
+        self._managers: dict[
+            str, AsyncTimeoutManager | ThreadTimeoutManager | SignalTimeoutManager
+        ] = {}
         self._lock = threading.Lock()
 
     def register_config(self, config: TimeoutConfig) -> None:
@@ -311,24 +299,24 @@ class TimeoutManager:
     def get_all_metrics(self) -> dict[str, TimeoutMetrics]:
         """Get metrics for all timeout managers."""
         with self._lock:
-            return {
-                name: manager.metrics
-                for name, manager in self._managers.items()
-            }
+            return {name: manager.metrics for name, manager in self._managers.items()}
 
     def shutdown(self) -> None:
         """Shutdown all timeout managers."""
         with self._lock:
             for manager in self._managers.values():
-                if hasattr(manager, 'shutdown'):
+                if hasattr(manager, "shutdown"):
                     manager.shutdown()
 
 
 # Decorators for timeout protection
-def with_async_timeout(timeout_seconds: float,
-                      action: TimeoutAction = TimeoutAction.RAISE_EXCEPTION,
-                      default_value: Any = None):
+def with_async_timeout(
+    timeout_seconds: float,
+    action: TimeoutAction = TimeoutAction.RAISE_EXCEPTION,
+    default_value: Any = None,
+):
     """Decorator for async functions with timeout protection."""
+
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
         @functools.wraps(func)
         async def wrapper(*args, **kwargs) -> T:
@@ -337,18 +325,23 @@ def with_async_timeout(timeout_seconds: float,
                 timeout_seconds=timeout_seconds,
                 timeout_type=TimeoutType.ASYNC,
                 action=action,
-                default_value=default_value
+                default_value=default_value,
             )
             manager = AsyncTimeoutManager(config)
             return await manager.execute(func(*args, **kwargs))
+
         return wrapper
+
     return decorator
 
 
-def with_thread_timeout(timeout_seconds: float,
-                       action: TimeoutAction = TimeoutAction.RAISE_EXCEPTION,
-                       default_value: Any = None):
+def with_thread_timeout(
+    timeout_seconds: float,
+    action: TimeoutAction = TimeoutAction.RAISE_EXCEPTION,
+    default_value: Any = None,
+):
     """Decorator for sync functions with thread-based timeout protection."""
+
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @functools.wraps(func)
         def wrapper(*args, **kwargs) -> T:
@@ -357,11 +350,13 @@ def with_thread_timeout(timeout_seconds: float,
                 timeout_seconds=timeout_seconds,
                 timeout_type=TimeoutType.THREAD,
                 action=action,
-                default_value=default_value
+                default_value=default_value,
             )
             manager = ThreadTimeoutManager(config)
             return manager.execute(func, *args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
@@ -372,9 +367,7 @@ default_timeout_manager = TimeoutManager()
 def create_async_timeout_manager(name: str, timeout_seconds: float) -> AsyncTimeoutManager:
     """Create and register an async timeout manager."""
     config = TimeoutConfig(
-        name=name,
-        timeout_seconds=timeout_seconds,
-        timeout_type=TimeoutType.ASYNC
+        name=name, timeout_seconds=timeout_seconds, timeout_type=TimeoutType.ASYNC
     )
     default_timeout_manager.register_config(config)
     return default_timeout_manager.get_manager(name)
@@ -383,9 +376,7 @@ def create_async_timeout_manager(name: str, timeout_seconds: float) -> AsyncTime
 def create_thread_timeout_manager(name: str, timeout_seconds: float) -> ThreadTimeoutManager:
     """Create and register a thread timeout manager."""
     config = TimeoutConfig(
-        name=name,
-        timeout_seconds=timeout_seconds,
-        timeout_type=TimeoutType.THREAD
+        name=name, timeout_seconds=timeout_seconds, timeout_type=TimeoutType.THREAD
     )
     default_timeout_manager.register_config(config)
     return default_timeout_manager.get_manager(name)

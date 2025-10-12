@@ -83,9 +83,7 @@ class RoleBasedAccessControl:
     def _setup_default_roles(self) -> None:
         """Setup default roles and permissions."""
         # Default permissions
-        self.register_permission(
-            Permission("read", "api", PermissionLevel.READ, "API read access")
-        )
+        self.register_permission(Permission("read", "api", PermissionLevel.READ, "API read access"))
         self.register_permission(
             Permission("write", "api", PermissionLevel.WRITE, "API write access")
         )
@@ -93,9 +91,7 @@ class RoleBasedAccessControl:
             Permission("delete", "api", PermissionLevel.DELETE, "API delete access")
         )
         self.register_permission(
-            Permission(
-                "admin", "system", PermissionLevel.ADMIN, "System administration"
-            )
+            Permission("admin", "system", PermissionLevel.ADMIN, "System administration")
         )
 
         # Default roles
@@ -124,9 +120,7 @@ class RoleBasedAccessControl:
         """Register a new role."""
         self.roles[role.name] = role
 
-    def check_permission(
-        self, user: AuthenticatedUser, required_permission: str
-    ) -> bool:
+    def check_permission(self, user: AuthenticatedUser, required_permission: str) -> bool:
         """Check if a user has a specific permission."""
         # Check direct permissions
         if required_permission in user.permissions:

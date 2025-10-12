@@ -126,8 +126,7 @@ class MessageCapture:
 
         if data:
             matching_messages = [
-                msg for msg in messages
-                if all(msg.data.get(k) == v for k, v in data.items())
+                msg for msg in messages if all(msg.data.get(k) == v for k, v in data.items())
             ]
             assert len(matching_messages) > 0, f"No messages with matching data found: {data}"
 
@@ -138,8 +137,7 @@ class MessageCapture:
 
         if data:
             matching_events = [
-                evt for evt in events
-                if all(evt.data.get(k) == v for k, v in data.items())
+                evt for evt in events if all(evt.data.get(k) == v for k, v in data.items())
             ]
             assert len(matching_events) > 0, f"No events with matching data found: {data}"
 
@@ -172,7 +170,7 @@ class DatabaseTestHelper:
 
         # Build insert query from first record
         columns = list(data[0].keys())
-        placeholders = ", ".join([f"${i+1}" for i in range(len(columns))])
+        placeholders = ", ".join([f"${i + 1}" for i in range(len(columns))])
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
 
         for record in data:
@@ -182,21 +180,27 @@ class DatabaseTestHelper:
     async def assert_table_count(self, table_name: str, expected_count: int):
         """Assert the number of records in a table."""
         count = await self.db.fetch_val(f"SELECT COUNT(*) FROM {table_name}")
-        assert count == expected_count, f"Expected {expected_count} records in {table_name}, got {count}"
+        assert count == expected_count, (
+            f"Expected {expected_count} records in {table_name}, got {count}"
+        )
 
     async def assert_record_exists(self, table_name: str, conditions: dict[str, Any]):
         """Assert that a record exists with given conditions."""
-        where_clause = " AND ".join([f"{k} = ${i+1}" for i, k in enumerate(conditions.keys())])
+        where_clause = " AND ".join([f"{k} = ${i + 1}" for i, k in enumerate(conditions.keys())])
         query = f"SELECT COUNT(*) FROM {table_name} WHERE {where_clause}"
         values = list(conditions.values())
 
         count = await self.db.fetch_val(query, *values)
         assert count > 0, f"No record found in {table_name} with conditions {conditions}"
 
-    async def get_test_data(self, table_name: str, conditions: dict[str, Any] = None) -> list[dict[str, Any]]:
+    async def get_test_data(
+        self, table_name: str, conditions: dict[str, Any] = None
+    ) -> list[dict[str, Any]]:
         """Get test data from a table."""
         if conditions:
-            where_clause = " AND ".join([f"{k} = ${i+1}" for i, k in enumerate(conditions.keys())])
+            where_clause = " AND ".join(
+                [f"{k} = ${i + 1}" for i, k in enumerate(conditions.keys())]
+            )
             query = f"SELECT * FROM {table_name} WHERE {where_clause}"
             values = list(conditions.values())
             return await self.db.fetch_all(query, *values)
@@ -278,7 +282,7 @@ class ConfigTestHelper:
             "environment": "test",
             "debug": True,
             "log_level": "DEBUG",
-            "port": 8080
+            "port": 8080,
         }
 
         default_config.update(overrides)
@@ -289,6 +293,7 @@ class ConfigTestHelper:
     def environment_variables(**env_vars):
         """Context manager for temporary environment variables."""
         import os
+
         original_env = {}
 
         for key, value in env_vars.items():
@@ -312,7 +317,7 @@ class ConfigTestHelper:
         import yaml
 
         suffix = f".{file_format}"
-        temp_file = tempfile.NamedTemporaryFile(mode='w', suffix=suffix, delete=False)
+        temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=suffix, delete=False)
 
         if file_format == "yaml":
             yaml.dump(config_data, temp_file)
@@ -337,18 +342,18 @@ class WorkflowTestHelper:
 
     def track_step(self, step_name: str, data: dict[str, Any] = None):
         """Track a workflow step for verification."""
-        self.workflow_steps.append({
-            "step": step_name,
-            "data": data or {},
-            "timestamp": asyncio.get_event_loop().time()
-        })
+        self.workflow_steps.append(
+            {"step": step_name, "data": data or {}, "timestamp": asyncio.get_event_loop().time()}
+        )
 
     def assert_workflow_completed(self, expected_steps: list[str]):
         """Assert that all expected workflow steps were executed."""
         actual_steps = [step["step"] for step in self.workflow_steps]
 
         for expected_step in expected_steps:
-            assert expected_step in actual_steps, f"Workflow step '{expected_step}' was not executed"
+            assert expected_step in actual_steps, (
+                f"Workflow step '{expected_step}' was not executed"
+            )
 
     def assert_step_order(self, step1: str, step2: str):
         """Assert that step1 happened before step2."""
@@ -383,7 +388,7 @@ class MockExternalServices:
     @contextmanager
     def mock_http_service(self, base_url: str, responses: dict[str, Any]):
         """Mock external HTTP service calls."""
-        with patch('httpx.AsyncClient') as mock_client:
+        with patch("httpx.AsyncClient") as mock_client:
             mock_instance = AsyncMock()
             mock_client.return_value.__aenter__.return_value = mock_instance
 
@@ -409,11 +414,12 @@ class MockExternalServices:
     @contextmanager
     def mock_file_system(self, file_contents: dict[str, str]):
         """Mock file system operations for external file dependencies."""
-        with patch('builtins.open') as mock_open:
-            def open_side_effect(filename, mode='r', *args, **kwargs):
+        with patch("builtins.open") as mock_open:
+
+            def open_side_effect(filename, mode="r", *args, **kwargs):
                 if filename in file_contents:
                     mock_file = Mock()
-                    if 'r' in mode:
+                    if "r" in mode:
                         mock_file.read.return_value = file_contents[filename]
                         mock_file.__enter__.return_value = mock_file
                         mock_file.__exit__.return_value = None
@@ -428,9 +434,7 @@ class MockExternalServices:
 
 # Factory functions for common test objects
 def create_test_message(
-    message_type: str = "test.message",
-    data: dict[str, Any] = None,
-    **kwargs
+    message_type: str = "test.message", data: dict[str, Any] = None, **kwargs
 ) -> Message:
     """Create a test message with sensible defaults."""
     return Message(
@@ -439,14 +443,12 @@ def create_test_message(
         data=data or {"test": True},
         correlation_id=kwargs.get("correlation_id"),
         source=kwargs.get("source", "test-service"),
-        destination=kwargs.get("destination")
+        destination=kwargs.get("destination"),
     )
 
 
 def create_test_event(
-    event_type: str = "test.event",
-    data: dict[str, Any] = None,
-    **kwargs
+    event_type: str = "test.event", data: dict[str, Any] = None, **kwargs
 ) -> Event:
     """Create a test event with sensible defaults."""
     return Event(
@@ -455,14 +457,12 @@ def create_test_event(
         data=data or {"test": True},
         source=kwargs.get("source", "test-service"),
         correlation_id=kwargs.get("correlation_id"),
-        version=kwargs.get("version", 1)
+        version=kwargs.get("version", 1),
     )
 
 
 async def create_test_service(
-    service_name: str,
-    service_type: str = "fastapi",
-    temp_dir: Path = None
+    service_name: str, service_type: str = "fastapi", temp_dir: Path = None
 ) -> Path:
     """Create a test service in a temporary directory."""
     import subprocess
@@ -470,13 +470,26 @@ async def create_test_service(
     if temp_dir is None:
         temp_dir = Path(tempfile.mkdtemp())
 
-    result = subprocess.run([
-        "uv", "run", "python", "-m", "marty_mmf.cli",
-        "create", "service",
-        "--name", service_name,
-        "--type", service_type,
-        "--output", str(temp_dir)
-    ], capture_output=True, text=True, cwd=Path.cwd())
+    result = subprocess.run(
+        [
+            "uv",
+            "run",
+            "python",
+            "-m",
+            "marty_mmf.cli",
+            "create",
+            "service",
+            "--name",
+            service_name,
+            "--type",
+            service_type,
+            "--output",
+            str(temp_dir),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=Path.cwd(),
+    )
 
     if result.returncode != 0:
         raise RuntimeError(f"Failed to create test service: {result.stderr}")
@@ -546,5 +559,6 @@ def temp_service_dir():
     yield temp_dir
 
     import shutil
+
     if temp_dir.exists():
         shutil.rmtree(temp_dir)

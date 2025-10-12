@@ -85,9 +85,7 @@ class TestMasterE2E:
                 )
 
                 # Load the generated report
-                bottleneck_report_file = (
-                    master_report_dir / "bottleneck_analysis_report.json"
-                )
+                bottleneck_report_file = master_report_dir / "bottleneck_analysis_report.json"
                 if bottleneck_report_file.exists():
                     with open(bottleneck_report_file) as f:
                         test_results["bottleneck_analysis"] = json.load(f)
@@ -120,9 +118,7 @@ class TestMasterE2E:
                 )
 
                 # Load the generated report
-                timeout_report_file = (
-                    master_report_dir / "timeout_detection_report.json"
-                )
+                timeout_report_file = master_report_dir / "timeout_detection_report.json"
                 if timeout_report_file.exists():
                     with open(timeout_report_file) as f:
                         test_results["timeout_detection"] = json.load(f)
@@ -215,9 +211,7 @@ class TestMasterE2E:
                 comprehensive_report = {"error": str(e), "status": "failed"}
 
             # Generate master summary
-            master_summary = self._generate_master_summary(
-                test_results, comprehensive_report
-            )
+            master_summary = self._generate_master_summary(test_results, comprehensive_report)
 
             # Save master summary
             summary_file = master_report_dir / "master_e2e_summary.json"
@@ -265,9 +259,7 @@ class TestMasterE2E:
         ):
             bottleneck_summary = test_results["bottleneck_analysis"]["test_summary"]
             key_metrics["bottleneck"] = {
-                "load_levels_tested": len(
-                    bottleneck_summary.get("load_levels_tested", [])
-                ),
+                "load_levels_tested": len(bottleneck_summary.get("load_levels_tested", [])),
                 "total_bottlenecks": bottleneck_summary.get("total_bottlenecks", 0),
             }
 
@@ -284,10 +276,7 @@ class TestMasterE2E:
             }
 
         # Audit metrics
-        if (
-            test_results["auditability"]
-            and "test_summary" in test_results["auditability"]
-        ):
+        if test_results["auditability"] and "test_summary" in test_results["auditability"]:
             audit_summary = test_results["auditability"]["test_summary"]
             key_metrics["audit"] = {
                 "total_events": audit_summary.get("total_events_generated", 0),
@@ -295,10 +284,7 @@ class TestMasterE2E:
             }
 
         # Visual metrics
-        if (
-            test_results["visual_testing"]
-            and "test_summary" in test_results["visual_testing"]
-        ):
+        if test_results["visual_testing"] and "test_summary" in test_results["visual_testing"]:
             visual_summary = test_results["visual_testing"]["test_summary"]
             key_metrics["visual"] = {
                 "success_rate": visual_summary.get("success_rate", 0),
@@ -310,24 +296,18 @@ class TestMasterE2E:
         # Overall health assessment
         overall_health = "excellent"
         if successful_tests < total_tests:
-            overall_health = (
-                "needs_attention" if successful_tests < total_tests * 0.5 else "good"
-            )
+            overall_health = "needs_attention" if successful_tests < total_tests * 0.5 else "good"
 
         # Critical issues count
         critical_issues = []
         if comprehensive_report and "executive_summary" in comprehensive_report:
-            critical_issues = comprehensive_report["executive_summary"].get(
-                "key_findings", []
-            )
+            critical_issues = comprehensive_report["executive_summary"].get("key_findings", [])
 
         return {
             "test_execution_summary": {
                 "total_tests": total_tests,
                 "successful_tests": successful_tests,
-                "success_rate": (successful_tests / total_tests * 100)
-                if total_tests > 0
-                else 0,
+                "success_rate": (successful_tests / total_tests * 100) if total_tests > 0 else 0,
                 "test_status": test_status,
             },
             "key_metrics": key_metrics,
@@ -354,9 +334,7 @@ class TestMasterE2E:
 
         # Test execution summary
         print("\\n🎯 TEST EXECUTION:")
-        print(
-            f"   Tests Run: {execution['successful_tests']}/{execution['total_tests']}"
-        )
+        print(f"   Tests Run: {execution['successful_tests']}/{execution['total_tests']}")
         print(f"   Success Rate: {execution['success_rate']:.1f}%")
 
         # Individual test status
@@ -414,9 +392,7 @@ class TestMasterE2E:
         # Report locations
         print("\\n📁 REPORTS GENERATED:")
         print(f"   📋 Master Summary: {report_dir / 'master_e2e_summary.json'}")
-        print(
-            f"   📊 Comprehensive Report: {report_dir / 'comprehensive_performance_report.json'}"
-        )
+        print(f"   📊 Comprehensive Report: {report_dir / 'comprehensive_performance_report.json'}")
         print(f"   🌐 HTML Report: {report_dir / 'performance_report.html'}")
         print(f"   📈 Charts Directory: {report_dir / 'charts'}")
 
@@ -438,69 +414,53 @@ class TestMasterE2E:
 
         print("\\n" + "=" * 70)
 
-    def _validate_test_results(
-        self, test_results: builtins.dict, master_summary: builtins.dict
-    ):
+    def _validate_test_results(self, test_results: builtins.dict, master_summary: builtins.dict):
         """Validate test results and assert critical requirements."""
 
         execution = master_summary["test_execution_summary"]
 
         # At least 75% of tests should pass
-        assert (
-            execution["success_rate"] >= 75
-        ), f"Test success rate too low: {execution['success_rate']:.1f}% (minimum: 75%)"
+        assert execution["success_rate"] >= 75, (
+            f"Test success rate too low: {execution['success_rate']:.1f}% (minimum: 75%)"
+        )
 
         # At least one test should have completed successfully
         assert execution["successful_tests"] > 0, "No tests completed successfully"
 
         # Critical assertion: if bottleneck analysis ran, it should detect the framework
-        if test_results["bottleneck_analysis"] and not test_results[
-            "bottleneck_analysis"
-        ].get("error"):
-            bottleneck_report = test_results["bottleneck_analysis"]
-            assert (
-                "test_summary" in bottleneck_report
-            ), "Bottleneck analysis should generate test summary"
-
-        # Critical assertion: if timeout detection ran, it should have phase results
-        if test_results["timeout_detection"] and not test_results[
-            "timeout_detection"
-        ].get("error"):
-            timeout_report = test_results["timeout_detection"]
-            assert (
-                "test_summary" in timeout_report
-            ), "Timeout detection should generate test summary"
-
-        # Critical assertion: if audit ran, it should track events
-        if test_results["auditability"] and not test_results["auditability"].get(
+        if test_results["bottleneck_analysis"] and not test_results["bottleneck_analysis"].get(
             "error"
         ):
+            bottleneck_report = test_results["bottleneck_analysis"]
+            assert "test_summary" in bottleneck_report, (
+                "Bottleneck analysis should generate test summary"
+            )
+
+        # Critical assertion: if timeout detection ran, it should have phase results
+        if test_results["timeout_detection"] and not test_results["timeout_detection"].get("error"):
+            timeout_report = test_results["timeout_detection"]
+            assert "test_summary" in timeout_report, (
+                "Timeout detection should generate test summary"
+            )
+
+        # Critical assertion: if audit ran, it should track events
+        if test_results["auditability"] and not test_results["auditability"].get("error"):
             audit_report = test_results["auditability"]
-            assert (
-                "test_summary" in audit_report
-            ), "Audit analysis should generate test summary"
+            assert "test_summary" in audit_report, "Audit analysis should generate test summary"
 
             # Should have generated some events
             if "test_summary" in audit_report:
-                events_generated = audit_report["test_summary"].get(
-                    "total_events_generated", 0
-                )
-                assert (
-                    events_generated > 0
-                ), "Audit analysis should generate audit events"
+                events_generated = audit_report["test_summary"].get("total_events_generated", 0)
+                assert events_generated > 0, "Audit analysis should generate audit events"
 
         # Warning assertions (non-blocking)
         assessment = master_summary["overall_assessment"]
         if assessment["critical_issues_count"] > 5:
-            print(
-                f"\\n⚠️  WARNING: {assessment['critical_issues_count']} critical issues detected"
-            )
+            print(f"\\n⚠️  WARNING: {assessment['critical_issues_count']} critical issues detected")
 
         print("\\n✅ All validation assertions passed!")
         print(f"   📊 Success Rate: {execution['success_rate']:.1f}%")
-        print(
-            f"   🎯 Tests Passed: {execution['successful_tests']}/{execution['total_tests']}"
-        )
+        print(f"   🎯 Tests Passed: {execution['successful_tests']}/{execution['total_tests']}")
         print(f"   🚨 Critical Issues: {assessment['critical_issues_count']}")
 
 

@@ -266,11 +266,7 @@ class MacroTransformer(TemplateTransformer):
 
         def expand_macro(match):
             macro_name = match.group(1)
-            args = [
-                arg.strip().strip("\"'")
-                for arg in match.group(2).split(",")
-                if arg.strip()
-            ]
+            args = [arg.strip().strip("\"'") for arg in match.group(2).split(",") if arg.strip()]
 
             if macro_name not in self.macros:
                 return match.group(0)  # Return original if macro not found
@@ -352,9 +348,7 @@ class TemplateCustomizationEngine:
         """Customize a template with the given context."""
         # Load template content
         try:
-            source, _, _ = self.template_loader.get_source(
-                self.jinja_env, template_name
-            )
+            source, _, _ = self.template_loader.get_source(self.jinja_env, template_name)
         except TemplateNotFound:
             raise ValueError(f"Template '{template_name}' not found")
 
@@ -420,9 +414,7 @@ class TemplateCustomizationEngine:
         """Validate template variables."""
         # Load template and extract variables
         try:
-            source, _, _ = self.template_loader.get_source(
-                self.jinja_env, template_name
-            )
+            source, _, _ = self.template_loader.get_source(self.jinja_env, template_name)
         except TemplateNotFound:
             raise ValueError(f"Template '{template_name}' not found")
 

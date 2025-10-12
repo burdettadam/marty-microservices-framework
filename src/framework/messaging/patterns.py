@@ -335,9 +335,7 @@ class Consumer:
             worker = asyncio.create_task(self._worker_loop(f"worker-{i}"))
             self._workers.append(worker)
 
-        logger.info(
-            f"Consumer '{self.config.name}' started with {self.config.max_workers} workers"
-        )
+        logger.info(f"Consumer '{self.config.name}' started with {self.config.max_workers} workers")
 
     async def stop_consuming(self):
         """Stop consuming messages."""
@@ -530,9 +528,7 @@ class PublishSubscribePattern:
 
     async def publish(self, body: Any, topic: str = "") -> str:
         """Publish message to topic."""
-        return await self.producer.publish(
-            body=body, routing_key=topic, exchange=self.exchange
-        )
+        return await self.producer.publish(body=body, routing_key=topic, exchange=self.exchange)
 
     def add_subscriber(self, consumer: Consumer):
         """Add subscriber."""
@@ -552,13 +548,9 @@ class WorkQueuePattern:
         self.queue = queue
         self.workers: builtins.list[Consumer] = []
 
-    async def add_work(
-        self, body: Any, priority: MessagePriority = MessagePriority.NORMAL
-    ) -> str:
+    async def add_work(self, body: Any, priority: MessagePriority = MessagePriority.NORMAL) -> str:
         """Add work to queue."""
-        return await self.producer.publish(
-            body=body, routing_key=self.queue, priority=priority
-        )
+        return await self.producer.publish(body=body, routing_key=self.queue, priority=priority)
 
     def add_worker(self, consumer: Consumer):
         """Add worker."""

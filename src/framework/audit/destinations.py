@@ -116,9 +116,7 @@ class FileAuditDestination(AuditDestination):
                 # Add integrity hash
                 event_data["event_hash"] = event.get_hash()
                 # Write to file
-                async with aiofiles.open(
-                    self.log_file_path, "a", encoding="utf-8"
-                ) as f:
+                async with aiofiles.open(self.log_file_path, "a", encoding="utf-8") as f:
                     await f.write(json.dumps(event_data, default=str) + "\n")
                 logger.debug(f"Logged audit event {event.event_id} to file")
         except Exception as e:
@@ -277,9 +275,7 @@ class DatabaseAuditDestination(AuditDestination):
             if "end_time" in criteria:
                 conditions.append(AuditLogRecord.timestamp <= criteria["end_time"])
             if "service_name" in criteria:
-                conditions.append(
-                    AuditLogRecord.service_name == criteria["service_name"]
-                )
+                conditions.append(AuditLogRecord.service_name == criteria["service_name"])
             if conditions:
                 query = query.where(and_(*conditions))
             query = query.order_by(AuditLogRecord.timestamp.desc()).limit(limit)
@@ -338,9 +334,7 @@ class DatabaseAuditDestination(AuditDestination):
                     details=details,
                     service_name=event.context.service_name if event.context else None,
                     environment=event.context.environment if event.context else None,
-                    correlation_id=event.context.correlation_id
-                    if event.context
-                    else None,
+                    correlation_id=event.context.correlation_id if event.context else None,
                     trace_id=event.context.trace_id if event.context else None,
                     duration_ms=int(event.duration_ms) if event.duration_ms else None,
                     response_size=event.response_size,

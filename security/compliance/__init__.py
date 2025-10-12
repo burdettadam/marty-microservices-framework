@@ -132,9 +132,7 @@ class ComplianceViolation:
         return {
             **asdict(self),
             "detected_at": self.detected_at.isoformat(),
-            "remediated_at": self.remediated_at.isoformat()
-            if self.remediated_at
-            else None,
+            "remediated_at": self.remediated_at.isoformat() if self.remediated_at else None,
             "framework": self.framework.value,
             "severity": self.severity.value,
             "status": self.status.value,
@@ -165,9 +163,7 @@ class AuditEvent:
     outcome: str = "success"  # success, failure, error
 
     # Compliance relevance
-    compliance_frameworks: builtins.set[ComplianceFramework] = field(
-        default_factory=set
-    )
+    compliance_frameworks: builtins.set[ComplianceFramework] = field(default_factory=set)
     sensitive_data_involved: bool = False
 
     def to_dict(self) -> builtins.dict[str, Any]:
@@ -544,9 +540,7 @@ class ComplianceRuleEngine:
 
             elif isinstance(expected_value, dict):
                 # Complex condition evaluation
-                if not await self._evaluate_complex_condition(
-                    expected_value, context_value
-                ):
+                if not await self._evaluate_complex_condition(expected_value, context_value):
                     return False
 
             elif isinstance(expected_value, int | float):
@@ -596,9 +590,7 @@ class ComplianceRuleEngine:
         except (ValueError, TypeError):
             return False
 
-    def _assess_impact(
-        self, rule: ComplianceRule, context: builtins.dict[str, Any]
-    ) -> str:
+    def _assess_impact(self, rule: ComplianceRule, context: builtins.dict[str, Any]) -> str:
         """Assess impact of compliance violation"""
 
         impact_factors = []
@@ -631,11 +623,7 @@ class ComplianceRuleEngine:
         ]:
             impact_factors.append("Potential reputation damage and GDPR fines")
 
-        return (
-            "; ".join(impact_factors)
-            if impact_factors
-            else "Standard compliance violation"
-        )
+        return "; ".join(impact_factors) if impact_factors else "Standard compliance violation"
 
     async def evaluate_all_rules(
         self, framework: ComplianceFramework, context: builtins.dict[str, Any]
@@ -643,9 +631,7 @@ class ComplianceRuleEngine:
         """Evaluate all rules for a specific framework"""
 
         violations = []
-        framework_rules = [
-            rule for rule in self.rules.values() if rule.framework == framework
-        ]
+        framework_rules = [rule for rule in self.rules.values() if rule.framework == framework]
 
         for rule in framework_rules:
             is_compliant, violation = await self.evaluate_rule(rule.rule_id, context)
@@ -786,9 +772,7 @@ class AuditTrailManager:
 
         # Update metrics
         if ASYNC_AVAILABLE:
-            self.audit_events_logged.labels(
-                event_type=event_type.value, outcome=outcome
-            ).inc()
+            self.audit_events_logged.labels(event_type=event_type.value, outcome=outcome).inc()
 
             if event.sensitive_data_involved:
                 self.sensitive_events.labels(event_type=event_type.value).inc()
@@ -877,10 +861,7 @@ class AuditTrailManager:
                 continue
             if resource and resource.lower() not in event.resource.lower():
                 continue
-            if (
-                compliance_framework
-                and compliance_framework not in event.compliance_frameworks
-            ):
+            if compliance_framework and compliance_framework not in event.compliance_frameworks:
                 continue
             if sensitive_only and not event.sensitive_data_involved:
                 continue
@@ -902,10 +883,7 @@ class AuditTrailManager:
         return [
             event
             for event in self.audit_events
-            if (
-                event.timestamp >= cutoff_date
-                and framework in event.compliance_frameworks
-            )
+            if (event.timestamp >= cutoff_date and framework in event.compliance_frameworks)
         ]
 
     def get_audit_statistics(self) -> builtins.dict[str, Any]:
@@ -915,9 +893,7 @@ class AuditTrailManager:
             return {"total_events": 0}
 
         total_events = len(self.audit_events)
-        sensitive_events = sum(
-            1 for event in self.audit_events if event.sensitive_data_involved
-        )
+        sensitive_events = sum(1 for event in self.audit_events if event.sensitive_data_involved)
 
         by_type = defaultdict(int)
         by_outcome = defaultdict(int)
@@ -950,9 +926,7 @@ class ComplianceReportGenerator:
     - Remediation tracking
     """
 
-    def __init__(
-        self, rule_engine: ComplianceRuleEngine, audit_manager: AuditTrailManager
-    ):
+    def __init__(self, rule_engine: ComplianceRuleEngine, audit_manager: AuditTrailManager):
         self.rule_engine = rule_engine
         self.audit_manager = audit_manager
 
@@ -967,9 +941,7 @@ class ComplianceReportGenerator:
         framework_rules = self.rule_engine.get_rules_by_framework(framework)
 
         # Evaluate all rules
-        violations = await self.rule_engine.evaluate_all_rules(
-            framework, assessment_context
-        )
+        violations = await self.rule_engine.evaluate_all_rules(framework, assessment_context)
 
         # Calculate compliance metrics
         total_rules = len(framework_rules)
@@ -1019,9 +991,7 @@ class ComplianceReportGenerator:
             remediation_recommendations=recommendations,
         )
 
-        print(
-            f"Generated {framework.value} compliance report: {compliance_score:.1%} compliant"
-        )
+        print(f"Generated {framework.value} compliance report: {compliance_score:.1%} compliant")
         return report
 
     def _generate_remediation_recommendations(
@@ -1032,9 +1002,7 @@ class ComplianceReportGenerator:
         recommendations = []
 
         # Prioritize by severity
-        critical_violations = [
-            v for v in violations if v.severity == RiskLevel.CRITICAL
-        ]
+        critical_violations = [v for v in violations if v.severity == RiskLevel.CRITICAL]
         high_violations = [v for v in violations if v.severity == RiskLevel.HIGH]
 
         if critical_violations:
@@ -1044,9 +1012,7 @@ class ComplianceReportGenerator:
 
             # Add specific recommendations for critical violations
             for violation in critical_violations[:3]:  # Top 3
-                recommendations.extend(
-                    violation.remediation_actions[:2]
-                )  # Top 2 actions
+                recommendations.extend(violation.remediation_actions[:2])  # Top 2 actions
 
         if high_violations:
             recommendations.append(
@@ -1090,9 +1056,7 @@ class ComplianceReportGenerator:
             return {"message": "No compliance reports available"}
 
         total_violations = sum(len(report.violations) for report in reports)
-        avg_compliance_score = sum(report.compliance_score for report in reports) / len(
-            reports
-        )
+        avg_compliance_score = sum(report.compliance_score for report in reports) / len(reports)
 
         # Risk assessment
         risk_level = RiskLevel.LOW
@@ -1100,10 +1064,7 @@ class ComplianceReportGenerator:
             risk_level = RiskLevel.CRITICAL
         elif any(report.high_violations > 5 for report in reports):
             risk_level = RiskLevel.HIGH
-        elif any(
-            report.overall_status == ComplianceStatus.NON_COMPLIANT
-            for report in reports
-        ):
+        elif any(report.overall_status == ComplianceStatus.NON_COMPLIANT for report in reports):
             risk_level = RiskLevel.MEDIUM
 
         # Framework status
@@ -1137,9 +1098,7 @@ class ComplianceReportGenerator:
             "total_violations": total_violations,
             "framework_status": framework_status,
             "top_recommendations": [rec[0] for rec in top_recommendations],
-            "next_assessment_recommended": (
-                datetime.now() + timedelta(days=90)
-            ).isoformat(),
+            "next_assessment_recommended": (datetime.now() + timedelta(days=90)).isoformat(),
         }
 
 
@@ -1157,9 +1116,7 @@ class ComplianceManager:
     def __init__(self):
         self.rule_engine = ComplianceRuleEngine()
         self.audit_manager = AuditTrailManager()
-        self.report_generator = ComplianceReportGenerator(
-            self.rule_engine, self.audit_manager
-        )
+        self.report_generator = ComplianceReportGenerator(self.rule_engine, self.audit_manager)
 
         # Automated monitoring
         self.monitoring_enabled = True
@@ -1186,9 +1143,7 @@ class ComplianceManager:
         )
 
         # Generate report
-        report = await self.report_generator.generate_compliance_report(
-            framework, system_context
-        )
+        report = await self.report_generator.generate_compliance_report(framework, system_context)
 
         # Track violations
         for violation in report.violations:
@@ -1223,10 +1178,7 @@ class ComplianceManager:
                 for framework in ComplianceFramework:
                     # Check if assessment is due
                     last_check = self.last_assessment.get(framework)
-                    if (
-                        not last_check
-                        or datetime.now() - last_check > self.monitoring_interval
-                    ):
+                    if not last_check or datetime.now() - last_check > self.monitoring_interval:
                         # Simulate system context (in real implementation, this would
                         # collect actual system state)
                         context = await self._collect_system_context()
@@ -1381,13 +1333,11 @@ async def main():
         )
 
     # Generate executive summary
-    executive_summary = (
-        await compliance_manager.report_generator.generate_executive_summary(reports)
+    executive_summary = await compliance_manager.report_generator.generate_executive_summary(
+        reports
     )
     print("\nExecutive Summary:")
-    print(
-        f"Overall Compliance Score: {executive_summary['overall_compliance_score']:.1%}"
-    )
+    print(f"Overall Compliance Score: {executive_summary['overall_compliance_score']:.1%}")
     print(f"Overall Risk Level: {executive_summary['overall_risk_level']}")
     print(f"Total Violations: {executive_summary['total_violations']}")
 

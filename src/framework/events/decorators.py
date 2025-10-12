@@ -14,7 +14,7 @@ from .types import AuditEventType, EventMetadata, EventPriority
 
 logger = logging.getLogger(__name__)
 
-F = TypeVar('F', bound=Callable[..., Awaitable[Any]])
+F = TypeVar("F", bound=Callable[..., Awaitable[Any]])
 
 
 def audit_event(
@@ -25,7 +25,7 @@ def audit_event(
     success_only: bool = False,
     include_args: bool = False,
     include_result: bool = False,
-    priority: EventPriority = EventPriority.NORMAL
+    priority: EventPriority = EventPriority.NORMAL,
 ) -> Callable[[F], F]:
     """
     Decorator to automatically publish audit events when a method is called.
@@ -51,6 +51,7 @@ def audit_event(
             # Method implementation
             pass
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
@@ -81,13 +82,14 @@ def audit_event(
                         error=error,
                         include_args=include_args,
                         include_result=include_result,
-                        priority=priority
+                        priority=priority,
                     )
 
             if error:
                 raise error
 
         return wrapper  # type: ignore
+
     return decorator
 
 
@@ -97,7 +99,7 @@ def domain_event(
     aggregate_id_field: str,
     success_only: bool = True,
     include_args: bool = True,
-    include_result: bool = False
+    include_result: bool = False,
 ) -> Callable[[F], F]:
     """
     Decorator to automatically publish domain events when a method is called.
@@ -120,6 +122,7 @@ def domain_event(
             # Method implementation
             pass
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
@@ -141,7 +144,7 @@ def domain_event(
                         kwargs=kwargs,
                         result=None,
                         include_args=include_args,
-                        include_result=False
+                        include_result=False,
                     )
                 raise
             finally:
@@ -154,10 +157,11 @@ def domain_event(
                         kwargs=kwargs,
                         result=result,
                         include_args=include_args,
-                        include_result=include_result
+                        include_result=include_result,
                     )
 
         return wrapper  # type: ignore
+
     return decorator
 
 
@@ -166,7 +170,7 @@ def publish_on_success(
     event_type: str,
     key_field: str | None = None,
     include_args: bool = True,
-    include_result: bool = True
+    include_result: bool = True,
 ) -> Callable[[F], F]:
     """
     Decorator to publish a custom event when a method succeeds.
@@ -188,6 +192,7 @@ def publish_on_success(
             # Method implementation
             pass
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
@@ -206,15 +211,13 @@ def publish_on_success(
             # Publish event
             publisher = get_event_publisher()
             await publisher.publish_custom_event(
-                topic=topic,
-                event_type=event_type,
-                payload=event_data,
-                key=key
+                topic=topic, event_type=event_type, payload=event_data, key=key
             )
 
             return result
 
         return wrapper  # type: ignore
+
     return decorator
 
 
@@ -223,7 +226,7 @@ def publish_on_error(
     event_type: str,
     key_field: str | None = None,
     include_args: bool = True,
-    include_error: bool = True
+    include_error: bool = True,
 ) -> Callable[[F], F]:
     """
     Decorator to publish a custom event when a method fails.
@@ -245,6 +248,7 @@ def publish_on_error(
             # Method implementation
             pass
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def wrapper(*args, **kwargs):
@@ -256,10 +260,7 @@ def publish_on_error(
                 if include_args:
                     event_data["args"] = _serialize_args(args, kwargs)
                 if include_error:
-                    event_data["error"] = {
-                        "type": e.__class__.__name__,
-                        "message": str(e)
-                    }
+                    event_data["error"] = {"type": e.__class__.__name__, "message": str(e)}
 
                 # Extract partition key
                 key = _extract_field_value(key_field, args, kwargs) if key_field else None
@@ -268,10 +269,7 @@ def publish_on_error(
                 try:
                     publisher = get_event_publisher()
                     await publisher.publish_custom_event(
-                        topic=topic,
-                        event_type=event_type,
-                        payload=event_data,
-                        key=key
+                        topic=topic, event_type=event_type, payload=event_data, key=key
                     )
                 except Exception as publish_error:
                     logger.error(f"Failed to publish error event: {publish_error}")
@@ -280,6 +278,7 @@ def publish_on_error(
                 raise
 
         return wrapper  # type: ignore
+
     return decorator
 
 
@@ -295,12 +294,14 @@ async def _publish_audit_event(
     error: Exception | None,
     include_args: bool,
     include_result: bool,
-    priority: EventPriority
+    priority: EventPriority,
 ) -> None:
     """Internal helper to publish audit events."""
     try:
         # Extract resource ID
-        resource_id = _extract_field_value(resource_id_field, args, kwargs) if resource_id_field else None
+        resource_id = (
+            _extract_field_value(resource_id_field, args, kwargs) if resource_id_field else None
+        )
 
         # Build operation details
         operation_details = {}
@@ -312,7 +313,7 @@ async def _publish_audit_event(
         # Create metadata
         metadata = EventMetadata(
             service_name="unknown",  # Will be set by publisher
-            priority=priority
+            priority=priority,
         )
 
         # Publish audit event
@@ -326,7 +327,7 @@ async def _publish_audit_event(
             operation_details=operation_details,
             success=success,
             error_message=str(error) if error else None,
-            error_code=error.__class__.__name__ if error else None
+            error_code=error.__class__.__name__ if error else None,
         )
 
     except Exception as e:
@@ -341,7 +342,7 @@ async def _publish_domain_event(
     kwargs: dict,
     result: Any,
     include_args: bool,
-    include_result: bool
+    include_result: bool,
 ) -> None:
     """Internal helper to publish domain events."""
     try:
@@ -364,7 +365,7 @@ async def _publish_domain_event(
             aggregate_type=aggregate_type,
             aggregate_id=str(aggregate_id),
             event_type=event_type,
-            event_data=event_data
+            event_data=event_data,
         )
 
     except Exception as e:
@@ -381,7 +382,7 @@ def _extract_field_value(field_path: str, args: tuple, kwargs: dict) -> Any:
         return kwargs[field_path]
 
     # Handle nested field paths (e.g., "user.id")
-    parts = field_path.split('.')
+    parts = field_path.split(".")
 
     # Check if first part is in kwargs
     if parts[0] in kwargs:
@@ -397,7 +398,7 @@ def _extract_field_value(field_path: str, args: tuple, kwargs: dict) -> Any:
 
     # Try to match positional arguments by name (basic heuristic)
     # This is limited - in practice, use kwargs for reliable field extraction
-    if len(args) > 0 and parts[0] in ['self', 'cls']:
+    if len(args) > 0 and parts[0] in ["self", "cls"]:
         # Skip self/cls and try next argument
         if len(args) > 1:
             return args[1]
@@ -411,7 +412,7 @@ def _serialize_args(args: tuple, kwargs: dict) -> dict[str, Any]:
 
     # Add positional args (skip self/cls)
     if args:
-        start_idx = 1 if len(args) > 0 and hasattr(args[0], '__class__') else 0
+        start_idx = 1 if len(args) > 0 and hasattr(args[0], "__class__") else 0
         for i, arg in enumerate(args[start_idx:]):
             serialized[f"arg_{i}"] = _serialize_value(arg)
 
@@ -441,13 +442,14 @@ def _serialize_value(value: Any) -> Any:
             return {k: _serialize_value(v) for k, v in value.items()}
 
         # Handle objects with dict() method (Pydantic models, etc.)
-        if hasattr(value, 'dict') and callable(value.dict):
+        if hasattr(value, "dict") and callable(value.dict):
             return value.dict()
 
         # Handle objects with __dict__ attribute
-        if hasattr(value, '__dict__'):
-            return {k: _serialize_value(v) for k, v in value.__dict__.items()
-                   if not k.startswith('_')}
+        if hasattr(value, "__dict__"):
+            return {
+                k: _serialize_value(v) for k, v in value.__dict__.items() if not k.startswith("_")
+            }
 
         # Fallback to string representation
         return str(value)

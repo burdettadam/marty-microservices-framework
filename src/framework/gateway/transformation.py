@@ -138,8 +138,7 @@ class HeaderTransformer(Transformer):
             r
             for r in rules
             if r.type == TransformationType.HEADER
-            and r.direction
-            in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
+            and r.direction in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
         ]
 
         for rule in sorted(header_rules, key=lambda r: r.priority, reverse=True):
@@ -156,8 +155,7 @@ class HeaderTransformer(Transformer):
             r
             for r in rules
             if r.type == TransformationType.HEADER
-            and r.direction
-            in [TransformationDirection.RESPONSE, TransformationDirection.BOTH]
+            and r.direction in [TransformationDirection.RESPONSE, TransformationDirection.BOTH]
         ]
 
         for rule in sorted(header_rules, key=lambda r: r.priority, reverse=True):
@@ -166,9 +164,7 @@ class HeaderTransformer(Transformer):
 
         return response
 
-    def _apply_header_rule(
-        self, rule: TransformationRule, headers: builtins.dict[str, str]
-    ):
+    def _apply_header_rule(self, rule: TransformationRule, headers: builtins.dict[str, str]):
         """Apply header transformation rule."""
         if rule.action == "set":
             if rule.target and rule.value is not None:
@@ -248,8 +244,7 @@ class QueryParamTransformer(Transformer):
             r
             for r in rules
             if r.type == TransformationType.QUERY_PARAM
-            and r.direction
-            in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
+            and r.direction in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
         ]
 
         for rule in sorted(query_rules, key=lambda r: r.priority, reverse=True):
@@ -263,9 +258,7 @@ class QueryParamTransformer(Transformer):
         """Query parameters not applicable to responses."""
         return response
 
-    def _apply_query_rule(
-        self, rule: TransformationRule, params: builtins.dict[str, str]
-    ):
+    def _apply_query_rule(self, rule: TransformationRule, params: builtins.dict[str, str]):
         """Apply query parameter transformation rule."""
         if rule.action == "set":
             if rule.target and rule.value is not None:
@@ -297,8 +290,7 @@ class BodyTransformer(Transformer):
             r
             for r in rules
             if r.type == TransformationType.BODY
-            and r.direction
-            in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
+            and r.direction in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
         ]
 
         if not body_rules or not request.body:
@@ -331,8 +323,7 @@ class BodyTransformer(Transformer):
             r
             for r in rules
             if r.type == TransformationType.BODY
-            and r.direction
-            in [TransformationDirection.RESPONSE, TransformationDirection.BOTH]
+            and r.direction in [TransformationDirection.RESPONSE, TransformationDirection.BOTH]
         ]
 
         if not body_rules or not response.body:
@@ -466,8 +457,7 @@ class PathTransformer(Transformer):
             r
             for r in rules
             if r.type == TransformationType.PATH
-            and r.direction
-            in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
+            and r.direction in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
         ]
 
         for rule in sorted(path_rules, key=lambda r: r.priority, reverse=True):
@@ -513,8 +503,7 @@ class ContentTypeTransformer(Transformer):
             r
             for r in rules
             if r.type == TransformationType.CONTENT_TYPE
-            and r.direction
-            in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
+            and r.direction in [TransformationDirection.REQUEST, TransformationDirection.BOTH]
         ]
 
         for rule in ct_rules:
@@ -523,9 +512,7 @@ class ContentTypeTransformer(Transformer):
                 target_format = self._detect_format(rule.target)
 
                 if source_format != target_format:
-                    converter = self.format_converters.get(
-                        (source_format, target_format)
-                    )
+                    converter = self.format_converters.get((source_format, target_format))
                     if converter:
                         try:
                             request.body = converter(request.body)
@@ -545,8 +532,7 @@ class ContentTypeTransformer(Transformer):
             r
             for r in rules
             if r.type == TransformationType.CONTENT_TYPE
-            and r.direction
-            in [TransformationDirection.RESPONSE, TransformationDirection.BOTH]
+            and r.direction in [TransformationDirection.RESPONSE, TransformationDirection.BOTH]
         ]
 
         for rule in ct_rules:
@@ -555,9 +541,7 @@ class ContentTypeTransformer(Transformer):
                 target_format = self._detect_format(rule.target)
 
                 if source_format != target_format:
-                    converter = self.format_converters.get(
-                        (source_format, target_format)
-                    )
+                    converter = self.format_converters.get((source_format, target_format))
                     if converter:
                         try:
                             response.body = converter(response.body)
@@ -702,9 +686,7 @@ class TransformationEngine:
             for transform_type in transform_order:
                 if transform_type in rules_by_type:
                     transformer = self.transformers[transform_type]
-                    request = transformer.transform_request(
-                        request, rules_by_type[transform_type]
-                    )
+                    request = transformer.transform_request(request, rules_by_type[transform_type])
 
             if self.config.log_transformations:
                 logger.info(
@@ -843,9 +825,7 @@ def create_body_rule(
     )
 
 
-def create_path_rewrite_rule(
-    name: str, pattern: str, replacement: str
-) -> TransformationRule:
+def create_path_rewrite_rule(name: str, pattern: str, replacement: str) -> TransformationRule:
     """Create path rewrite rule."""
     return TransformationRule(
         name=name,

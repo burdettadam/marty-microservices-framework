@@ -77,13 +77,9 @@ class TestDiscoveryConfig:
 
     strategy: TestDiscoveryStrategy
     base_directories: builtins.list[str] = field(default_factory=list)
-    file_patterns: builtins.list[str] = field(
-        default_factory=lambda: ["test_*.py", "*_test.py"]
-    )
+    file_patterns: builtins.list[str] = field(default_factory=lambda: ["test_*.py", "*_test.py"])
     exclude_patterns: builtins.list[str] = field(default_factory=list)
-    test_class_patterns: builtins.list[str] = field(
-        default_factory=lambda: ["Test*", "*Test"]
-    )
+    test_class_patterns: builtins.list[str] = field(default_factory=lambda: ["Test*", "*Test"])
     test_method_patterns: builtins.list[str] = field(default_factory=lambda: ["test_*"])
     decorator_names: builtins.list[str] = field(
         default_factory=lambda: ["test_case", "integration_test"]
@@ -309,9 +305,7 @@ class TestDiscovery:
                             name=self.name,
                             test_type=self.test_type,
                             status=TestStatus.PASSED,
-                            execution_time=(
-                                datetime.utcnow() - start_time
-                            ).total_seconds(),
+                            execution_time=(datetime.utcnow() - start_time).total_seconds(),
                             started_at=start_time,
                             completed_at=datetime.utcnow(),
                         )
@@ -321,9 +315,7 @@ class TestDiscovery:
                             name=self.name,
                             test_type=self.test_type,
                             status=TestStatus.FAILED,
-                            execution_time=(
-                                datetime.utcnow() - start_time
-                            ).total_seconds(),
+                            execution_time=(datetime.utcnow() - start_time).total_seconds(),
                             started_at=start_time,
                             completed_at=datetime.utcnow(),
                             error_message=str(e),
@@ -334,21 +326,15 @@ class TestDiscovery:
             logger.warning(f"Failed to create test case from function {name}: {e}")
             return None
 
-    def _create_test_suite_from_class(
-        self, test_class, class_name: str
-    ) -> TestSuite | None:
+    def _create_test_suite_from_class(self, test_class, class_name: str) -> TestSuite | None:
         """Create test suite from class methods."""
         try:
             test_suite = TestSuite(class_name, f"Test suite for {class_name}")
 
             # Find test methods
-            for method_name, method in inspect.getmembers(
-                test_class, predicate=inspect.ismethod
-            ):
+            for method_name, method in inspect.getmembers(test_class, predicate=inspect.ismethod):
                 if self._is_test_method(method_name):
-                    test_case = self._create_test_case_from_method(
-                        test_class, method, method_name
-                    )
+                    test_case = self._create_test_case_from_method(test_class, method, method_name)
                     if test_case:
                         test_suite.add_test(test_case)
 
@@ -415,9 +401,7 @@ class TestScheduler:
         self.running = False
         self.test_runs: builtins.dict[str, TestRun] = {}
 
-    def add_scheduled_plan(
-        self, plan: TestExecutionPlan, schedule_config: TestScheduleConfig
-    ):
+    def add_scheduled_plan(self, plan: TestExecutionPlan, schedule_config: TestScheduleConfig):
         """Add scheduled test execution plan."""
         self.scheduled_plans[plan.name] = (plan, schedule_config)
         logger.info(f"Added scheduled test plan: {plan.name}")
@@ -582,9 +566,7 @@ class ContinuousTestingEngine:
         self.discovery_config = discovery_config
         self.discovery = TestDiscovery(discovery_config)
         self.scheduler = TestScheduler()
-        self.file_watcher: Any | None = (
-            None  # Would use watchdog in real implementation
-        )
+        self.file_watcher: Any | None = None  # Would use watchdog in real implementation
         self.changed_files: builtins.set[str] = set()
 
     def start_continuous_testing(self):
@@ -735,9 +717,7 @@ class TestOrchestrator:
                 run = scheduler.get_test_run_status(run_id)
                 status["current_run"] = run.__dict__ if run else None
             else:
-                status["recent_runs"] = [
-                    run.__dict__ for run in scheduler.get_recent_runs()
-                ]
+                status["recent_runs"] = [run.__dict__ for run in scheduler.get_recent_runs()]
 
         return status
 
@@ -762,12 +742,8 @@ class TestOrchestrator:
                 }
 
                 if recent_runs:
-                    successful_runs = len(
-                        [r for r in recent_runs if r.status == TestStatus.PASSED]
-                    )
-                    env_data["success_rate"] = (
-                        successful_runs / len(recent_runs)
-                    ) * 100
+                    successful_runs = len([r for r in recent_runs if r.status == TestStatus.PASSED])
+                    env_data["success_rate"] = (successful_runs / len(recent_runs)) * 100
 
                 report_data["environments"][env] = env_data
 

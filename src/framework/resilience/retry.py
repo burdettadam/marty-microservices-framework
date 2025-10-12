@@ -82,25 +82,19 @@ class BackoffStrategy(ABC):
     """Abstract base class for backoff strategies."""
 
     @abstractmethod
-    def calculate_delay(
-        self, attempt: int, base_delay: float, max_delay: float
-    ) -> float:
+    def calculate_delay(self, attempt: int, base_delay: float, max_delay: float) -> float:
         """Calculate delay for given attempt number."""
 
 
 class ExponentialBackoff(BackoffStrategy):
     """Exponential backoff with optional jitter."""
 
-    def __init__(
-        self, multiplier: float = 2.0, jitter: bool = True, jitter_factor: float = 0.1
-    ):
+    def __init__(self, multiplier: float = 2.0, jitter: bool = True, jitter_factor: float = 0.1):
         self.multiplier = multiplier
         self.jitter = jitter
         self.jitter_factor = jitter_factor
 
-    def calculate_delay(
-        self, attempt: int, base_delay: float, max_delay: float
-    ) -> float:
+    def calculate_delay(self, attempt: int, base_delay: float, max_delay: float) -> float:
         """Calculate exponential backoff delay."""
         delay = base_delay * (self.multiplier ** (attempt - 1))
         delay = min(delay, max_delay)
@@ -116,16 +110,12 @@ class ExponentialBackoff(BackoffStrategy):
 class LinearBackoff(BackoffStrategy):
     """Linear backoff with optional jitter."""
 
-    def __init__(
-        self, increment: float = 1.0, jitter: bool = True, jitter_factor: float = 0.1
-    ):
+    def __init__(self, increment: float = 1.0, jitter: bool = True, jitter_factor: float = 0.1):
         self.increment = increment
         self.jitter = jitter
         self.jitter_factor = jitter_factor
 
-    def calculate_delay(
-        self, attempt: int, base_delay: float, max_delay: float
-    ) -> float:
+    def calculate_delay(self, attempt: int, base_delay: float, max_delay: float) -> float:
         """Calculate linear backoff delay."""
         delay = base_delay + (self.increment * (attempt - 1))
         delay = min(delay, max_delay)
@@ -145,9 +135,7 @@ class ConstantBackoff(BackoffStrategy):
         self.jitter = jitter
         self.jitter_factor = jitter_factor
 
-    def calculate_delay(
-        self, attempt: int, base_delay: float, max_delay: float
-    ) -> float:
+    def calculate_delay(self, attempt: int, base_delay: float, max_delay: float) -> float:
         """Calculate constant backoff delay."""
         delay = base_delay
 
@@ -306,9 +294,7 @@ async def retry_async(
     return await manager.execute_async(func, *args, **kwargs)
 
 
-def retry_sync(
-    func: Callable[..., T], config: RetryConfig | None = None, *args, **kwargs
-) -> T:
+def retry_sync(func: Callable[..., T], config: RetryConfig | None = None, *args, **kwargs) -> T:
     """
     Execute sync function with retry logic.
 
@@ -400,8 +386,7 @@ async def retry_with_circuit_breaker(
         jitter=retry_cfg.jitter,
         jitter_factor=retry_cfg.jitter_factor,
         retryable_exceptions=retry_cfg.retryable_exceptions,
-        non_retryable_exceptions=retry_cfg.non_retryable_exceptions
-        + (CircuitBreakerError,),
+        non_retryable_exceptions=retry_cfg.non_retryable_exceptions + (CircuitBreakerError,),
         custom_delay_func=retry_cfg.custom_delay_func,
         retry_condition=retry_cfg.retry_condition,
     )

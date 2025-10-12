@@ -2,7 +2,6 @@
 Complete and corrected load balancing strategy tests.
 """
 
-
 import pytest
 from src.framework.discovery.core import HealthStatus, ServiceInstance
 from src.framework.discovery.load_balancing import (
@@ -22,9 +21,15 @@ from src.framework.discovery.load_balancing import (
 def service_instances():
     """Create sample service instances for testing."""
     instances = [
-        ServiceInstance(service_name="test-service", instance_id="instance-1", host="localhost", port=8080),
-        ServiceInstance(service_name="test-service", instance_id="instance-2", host="localhost", port=8081),
-        ServiceInstance(service_name="test-service", instance_id="instance-3", host="localhost", port=8082),
+        ServiceInstance(
+            service_name="test-service", instance_id="instance-1", host="localhost", port=8080
+        ),
+        ServiceInstance(
+            service_name="test-service", instance_id="instance-2", host="localhost", port=8081
+        ),
+        ServiceInstance(
+            service_name="test-service", instance_id="instance-3", host="localhost", port=8082
+        ),
     ]
 
     # Set all instances to healthy
@@ -42,7 +47,7 @@ def context():
         session_id="session-123",
         request_headers={"User-Agent": "test-client"},
         request_path="/api/v1/data",
-        request_method="GET"
+        request_method="GET",
     )
 
 
@@ -52,10 +57,7 @@ class TestServiceInstanceComplete:
     def test_service_instance_creation(self):
         """Test creating a service instance with proper parameters."""
         instance = ServiceInstance(
-            service_name="test-service",
-            instance_id="test-instance",
-            host="localhost",
-            port=8080
+            service_name="test-service", instance_id="test-instance", host="localhost", port=8080
         )
 
         assert instance.service_name == "test-service"
@@ -66,22 +68,13 @@ class TestServiceInstanceComplete:
     def test_service_instance_equality(self):
         """Test service instance equality comparison."""
         instance1 = ServiceInstance(
-            service_name="service",
-            instance_id="instance-1",
-            host="localhost",
-            port=8080
+            service_name="service", instance_id="instance-1", host="localhost", port=8080
         )
         instance2 = ServiceInstance(
-            service_name="service",
-            instance_id="instance-1",
-            host="localhost",
-            port=8080
+            service_name="service", instance_id="instance-1", host="localhost", port=8080
         )
         instance3 = ServiceInstance(
-            service_name="service",
-            instance_id="instance-2",
-            host="localhost",
-            port=8080
+            service_name="service", instance_id="instance-2", host="localhost", port=8080
         )
 
         # Note: ServiceInstance equality may be based on instance_id
@@ -284,17 +277,11 @@ class TestHealthBasedBalancerComplete:
         """Test health-based balancer selects only healthy instances."""
         # Create instances with known health status
         healthy_instance = ServiceInstance(
-            service_name="service",
-            instance_id="healthy",
-            host="localhost",
-            port=8080
+            service_name="service", instance_id="healthy", host="localhost", port=8080
         )
 
         unhealthy_instance = ServiceInstance(
-            service_name="service",
-            instance_id="unhealthy",
-            host="localhost",
-            port=8081
+            service_name="service", instance_id="unhealthy", host="localhost", port=8081
         )
 
         # Mock health status
@@ -302,8 +289,7 @@ class TestHealthBasedBalancerComplete:
         unhealthy_instance.is_healthy = lambda: False
 
         config = LoadBalancingConfig(
-            strategy=LoadBalancingStrategy.HEALTH_BASED,
-            health_check_enabled=True
+            strategy=LoadBalancingStrategy.HEALTH_BASED, health_check_enabled=True
         )
         balancer = HealthBasedBalancer(config)
 
@@ -378,7 +364,7 @@ class TestLoadBalancingConfigComplete:
             strategy=LoadBalancingStrategy.WEIGHTED_ROUND_ROBIN,
             health_check_enabled=False,
             health_check_interval=60.0,
-            max_retries=5
+            max_retries=5,
         )
 
         assert config.strategy == LoadBalancingStrategy.WEIGHTED_ROUND_ROBIN
@@ -406,7 +392,7 @@ class TestLoadBalancingContextComplete:
             session_id="session-123",
             request_headers={"User-Agent": "test-client"},
             request_path="/api/v1/data",
-            custom_data={"priority": "high"}
+            custom_data={"priority": "high"},
         )
 
         assert context.client_ip == "192.168.1.100"
@@ -455,7 +441,7 @@ class TestLoadBalancerFallbackComplete:
         """Test fallback strategy when primary fails."""
         config = LoadBalancingConfig(
             strategy=LoadBalancingStrategy.ROUND_ROBIN,
-            fallback_strategy=LoadBalancingStrategy.RANDOM
+            fallback_strategy=LoadBalancingStrategy.RANDOM,
         )
         balancer = RoundRobinBalancer(config)
 
@@ -504,8 +490,7 @@ class TestLoadBalancingIntegrationComplete:
         instances[2].is_healthy = lambda: False
 
         config = LoadBalancingConfig(
-            strategy=LoadBalancingStrategy.ROUND_ROBIN,
-            health_check_enabled=True
+            strategy=LoadBalancingStrategy.ROUND_ROBIN, health_check_enabled=True
         )
         balancer = RoundRobinBalancer(config)
 

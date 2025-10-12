@@ -102,9 +102,7 @@ class ServiceMeshDiscovery(ServiceDiscoveryClient):
             logger.error("Service mesh discovery failed for %s: %s", query.service_name, exc)
             raise
 
-    async def _discover_from_mesh(
-        self, query: ServiceQuery
-    ) -> builtins.list[ServiceInstance]:
+    async def _discover_from_mesh(self, query: ServiceQuery) -> builtins.list[ServiceInstance]:
         """Discover instances from the service mesh control plane."""
         k8s_client = await self._get_k8s_client()
 
