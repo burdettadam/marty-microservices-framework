@@ -7,7 +7,6 @@ The application layer depends on these abstractions, not on concrete implementat
 
 import builtins
 from abc import ABC, abstractmethod
-from typing import List, Optional, Set, list
 from uuid import UUID
 
 from ...domain.entities import Task, User

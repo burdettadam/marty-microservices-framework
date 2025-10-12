@@ -17,19 +17,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-    dict,
-    list,
-    type,
-)
+from typing import Any, TypeVar, dict, list
 
 import yaml
 

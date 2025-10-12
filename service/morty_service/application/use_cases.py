@@ -6,7 +6,6 @@ They are the entry points from external adapters into the business logic.
 """
 
 import builtins
-from typing import List, Optional, list
 from uuid import UUID
 
 from ..domain.entities import Task, User
@@ -188,7 +187,6 @@ class TaskManagementUseCase(TaskManagementPort):
     async def get_task(self, task_id: UUID) -> TaskDTO | None:
         """Get a task by its ID."""
         # Try cache first
-        cache_key = f"task:{task_id}"
 
         task = await self._task_repository.find_by_id(task_id)
         if not task:

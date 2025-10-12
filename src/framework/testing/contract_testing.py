@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 from urllib.parse import urljoin
 
 import aiohttp
@@ -560,7 +560,12 @@ class ContractTestCase(TestCase):
                     response_body = await response.json()
                 else:
                     response_body = await response.text()
-            except:
+            except Exception as decode_error:
+                logger.debug(
+                    "Response body parsing failed, falling back to text: %s",
+                    decode_error,
+                    exc_info=True,
+                )
                 response_body = await response.text()
 
             return {

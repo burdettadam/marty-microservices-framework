@@ -10,10 +10,11 @@ import logging
 import random
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Callable, Optional, TypeVar
+from typing import TypeVar
 
 from .circuit_breaker import CircuitBreakerConfig, CircuitBreakerError
 

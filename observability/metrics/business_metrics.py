@@ -14,7 +14,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, list
 
 from prometheus_client import (
     CollectorRegistry,
@@ -111,7 +111,6 @@ class BusinessMetricsCollector:
     def _setup_metrics(self):
         """Initialize all business metrics"""
         labels = ["service_name", "environment"]
-        base_labels = [self.config.service_name, "production"]  # Default labels
 
         # Revenue Metrics
         self.revenue_total = Counter(
@@ -312,7 +311,7 @@ class BusinessMetricsCollector:
         """Track a business event"""
         try:
             labels = [self.config.service_name, "production"]
-            event_labels = (
+            (
                 labels + list(event.labels.values()) if event.labels else labels
             )
 

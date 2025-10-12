@@ -16,7 +16,7 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, dict, list
 
 # External dependencies (optional)
 try:
@@ -247,13 +247,13 @@ class SecurityMLAnalyzer:
             profile.avg_requests_per_hour = len(recent_events) / max(
                 1,
                 len(
-                    set(
+                    {
                         datetime.fromisoformat(
                             event.get("timestamp", datetime.now().isoformat())
                         ).hour
                         for event in recent_events
                         if "timestamp" in event
-                    )
+                    }
                 ),
             )
 
@@ -353,7 +353,7 @@ class SecurityMLAnalyzer:
 
         # Unique endpoints accessed
         unique_endpoints = len(
-            set(event.get("endpoint", "") for event in recent_events)
+            {event.get("endpoint", "") for event in recent_events}
         )
         features.append(min(1.0, unique_endpoints / 50.0))  # Cap at 50 endpoints
 
@@ -418,7 +418,7 @@ class SecurityMLAnalyzer:
             features.append(0.5)  # Default
 
         # IP reputation (simplified)
-        unique_ips = len(set(event.get("source_ip", "") for event in recent_events))
+        unique_ips = len({event.get("source_ip", "") for event in recent_events})
         ip_reputation = min(1.0, unique_ips / 10.0) if unique_ips > 1 else 0.1
         features.append(ip_reputation)
 

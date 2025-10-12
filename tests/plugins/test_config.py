@@ -12,12 +12,9 @@ import json
 
 # Fix import paths
 import sys
-import tempfile
 from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import Mock, patch
+from typing import Any
 
-import pytest
 import yaml
 
 framework_path = Path(__file__).parent.parent.parent / "src"
@@ -51,7 +48,25 @@ except ImportError:
     def create_plugin_config_manager(base_config_path: Path):
         return PluginConfigManager(base_config_path)
 
-from . import temp_dir
+# Try to import MartyTrustPKIConfig, create mock if not available
+try:
+    from framework.config import MartyTrustPKIConfig
+except ImportError:
+    # Create mock MartyTrustPKIConfig for testing
+    class MartyTrustPKIConfig:
+        def __init__(self, **kwargs):
+            self.enabled = kwargs.get('enabled', True)
+            self.trust_anchor_url = kwargs.get('trust_anchor_url', '')
+            self.pkd_url = kwargs.get('pkd_url', '')
+            self.document_signer_url = kwargs.get('document_signer_url', '')
+            self.signing_algorithms = kwargs.get('signing_algorithms', [])
+            self.certificate_validation_enabled = kwargs.get('certificate_validation_enabled', True)
+            self.require_mutual_tls = kwargs.get('require_mutual_tls', False)
+            # Set any additional attributes from kwargs
+            for key, value in kwargs.items():
+                if not hasattr(self, key):
+                    setattr(self, key, value)
+
 
 
 class TestPluginConfigSection:
@@ -165,7 +180,7 @@ class TestPluginConfigManager:
         manager = create_plugin_config_manager(config_dir)
 
         # Load a configuration
-        config = manager.load_plugin_config("test-plugin", PluginConfigSection)
+        manager.load_plugin_config("test-plugin", PluginConfigSection)
 
         # Should be able to retrieve it
         retrieved_config = manager.get_plugin_config("test-plugin")

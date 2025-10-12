@@ -24,10 +24,11 @@ import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 # HTTP client imports
 try:
@@ -511,7 +512,7 @@ class ServiceRegistry:
         """Background health check loop."""
         while True:
             try:
-                for service_name, instances in self.services.items():
+                for _service_name, instances in self.services.items():
                     for instance in instances:
                         await self._check_instance_health(instance)
 

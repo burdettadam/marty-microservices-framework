@@ -12,7 +12,6 @@ This example shows:
 import asyncio
 import builtins
 import logging
-from typing import List, Optional, list
 
 from framework.database import (
     AuditMixin,
@@ -281,7 +280,7 @@ async def demonstrate_database_framework():
 
         # 9. Demonstrate soft delete
         print("\n9. Demonstrating soft delete...")
-        deleted = await user_service.delete_user(user2.id)
+        await user_service.delete_user(user2.id)
         print(f"   ✓ Soft deleted user {user2.username}")
 
         # Verify user is soft deleted (not in normal queries)

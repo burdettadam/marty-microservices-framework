@@ -9,9 +9,10 @@ import asyncio
 import builtins
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 
 from .backends import BackendConfig, BackendFactory, BackendType, MessageBackend
 from .core import (

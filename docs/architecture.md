@@ -243,6 +243,27 @@ The Marty Microservices Framework follows a layered, plugin-based architecture d
 - **Handlers**: Custom business logic handlers
 - **Validators**: Data validation and transformation
 
+## 🔌 Adapter Readiness & Optional Extras
+
+| Adapter | Status | Notes |
+| --- | --- | --- |
+| Client-side discovery | Production-ready | Uses the in-memory registry API and participates in the shared caching layer. |
+| Server-side discovery | Production-ready | Communicates with HTTP discovery services; requires reachable discovery endpoint. |
+| Hybrid discovery | Production-ready | Combines client- and server-side adapters; falls back automatically if the preferred path fails. |
+| Service mesh discovery | Preview (stub) | Requires a Kubernetes client via `mesh_config["client_factory"]`. Set `allow_stub: True` only for local development to use the `MockKubernetesClient`, which returns no endpoints. |
+| External connectors (REST, gRPC, SOAP) | Production-ready | Provide retry and circuit breaker integration out of the box. |
+| Marketplace connectors marked “sandbox” | Experimental | Use behind feature flags until validation is complete. |
+
+> **Tip:** See `src/framework/discovery/clients/service_mesh.py` for guidance on wiring a real mesh adapter and the guardrails that prevent the stub from shipping unchecked.
+
+### Optional Dependency Groups
+
+Heavy observability and analytics toolchains are now distributed via extras so base installations remain lightweight:
+
+- `pip install marty-msf[observability]` – Prometheus client library and OpenTelemetry SDK/exporters.
+- `pip install marty-msf[analytics]` – Data analysis and load-testing stack (NumPy, Matplotlib, Seaborn, Locust).
+- `pip install marty-msf[all]` – Installs all optional extras alongside the microservices and cloud integrations.
+
 ## 📚 Related Documentation
 
 - **[Plugin Development Guide](guides/plugin-system.md)**

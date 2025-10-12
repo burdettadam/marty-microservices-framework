@@ -8,7 +8,6 @@ providing concrete implementations using Kafka and email services.
 import builtins
 import json
 import logging
-from typing import List, Set, list
 from uuid import UUID
 
 from ...application.ports.output_ports import EventPublisherPort, NotificationPort

@@ -138,7 +138,7 @@ class TestObservabilityIntegration:
     @pytest.mark.asyncio
     async def test_metrics_and_events_integration(self, metrics_collector):
         # Test that metrics can track event-related operations
-        kafka_config = KafkaConfig(
+        KafkaConfig(
             bootstrap_servers=["localhost:9092"], consumer_group_id="test-integration"
         )
 

@@ -6,7 +6,7 @@ properly structured ServiceConfig instances for modern Marty services.
 """
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from .config import BaseServiceConfig, Environment
 

@@ -10,13 +10,12 @@ Tests all major resilience patterns using real implementations:
 """
 
 import asyncio
-import time
 
 import pytest
-
 from src.framework.resilience import (  # Basic Components; Pattern Management; Convenience Functions
     CircuitBreaker,
     CircuitBreakerConfig,
+    CircuitBreakerError,
     CircuitBreakerState,
     ResilienceConfig,
     ResilienceManager,
@@ -24,7 +23,6 @@ from src.framework.resilience import (  # Basic Components; Pattern Management; 
     RetryConfig,
     RetryStrategy,
     TimeoutConfig,
-    TimeoutManager,
     initialize_resilience,
     retry_async,
 )
@@ -93,7 +91,7 @@ class TestCircuitBreaker:
         assert cb.state == CircuitBreakerState.OPEN
 
         # Subsequent calls should raise CircuitBreakerError
-        with pytest.raises(Exception):  # Could be CircuitBreakerError or the function exception
+        with pytest.raises((CircuitBreakerError, ValueError)):  # Could be CircuitBreakerError or the function exception
             await cb.call(failing_operation)
 
 

@@ -7,7 +7,6 @@ They coordinate between multiple entities and enforce business rules that span m
 
 import builtins
 from datetime import datetime
-from typing import List, Optional, list
 
 from .entities import Task, User
 from .events import TaskAssigned, TaskCompleted, TaskCreated

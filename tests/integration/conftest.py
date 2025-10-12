@@ -6,19 +6,16 @@ and external services in controlled environments.
 """
 
 import asyncio
-import tempfile
+from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import AsyncGenerator
 
 import docker
 import pytest
-import pytest_asyncio
+from src.framework.events.event_bus import EventBus
+from src.framework.messaging.core import MessageBus
 from testcontainers.kafka import KafkaContainer
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
-
-from src.framework.events.event_bus import EventBus
-from src.framework.messaging.core import MessageBus
 
 
 @pytest.fixture(scope="session")

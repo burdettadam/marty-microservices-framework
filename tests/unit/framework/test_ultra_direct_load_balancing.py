@@ -1,6 +1,5 @@
 """Ultra-direct load balancing strategy tests - using importlib to bypass all package init."""
 
-import asyncio
 import importlib.util
 import os
 import sys
@@ -142,7 +141,7 @@ async def test_ultra_direct_round_robin():
 
         # Test round-robin selection
         selections = []
-        for i in range(6):  # Go around twice
+        for _i in range(6):  # Go around twice
             selected = await balancer.select_instance(instances)
             if selected and hasattr(selected, 'host'):
                 selections.append(selected.host)

@@ -7,6 +7,7 @@ A minimal example showing how to use the unified event publishing system.
 import asyncio
 import os
 from datetime import datetime
+from typing import Any
 
 # Set up the example environment
 os.environ["SERVICE_NAME"] = "example-service"
@@ -16,10 +17,11 @@ os.environ["EVENT_TOPIC_PREFIX"] = "marty"
 async def main():
     """Simple example of using the event publishing system."""
 
+    publisher: Any | None = None
+
     try:
         from framework.events import (
             AuditEventType,
-            EventConfig,
             NotificationEventType,
             get_event_publisher,
         )
@@ -112,11 +114,12 @@ async def main():
         print("Make sure Kafka is running on localhost:9092")
 
     finally:
-        try:
-            await publisher.stop()
-            print("\n🛑 Event publisher stopped")
-        except:
-            pass
+        if publisher:
+            try:
+                await publisher.stop()
+                print("\n🛑 Event publisher stopped")
+            except Exception as stop_error:
+                print(f"Warning: Failed to stop publisher cleanly: {stop_error}")
 
 
 async def decorator_example():

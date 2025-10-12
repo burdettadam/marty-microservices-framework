@@ -20,12 +20,10 @@ from framework.resilience import (  # Advanced retry with sophisticated backoff;
     ChaosConfig,
     ChaosType,
     DefaultValueProvider,
-    EnhancedCircuitBreaker,
     EnhancedCircuitBreakerConfig,
     FeatureToggle,
     GracefulDegradationManager,
     async_call_with_resilience,
-    async_retry_with_advanced_policy,
     chaos_context,
     get_circuit_breaker,
 )
@@ -35,7 +33,6 @@ from framework.testing.enhanced_testing import (
     ContractTestConfig,
     EnhancedTestRunner,
     PerformanceBaseline,
-    TestType,
 )
 
 

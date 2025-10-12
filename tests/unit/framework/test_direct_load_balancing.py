@@ -1,7 +1,5 @@
 """Direct load balancing strategy tests - bypassing import issues."""
 
-import asyncio
-from unittest.mock import AsyncMock
 
 import pytest
 

@@ -10,9 +10,9 @@ Provides comprehensive structured logging capabilities with:
 """
 
 import builtins
+import importlib.util
 import json
 import logging
-import os
 import sys
 import time
 import traceback
@@ -21,25 +21,26 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union, dict, list
+from typing import Any
 
-# OpenTelemetry integration for trace context
-try:
-    from opentelemetry import trace
-    from opentelemetry.trace import get_current_span
+# OpenTelemetry integration availability check
+OTEL_AVAILABLE = importlib.util.find_spec("opentelemetry") is not None
 
-    OTEL_AVAILABLE = True
-except ImportError:
-    OTEL_AVAILABLE = False
+if OTEL_AVAILABLE:
+    try:
+        from opentelemetry.trace import get_current_span
+    except ImportError:
+        OTEL_AVAILABLE = False
 
-# FastAPI integration
-try:
-    from fastapi import Request
-    from starlette.middleware.base import BaseHTTPMiddleware
+# FastAPI integration availability check
+FASTAPI_AVAILABLE = importlib.util.find_spec("fastapi") is not None
 
-    FASTAPI_AVAILABLE = True
-except ImportError:
-    FASTAPI_AVAILABLE = False
+if FASTAPI_AVAILABLE:
+    try:
+        from fastapi import Request
+        from starlette.middleware.base import BaseHTTPMiddleware
+    except ImportError:
+        FASTAPI_AVAILABLE = False
 
 
 class LogLevel(Enum):

@@ -5,15 +5,10 @@ Tests complete user workflows with real services and minimal mocking.
 """
 
 import asyncio
-import json
 import subprocess
 from pathlib import Path
-from typing import Any, Dict
 
 import pytest
-
-from src.framework.config import FrameworkConfig
-from tests.utils.test_helpers import cleanup_test_service, create_test_service
 
 
 @pytest.mark.e2e
@@ -435,7 +430,7 @@ class TestEndToEnd:
 
             # Generate some traffic for metrics
             async with httpx.AsyncClient() as client:
-                for i in range(10):
+                for _i in range(10):
                     await client.get("http://localhost:8083/health")
                     await client.get("http://localhost:8083/items")
 
@@ -627,7 +622,7 @@ class TestEndToEnd:
             # Test concurrent requests
             async with httpx.AsyncClient() as client:
                 tasks = []
-                for i in range(100):  # 100 concurrent requests
+                for _i in range(100):  # 100 concurrent requests
                     task = make_request(client, "http://localhost:8084/health")
                     tasks.append(task)
 

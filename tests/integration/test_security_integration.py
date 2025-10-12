@@ -9,7 +9,7 @@ import asyncio
 import builtins
 import json
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from security.compliance import ComplianceManager
 from security.compliance.risk_management import RiskCategory, RiskManager
@@ -182,6 +182,7 @@ class SecurityIntegrationTestSuite:
             )
 
             self.zero_trust.policy_engine.add_policy(test_policy)
+            policy_result = {"success": True}  # Mock policy creation result
 
             # Test access during business hours (should be allowed)
             access_request = {
@@ -259,7 +260,7 @@ class SecurityIntegrationTestSuite:
             # Test incident response
             incident = await self.threat_detection.incident_manager.create_incident(
                 incident_type="malware_detection",
-                severity=ThreatSeverity.HIGH,
+                severity=ThreatLevel.HIGH,
                 description="Malware detected in email attachment",
                 affected_systems=["mail_server", "endpoint_001"],
             )
@@ -416,7 +417,7 @@ class SecurityIntegrationTestSuite:
             events = []
 
             # Failed login attempts
-            for i in range(5):
+            for _i in range(5):
                 event = await self.monitoring_system.event_collector.collect_event(
                     source="test_application",
                     event_type=SecurityEventType.AUTHENTICATION_FAILURE,

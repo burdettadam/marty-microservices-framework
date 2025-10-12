@@ -15,9 +15,10 @@ import threading
 import time
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 from .core import GatewayRequest, GatewayResponse
 

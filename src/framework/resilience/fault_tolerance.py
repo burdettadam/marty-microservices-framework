@@ -17,13 +17,14 @@ import threading
 import time
 import uuid
 from collections import deque
+from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import TimeoutError as ConcurrentTimeoutError
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Set, TypeVar
+from typing import Any, TypeVar
 
 
 class CircuitState(Enum):

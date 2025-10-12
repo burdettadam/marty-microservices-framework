@@ -10,9 +10,10 @@ import builtins
 import logging
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
+from typing import Any
 
 from .core import Message
 
@@ -478,7 +479,7 @@ class CompressionMiddleware(MessageMiddleware):
                 MiddlewareStage.PRE_PUBLISH,
             ]:
                 # Compress outgoing message
-                if isinstance(context.message.body, (str, bytes)):
+                if isinstance(context.message.body, str | bytes):
                     compressed_body = self._compress(context.message.body)
                     context.message.body = compressed_body
                     context.message.headers.custom[

@@ -5,7 +5,9 @@ A comprehensive API Gateway implementation built on the Marty microservices fram
 ## Features
 
 ### Core Capabilities
-- **Dynamic Service Discovery**: Support for Consul, etcd, and Kubernetes service registries
+- **Dynamic Service Discovery**: In-memory service registry with extensible backend support
+  - ⚠️ **Note**: Consul, etcd, and Kubernetes backends are currently stub implementations
+  - Production deployments should implement real backend connectors as needed
 - **Load Balancing**: Multiple strategies including round-robin, least connections, and weighted distribution
 - **Circuit Breaker**: Automatic failure detection and recovery
 - **Rate Limiting**: Per-IP and per-user request throttling
@@ -125,15 +127,37 @@ All configured routes are automatically handled:
 
 ## Service Discovery
 
-### Consul Integration
+### Current Implementation
+The gateway currently uses an in-memory service registry for development and testing:
+
 ```python
+service_discovery = ServiceDiscoveryConfig(
+    type=ServiceDiscoveryType.IN_MEMORY,
+    health_check_interval=30
+)
+```
+
+### Future Backend Support (Stub Implementations)
+⚠️ **Development Status**: The following backends have placeholder implementations:
+
+```python
+# Consul integration (stub - requires implementation)
 service_discovery = ServiceDiscoveryConfig(
     type=ServiceDiscoveryType.CONSUL,
     consul_host="localhost",
     consul_port=8500,
     health_check_interval=30
 )
+
+# Kubernetes integration (stub - requires implementation)
+service_discovery = ServiceDiscoveryConfig(
+    type=ServiceDiscoveryType.KUBERNETES,
+    namespace="default",
+    health_check_interval=30
+)
 ```
+
+**Note**: For production use with external service discovery backends, you'll need to implement the actual client connections to replace the current mock implementations.
 
 ### Service Registration
 Services register themselves with metadata:

@@ -13,53 +13,24 @@ Provides comprehensive CI/CD capabilities including:
 
 import asyncio
 import builtins
-import hashlib
 import json
 import os
-import shutil
-import subprocess
-import tempfile
-import uuid
-from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    Union,
-    dict,
-    list,
-    tuple,
-)
+from typing import Any
 
-import yaml
-
-# External dependencies
 try:
-    import docker
-
     DOCKER_AVAILABLE = True
 except ImportError:
     DOCKER_AVAILABLE = False
 
 try:
-    import kubernetes
-    from kubernetes import client, config
-
     KUBERNETES_AVAILABLE = True
 except ImportError:
     KUBERNETES_AVAILABLE = False
 
 try:
-    from prometheus_client import Counter, Gauge, Histogram
-
     METRICS_AVAILABLE = True
 except ImportError:
     METRICS_AVAILABLE = False
@@ -1154,7 +1125,7 @@ class QualityGateEngine:
 
         # Extract coverage from test results
         coverage_values = []
-        for test_name, test_result in test_results.items():
+        for _test_name, test_result in test_results.items():
             if "coverage_percentage" in test_result:
                 coverage_values.append(test_result["coverage_percentage"])
 
@@ -1186,7 +1157,7 @@ class QualityGateEngine:
         total_tests = 0
         passed_tests = 0
 
-        for test_name, test_result in test_results.items():
+        for _test_name, test_result in test_results.items():
             if "total_tests" in test_result and "passed_tests" in test_result:
                 total_tests += test_result["total_tests"]
                 passed_tests += test_result["passed_tests"]
@@ -1220,7 +1191,7 @@ class QualityGateEngine:
         critical_vulnerabilities = 0
         high_vulnerabilities = 0
 
-        for scan_name, scan_result in security_results.items():
+        for _scan_name, scan_result in security_results.items():
             if "vulnerabilities" in scan_result:
                 vulns = scan_result["vulnerabilities"]
                 total_vulnerabilities += vulns.get("total", 0)

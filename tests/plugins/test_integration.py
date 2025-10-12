@@ -9,21 +9,17 @@ End-to-end integration tests for the plugin system including:
 """
 
 import asyncio
-import shutil
 
 # Fix import paths
 import sys
-import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
 framework_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(framework_path))
 
-from . import mock_context, temp_dir
 
 
 class TestFullPluginLifecycle:
@@ -102,7 +98,6 @@ def create_plugin():
         """Test plugin manager with full integration."""
         try:
             from conftest import TestPlugin
-
             from framework.plugins.core import PluginManager, PluginMetadata
 
             manager = PluginManager(mock_context)
@@ -139,7 +134,6 @@ class TestServiceRegistrationIntegration:
         """Test service registry with full integration."""
         try:
             from conftest import TestPlugin
-
             from framework.plugins.services import ServiceDefinition, ServiceRegistry
 
             registry = ServiceRegistry(mock_context)
@@ -323,7 +317,7 @@ class TestMMFInfrastructureIntegration:
         await service.initialize(mock_context)
 
         # Test cache operations
-        result = await service.cached_operation("test_key", "test_value")
+        await service.cached_operation("test_key", "test_value")
         mock_context.cache.get.assert_called_once()
         mock_context.cache.set.assert_called_once()
 
@@ -361,13 +355,13 @@ class TestMMFInfrastructureIntegration:
 
         # Test security operations
         test_data = b"sensitive data"
-        result = await service.secure_operation(test_data, "test_key")
+        await service.secure_operation(test_data, "test_key")
 
         mock_context.security.get_key_info.assert_called_with("test_key")
         mock_context.security.sign_data.assert_called_with(test_data, "test_key")
 
         # Test verification
-        verification = await service.verify_operation(test_data, b"mock_signature", "test_key")
+        await service.verify_operation(test_data, b"mock_signature", "test_key")
         mock_context.security.verify_signature.assert_called_once()
 
     @pytest.mark.asyncio
@@ -583,7 +577,7 @@ class TestPerformanceIntegration:
         from conftest import TestPlugin
 
         plugins = []
-        for i in range(5):  # Create 5 test plugins
+        for _i in range(5):  # Create 5 test plugins
             plugin = TestPlugin()
             plugins.append(plugin)
 

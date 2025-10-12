@@ -8,7 +8,7 @@ They encapsulate business logic and maintain their invariants.
 import builtins
 from abc import ABC
 from datetime import datetime
-from typing import List, Optional, list
+from typing import Optional
 from uuid import UUID, uuid4
 
 from .value_objects import Email, PersonName, PhoneNumber

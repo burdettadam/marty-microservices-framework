@@ -13,7 +13,7 @@ import urllib.parse
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from defusedxml import ElementTree as ET
 

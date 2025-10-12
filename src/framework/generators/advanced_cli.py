@@ -17,7 +17,7 @@ import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 import click
 import questionary
@@ -695,7 +695,7 @@ class AdvancedServiceGenerator:
         k8s_dir.mkdir(exist_ok=True)
 
         # Use Phase 3 Kubernetes templates
-        k8s_templates_dir = self.framework_root / "k8s" / "templates"
+        self.framework_root / "k8s" / "templates"
 
         # Generate namespace
         namespace_template = """apiVersion: v1

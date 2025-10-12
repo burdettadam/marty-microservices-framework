@@ -4,77 +4,40 @@ Comprehensive Event Streaming Tests for CQRS, Event Sourcing, and Saga Patterns.
 This test suite focuses on testing event streaming components with minimal mocking
 to maximize real behavior validation and coverage.
 """
-import asyncio
-import uuid
-from datetime import datetime, timedelta
-from typing import Any, Optional
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from src.framework.event_streaming.core import (
     DomainEvent,
     Event,
-    EventBus,
-    EventDispatcher,
     EventHandler,
     EventMetadata,
-    EventProcessingError,
-    EventStore,
-    EventStream,
-    EventSubscription,
-    EventType,
     InMemoryEventBus,
     InMemoryEventStore,
-    IntegrationEvent,
-    JSONEventSerializer,
 )
 from src.framework.event_streaming.cqrs import (
     Command,
     CommandBus,
     CommandHandler,
     CommandResult,
-    CommandStatus,
-    CommandValidationError,
-    CQRSError,
     InMemoryReadModelStore,
-    Projection,
-    ProjectionManager,
     Query,
     QueryBus,
     QueryHandler,
     QueryResult,
-    QueryType,
-    QueryValidationError,
     ReadModelStore,
 )
 from src.framework.event_streaming.event_sourcing import (
-    Aggregate,
-    AggregateFactory,
-    AggregateNotFoundError,
     AggregateRepository,
     AggregateRoot,
-    ConcurrencyError,
-    EventSourcedProjection,
-    EventSourcedRepository,
-    EventSourcingError,
-    InMemorySnapshotStore,
     Snapshot,
-    SnapshotStore,
 )
 from src.framework.event_streaming.saga import (
     CompensationAction,
-    CompensationStrategy,
     Saga,
-    SagaCompensationError,
     SagaContext,
-    SagaError,
     SagaManager,
-    SagaOrchestrator,
-    SagaRepository,
     SagaStatus,
     SagaStep,
-    SagaTimeoutError,
     StepStatus,
 )
 
@@ -540,7 +503,7 @@ class TestSagaPatterns:
     @pytest.mark.asyncio
     async def test_saga_execution_success(self, saga_manager):
         """Test successful saga execution."""
-        saga = OrderSaga(saga_id="order-456")
+        OrderSaga(saga_id="order-456")
 
         # Register saga with manager
         await saga_manager.register_saga_type("order_processing", OrderSaga)

@@ -11,23 +11,28 @@ Demonstrates advanced log analysis patterns including:
 
 import asyncio
 import builtins
+import importlib.util
 import json
 import re
 import statistics
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, Optional, dict, list
 
-# External dependencies (optional)
-try:
+# External dependencies (optional) - check availability using importlib
+AIOREDIS_AVAILABLE = importlib.util.find_spec("aioredis") is not None
+ELASTICSEARCH_AVAILABLE = importlib.util.find_spec("elasticsearch") is not None
+PROMETHEUS_AVAILABLE = importlib.util.find_spec("prometheus_client") is not None
+
+MONITORING_AVAILABLE = AIOREDIS_AVAILABLE and ELASTICSEARCH_AVAILABLE and PROMETHEUS_AVAILABLE
+
+# Import optional dependencies only if available
+if AIOREDIS_AVAILABLE:
     import aioredis
-    import elasticsearch
-    from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
-    MONITORING_AVAILABLE = True
-except ImportError:
-    MONITORING_AVAILABLE = False
+if PROMETHEUS_AVAILABLE:
+    from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 
 @dataclass
@@ -112,6 +117,13 @@ class LogAnalyzer:
         if MONITORING_AVAILABLE and enable_metrics:
             self._setup_metrics()
 
+        # Initialize redis connection if available
+        self.redis = None
+        if AIOREDIS_AVAILABLE:
+            # Redis will be connected async when needed
+            self._redis_host = redis_host
+            self._redis_port = redis_port
+
         # Pattern cache
         self._compiled_patterns: builtins.dict[str, re.Pattern] = {}
 
@@ -189,6 +201,17 @@ class LogAnalyzer:
                 "marty_active_services", "Number of active services"
             ),
         }
+
+    async def _ensure_redis_connection(self):
+        """Ensure redis connection is established"""
+        if self.redis is None and AIOREDIS_AVAILABLE:
+            try:
+                self.redis = await aioredis.from_url(
+                    f"redis://{self._redis_host}:{self._redis_port}"
+                )
+            except Exception as e:
+                print(f"Failed to connect to Redis: {e}")
+                self.redis = None
 
     def _get_compiled_pattern(self, pattern: str) -> re.Pattern:
         """Get or compile regex pattern"""
@@ -276,7 +299,8 @@ class LogAnalyzer:
 
         # Send to Redis for real-time processing
         try:
-            if hasattr(self, "redis"):
+            await self._ensure_redis_connection()
+            if self.redis is not None:
                 await self.redis.lpush("alerts", json.dumps(alert_data))
         except Exception as e:
             print(f"Failed to send alert to Redis: {e}")
@@ -349,7 +373,8 @@ class LogAnalyzer:
 
         # Send to security queue
         try:
-            if hasattr(self, "redis"):
+            await self._ensure_redis_connection()
+            if self.redis is not None:
                 await self.redis.lpush("security_events", json.dumps(security_data))
         except Exception as e:
             print(f"Failed to send security event to Redis: {e}")
@@ -389,7 +414,8 @@ class LogAnalyzer:
 
         # Send to business intelligence queue
         try:
-            if hasattr(self, "redis"):
+            await self._ensure_redis_connection()
+            if self.redis is not None:
                 await self.redis.lpush("revenue_events", json.dumps(revenue_data))
         except Exception as e:
             print(f"Failed to send revenue event to Redis: {e}")
@@ -397,7 +423,7 @@ class LogAnalyzer:
     async def _update_service_health(self, event: LogEvent):
         """Update service health metrics"""
         # Track active services
-        current_services = set(event.service_name for event in self.event_buffer)
+        current_services = {event.service_name for event in self.event_buffer}
 
         if MONITORING_AVAILABLE and hasattr(self, "metrics"):
             self.metrics["active_services"].set(len(current_services))
@@ -503,8 +529,8 @@ class LogStreamProcessor:
                 # Read from Redis stream
                 messages = await redis.xread({stream_name: "$"}, count=100, block=1000)
 
-                for stream, msgs in messages:
-                    for msg_id, fields in msgs:
+                for _stream, msgs in messages:
+                    for _msg_id, fields in msgs:
                         log_line = fields.get(b"log", b"").decode("utf-8")
                         if log_line:
                             await self.analyzer.process_log_event(log_line)

@@ -8,11 +8,11 @@ FastAPI and gRPC services with best practices and common patterns.
 import asyncio
 import logging
 import time
-from typing import Any, Dict, Optional, dict
+from typing import Any, dict
 
 # FastAPI imports
 try:
-    from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+    from fastapi import BackgroundTasks, FastAPI, HTTPException
     from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel
 
@@ -23,7 +23,6 @@ except ImportError:
 # gRPC imports
 try:
     import grpc
-    from grpc import aio as aio_grpc
 
     GRPC_AVAILABLE = True
 except ImportError:
@@ -281,7 +280,7 @@ class TracedGRPCService:
         """gRPC method with tracing"""
         # Extract trace context from gRPC metadata
         metadata = dict(context.invocation_metadata())
-        trace_context = self.tracing.extract_context(metadata)
+        self.tracing.extract_context(metadata)
 
         async with self.tracing.trace_async_operation(
             "grpc.ProcessPayment",

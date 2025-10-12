@@ -15,28 +15,19 @@ import asyncio
 import base64
 import builtins
 import hashlib
-import hmac
-import json
 import secrets
-import time
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
-from urllib.parse import parse_qs, urlparse
+from typing import Any
 
 import bcrypt
 import jwt
 
 # External dependencies
 try:
-    import aiohttp
-    import redis.asyncio as redis
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import padding, rsa
-    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-    from prometheus_client import Counter, Gauge, Histogram
+    from prometheus_client import Counter, Gauge
     REDIS_AVAILABLE = True
 
     CRYPTO_AVAILABLE = True
@@ -285,7 +276,7 @@ class PasswordManager:
         if user_id not in self.password_history:
             return True
 
-        new_hash = self.hash_password(new_password)
+        self.hash_password(new_password)
         recent_hashes = self.password_history[user_id][-history_count:]
 
         for old_hash in recent_hashes:

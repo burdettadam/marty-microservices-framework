@@ -12,10 +12,10 @@ This example shows:
 import logging
 import os
 
-# Configure logging
-from typing import Set
-
 from framework.config import DatabaseConfigSection, Environment, create_service_config
+
+# Configure logging
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

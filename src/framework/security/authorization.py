@@ -4,10 +4,10 @@ Authorization and Role-Based Access Control (RBAC) for the enterprise security f
 
 import builtins
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import wraps
-from typing import Callable, Dict, Optional, Set
 
 from .auth import AuthenticatedUser
 from .errors import AuthorizationError, InsufficientPermissionsError

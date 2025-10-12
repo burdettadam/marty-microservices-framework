@@ -256,18 +256,10 @@ from .backends import (
     RabbitMQBackend,
     RedisBackend,
 )
-from .patterns import (
-    Consumer,
-    MessagePattern,
-    Producer,
-    RequestReplyPattern,
-    WorkQueuePattern,
-)
+from .patterns import Consumer, Producer, RequestReplyPattern, WorkQueuePattern
 
 # New enterprise messaging components
-from .queue import Message
 from .queue import MessageHandler as QueueMessageHandler
-from .queue import MessageQueue
 
 # Additional imports temporarily commented out due to missing exports
 # from .queue import MessagePattern as NewMessagePattern
@@ -367,9 +359,7 @@ from .middleware import (
     ValidationMiddleware,
 )
 from .patterns import (
-    Consumer,
     ConsumerConfig,
-    Producer,
     ProducerConfig,
     PublishSubscribePattern,
     RoutingPattern,

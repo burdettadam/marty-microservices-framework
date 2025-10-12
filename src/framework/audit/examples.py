@@ -9,7 +9,7 @@ import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 # FastAPI example
 try:
@@ -217,7 +217,7 @@ if FASTAPI_AVAILABLE:
             config.enable_console_logging = True
             config.log_file_path = Path("examples/audit_fastapi.log")
 
-            context = AuditContext(
+            AuditContext(
                 service_name="fastapi-example",
                 service_version="1.0.0",
                 environment="development",

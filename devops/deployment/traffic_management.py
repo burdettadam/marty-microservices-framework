@@ -12,28 +12,23 @@ Provides comprehensive traffic management capabilities including:
 
 import asyncio
 import builtins
+import importlib.util
 import json
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any
 
-# External dependencies
-try:
-    import kubernetes
-    from kubernetes import client, config
+# External dependencies availability checks
+KUBERNETES_AVAILABLE = importlib.util.find_spec("kubernetes") is not None
 
-    KUBERNETES_AVAILABLE = True
-except ImportError:
-    KUBERNETES_AVAILABLE = False
-
-try:
-    import requests
-
-    HTTP_CLIENT_AVAILABLE = True
-except ImportError:
-    HTTP_CLIENT_AVAILABLE = False
+# Conditional imports for kubernetes
+if KUBERNETES_AVAILABLE:
+    try:
+        from kubernetes import client, config
+    except ImportError:
+        KUBERNETES_AVAILABLE = False
 
 
 class TrafficBackend(Enum):
@@ -211,13 +206,14 @@ class IstioTrafficManager(TrafficManagerBase):
             try:
                 config.load_incluster_config()
                 self.kubernetes_client = client.CustomObjectsApi()
-            except:
+            except Exception as incluster_error:
                 try:
                     config.load_kube_config()
                     self.kubernetes_client = client.CustomObjectsApi()
-                except:
+                except Exception as kubeconfig_error:
                     print(
-                        "⚠️ Kubernetes config not available for Istio traffic management"
+                        "⚠️ Kubernetes config not available for Istio traffic management: "
+                        f"in-cluster error={incluster_error}, kubeconfig error={kubeconfig_error}"
                     )
 
     async def configure_route(self, route: TrafficRoute) -> bool:
@@ -350,7 +346,7 @@ class IstioTrafficManager(TrafficManagerBase):
 
         try:
             # Validate routes
-            for route_name, route in self.routes.items():
+            for _route_name, route in self.routes.items():
                 route_validation = self._validate_route(route)
                 if not route_validation["valid"]:
                     validation_results["valid"] = False
@@ -358,7 +354,7 @@ class IstioTrafficManager(TrafficManagerBase):
                 validation_results["warnings"].extend(route_validation["warnings"])
 
             # Validate policies
-            for policy_name, policy in self.policies.items():
+            for _policy_name, policy in self.policies.items():
                 policy_validation = self._validate_policy(policy)
                 if not policy_validation["valid"]:
                     validation_results["valid"] = False
@@ -615,13 +611,14 @@ class NginxTrafficManager(TrafficManagerBase):
             try:
                 config.load_incluster_config()
                 self.kubernetes_client = client.NetworkingV1Api()
-            except:
+            except Exception as incluster_error:
                 try:
                     config.load_kube_config()
                     self.kubernetes_client = client.NetworkingV1Api()
-                except:
+                except Exception as kubeconfig_error:
                     print(
-                        "⚠️ Kubernetes config not available for NGINX traffic management"
+                        "⚠️ Kubernetes config not available for NGINX traffic management: "
+                        f"in-cluster error={incluster_error}, kubeconfig error={kubeconfig_error}"
                     )
 
     async def configure_route(self, route: TrafficRoute) -> bool:

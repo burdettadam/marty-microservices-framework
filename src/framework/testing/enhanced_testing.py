@@ -5,19 +5,14 @@ This module provides chaos engineering tests, contract testing, performance base
 and quality gate implementations for the Marty Microservices Framework.
 """
 
-import asyncio
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
-from ..resilience.enhanced.chaos_engineering import (
-    ChaosConfig,
-    ChaosInjector,
-    ChaosType,
-    ResilienceTestSuite,
-)
+from ..resilience.enhanced.chaos_engineering import ChaosInjector, ResilienceTestSuite
 
 logger = logging.getLogger(__name__)
 

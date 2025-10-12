@@ -8,7 +8,6 @@ perform health checks, and integrate with distributed tracing systems.
 import logging
 import time
 from datetime import datetime
-from typing import Optional
 
 # FastAPI imports
 try:
@@ -281,9 +280,8 @@ if GRPC_AVAILABLE:
                 start_time = time.time()
 
                 # Start distributed trace if enabled
-                trace_span = None
                 if self.config.enable_tracing and monitoring_manager.tracer:
-                    trace_context = monitoring_manager.tracer.trace_operation(
+                    monitoring_manager.tracer.trace_operation(
                         f"gRPC {method_name}",
                         {
                             "rpc.system": "grpc",

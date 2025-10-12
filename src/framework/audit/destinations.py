@@ -14,7 +14,7 @@ import logging
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import aiofiles
 from sqlalchemy import Column, DateTime, Integer, String, Text, and_, select

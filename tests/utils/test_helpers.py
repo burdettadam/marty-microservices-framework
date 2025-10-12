@@ -9,22 +9,19 @@ import asyncio
 import json
 import tempfile
 import uuid
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
-import docker
-import psycopg2
 import pytest
 import redis
-from testcontainers.postgres import PostgresContainer
-from testcontainers.redis import RedisContainer
-
 from src.framework.config import FrameworkConfig
 from src.framework.database import DatabaseConnection
 from src.framework.events import Event, EventBus
 from src.framework.messaging import Message, MessageBus
+from testcontainers.postgres import PostgresContainer
+from testcontainers.redis import RedisContainer
 
 
 class TestServiceManager:
@@ -229,7 +226,7 @@ class RedisTestHelper:
 
     async def set_test_data(self, key: str, value: Any, **kwargs):
         """Set test data in Redis."""
-        if isinstance(value, (dict, list)):
+        if isinstance(value, dict | list):
             value = json.dumps(value)
 
         await self.redis.set(key, value, **kwargs)

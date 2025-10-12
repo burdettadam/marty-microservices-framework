@@ -13,7 +13,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from re import Pattern
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 
 from .core import GatewayRequest, HTTPMethod, Route, RouteConfig, RouteGroup
 

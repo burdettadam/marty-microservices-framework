@@ -9,14 +9,12 @@ Tests for the fundamental plugin system components including:
 """
 
 import asyncio
-from typing import Any, Dict
-from unittest.mock import AsyncMock, Mock
+from typing import Any
 
 import pytest
-
 from framework.plugins import MMFPlugin, PluginContext, PluginManager, PluginMetadata
 
-from . import TestPlugin, mock_context
+from . import TestPlugin
 
 
 class TestPluginMetadata:
@@ -75,7 +73,7 @@ class TestPluginContext:
         await mock_context.database.insert("test", {"id": 1})
         mock_context.database.insert.assert_called_once()
 
-        result = await mock_context.database.query_one("SELECT * FROM test WHERE id = ?", (1,))
+        await mock_context.database.query_one("SELECT * FROM test WHERE id = ?", (1,))
         mock_context.database.query_one.assert_called_once()
 
     @pytest.mark.asyncio

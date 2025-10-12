@@ -5,12 +5,10 @@ Tests the MessageBus class and message handling without external dependencies.
 """
 
 import asyncio
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
-from src.framework.messaging import Message, MessageHandler, MessagingManager
+from src.framework.messaging import Message, MessageBus, MessageHandler
 
 
 @pytest.mark.unit

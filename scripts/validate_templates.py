@@ -12,7 +12,7 @@ import ast
 import builtins
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, cast, dict, list
+from typing import Any, cast
 
 try:
     from jinja2 import Environment, FileSystemLoader, TemplateSyntaxError

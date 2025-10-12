@@ -1,9 +1,7 @@
 """Bypass-based load balancing strategy tests - avoiding all import issues."""
 
-import asyncio
 import os
 import sys
-from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -77,7 +75,7 @@ async def test_round_robin_functionality_bypass():
 
         # Test round-robin selection
         selections = []
-        for i in range(6):  # Go around twice
+        for _i in range(6):  # Go around twice
             selected = await balancer.select_instance(instances)
             selections.append(selected.host if selected else None)
 

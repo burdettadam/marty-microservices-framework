@@ -8,10 +8,11 @@ template inheritance, composition, variable injection, and dynamic generation.
 import json
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import yaml
 from jinja2 import BaseLoader, Environment, Template, meta
@@ -178,7 +179,7 @@ class LoopTransformer(TemplateTransformer):
             loop_content = match.group(3)
 
             items = context.variables.get(items_var, [])
-            if not isinstance(items, (list, tuple)):
+            if not isinstance(items, list | tuple):
                 return ""
 
             result = ""

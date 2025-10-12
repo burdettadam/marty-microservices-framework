@@ -2,9 +2,9 @@
 Migration commands for converting Helm charts to Kustomize manifests.
 """
 
+import os
 import subprocess
 from pathlib import Path
-from typing import List, Optional
 
 import click
 from rich.console import Console
@@ -87,7 +87,7 @@ def helm_to_kustomize(
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        task = progress.add_task("Converting Helm to Kustomize...", total=None)
+        progress.add_task("Converting Helm to Kustomize...", total=None)
 
         try:
             # Import and use the converter
@@ -196,7 +196,7 @@ def validate_migration(
         TextColumn("[progress.description]{task.description}"),
         console=console,
     ) as progress:
-        task = progress.add_task("Validating migration...", total=None)
+        progress.add_task("Validating migration...", total=None)
 
         try:
             # Render both Helm and Kustomize manifests
@@ -279,7 +279,7 @@ def _show_generated_structure(output_path: Path) -> None:
     """Display the generated directory structure."""
     console.print("📁 Generated structure:", style="bold")
 
-    for root, dirs, files in os.walk(output_path):
+    for root, _dirs, files in os.walk(output_path):
         level = root.replace(str(output_path), '').count(os.sep)
         indent = ' ' * 2 * level
         console.print(f"{indent}📂 {os.path.basename(root)}/", style="blue")

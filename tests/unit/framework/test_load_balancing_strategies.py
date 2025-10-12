@@ -2,16 +2,12 @@
 Complete and corrected load balancing strategy tests.
 """
 
-import asyncio
-from unittest.mock import Mock
 
 import pytest
-
 from src.framework.discovery.core import HealthStatus, ServiceInstance
 from src.framework.discovery.load_balancing import (
     HealthBasedBalancer,
     LeastConnectionsBalancer,
-    LoadBalancer,
     LoadBalancingConfig,
     LoadBalancingContext,
     LoadBalancingStrategy,

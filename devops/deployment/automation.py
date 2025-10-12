@@ -12,11 +12,12 @@ Provides comprehensive deployment automation including:
 
 import asyncio
 import builtins
+import importlib.util
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, dict, list
+from typing import Any
 
 # Import our deployment components
 from .strategies import (
@@ -34,21 +35,16 @@ from .traffic_management import (
     TrafficRoute,
 )
 
-# External dependencies
-try:
-    import kubernetes
-    from kubernetes import client, config
+# External dependencies availability checks
+KUBERNETES_AVAILABLE = importlib.util.find_spec("kubernetes") is not None
+METRICS_AVAILABLE = importlib.util.find_spec("prometheus_client") is not None
 
-    KUBERNETES_AVAILABLE = True
-except ImportError:
-    KUBERNETES_AVAILABLE = False
-
-try:
-    from prometheus_client import Counter, Gauge, Histogram
-
-    METRICS_AVAILABLE = True
-except ImportError:
-    METRICS_AVAILABLE = False
+# Conditional imports for prometheus metrics
+if METRICS_AVAILABLE:
+    try:
+        from prometheus_client import Counter, Histogram
+    except ImportError:
+        METRICS_AVAILABLE = False
 
 
 class Environment(Enum):

@@ -14,8 +14,6 @@ import time
 from pathlib import Path
 
 import pytest
-import pytest_asyncio
-
 from tests.e2e.conftest import PerformanceAnalyzer, TimeoutMonitor
 
 

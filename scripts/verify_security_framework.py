@@ -8,7 +8,6 @@ without requiring external dependencies to be installed.
 
 import os
 import sys
-from typing import Final
 
 
 def check_file_exists(filepath: str, description: str) -> bool:

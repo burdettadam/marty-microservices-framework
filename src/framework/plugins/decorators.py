@@ -8,7 +8,8 @@ and event handling.
 
 import functools
 import logging
-from typing import Any, Callable, Dict, List, Optional, Union
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -215,7 +216,6 @@ def event_handler(event_type: str,
                 return
 
             # Process event with retry logic
-            last_exception = None
             for attempt in range(retry_attempts + 1):
                 try:
                     if async_processing:
@@ -229,7 +229,6 @@ def event_handler(event_type: str,
                         return await func(self, event, *args, **kwargs)
 
                 except Exception as e:
-                    last_exception = e
                     if attempt < retry_attempts:
                         logger.warning(f"Event handler {func.__name__} failed (attempt {attempt + 1}), retrying: {e}")
                     else:

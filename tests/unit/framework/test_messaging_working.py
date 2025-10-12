@@ -4,8 +4,6 @@ Working messaging tests with real framework implementations.
 Tests messaging infrastructure components using actual implementations instead of mocks.
 """
 
-import pytest
-
 from src.framework.messaging.core import (
     Message,
     MessageHeaders,
@@ -285,7 +283,7 @@ class TestMessagingIntegration:
         assert len(failed_messages) == 2
 
         # All messages should have correct correlation IDs
-        for i, msg in enumerate(completed_messages):
+        for _i, msg in enumerate(completed_messages):
             assert msg.headers.correlation_id.startswith("batch-")
 
         # Failed messages should be available for retry

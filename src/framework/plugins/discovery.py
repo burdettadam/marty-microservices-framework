@@ -13,7 +13,7 @@ import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from .core import MMFPlugin
 
@@ -287,7 +287,7 @@ class PackagePluginDiscoverer(PluginDiscoverer):
             import pkgutil
 
             # Find packages with the specified prefix
-            for importer, modname, ispkg in pkgutil.iter_modules():
+            for _importer, modname, _ispkg in pkgutil.iter_modules():
                 if modname.startswith(self.package_prefix):
                     try:
                         # Import the package

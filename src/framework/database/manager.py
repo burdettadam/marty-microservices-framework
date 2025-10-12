@@ -7,7 +7,7 @@ import asyncio
 import builtins
 import logging
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
-from typing import Any, AsyncContextManager, Dict, Optional, Set
+from typing import Any
 
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.asyncio import (
@@ -145,7 +145,7 @@ class DatabaseManager:
             raise
 
     @asynccontextmanager
-    async def get_session(self) -> AsyncContextManager[AsyncSession]:
+    async def get_session(self) -> AbstractAsyncContextManager[AsyncSession]:
         """Get an async database session."""
         if not self._initialized:
             await self.initialize()
@@ -162,7 +162,7 @@ class DatabaseManager:
             await session.close()
 
     @asynccontextmanager
-    async def get_transaction(self) -> AsyncContextManager[AsyncSession]:
+    async def get_transaction(self) -> AbstractAsyncContextManager[AsyncSession]:
         """Get an async database session with automatic transaction management."""
         async with self.get_session() as session:
             async with session.begin():

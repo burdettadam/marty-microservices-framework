@@ -3,14 +3,10 @@ Event Streaming Tests - Working with Real APIs
 Tests using the actual API signatures from the framework.
 """
 
-import asyncio
-import uuid
-from dataclasses import dataclass, field
-from datetime import datetime
+from dataclasses import dataclass
 from typing import Any
 
 import pytest
-
 from src.framework.event_streaming import (
     AggregateRoot,
     Command,
@@ -18,13 +14,10 @@ from src.framework.event_streaming import (
     CommandHandler,
     CommandResult,
     CommandStatus,
-    CompensationAction,
     Event,
     EventBus,
     EventHandler,
     EventMetadata,
-    EventStore,
-    EventType,
     InMemoryEventBus,
     InMemoryEventStore,
     Query,
@@ -32,7 +25,6 @@ from src.framework.event_streaming import (
     QueryHandler,
     QueryResult,
     Saga,
-    SagaContext,
     SagaManager,
     SagaOrchestrator,
     SagaStatus,

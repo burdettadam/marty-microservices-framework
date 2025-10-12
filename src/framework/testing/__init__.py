@@ -96,7 +96,6 @@ Advanced Testing Example:
 """
 
 import builtins
-from typing import Dict, List
 
 # Chaos engineering
 from .chaos_engineering import (

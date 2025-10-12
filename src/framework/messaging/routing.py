@@ -10,10 +10,11 @@ import fnmatch
 import logging
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from re import Pattern
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 
 from .core import Message
 
@@ -407,7 +408,7 @@ class RoutingEngine:
         # Handle different types
         if isinstance(expected, str) and not isinstance(actual, str):
             actual = str(actual)
-        elif isinstance(expected, (int, float)) and isinstance(actual, str):
+        elif isinstance(expected, int | float) and isinstance(actual, str):
             try:
                 actual = type(expected)(actual)
             except (ValueError, TypeError):

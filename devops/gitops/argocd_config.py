@@ -13,7 +13,7 @@ Provides comprehensive ArgoCD integration including:
 import builtins
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, dict, list
+from typing import Any, dict, list
 
 import yaml
 

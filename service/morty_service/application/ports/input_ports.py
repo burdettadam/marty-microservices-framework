@@ -8,7 +8,6 @@ must implement to interact with the application's use cases.
 import builtins
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, list
 from uuid import UUID
 
 

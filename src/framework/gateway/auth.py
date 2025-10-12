@@ -11,21 +11,10 @@ import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    dict,
-    list,
-    set,
-    tuple,
-)
+from typing import Any, dict, list, set
 
 import jwt
 

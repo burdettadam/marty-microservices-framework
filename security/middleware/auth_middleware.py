@@ -12,9 +12,10 @@ Provides JWT-based authentication middleware with support for:
 import builtins
 import logging
 import time
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import jwt
 import redis.asyncio as redis

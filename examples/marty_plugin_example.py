@@ -7,12 +7,10 @@ within the MMF framework.
 
 import asyncio
 import logging
-from pathlib import Path
-
-from plugins.marty import MartyTrustPKIPlugin
 
 from framework.config import create_plugin_config_manager
-from framework.plugins import DirectoryPluginDiscoverer, PluginContext, PluginManager
+from framework.plugins import PluginContext, PluginManager
+from plugins.marty import MartyTrustPKIPlugin
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

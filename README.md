@@ -102,6 +102,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🆘 Support
 
 - **Documentation**: [docs/README.md](docs/README.md)
+- **Development Scripts**: [scripts/README.md](scripts/README.md)
 - **Issues**: GitHub Issues
 - **Discussions**: GitHub Discussions
 

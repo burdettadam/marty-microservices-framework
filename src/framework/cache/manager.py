@@ -22,21 +22,11 @@ import pickle
 import time
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Set,
-    TypeVar,
-    dict,
-    list,
-)
+from typing import Any, Generic, TypeVar
 
 # Optional Redis imports
 try:

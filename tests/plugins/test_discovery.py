@@ -8,16 +8,11 @@ Tests for plugin discovery mechanisms including:
 - Plugin loading and validation
 """
 
-import shutil
 
 # Fix import paths
 import sys
-import tempfile
 from pathlib import Path
-from typing import Any, Dict
 from unittest.mock import Mock, patch
-
-import pytest
 
 framework_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(framework_path))
@@ -71,7 +66,6 @@ except ImportError:
                 plugins.extend(discoverer.discover())
             return plugins
 
-from . import temp_dir
 
 
 class TestPluginInfo:
@@ -311,7 +305,7 @@ class TestPluginDependencyResolution:
 
     def test_dependency_ordering(self):
         """Test plugin dependency ordering logic."""
-        plugins = [
+        [
             PluginInfo(
                 "plugin-a",
                 PluginMetadata("plugin-a", "1.0.0", dependencies=["plugin-b"]),
@@ -344,7 +338,7 @@ class TestPluginDependencyResolution:
 
     def test_circular_dependency_detection(self):
         """Test detection of circular dependencies."""
-        plugins = [
+        [
             PluginInfo(
                 "plugin-a",
                 PluginMetadata("plugin-a", "1.0.0", dependencies=["plugin-b"]),
@@ -365,7 +359,7 @@ class TestPluginDependencyResolution:
 
     def test_missing_dependency_detection(self):
         """Test detection of missing dependencies."""
-        plugins = [
+        [
             PluginInfo(
                 "plugin-a",
                 PluginMetadata("plugin-a", "1.0.0", dependencies=["missing-plugin"]),

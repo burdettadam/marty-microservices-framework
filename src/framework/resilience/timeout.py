@@ -10,11 +10,12 @@ import builtins
 import logging
 import threading
 import time
+from collections.abc import Callable
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -143,7 +144,7 @@ class TimeoutManager:
     ) -> T:
         """Execute async function with timeout."""
         timeout = timeout_seconds or self.config.default_timeout
-        context = self.create_timeout_context(timeout, operation)
+        self.create_timeout_context(timeout, operation)
 
         try:
             if asyncio.iscoroutinefunction(func):
@@ -184,7 +185,7 @@ class TimeoutManager:
     ) -> T:
         """Execute sync function with timeout using threading."""
         timeout = timeout_seconds or self.config.default_timeout
-        context = self.create_timeout_context(timeout, operation)
+        self.create_timeout_context(timeout, operation)
 
         result = [None]
         exception = [None]

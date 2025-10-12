@@ -9,12 +9,12 @@ import asyncio
 import os
 import tempfile
 import uuid
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import Any, AsyncGenerator, Generator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-import pytest_asyncio
 
 # Framework imports
 from src.framework.config import BaseServiceConfig

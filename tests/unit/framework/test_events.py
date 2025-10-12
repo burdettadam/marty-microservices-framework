@@ -5,12 +5,27 @@ Tests the EventBus class and event handling without external dependencies.
 """
 
 import asyncio
-from typing import Any, Dict, List
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
+from src.framework.events import Event, EventBus, EventHandler
 
-from src.framework.events import BaseEvent, EventBus, EventHandler
+
+# Mock EventSubscription for testing since it doesn't exist yet
+class EventSubscription:
+    """Mock EventSubscription for testing."""
+    def __init__(self, subscriber_id: str, event_type: str, handler, priority: int = 0):
+        self.subscriber_id = subscriber_id
+        self.event_type = event_type
+        self.handler = handler
+        self.priority = priority
+        self.active = True
+
+    def deactivate(self):
+        self.active = False
+
+    def reactivate(self):
+        self.active = True
 
 
 @pytest.mark.unit

@@ -8,8 +8,7 @@ the key benefits of using MMF infrastructure.
 
 import asyncio
 import logging
-from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 # Before: Original Marty Document Signer (Standalone)
 # ===================================================
@@ -112,7 +111,6 @@ class OriginalDocumentSigner:
 
 from framework.config import MartyTrustPKIConfig
 from framework.plugins import (
-    MMFPlugin,
     PluginContext,
     requires_auth,
     trace_operation,

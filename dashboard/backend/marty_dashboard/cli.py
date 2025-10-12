@@ -4,7 +4,6 @@ CLI module for the Marty Dashboard.
 
 import asyncio
 import sys
-from typing import List, Optional
 
 import click
 import uvicorn

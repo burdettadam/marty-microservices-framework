@@ -15,7 +15,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 
 import bcrypt
 import jwt
@@ -176,10 +176,9 @@ class CryptographyManager:
             # Extract key version and encrypted content
             if b":" in decoded_data:
                 key_version_bytes, encrypted_content = decoded_data.split(b":", 1)
-                key_version = int(key_version_bytes.decode("utf-8"))
+                int(key_version_bytes.decode("utf-8"))
             else:
                 encrypted_content = decoded_data
-                key_version = 0
 
             # Get appropriate key
             if key_id not in self.encryption_keys:

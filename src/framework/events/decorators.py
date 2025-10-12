@@ -6,10 +6,11 @@ Decorators for automatic event publishing on method success/failure.
 
 import functools
 import logging
-from typing import Any, Awaitable, Callable, Dict, Optional, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import Any, TypeVar
 
 from .publisher import get_event_publisher
-from .types import AuditEventType, EventMetadata, EventPriority, NotificationEventType
+from .types import AuditEventType, EventMetadata, EventPriority
 
 logger = logging.getLogger(__name__)
 
@@ -430,10 +431,10 @@ def _serialize_value(value: Any) -> Any:
     """Serialize a value for JSON encoding."""
     try:
         # Handle common types
-        if value is None or isinstance(value, (str, int, float, bool)):
+        if value is None or isinstance(value, str | int | float | bool):
             return value
 
-        if isinstance(value, (list, tuple)):
+        if isinstance(value, list | tuple):
             return [_serialize_value(item) for item in value]
 
         if isinstance(value, dict):

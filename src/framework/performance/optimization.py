@@ -14,13 +14,13 @@ import pstats
 import threading
 import time
 from collections import defaultdict, deque
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 
-import aioredis
 import psutil
 from cachetools import LRUCache, TTLCache
 
@@ -256,7 +256,7 @@ class PerformanceProfiler:
         function_stats = {}
         hotspots = []
 
-        for func_key, (cc, nc, tt, ct, callers) in stats.stats.items():
+        for func_key, (cc, _nc, tt, ct, _callers) in stats.stats.items():
             func_name = f"{func_key[0]}:{func_key[1]}:{func_key[2]}"
             function_stats[func_name] = {
                 "call_count": cc,
@@ -1061,7 +1061,7 @@ class ResourceOptimizer:
 
         try:
             if recommendation.optimization_type in self.optimization_strategies:
-                strategy_func = self.optimization_strategies[
+                self.optimization_strategies[
                     recommendation.optimization_type
                 ]
                 # Note: This is a simplified implementation

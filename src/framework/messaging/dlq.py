@@ -10,9 +10,10 @@ import builtins
 import logging
 import statistics
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 
 from .backends import MessageBackend
 from .core import Message, MessageStatus

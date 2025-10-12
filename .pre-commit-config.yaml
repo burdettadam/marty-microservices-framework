@@ -62,10 +62,10 @@ repos:
         # NOTE: The following keys were previously mis-indented which caused pre-commit
         #       to treat them as unexpected top-level keys. They must be indented
         #       under the hook entry to take effect.
-        args: ["-r","src/framework","-s","B101,B104,B105,B106,B108,B110,B112,B301,B307,B311,B403,B404,B501,B603,B607,B324","--exclude","src/framework/testing/,tests/,marty_chassis/tests/,templates/,examples/,microservice_project_template/,/.venv/,*/.venv/"]
+        args: ["-r","src/framework","-s","B101,B104,B105,B106,B108,B110,B112,B301,B307,B311,B403,B404,B501,B603,B607,B324","--exclude","src/framework/testing/,tests/,templates/,examples/,microservice_project_template/,/.venv/,*/.venv/"]
         pass_filenames: false
         # Exclude tests, templates, examples, demos, project scaffold
-        exclude: ^(marty_chassis/tests/|src/framework/testing/|tests/|templates/|examples/|.*_example\.py|.*demo.*\.py|setup_dev\.py|microservice_project_template/|\.venv/)
+        exclude: ^(src/framework/testing/|tests/|templates/|examples/|.*_example\.py|.*demo.*\.py|setup_dev\.py|microservice_project_template/|\.venv/)
 
   # Framework-specific hooks
   - repo: local

@@ -14,7 +14,7 @@ import builtins
 import json
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, dict, list
+from typing import Any, list
 
 
 @dataclass

@@ -13,10 +13,11 @@ import threading
 import uuid
 from abc import ABC, abstractmethod
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any
 
 # For message broker operations
 import pika  # RabbitMQ
@@ -951,7 +952,7 @@ class EventOrchestrator:
                 updates = action.get("updates", {})
 
                 # Apply updates to active workflows
-                for instance_id, instance in self.active_workflows.items():
+                for _instance_id, instance in self.active_workflows.items():
                     if instance["workflow_id"] == workflow_id:
                         instance["context"].update(updates)
 

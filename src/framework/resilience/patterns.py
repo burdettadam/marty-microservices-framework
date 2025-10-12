@@ -8,10 +8,11 @@ retries, bulkheads, timeouts, and fallbacks for comprehensive fault tolerance.
 import asyncio
 import builtins
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, TypeVar
 
 from .bulkhead import BulkheadConfig, BulkheadPool, get_bulkhead_manager
 from .circuit_breaker import CircuitBreaker, CircuitBreakerConfig
@@ -100,9 +101,7 @@ class ResilienceManager:
         self._total_operations = 0
         self._successful_operations = 0
         self._failed_operations = 0
-        self._pattern_usage: builtins.dict[ResiliencePattern, int] = {
-            pattern: 0 for pattern in ResiliencePattern
-        }
+        self._pattern_usage: builtins.dict[ResiliencePattern, int] = dict.fromkeys(ResiliencePattern, 0)
 
     def get_or_create_circuit_breaker(self, name: str) -> CircuitBreaker:
         """Get or create circuit breaker."""

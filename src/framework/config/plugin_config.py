@@ -7,10 +7,9 @@ including plugin metadata and dynamic configuration loading.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError
-from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .manager import BaseServiceConfig, ConfigManager, ConfigProvider
 
@@ -247,7 +246,7 @@ class PluginConfigManager:
         """List all available plugin configurations."""
         result = {}
 
-        for plugin_name, config_manager in self.plugin_configs.items():
+        for plugin_name, _config_manager in self.plugin_configs.items():
             # In a real implementation, scan for available config keys
             result[plugin_name] = ["default"]
 

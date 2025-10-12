@@ -27,7 +27,7 @@ from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, TypeVar
+from typing import Any, TypeVar
 
 # Optional imports for different brokers
 try:
@@ -53,16 +53,6 @@ try:
 except ImportError:
     KAFKA_AVAILABLE = False
 
-import asyncio
-import json
-import logging
-import time
-import uuid
-from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional, Set, TypeVar
 
 # Optional imports for different brokers
 try:

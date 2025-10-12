@@ -3,10 +3,8 @@ Comprehensive load balancing strategy tests with proper API usage.
 """
 
 import asyncio
-from unittest.mock import AsyncMock, Mock
 
 import pytest
-
 from src.framework.discovery.core import ServiceInstance
 from src.framework.discovery.load_balancing import (
     AdaptiveBalancer,
@@ -20,7 +18,6 @@ from src.framework.discovery.load_balancing import (
     LoadBalancingStrategy,
     RandomBalancer,
     RoundRobinBalancer,
-    WeightedLeastConnectionsBalancer,
     WeightedRandomBalancer,
     WeightedRoundRobinBalancer,
     create_load_balancer,
@@ -430,36 +427,11 @@ class TestLoadBalancerHealthCheckFixed:
         # Should only have healthy instance
         result = await balancer.select_instance(None)
         assert result == healthy_instance or result is None
-import asyncio
-import hashlib
-import random
-import time
-from typing import List
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from src.framework.discovery.core import ServiceEndpoint, ServiceInstance
-from src.framework.discovery.load_balancing import (
-    AdaptiveBalancer,
-    ConsistentHashBalancer,
-    HealthBasedBalancer,
-    IPHashBalancer,
-    LeastConnectionsBalancer,
-    LoadBalancer,
-    LoadBalancingConfig,
-    LoadBalancingContext,
-    LoadBalancingStrategy,
-    RandomBalancer,
-    RoundRobinBalancer,
-    WeightedLeastConnectionsBalancer,
-    WeightedRandomBalancer,
-    WeightedRoundRobinBalancer,
-    create_load_balancer,
-)
 
-
-class TestServiceInstanceFixed:
+class TestServiceInstanceFixedV2:
     """Test real ServiceInstance behavior without mocking."""
 
     def test_service_instance_creation(self):
@@ -525,7 +497,7 @@ class TestServiceInstanceFixed:
         assert instance.active_connections == 1
 
 
-class TestRoundRobinBalancerFixed:
+class TestRoundRobinBalancerFixedV2:
     """Test round-robin load balancer without mocking."""
 
     @pytest.fixture
@@ -582,7 +554,7 @@ class TestRoundRobinBalancerFixed:
         assert first == second == single_instance[0]
 
 
-class TestWeightedRoundRobinBalancerFixed:
+class TestWeightedRoundRobinBalancerFixedV2:
     """Test weighted round-robin load balancer."""
 
     @pytest.fixture
@@ -620,7 +592,7 @@ class TestWeightedRoundRobinBalancerFixed:
         assert len(counts) > 0  # At least some selections made
 
 
-class TestLeastConnectionsBalancerFixed:
+class TestLeastConnectionsBalancerFixedV2:
     """Test least connections load balancer."""
 
     @pytest.fixture
@@ -684,7 +656,7 @@ class TestLeastConnectionsBalancerFixed:
         assert instance.active_connections == initial_connections
 
 
-class TestRandomBalancerFixed:
+class TestRandomBalancerFixedV2:
     """Test random load balancer."""
 
     @pytest.fixture
@@ -770,12 +742,12 @@ class TestHealthBasedBalancerFixed:
         balancer = HealthBasedBalancer()
         config = LoadBalancingConfig(strategy=LoadBalancingStrategy.HEALTH_BASED)
 
-        selected = balancer.select_instance(instances, config, None)
+        _ = balancer.select_instance(instances, config, None)
         # Might return None or fall back to unhealthy instances depending on implementation
         # We just test that it doesn't crash
 
 
-class TestLoadBalancerFactoryFixed:
+class TestLoadBalancerFactoryFixedV2:
     """Test load balancer factory functionality."""
 
     def test_create_load_balancer_round_robin(self):

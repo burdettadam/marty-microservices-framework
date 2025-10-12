@@ -12,7 +12,6 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 try:
-    from framework.config import Environment, create_service_config
     from framework.marty_config_adapter import create_unified_config
 except ImportError:
     # Fallback imports for development

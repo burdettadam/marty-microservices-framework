@@ -4,7 +4,8 @@ Security middleware for FastAPI and gRPC services.
 
 import builtins
 import logging
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 import grpc
 from fastapi import HTTPException, Request, Response

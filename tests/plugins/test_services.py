@@ -13,8 +13,7 @@ import asyncio
 # Fix import path
 import sys
 from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import AsyncMock, Mock, patch
+from typing import Any
 
 import pytest
 
@@ -23,8 +22,6 @@ sys.path.insert(0, str(framework_path))
 
 from framework.plugins.core import PluginContext
 from framework.plugins.services import PluginService, ServiceDefinition, ServiceRegistry
-
-from . import TestPlugin, mock_context
 
 
 class TestService(PluginService):
@@ -397,5 +394,4 @@ class TestServiceIntegration:
         # Verify cache was updated
         mock_context.cache.set.assert_called_with("data_456", "db_data", ttl=300)
 
-# Create alias to fix import error
-TestPluginService = TestServiceDefinition
+# Alias removed - no longer needed

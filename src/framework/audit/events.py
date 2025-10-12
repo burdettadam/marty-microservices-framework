@@ -21,7 +21,7 @@ from collections.abc import AsyncGenerator
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -360,7 +360,7 @@ class AuditEncryption:
         if not data:
             return data
         decrypted_data = data.copy()
-        for key, value in data.items():
+        for key, _value in data.items():
             if key.endswith("_encrypted"):
                 field_name = key.replace("_encrypted", "")
                 if field_name in data and isinstance(data[field_name], str):

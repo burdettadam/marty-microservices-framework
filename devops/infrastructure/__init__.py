@@ -13,44 +13,25 @@ Provides comprehensive Infrastructure as Code capabilities including:
 
 import asyncio
 import builtins
-import hashlib
+import importlib.util
 import json
 import os
 import shutil
-import subprocess
-import tempfile
-import uuid
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, dict, list, tuple
+from typing import Any
 
 import yaml
 
-# External dependencies
-try:
-    import boto3
-
-    AWS_AVAILABLE = True
-except ImportError:
-    AWS_AVAILABLE = False
-
-try:
-    from azure.identity import DefaultAzureCredential
-    from azure.mgmt.resource import ResourceManagementClient
-
-    AZURE_AVAILABLE = True
-except ImportError:
-    AZURE_AVAILABLE = False
-
-try:
-    from google.cloud import resource_manager
-
-    GCP_AVAILABLE = True
-except ImportError:
-    GCP_AVAILABLE = False
+# External dependencies availability checks
+AWS_AVAILABLE = importlib.util.find_spec("boto3") is not None
+AZURE_AVAILABLE = (
+    importlib.util.find_spec("azure.identity") is not None
+    and importlib.util.find_spec("azure.mgmt.resource") is not None
+)
+GCP_AVAILABLE = importlib.util.find_spec("google.cloud") is not None
 
 
 class CloudProvider(Enum):
@@ -347,7 +328,7 @@ class TerraformProvider(IaCProviderBase):
         if stack_name not in self.stacks:
             raise ValueError(f"Stack {stack_name} not found")
 
-        stack = self.stacks[stack_name]
+        self.stacks[stack_name]
 
         # Create operation
         operation = InfrastructureOperation(
@@ -600,8 +581,9 @@ class TerraformProvider(IaCProviderBase):
                                 validation_result["warnings"].append(
                                     diagnostic["summary"]
                                 )
-                except:
+                except (json.JSONDecodeError, KeyError) as parse_error:
                     validation_result["errors"].append(validate_result["stderr"])
+                    print(f"Warning: Unable to parse terraform validation output: {parse_error}")
 
                 print(f"❌ Configuration invalid for {stack_name}")
 
@@ -837,18 +819,18 @@ class TerraformProvider(IaCProviderBase):
                     if "add" in part and i > 0:
                         try:
                             operation.resources_to_create = int(parts[i - 1])
-                        except:
-                            pass
+                        except ValueError:
+                            print(f"Warning: unable to parse create count from plan line: {line}")
                     elif "change" in part and i > 0:
                         try:
                             operation.resources_to_update = int(parts[i - 1])
-                        except:
-                            pass
+                        except ValueError:
+                            print(f"Warning: unable to parse update count from plan line: {line}")
                     elif "destroy" in part and i > 0:
                         try:
                             operation.resources_to_destroy = int(parts[i - 1])
-                        except:
-                            pass
+                        except ValueError:
+                            print(f"Warning: unable to parse destroy count from plan line: {line}")
 
     async def _update_resource_states(self, stack: InfrastructureStack):
         """Update resource states after successful apply"""
@@ -1454,7 +1436,7 @@ class InfrastructureOrchestrator:
             print(f"🔍 Detecting drift for stack: {stack_name}")
 
             # Get current state
-            current_state = await iac_provider.get_stack_state(stack_name)
+            await iac_provider.get_stack_state(stack_name)
 
             # Generate plan to see changes
             plan_operation = await iac_provider.plan_stack(stack_name)
@@ -1509,7 +1491,7 @@ class InfrastructureOrchestrator:
             "stack": stack.to_dict(),
             "recent_operations": [op.to_dict() for op in stack_operations[:5]],
             "total_resources": len(stack.resources),
-            "resource_types": list(set(r.resource_type.value for r in stack.resources)),
+            "resource_types": list({r.resource_type.value for r in stack.resources}),
         }
 
     def list_stacks(self) -> builtins.list[builtins.dict[str, Any]]:

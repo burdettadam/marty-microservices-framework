@@ -5,11 +5,10 @@ This module provides fixtures and utilities specifically for unit tests,
 focusing on isolated testing with minimal external dependencies.
 """
 
-from typing import Any, AsyncGenerator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from src.framework.config import BaseServiceConfig as FrameworkConfig
 from src.framework.logging import UnifiedServiceLogger as StructuredLogger
 

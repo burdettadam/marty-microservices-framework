@@ -12,7 +12,7 @@ Integrates with Istio service mesh to provide:
 import builtins
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, dict, list
+from typing import Any
 
 import yaml
 

@@ -9,18 +9,14 @@ This module provides utilities for running comprehensive end-to-end tests that:
 """
 
 import asyncio
-import json
-import os
 import subprocess
 import tempfile
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import docker
-import kubernetes
-import pytest
 import yaml
 from kubernetes import client, config
 from playwright.async_api import Browser, Page, async_playwright
@@ -486,8 +482,8 @@ class MicroserviceDeployer:
                     name="dashboard-html",
                     namespace="default"
                 )
-            except:
-                pass
+            except Exception as cleanup_error:
+                print(f"Warning: Could not remove dashboard ConfigMap: {cleanup_error}")
 
             self.deployed_services.clear()
 

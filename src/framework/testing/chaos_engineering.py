@@ -13,22 +13,11 @@ import subprocess
 import threading
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    dict,
-    list,
-    set,
-    tuple,
-)
+from typing import Any, dict, list, set
 
 import psutil
 
@@ -196,7 +185,7 @@ class NetworkDelayAction(ChaosAction):
     async def recover(self) -> bool:
         """Remove network delay rules."""
         try:
-            for rule_id in self.original_rules:
+            for _rule_id in self.original_rules:
                 # Remove tc rules
                 await self._execute_command("tc qdisc del dev eth0 root")
 
@@ -430,8 +419,13 @@ class ResourceExhaustionAction(ChaosAction):
             finally:
                 try:
                     os.unlink(temp_file)
-                except:
-                    pass
+                except OSError as cleanup_error:
+                    logger.debug(
+                        "Failed to clean up temporary file %s: %s",
+                        temp_file,
+                        cleanup_error,
+                        exc_info=True,
+                    )
 
         thread = threading.Thread(target=io_stress)
         thread.start()

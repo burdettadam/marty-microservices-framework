@@ -10,9 +10,10 @@ import builtins
 import json
 import logging
 import uuid
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from pydantic import BaseModel, Field

@@ -11,10 +11,11 @@ import builtins
 import json
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 import aiohttp
 import docker
@@ -173,7 +174,7 @@ class IntegrationTestEnvironment:
         logger.info("Waiting for services to be ready...")
 
         async with aiohttp.ClientSession() as session:
-            for service_name, service in self.services.items():
+            for _service_name, service in self.services.items():
                 await self._wait_for_service(session, service)
 
     async def _wait_for_service(

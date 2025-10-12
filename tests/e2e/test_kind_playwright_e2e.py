@@ -9,15 +9,10 @@ This test suite demonstrates end-to-end testing of microservices using:
 """
 
 import asyncio
-import json
-from pathlib import Path
-from typing import Any, Dict
 
 import pytest
-
 from tests.e2e.kind_playwright_infrastructure import (
     KindClusterManager,
-    MicroserviceDeployer,
     PlaywrightTester,
     kind_playwright_test_environment,
 )
@@ -260,7 +255,7 @@ class TestKindClusterManagement:
             deleted = await cluster.delete_cluster()
             assert deleted, "Cluster deletion failed"
 
-        except Exception as e:
+        except Exception:
             # Cleanup on failure
             await cluster.delete_cluster()
             raise

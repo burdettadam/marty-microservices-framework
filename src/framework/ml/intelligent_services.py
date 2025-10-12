@@ -13,10 +13,11 @@ import threading
 import time
 import uuid
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, Generic, List, Optional, Set
+from typing import Any
 
 import numpy as np
 
@@ -523,7 +524,7 @@ class FeatureStore:
             }
 
             # Numerical statistics
-            if all(isinstance(v, (int, float)) for v in values):
+            if all(isinstance(v, int | float) for v in values):
                 stats.update(
                     {
                         "mean": np.mean(values),
@@ -562,14 +563,14 @@ class FeatureStore:
 
             # Type validation
             if feature.feature_type == FeatureType.NUMERICAL and not isinstance(
-                value, (int, float)
+                value, int | float
             ):
                 validation_errors[feature_name].append("Expected numerical value")
 
             # Range validation
             if (
                 feature.min_value is not None
-                and isinstance(value, (int, float))
+                and isinstance(value, int | float)
                 and value < feature.min_value
             ):
                 validation_errors[feature_name].append(
@@ -578,7 +579,7 @@ class FeatureStore:
 
             if (
                 feature.max_value is not None
-                and isinstance(value, (int, float))
+                and isinstance(value, int | float)
                 and value > feature.max_value
             ):
                 validation_errors[feature_name].append(
@@ -693,7 +694,7 @@ class ModelServer:
                 if not success:
                     return None
 
-            model = self.model_registry.get_model_by_id(model_id)
+            self.model_registry.get_model_by_id(model_id)
             model_obj = self.loaded_models[model_id]
 
             # Prepare features

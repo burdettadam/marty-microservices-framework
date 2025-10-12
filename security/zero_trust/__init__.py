@@ -11,19 +11,15 @@ Implements comprehensive zero-trust security including:
 """
 
 import asyncio
-import base64
 import builtins
 import hashlib
-import json
 import secrets
-import ssl
 import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any
 
-import jwt
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -36,9 +32,6 @@ from cryptography.x509.oid import NameOID
 
 # External dependencies (optional)
 try:
-    import aiohttp
-    import asyncpg
-    from kubernetes import client, config
     from prometheus_client import Counter, Gauge, Histogram
 
     EXTERNAL_DEPS_AVAILABLE = True
@@ -895,7 +888,7 @@ class ZeroTrustManager:
                 # Check for certificates expiring in next 7 days
                 expiry_threshold = datetime.now() + timedelta(days=7)
 
-                for cert_id, cert_info in self.cert_manager.list_certificates().items():
+                for _cert_id, cert_info in self.cert_manager.list_certificates().items():
                     if cert_info["expires_at"] <= expiry_threshold:
                         service_name = cert_info["service_name"]
                         namespace = cert_info["namespace"]
@@ -961,7 +954,7 @@ async def main():
         {"user_management", "authentication"},
     )
 
-    payment_service = await zt_manager.onboard_service(
+    await zt_manager.onboard_service(
         "payment-service",
         "production",
         SecurityLevel.RESTRICTED,
