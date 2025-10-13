@@ -264,9 +264,9 @@ class TestFrameworkFunctionality:
         """Test integration between framework features."""
         try:
             # Test that components can work together
-            from src.framework.config import BaseServiceConfig
-            from src.framework.logging import UnifiedServiceLogger
-            from src.framework.monitoring.core import MetricsCollector
+            from framework.config import BaseServiceConfig
+            from framework.logging import UnifiedServiceLogger
+            from framework.monitoring.core import MetricsCollector
 
             # Test basic integration
             config = BaseServiceConfig()

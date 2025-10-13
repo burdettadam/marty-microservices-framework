@@ -1,0 +1,36 @@
+🏭 Production Demo - Marty Microservices Framework
+============================================================
+🎯 Generated Services with Enterprise Patterns
+📊 Full Observability and Tracing
+🔧 Production-Ready Architecture
+
+🔍 Checking service health...
+✅ Order Service: healthy
+✅ Payment Service: healthy
+✅ Inventory Service: healthy
+
+📦 Demonstrating Order Processing Flow
+----------------------------------------
+📋 Creating order for customer CUST-12345
+❌ Order creation failed: HTTP 400
+   Error: {"detail":"Insufficient inventory"}
+
+⚡ Load Testing Simulation
+------------------------------
+🔄 Sending 10 concurrent orders (3 at a time)
+📊 Load Test Results:
+   Total Requests: 10
+   Successful: 0 (0.0%)
+   Failed: 10 (100.0%)
+   Total Time: 0.33s
+   Requests/sec: 30.22
+   Avg Response Time: 0.000s
+   Min Response Time: 0.000s
+   Max Response Time: 0.000s
+
+📋 Generating Reports...
+💾 JSON report saved: reports/production_demo_results_20251013_082434.json
+📊 View detailed results and metrics in the JSON file
+
+✅ Production demo completed successfully!
+📋 Reports available in: reports

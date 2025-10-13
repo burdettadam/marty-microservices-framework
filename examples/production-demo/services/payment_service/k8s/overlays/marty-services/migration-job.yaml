@@ -1,0 +1,76 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: payment-service-migration
+  labels:
+    app.kubernetes.io/name: payment-service
+    app.kubernetes.io/component: migration
+    app.kubernetes.io/part-of: marty-platform
+  annotations:
+    marty.io/migration-type: alembic
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: payment-service
+        app.kubernetes.io/component: migration
+        app.kubernetes.io/part-of: marty-platform
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: payment-service
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      containers:
+        - name: migration
+          image: payment-service:latest
+          imagePullPolicy: Never
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            capabilities:
+              drop:
+                - ALL
+          command: ["python", "-m", "alembic", "upgrade", "head"]
+          env:
+            - name: APP_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: payment-service-config
+                  key: environment
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: payment-service-secrets
+                  key: database_url
+            - name: ALEMBIC_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: payment-service-config
+                  key: alembic_config_path
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: migration-logs
+              mountPath: /app/logs
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+              ephemeral-storage: 100Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+              ephemeral-storage: 1Gi
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: migration-logs
+          emptyDir: {}
+  backoffLimit: 3
+  activeDeadlineSeconds: 600

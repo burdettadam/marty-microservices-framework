@@ -13,7 +13,8 @@ from datetime import datetime
 from unittest.mock import AsyncMock
 
 import pytest
-from src.framework.deployment import (  # Core Components; Utility Functions
+
+from framework.deployment import (  # Core Components; Utility Functions
     Deployment,
     DeploymentConfig,
     DeploymentManager,

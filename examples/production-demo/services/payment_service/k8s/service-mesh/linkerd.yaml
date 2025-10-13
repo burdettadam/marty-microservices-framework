@@ -1,0 +1,113 @@
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: payment-service-http-server
+  namespace: store-system
+spec:
+  podSelector:
+    matchLabels:
+      app: payment-service
+  port: 8002
+  proxyProtocol: "HTTP/2"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: payment-service-grpc-server
+  namespace: store-system
+spec:
+  podSelector:
+    matchLabels:
+      app: payment-service
+  port: 50051
+  proxyProtocol: "gRPC"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: payment-service-http-authz
+  namespace: store-system
+spec:
+  server:
+    name: payment-service-http-server
+  requiredRoutes:
+  - pathRegex: "/payment-service/.*"
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+  - pathRegex: "/health/.*"
+    methods: ["GET"]
+  - pathRegex: "/metrics"
+    methods: ["GET"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: api-gateway
+      - name: default
+    # Allow health checks and metrics without authentication
+    unauthenticated: true
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: payment-service-grpc-authz
+  namespace: store-system
+spec:
+  server:
+    name: payment-service-grpc-server
+  requiredRoutes:
+  - pathRegex: "/payment.service\\..*"
+    methods: ["*"]
+  client:
+    meshTLS:
+      serviceAccounts:
+      - name: api-gateway
+      - name: default
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: HTTPRoute
+metadata:
+  name: payment-service-routes
+  namespace: store-system
+spec:
+  parentRefs:
+  - name: payment-service-http-server
+    kind: Server
+    group: policy.linkerd.io
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/payment-service/"
+    backendRefs:
+    - name: payment-service
+      port: 8002
+      weight: 100
+    timeouts:
+      request: 30s
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: "X-Service-Mesh"
+          value: "linkerd"
+        - name: "X-Service-Name"
+          value: "payment-service"
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/health/"
+    backendRefs:
+    - name: payment-service
+      port: 8002
+      weight: 100
+    timeouts:
+      request: 5s
+  - matches:
+    - path:
+        type: Exact
+        value: "/metrics"
+    backendRefs:
+    - name: payment-service
+      port: 8002
+      weight: 100
+    timeouts:
+      request: 10s

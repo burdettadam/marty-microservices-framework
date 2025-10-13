@@ -310,7 +310,7 @@ class TestEndToEnd:
         await real_event_bus.start()
 
         # Simulate user registration workflow
-        from src.framework.events import Event
+        from framework.events import Event
 
         # Step 1: User registration
         user_created_event = Event(

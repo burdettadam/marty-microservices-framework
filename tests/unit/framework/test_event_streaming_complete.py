@@ -9,14 +9,15 @@ import asyncio
 from typing import Any
 
 import pytest
-from src.framework.event_streaming.core import (
+
+from framework.event_streaming.core import (
     Event,
     EventHandler,
     EventMetadata,
     InMemoryEventBus,
     InMemoryEventStore,
 )
-from src.framework.event_streaming.cqrs import (
+from framework.event_streaming.cqrs import (
     Command,
     CommandBus,
     CommandHandler,
@@ -24,11 +25,11 @@ from src.framework.event_streaming.cqrs import (
     QueryBus,
     QueryHandler,
 )
-from src.framework.event_streaming.event_sourcing import (
+from framework.event_streaming.event_sourcing import (
     AggregateRoot,
     EventSourcedRepository,
 )
-from src.framework.event_streaming.saga import Saga, SagaManager
+from framework.event_streaming.saga import Saga, SagaManager
 
 
 # Mock classes for testing

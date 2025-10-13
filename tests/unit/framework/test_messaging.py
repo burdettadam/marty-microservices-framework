@@ -8,7 +8,8 @@ import asyncio
 from unittest.mock import patch
 
 import pytest
-from src.framework.messaging import Message, MessageBus, MessageHandler
+
+from framework.messaging import Message, MessageBus, MessageHandler
 
 
 @pytest.mark.unit

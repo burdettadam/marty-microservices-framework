@@ -3,7 +3,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from src.framework.event_streaming.saga import Saga, SagaOrchestrator, SagaStatus
+
+from framework.event_streaming.saga import Saga, SagaOrchestrator, SagaStatus
 
 
 class ControllableSaga(Saga):

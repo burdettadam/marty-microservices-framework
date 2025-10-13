@@ -9,8 +9,8 @@ on:
   # push:
   #   branches: [ main ]
   #   paths:
-  #   - 'src/framework/config/**'
-  #   - 'src/framework/gateway/**'
+  #   - 'framework/config/**'
+  #   - 'framework/gateway/**'
   #   - 'k8s/**'
   #   - 'Dockerfile'
 
@@ -192,7 +192,7 @@ jobs:
     - name: Validate secret management configuration
       run: |
         python -c "
-        from src.framework.config.manager import SecretManager
+        from framework.config.manager import SecretManager
         import os
 
         # Test encryption key validation
@@ -207,7 +207,7 @@ jobs:
     - name: Validate API Gateway security
       run: |
         python -c "
-        from src.framework.gateway.api_gateway import APIGateway
+        from framework.gateway.api_gateway import APIGateway
 
         # Test security configuration
         try:

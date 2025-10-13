@@ -11,7 +11,7 @@ import pytest
 
 # Import resilience strategy components
 try:
-    from src.framework.resilience.fallback import (
+    from framework.resilience.fallback import (
         CacheFallback,
         ChainFallback,
         FallbackConfig,
@@ -22,7 +22,7 @@ try:
         create_function_fallback,
         create_static_fallback,
     )
-    from src.framework.resilience.retry import (
+    from framework.resilience.retry import (
         BackoffStrategy,
         ConstantBackoff,
         ExponentialBackoff,
@@ -225,8 +225,8 @@ async def test_static_fallback_execution():
 def test_discover_resilience_strategy_classes():
     """Discover all resilience strategy-related classes."""
     try:
-        from src.framework.resilience import fallback as fallback_module
-        from src.framework.resilience import retry as retry_module
+        from framework.resilience import fallback as fallback_module
+        from framework.resilience import retry as retry_module
 
         # Find strategy-related classes in fallback module
         fallback_classes = []

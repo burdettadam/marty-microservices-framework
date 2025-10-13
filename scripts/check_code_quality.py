@@ -26,7 +26,7 @@ def run_command(cmd: list[str]) -> tuple[int, str, str]:
         return 1, "", str(e)
 
 
-def check_cyclomatic_complexity(src_dir: str = "src/framework/") -> bool:
+def check_cyclomatic_complexity(src_dir: str = "framework/") -> bool:
     """Check cyclomatic complexity using radon."""
     print("🔍 Checking cyclomatic complexity with radon...")
 
@@ -58,7 +58,7 @@ def check_cyclomatic_complexity(src_dir: str = "src/framework/") -> bool:
     return True
 
 
-def check_file_lengths(src_dir: str = "src/framework/", max_lines: int = 500) -> bool:
+def check_file_lengths(src_dir: str = "framework/", max_lines: int = 500) -> bool:
     """Check for files that are too long."""
     print(f"🔍 Checking file lengths (max {max_lines} lines)...")
 
@@ -99,7 +99,7 @@ def check_file_lengths(src_dir: str = "src/framework/", max_lines: int = 500) ->
     return True
 
 
-def check_function_lengths(src_dir: str = "src/framework/", max_lines: int = 50) -> bool:
+def check_function_lengths(src_dir: str = "framework/", max_lines: int = 50) -> bool:
     """Check for functions that are too long."""
     print(f"🔍 Checking function lengths (max {max_lines} lines)...")
 

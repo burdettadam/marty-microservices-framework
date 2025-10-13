@@ -23,11 +23,12 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from src.framework.config_factory import create_service_config
-from src.framework.discovery import DiscoveryManagerConfig, ServiceDiscoveryManager
-from src.framework.gateway import APIGateway
-from src.framework.logging import UnifiedServiceLogger
-from src.framework.observability.monitoring import MetricsCollector
+
+from framework.config_factory import create_service_config
+from framework.discovery import DiscoveryManagerConfig, ServiceDiscoveryManager
+from framework.gateway import APIGateway
+from framework.logging import UnifiedServiceLogger
+from observability.monitoring import MetricsCollector
 
 # Initialize logger
 logger = logging.getLogger(__name__)
@@ -70,7 +71,7 @@ async def lifespan(app: FastAPI):
         await gateway.start()
 
         # Register with service discovery
-        from src.framework.discovery.core import ServiceInstance
+        from framework.discovery.core import ServiceInstance
         gateway_instance = ServiceInstance(
             service_name="api-gateway",
             instance_id="gateway-001",

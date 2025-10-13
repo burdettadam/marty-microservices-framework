@@ -13,8 +13,8 @@ def test_bypass_direct_import():
     """Test bypassing all package imports by importing files directly."""
     try:
         # Import files directly without going through package __init__.py
-        import src.framework.discovery.core as core_module
-        import src.framework.discovery.load_balancing as lb_module
+        import framework.discovery.core as core_module
+        import framework.discovery.load_balancing as lb_module
 
         # Verify key classes exist
         assert hasattr(lb_module, "LoadBalancingStrategy")
@@ -33,7 +33,7 @@ def test_bypass_direct_import():
 async def test_service_instance_creation_bypass():
     """Test ServiceInstance creation bypassing all package imports."""
     try:
-        import src.framework.discovery.core as core_module
+        import framework.discovery.core as core_module
 
         # Test ServiceInstance creation
         ServiceInstance = core_module.ServiceInstance
@@ -54,8 +54,8 @@ async def test_service_instance_creation_bypass():
 async def test_round_robin_functionality_bypass():
     """Test RoundRobin load balancing bypassing imports."""
     try:
-        import src.framework.discovery.core as core_module
-        import src.framework.discovery.load_balancing as lb_module
+        import framework.discovery.core as core_module
+        import framework.discovery.load_balancing as lb_module
 
         # Get classes
         RoundRobinLoadBalancer = lb_module.RoundRobinLoadBalancer

@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: microservice-framework
+
+# Include base configurations
+resources:
+  - ../../base
+  - ../../service-mesh
+
+# Common labels for service mesh
+commonLabels:
+  app.kubernetes.io/part-of: microservice-framework
+  service-mesh: "enabled"
+
+# Patches for service mesh specific configurations
+patchesStrategicMerge:
+  - deployment-patch.yaml
+  - service-patch.yaml
+
+# Images
+images:
+  - name: inventory-service
+    newTag: latest
+
+# Configuration for service mesh
+configMapGenerator:
+  - name: service-mesh-config
+    literals:
+      - SERVICE_MESH=istio
+      - OBSERVABILITY_ENABLED=true
+      - METRICS_PORT=9000
+      - HEALTH_PORT=8080
+      - GRPC_PORT=50051

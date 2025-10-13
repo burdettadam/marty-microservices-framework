@@ -27,23 +27,23 @@ For new development, use the modern framework patterns documented below:
 
 **Configuration:**
 ```python
-from src.framework.config_factory import create_service_config
+from framework.config_factory import create_service_config
 ```
 
 **Logging:**
 ```python
-from src.framework.logging import UnifiedServiceLogger
+from framework.logging import UnifiedServiceLogger
 ```
 
 **Observability:**
 ```python
-from src.framework.observability.monitoring import MetricsCollector
-from src.framework.observability import init_observability
+from observability.monitoring import MetricsCollector
+from observability import init_observability
 ```
 
 **Service Discovery:**
 ```python
-from src.framework.discovery import (
+from framework.discovery import (
     ServiceDiscoveryManager,
     InMemoryServiceRegistry,
     ServiceInstance
@@ -52,7 +52,7 @@ from src.framework.discovery import (
 
 **Testing:**
 ```python
-from src.framework.testing import (
+from framework.testing import (
     TestEventCollector,
     ServiceTestMixin,
     AsyncTestCase
@@ -75,9 +75,9 @@ import signal
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from src.framework.config_factory import create_service_config
-from src.framework.logging import UnifiedServiceLogger
-from src.framework.observability import init_observability
+from framework.config_factory import create_service_config
+from framework.logging import UnifiedServiceLogger
+from observability import init_observability
 
 
 @asynccontextmanager
@@ -121,9 +121,9 @@ if __name__ == "__main__":
 
 The following patterns were used in the legacy `marty_chassis` system and have been fully migrated:
 
-- `from marty_chassis import ChassisConfig` → `from src.framework.config_factory import create_service_config`
-- `from marty_chassis.logger import get_logger` → `from src.framework.logging import UnifiedServiceLogger`
-- `from marty_chassis.metrics import MetricsCollector` → `from src.framework.observability.monitoring import MetricsCollector`
-- `from marty_chassis.plugins.manager import PluginManager` → `from src.framework.plugins import PluginManager`
+- `from marty_chassis import ChassisConfig` → `from framework.config_factory import create_service_config`
+- `from marty_chassis.logger import get_logger` → `from framework.logging import UnifiedServiceLogger`
+- `from marty_chassis.metrics import MetricsCollector` → `from observability.monitoring import MetricsCollector`
+- `from marty_chassis.plugins.manager import PluginManager` → `from framework.plugins import PluginManager`
 
 All chassis code has been successfully migrated and removed from the repository.

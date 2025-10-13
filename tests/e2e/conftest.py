@@ -19,9 +19,10 @@ from typing import Any
 import psutil
 import pytest
 import pytest_asyncio
-from src.framework.observability import ServiceMonitor
-from src.framework.observability.monitoring import MetricsCollector
-from src.framework.testing import PerformanceTestCase, TestEventCollector
+
+from framework.testing import PerformanceTestCase, TestEventCollector
+from observability import ServiceMonitor
+from observability.monitoring import MetricsCollector
 
 
 @dataclass
@@ -305,7 +306,7 @@ async def test_event_collector():
 @pytest_asyncio.fixture
 async def performance_test_case():
     """Create performance test case for testing."""
-    from src.framework.testing.performance_testing import (
+    from framework.testing.performance_testing import (
         LoadConfiguration,
         LoadPattern,
         RequestSpec,
@@ -507,7 +508,7 @@ async def real_redis_client(redis_container):
 @pytest.fixture
 async def real_event_bus(test_service_name: str):
     """Provide a real event bus for E2E tests."""
-    from src.framework.events.event_bus import InMemoryEventBus
+    from framework.events.event_bus import InMemoryEventBus
 
     # Create in-memory event bus for E2E tests
     event_bus = InMemoryEventBus()

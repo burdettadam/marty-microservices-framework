@@ -9,7 +9,8 @@ import os
 from unittest.mock import mock_open, patch
 
 import pytest
-from src.framework.config import BaseServiceConfig, FrameworkConfig
+
+from framework.config import BaseServiceConfig, FrameworkConfig
 
 
 @pytest.mark.unit

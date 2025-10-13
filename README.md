@@ -2,23 +2,45 @@
 
 A comprehensive, production-ready framework for building enterprise-grade microservices with Python, FastAPI, gRPC, and modern development practices.
 
-## 🚀 Quick Start
+## 🚀 Quick Start - Local Development Environment
 
-### Prerequisites
-- Python 3.11+
-- [UV](https://docs.astral.sh/uv/) (recommended) or pip
+### Get Started in 2 Minutes!
 
-### 1. Setup
 ```bash
-# Clone the repository
+# 1. Clone and setup
 git clone https://github.com/your-org/marty-microservices-framework.git
 cd marty-microservices-framework
-
-# Complete setup (installs dependencies, tools, and validates)
 make setup
+
+# 2. Start local Kubernetes cluster with full observability stack
+make kind-up
 ```
 
-### 2. Create Your First Service
+**That's it!** You now have a complete local development environment running:
+
+- 🎯 **Prometheus**: http://localhost:9090 (metrics & monitoring)
+- 📊 **Grafana**: http://localhost:3000 (dashboards - login: admin/admin)
+- ☸️ **Kubernetes cluster**: Full local cluster for development
+- 🔍 **Complete observability stack**: Logging, metrics, tracing
+
+### Other Development Commands
+
+```bash
+# Check cluster status
+make kind-status
+
+# View logs
+make kind-logs
+
+# Stop the cluster
+make kind-down
+
+# Restart everything
+make kind-restart
+```
+
+## 🛠️ Create Your First Service
+
 ```bash
 # Generate a FastAPI service
 make generate TYPE=fastapi NAME=my-api
@@ -32,7 +54,33 @@ cd my-awesome-project
 make dev
 ```
 
-### 3. Test Everything Works
+## 🏪 Store Demo - Complete Microservices Example
+
+Experience a full e-commerce microservices demo with realistic load testing:
+
+```bash
+# Quick start with Docker Compose
+cd examples/store-demo
+docker compose up -d
+docker compose exec demo-runner python /app/mmf_demo_runner.py
+
+# View results at:
+# - Reports: ./reports/ (JSON + text files)
+# - Prometheus: http://localhost:9090
+# - Grafana: http://localhost:3000
+```
+
+**What's included:**
+- 🛒 **Order Service** - Order processing with audit logging
+- 💳 **Payment Service** - Payment processing with fraud detection
+- 📦 **Inventory Service** - Stock management and reservations
+- 📊 **Analytics** - Performance monitoring and bottleneck analysis
+- 🎯 **Load Testing** - Realistic failure scenarios (63-70% success rate)
+
+➡️ **[Complete Store Demo Guide](docs/STORE_DEMO.md)**
+
+## 🧪 Testing
+
 ```bash
 # Run all tests
 make test
@@ -40,7 +88,7 @@ make test
 # Run specific test types
 make test-unit           # Unit tests only
 make test-integration    # Integration tests
-make test-kind          # Kubernetes E2E tests (no Docker containers)
+make test-kind          # Kubernetes E2E tests
 ```
 
 ## 🎯 What's Included
@@ -65,6 +113,12 @@ make test-kind          # Kubernetes E2E tests (no Docker containers)
 ## 🛠️ Common Commands
 
 ```bash
+# Local Development Environment
+make kind-up             # Start local Kubernetes + observability stack
+make kind-status         # Check cluster status
+make kind-logs           # View service logs
+make kind-down           # Stop cluster
+
 # Development
 make dev                 # Setup development environment
 make check               # Run all code quality checks

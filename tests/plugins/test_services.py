@@ -20,12 +20,8 @@ import pytest
 framework_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(framework_path))
 
-from src.framework.plugins.core import PluginContext
-from src.framework.plugins.services import (
-    PluginService,
-    ServiceDefinition,
-    ServiceRegistry,
-)
+from framework.plugins.core import PluginContext
+from framework.plugins.services import PluginService, ServiceDefinition, ServiceRegistry
 
 
 class TestService(PluginService):

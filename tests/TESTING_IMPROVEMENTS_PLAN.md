@@ -22,7 +22,7 @@ Replace basic import tests with actual behavior validation:
 ```python
 def test_deployment_strategy_enum():
     """Test DeploymentStrategy enum values."""
-    from src.framework.deployment.strategies import DeploymentStrategy
+    from framework.deployment.strategies import DeploymentStrategy
     assert hasattr(DeploymentStrategy, 'BLUE_GREEN')
     assert hasattr(DeploymentStrategy, 'CANARY')
 ```

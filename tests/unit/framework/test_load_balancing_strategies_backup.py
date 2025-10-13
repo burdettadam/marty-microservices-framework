@@ -8,8 +8,9 @@ with real data structures to minimize mocking and maximize code coverage.
 import random
 
 import pytest
-from src.framework.discovery.core import HealthStatus, ServiceInstance
-from src.framework.discovery.load_balancing import (
+
+from framework.discovery.core import HealthStatus, ServiceInstance
+from framework.discovery.load_balancing import (
     AdaptiveBalancer,
     ConsistentHashBalancer,
     HealthBasedBalancer,

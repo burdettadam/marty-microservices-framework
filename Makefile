@@ -127,6 +127,95 @@ security: ## Run security checks
 	@uv run bandit -r src/
 
 # ==============================================================================
+# Local Development with Kind
+# ==============================================================================
+
+kind-up: ## Start local Kubernetes cluster with observability stack
+	@echo "🚀 Starting local development environment with Kind..."
+	@echo "📋 This will create:"
+	@echo "   • Kind Kubernetes cluster"
+	@echo "   • Prometheus (metrics) - http://localhost:9090"
+	@echo "   • Grafana (dashboards) - http://localhost:3000"
+	@echo "   • Complete observability stack"
+	@echo ""
+	@if ! command -v kind >/dev/null 2>&1; then \
+		echo "❌ Kind not found. Installing..."; \
+		brew install kind; \
+	fi
+	@if ! command -v kubectl >/dev/null 2>&1; then \
+		echo "❌ kubectl not found. Installing..."; \
+		brew install kubectl; \
+	fi
+	@if ! command -v helm >/dev/null 2>&1; then \
+		echo "❌ Helm not found. Installing..."; \
+		brew install helm; \
+	fi
+	@echo "🏗️ Creating Kind cluster..."
+	@kind create cluster --name microservices-framework --config k8s/kind-cluster-config.yaml || true
+	@echo "⏳ Waiting for cluster to be ready..."
+	@kubectl wait --for=condition=Ready nodes --all --timeout=300s
+	@echo "📊 Deploying observability stack..."
+	@kubectl apply -f k8s/observability/
+	@echo "⏳ Waiting for observability pods to be ready..."
+	@kubectl wait --for=condition=Ready pods -l app=prometheus -n observability --timeout=300s || true
+	@kubectl wait --for=condition=Ready pods -l app=grafana -n observability --timeout=300s || true
+	@echo "🌐 Setting up port forwarding..."
+	@(kubectl port-forward -n observability svc/prometheus 9090:9090 > /dev/null 2>&1 &)
+	@(kubectl port-forward -n observability svc/grafana 3000:3000 > /dev/null 2>&1 &)
+	@sleep 3
+	@echo ""
+	@echo "✅ Local development environment is ready!"
+	@echo ""
+	@echo "🎯 Access your UIs:"
+	@echo "   📊 Prometheus: http://localhost:9090"
+	@echo "   📈 Grafana:    http://localhost:3000 (admin/admin)"
+	@echo ""
+	@echo "🛠️ Development commands:"
+	@echo "   make kind-status    # Check cluster status"
+	@echo "   make kind-logs      # View logs"
+	@echo "   make kind-down      # Stop cluster"
+
+kind-status: ## Check Kind cluster and services status
+	@echo "📊 Kind Cluster Status"
+	@echo "====================="
+	@echo ""
+	@if kind get clusters | grep -q microservices-framework; then \
+		echo "✅ Kind cluster: microservices-framework"; \
+		kubectl cluster-info --context kind-microservices-framework; \
+		echo ""; \
+		echo "📦 Observability Pods:"; \
+		kubectl get pods -n observability; \
+		echo ""; \
+		echo "🌐 Services:"; \
+		kubectl get svc -n observability; \
+	else \
+		echo "❌ Kind cluster not running"; \
+		echo "💡 Run: make kind-up"; \
+	fi
+
+kind-logs: ## View logs from observability services
+	@echo "📋 Observability Logs"
+	@echo "===================="
+	@echo ""
+	@echo "🔍 Prometheus logs:"
+	@kubectl logs -n observability -l app=prometheus --tail=20
+	@echo ""
+	@echo "🔍 Grafana logs:"
+	@kubectl logs -n observability -l app=grafana --tail=20
+
+kind-restart: ## Restart Kind cluster and observability stack
+	@echo "🔄 Restarting Kind cluster..."
+	@$(MAKE) kind-down
+	@sleep 2
+	@$(MAKE) kind-up
+
+kind-down: ## Stop and remove Kind cluster
+	@echo "🛑 Stopping Kind cluster..."
+	@pkill -f "kubectl port-forward" || true
+	@kind delete cluster --name microservices-framework || true
+	@echo "✅ Kind cluster stopped"
+
+# ==============================================================================
 # Code Generation
 # ==============================================================================
 
@@ -138,7 +227,7 @@ generate: ## Generate a service (make generate TYPE=fastapi NAME=my-service)
 		exit 1; \
 	fi
 	@echo "🏗️ Generating $(TYPE) service: $(NAME)"
-	@python3 scripts/generate_service.py $(TYPE) $(NAME) --description "$(NAME) service"
+	@uv run python3 scripts/generate_service.py $(TYPE) $(NAME) --description "$(NAME) service"
 
 new: ## Create a new project (make new NAME=my-project)
 	@if [ -z "$(NAME)" ]; then \

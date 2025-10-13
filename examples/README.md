@@ -1,264 +1,220 @@
-# Event Publishing Examples
+# MMF Framework Examples
 
-This directory contains examples demonstrating how to use the unified event publishing system in the Marty Microservices Framework.
+This directory contains comprehensive examples demonstrating all capabilities of the Marty Microservices Framework (MMF). We provide a **hybrid approach** with examples at different levels of complexity to match your needs.
 
-## Files
+## � Three-Tier Learning Path
 
-### `simple_event_example.py`
-A basic example showing:
-- How to set up and use the EventPublisher
-- Publishing different types of events (audit, notification, domain, custom)
-- Using decorators for automatic event publishing
+### 1. 🚀 Simple Examples - Learn Core Patterns
+**Path:** `simple-examples/`
+**Time:** 5-10 minutes to understand
+**Complexity:** ⭐
 
-**Run with:**
+Self-contained services demonstrating core MMF patterns:
+- ✅ **Minimal Dependencies**: FastAPI + Prometheus only
+- ✅ **Single Files**: Easy to understand and modify
+- ✅ **Core Patterns**: Health, metrics, logging, communication
+- ✅ **Instant Setup**: Run with `python3 filename.py`
+
+### 2. 🏪 Store Demo - Integrated Example
+**Path:** `store-demo/`
+**Time:** 30-45 minutes to explore
+**Complexity:** ⭐⭐
+
+Complete e-commerce example with multiple services:
+- ✅ **Business Context**: Real-world store operations
+- ✅ **Service Communication**: Order → Payment → Inventory flow
+- ✅ **Observability**: Metrics, tracing, health checks
+- ✅ **Docker Orchestration**: Complete docker-compose setup
+
+### 3. 🏭 Generated Services - Production Ready
+**Path:** `generated-demo/` (create with generator)
+**Time:** 1-2 hours to customize
+**Complexity:** ⭐⭐⭐
+
+Production-quality services from official templates:
+- ✅ **Enterprise Patterns**: Repository, DDD, event sourcing
+- ✅ **Framework Integration**: Real MMF components
+- ✅ **Kubernetes Ready**: Complete K8s manifests
+- ✅ **Service Mesh**: Istio/Linkerd configuration
+
+## 📊 Demo Comparison
+
+| Aspect | store-demo | production-demo |
+|--------|------------|-----------------|
+| **Purpose** | Learning/Education | Production Template |
+| **Complexity** | Simplified | Enterprise-grade |
+| **Services** | Single-file mocks | Generated scaffolds |
+| **Dependencies** | Mock implementations | Real framework components |
+| **Infrastructure** | Docker Compose only | Full K8s + Service Mesh |
+| **Business Logic** | Inline examples | Proper service layers |
+
+### **Core Architecture**
+- **Microservices Pattern**: Order, Payment, and Inventory services
+- **Service Communication**: HTTP APIs with proper error handling
+- **Load Testing**: Comprehensive performance analysis and bottleneck detection
+- **Observability**: Prometheus metrics, Grafana dashboards, distributed tracing
+
+### **Enterprise Features**
+- **Configuration Management**: Environment-based config with validation
+- **Security Framework**: JWT auth, RBAC, rate limiting, API keys
+- **Event Publishing**: Audit, notification, and business events
+- **Database Patterns**: Repository pattern, transactions, audit capabilities
+- **Plugin System**: Extensible architecture with analytics plugins
+
+### **Advanced Capabilities**
+- **Resilience Patterns**: Circuit breakers, retries, graceful degradation
+- **Performance Monitoring**: Real-time metrics and alerting
+- **Service Migration**: Patterns for monolith decomposition
+- **Testing Framework**: Load testing, contract testing, chaos engineering
+
+## 🚀 Quick Start
+
+### **1. Run the Complete Demo**
 ```bash
-cd marty-microservices-framework
-python examples/simple_event_example.py
+# Navigate to the store demo
+cd examples/store-demo
+
+# Start all services with Docker Compose
+docker-compose up -d
+
+# Run the comprehensive demo runner
+python mmf_demo_runner.py
+
+# Check generated reports
+ls -la reports/
 ```
 
-### `event_publishing_migration.py`
-Comprehensive migration examples showing:
-- Before/after code for migrating from custom event publishing
-- Examples from real Marty services (DTC Engine, CMC Engine, Base Service)
-- Different migration approaches (decorators vs manual)
-- Complete user service example with authentication events
-
-**Use as reference for:**
-- Migrating existing services to the unified event system
-- Understanding different event publishing patterns
-- Seeing real-world usage examples
-
-## Prerequisites
-
-### 1. Install Dependencies
+### **2. Individual Demo Components**
 ```bash
-# Install the framework in development mode
-pip install -e .
+# Configuration Management Demo
+python enhanced_config_demo.py
 
-# Or install specific dependencies
-pip install aiokafka pydantic sqlalchemy
+# Security Framework Demo
+python enhanced_security_demo.py
+
+# Event Publishing Demo
+python enhanced_events_demo.py
+
+# Complete Integration Demo
+python comprehensive_demo.py
 ```
 
-### 2. Start Kafka (Optional)
-For examples that actually publish to Kafka:
-
-```bash
-# Start Kafka infrastructure
-cd observability/kafka
-docker-compose -f docker-compose.kafka.yml up -d
-
-# Verify Kafka is running
-docker-compose -f docker-compose.kafka.yml ps
-```
-
-### 3. Set Environment Variables
-```bash
-export KAFKA_BROKERS=localhost:9092
-export SERVICE_NAME=example-service
-export EVENT_TOPIC_PREFIX=marty
-```
-
-## Running Examples
-
-### Simple Example (No Kafka Required)
-```bash
-python examples/simple_event_example.py
-```
-
-### With Real Kafka
-```bash
-# Start Kafka first
-docker-compose -f observability/kafka/docker-compose.kafka.yml up -d
-
-# Run example
-python examples/simple_event_example.py
-
-# Check Kafka UI (optional)
-open http://localhost:8080
-```
-
-### Testing Migration Patterns
-```bash
-python examples/event_publishing_migration.py
-```
-
-## Example Output
+## 📁 Store Demo Structure
 
 ```
-🎯 Unified Event Publishing Example
-====================================
-🚀 Starting Event Publishing Example
-✅ Event publisher started
-
-📋 Publishing audit event...
-✅ Audit event published: 123e4567-e89b-12d3-a456-426614174000
-
-📧 Publishing notification event...
-✅ Notification event published: 456e7890-e89b-12d3-a456-426614174001
-
-🏗️ Publishing domain event...
-✅ Domain event published: 789e0123-e89b-12d3-a456-426614174002
-
-🎯 Publishing custom event...
-✅ Custom event published: 012e3456-e89b-12d3-a456-426614174003
-
-🎉 All events published successfully!
-
-ℹ️  Check your Kafka topics:
-   - marty.audit.events
-   - marty.notification.events
-   - marty.example-service.example.example_created
-   - marty.example.custom.events
+store-demo/
+├── services/                    # Microservices implementations
+│   ├── mmf_order_service.py    # Order management service
+│   ├── mmf_payment_service.py  # Payment processing service
+│   └── mmf_inventory_service.py # Inventory management service
+├── docker/                      # Docker configurations
+│   ├── Dockerfile.order        # Order service container
+│   ├── Dockerfile.payment      # Payment service container
+│   └── Dockerfile.inventory    # Inventory service container
+├── monitoring/                  # Observability configuration
+│   └── prometheus.yml          # Metrics collection setup
+├── reports/                     # Demo output and analysis
+│   ├── README.md               # Reports documentation
+│   ├── demo_output_*.txt       # Complete console output
+│   └── demo_results_*.json     # Structured analysis data
+├── docker-compose.yml          # Multi-service orchestration
+├── mmf_demo_runner.py         # Main demo orchestrator
+├── enhanced_config_demo.py    # Configuration patterns
+├── enhanced_security_demo.py  # Security implementations
+├── enhanced_events_demo.py    # Event publishing patterns
+└── comprehensive_demo.py      # Integration showcase
 ```
 
-## Migration Checklist
+## 🔧 Demo Components Explained
 
-When migrating a service to use unified event publishing:
+### **mmf_demo_runner.py** - Main Orchestrator
+- **Purpose**: Coordinates all demo components and generates reports
+- **Features**: Load testing, performance analysis, service orchestration
+- **Outputs**: Both JSON structured data and complete text logs
+- **Key Capabilities**: Bottleneck detection, performance metrics, service health monitoring
 
-### 1. ✅ Replace Custom Event Publishing
-- [ ] Remove custom `_publish_event` methods
-- [ ] Remove direct Kafka producer usage
-- [ ] Remove custom outbox implementations
+### **enhanced_config_demo.py** - Configuration Management
+- **Purpose**: Demonstrates environment-based configuration patterns
+- **Features**: Service-specific configs, validation, environment detection
+- **Integration**: Shows config management across all microservices
+- **Patterns**: Development, testing, production environment handling
 
-### 2. ✅ Add Framework Dependencies
-```python
-from framework.events import (
-    get_event_publisher,
-    EventPublisher,
-    AuditEventType,
-    NotificationEventType,
-    audit_event,
-    domain_event,
-    publish_on_success,
-    publish_on_error
-)
-```
+### **enhanced_security_demo.py** - Security Framework
+- **Purpose**: Complete security implementation showcase
+- **Features**: JWT authentication, RBAC, rate limiting, API keys
+- **Integration**: Security middleware across all services
+- **Patterns**: Token management, role/permission validation, request throttling
 
-### 3. ✅ Choose Migration Approach
+### **enhanced_events_demo.py** - Event Publishing
+- **Purpose**: Unified event system demonstration
+- **Features**: Audit events, notifications, business events, event correlation
+- **Integration**: Event-driven architecture across services
+- **Patterns**: Async event handling, event sourcing, cross-service communication
 
-**Option A: Decorators (Recommended)**
-```python
-@audit_event(
-    event_type=AuditEventType.DATA_CREATED,
-    action="create_resource",
-    resource_type="my_resource",
-    resource_id_field="resource_id"
-)
-async def create_resource(self, resource_id: str, data: dict):
-    # Business logic
-    pass
-```
+### **comprehensive_demo.py** - Integration Showcase
+- **Purpose**: Demonstrates all framework capabilities working together
+- **Features**: End-to-end workflows, service interactions, complete feature integration
+- **Integration**: Shows how all components work as a cohesive system
+- **Patterns**: Real-world scenarios, business process automation
 
-**Option B: Manual Publishing**
-```python
-async def create_resource(self, resource_id: str, data: dict):
-    # Business logic
+## 🎯 Learning Paths
 
-    # Manual event publishing
-    publisher = get_event_publisher()
-    await publisher.publish_audit_event(
-        event_type=AuditEventType.DATA_CREATED,
-        action="create_resource",
-        resource_type="my_resource",
-        resource_id=resource_id
-    )
-```
+### **For New Developers**
+1. Start with `enhanced_config_demo.py` to understand configuration patterns
+2. Explore `enhanced_security_demo.py` for authentication/authorization
+3. Run `enhanced_events_demo.py` to see event-driven architecture
+4. Execute `comprehensive_demo.py` for complete integration
+5. Finally, run `mmf_demo_runner.py` for full system demonstration
 
-### 4. ✅ Update Configuration
-```python
-# Environment-based (recommended)
-publisher = get_event_publisher()
+### **For Migration Projects**
+1. Review `comprehensive_demo.py` for migration patterns
+2. Study service structures in `services/` directory
+3. Examine Docker configurations for containerization
+4. Use monitoring setup as observability template
+5. Adapt patterns from enhanced demos to your services
 
-# Or explicit configuration
-config = EventConfig(
-    service_name="my-service",
-    kafka_brokers=["localhost:9092"],
-    use_outbox_pattern=True
-)
-publisher = EventPublisher(config)
-```
+### **For Performance Analysis**
+1. Run `mmf_demo_runner.py` with different load patterns
+2. Examine generated reports in `reports/` directory
+3. Study bottleneck analysis and recommendations
+4. Use monitoring configuration for production observability
+5. Apply performance optimization suggestions
 
-### 5. ✅ Update Tests
-```python
-@pytest.fixture
-def mock_event_publisher():
-    return AsyncMock(spec=EventPublisher)
+## 📊 Report Analysis
 
-async def test_creates_resource(mock_event_publisher):
-    service = MyService(event_publisher=mock_event_publisher)
-    await service.create_resource("res-123", {"key": "value"})
+The demo generates comprehensive reports in the `reports/` directory:
 
-    mock_event_publisher.publish_audit_event.assert_called_once()
-```
+### **Structured Data (JSON)**
+- Service performance metrics
+- Load testing results
+- Bottleneck analysis
+- Resource utilization
+- Error rates and patterns
 
-## Event Types Reference
+### **Complete Logs (Text)**
+- Full console output capture
+- Detailed execution traces
+- Debug information
+- Service interaction logs
+- Framework behavior analysis
 
-### Audit Events
-Use for compliance, security monitoring, and debugging:
-```python
-AuditEventType.DATA_CREATED      # Resource creation
-AuditEventType.DATA_UPDATED      # Resource modification
-AuditEventType.DATA_DELETED      # Resource deletion
-AuditEventType.USER_LOGIN        # Authentication
-AuditEventType.PERMISSION_DENIED # Authorization failures
-AuditEventType.CERTIFICATE_ISSUED # Certificate operations
-```
+## 🔍 Framework Capabilities Demonstrated
 
-### Notification Events
-Use for user communications and alerts:
-```python
-NotificationEventType.USER_WELCOME          # Welcome messages
-NotificationEventType.CERTIFICATE_EXPIRING  # Certificate alerts
-NotificationEventType.SYSTEM_ALERT          # System notifications
-NotificationEventType.POLICY_UPDATED        # Policy changes
-```
+| Component | Enhanced Demo | Store Services | Integration |
+|-----------|---------------|----------------|-------------|
+| **Configuration** | ✅ Environment detection | ✅ Service-specific configs | ✅ Cross-service consistency |
+| **Security** | ✅ JWT/RBAC/Rate limiting | ✅ API protection | ✅ Service-to-service auth |
+| **Events** | ✅ All event types | ✅ Business workflows | ✅ Event correlation |
+| **Database** | ✅ Repository patterns | ✅ Transaction handling | ✅ Data consistency |
+| **Observability** | ✅ Metrics/Tracing | ✅ Service monitoring | ✅ Performance analysis |
+| **Load Testing** | ✅ Performance analysis | ✅ Bottleneck detection | ✅ Scaling recommendations |
 
-### Domain Events
-Use for business logic and inter-service communication:
-```python
-# Custom domain events using aggregate and event type
-await publisher.publish_domain_event(
-    aggregate_type="user",
-    aggregate_id="user-123",
-    event_type="user_profile_updated",
-    event_data={"fields": ["email", "name"]}
-)
-```
+## 🚀 Next Steps
 
-## Troubleshooting
+1. **Explore the Code**: Examine each enhanced demo to understand patterns
+2. **Run Load Tests**: Use `mmf_demo_runner.py` to analyze performance
+3. **Study Reports**: Review generated analysis for optimization insights
+4. **Adapt Patterns**: Apply demonstrated patterns to your microservices
+5. **Scale Up**: Use Docker configurations for production deployment
 
-### Import Errors
-```bash
-# Make sure you're in the framework directory
-cd marty-microservices-framework
-
-# Install in development mode
-pip install -e .
-```
-
-### Kafka Connection Issues
-```bash
-# Check if Kafka is running
-docker-compose -f observability/kafka/docker-compose.kafka.yml ps
-
-# Check Kafka logs
-docker-compose -f observability/kafka/docker-compose.kafka.yml logs kafka
-
-# Restart Kafka
-docker-compose -f observability/kafka/docker-compose.kafka.yml restart
-```
-
-### Event Not Appearing
-1. Check topic names match expected patterns
-2. Verify Kafka UI at http://localhost:8080
-3. Check service logs for event publishing errors
-4. Ensure outbox pattern is properly configured for transactional events
-
-## Next Steps
-
-1. **Read the full guide**: [docs/event-publishing-guide.md](../docs/event-publishing-guide.md)
-2. **Review migration examples**: [event_publishing_migration.py](./event_publishing_migration.py)
-3. **Start migrating your service**: Use the checklist above
-4. **Set up monitoring**: Configure event metrics and observability
-
-For questions or issues, refer to the main framework documentation.
+For detailed framework documentation, see [docs/README.md](../docs/README.md).

@@ -12,7 +12,8 @@ Tests all major resilience patterns using real implementations:
 import asyncio
 
 import pytest
-from src.framework.resilience import (  # Basic Components; Pattern Management; Convenience Functions
+
+from framework.resilience import (  # Basic Components; Pattern Management; Convenience Functions
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerError,
@@ -26,8 +27,8 @@ from src.framework.resilience import (  # Basic Components; Pattern Management; 
     initialize_resilience,
     retry_async,
 )
-from src.framework.resilience.retry import RetryError
-from src.framework.resilience.timeout import ResilienceTimeoutError, with_timeout
+from framework.resilience.retry import RetryError
+from framework.resilience.timeout import ResilienceTimeoutError, with_timeout
 
 
 class TestCircuitBreaker:

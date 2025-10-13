@@ -193,7 +193,7 @@ Tests automatically configure plugins with appropriate settings:
 **Tests fail with import errors:**
 ```bash
 # Ensure framework modules are properly imported
-python -c "from src.framework.plugins import PluginManager; print('Framework plugins available')"
+python -c "from framework.plugins import PluginManager; print('Framework plugins available')"
 ```
 
 **Playwright tests fail:**
