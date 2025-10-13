@@ -42,7 +42,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["src", "security", "observability"]
 
 # Optional dependency groups
 [project.optional-dependencies]

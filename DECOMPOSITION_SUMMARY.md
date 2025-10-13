@@ -6,9 +6,9 @@ Successfully continued the decomposition work that started with external connect
 
 ## Completed Decompositions
 
-### 1. Security Module (`src/framework/security/hardening.py` → Multiple focused modules)
+### 1. Security Module (Legacy `hardening.py` → Multiple focused modules)
 
-**Original**: 1,480 lines in a single file
+**Original**: 1,480 lines in a single file (now removed)
 **Decomposed into**: 20+ smaller files organized by functionality
 
 **New Structure**:
