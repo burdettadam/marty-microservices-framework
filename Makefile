@@ -61,6 +61,40 @@ test-quick: ## Run tests with fail-fast mode
 	@uv run pytest -x --tb=short
 
 # ==============================================================================
+# Automated Quality Checks (Converted from Legacy Scripts)
+# ==============================================================================
+
+test-code-quality: ## Run automated code quality tests
+	@echo "🔍 Running automated code quality tests..."
+	@uv run pytest tests/unit/test_code_quality.py -v
+
+test-dependencies: ## Run automated dependency validation tests
+	@echo "📦 Running automated dependency validation tests..."
+	@uv run pytest tests/unit/test_dependency_checks.py -v
+
+test-observability: ## Run automated observability validation tests
+	@echo "📊 Running automated observability validation tests..."
+	@uv run pytest tests/unit/test_observability_validation.py -v
+
+test-framework: ## Run automated framework functionality tests
+	@echo "🏗️ Running automated framework functionality tests..."
+	@uv run pytest tests/unit/test_framework_functionality.py -v
+
+test-security: ## Run automated security validation tests
+	@echo "🔒 Running automated security validation tests..."
+	@uv run pytest tests/unit/test_security_validation.py -v
+
+test-all-quality: ## Run all automated quality tests
+	@echo "✨ Running all automated quality tests..."
+	@uv run pytest tests/unit/test_code_quality.py tests/unit/test_dependency_checks.py tests/unit/test_observability_validation.py tests/unit/test_framework_functionality.py tests/unit/test_security_validation.py -v
+
+validate: ## Run all validation checks (legacy scripts + automated tests)
+	@echo "🔍 Running comprehensive validation..."
+	@$(MAKE) test-all-quality
+	@python3 scripts/validate_templates.py
+	@python3 scripts/validate_observability.py
+
+# ==============================================================================
 # Development
 # ==============================================================================
 
@@ -210,6 +244,7 @@ status: ## Show framework status
 
 ci: ## Run CI/CD pipeline (validate, test, check)
 	@echo "🚀 Running CI/CD pipeline..."
+	@$(MAKE) test-all-quality
 	@python3 scripts/validate_templates.py
 	@uv run pytest -m "unit or integration" --tb=short
 	@uv run ruff check .
