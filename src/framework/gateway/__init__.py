@@ -125,62 +125,6 @@ __all__ = [
     "get_gateway",
 ]
 
-# New enterprise gateway components
-
-__all__ = [
-    # Main Gateway
-    "APIGateway",
-    "APIKeyAuthenticator",
-    "AuthConfig",
-    "AuthenticationType",
-    # Authentication
-    "Authenticator",
-    "CORSMiddleware",
-    "CachingMiddleware",
-    # Resilience
-    "CircuitBreaker",
-    "GatewayStats",
-    "JWTAuthenticator",
-    "LeastConnectionsLoadBalancer",
-    # Load Balancing
-    "LoadBalancer",
-    "LoadBalancingAlgorithm",
-    "LoggingMiddleware",
-    "MetricsMiddleware",
-    "Middleware",
-    "MiddlewareChain",
-    # Middleware Components
-    "MiddlewareContext",
-    "RateLimitAlgorithm",
-    "RateLimitConfig",
-    # Rate Limiting
-    "RateLimiter",
-    "RoundRobinLoadBalancer",
-    "RouteConfig",
-    "RouteRule",
-    # Core Gateway Components
-    "RoutingMethod",
-    "SecurityMiddleware",
-    "ServiceInstance",
-    # Service Discovery
-    "ServiceRegistry",
-    "TokenBucketRateLimiter",
-    "TokenManager",
-    "TokenStore",
-    "TokenValidator",
-    "TransformationMiddleware",
-    "ValidationMiddleware",
-    "create_api_validation_middleware",
-    "create_gateway",
-    # Utility Functions
-    "create_jwt_auth_route",
-    "create_rate_limited_route",
-    "create_standard_middleware_chain",
-    "create_transformation_middleware",
-    "gateway_context",
-    "get_gateway",
-]
-
 # Configuration management
 from .config import (  # Configuration loaders; Dynamic configuration; Configuration formats; Configuration management
     ConfigLoader,

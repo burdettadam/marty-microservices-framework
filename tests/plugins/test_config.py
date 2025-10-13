@@ -21,7 +21,7 @@ framework_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(framework_path))
 
 try:
-    from framework.config.plugin_config import (
+    from src.framework.config.plugin_config import (
         PluginConfigManager,
         PluginConfigSection,
         create_plugin_config_manager,
@@ -51,7 +51,7 @@ except ImportError:
 
 # Try to import MartyTrustPKIConfig, create mock if not available
 try:
-    from framework.config import MartyTrustPKIConfig
+    from src.framework.config import MartyTrustPKIConfig
 except ImportError:
     # Create mock MartyTrustPKIConfig for testing
     class MartyTrustPKIConfig:

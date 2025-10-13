@@ -12,7 +12,13 @@ import asyncio
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from framework.plugins import MMFPlugin, PluginContext, PluginManager, PluginMetadata
+
+from src.framework.plugins import (
+    MMFPlugin,
+    PluginContext,
+    PluginManager,
+    PluginMetadata,
+)
 
 
 # Mock classes for testing

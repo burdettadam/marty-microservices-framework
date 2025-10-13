@@ -14,15 +14,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     # These would be the actual MMF service types when available
+    from src.framework.config import PluginConfigManager
 
-    from framework.config import PluginConfigManager
-
-logger = logging.getLogger(__name__)
-
-import logging
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
     from .services import ServiceDefinition
 
 logger = logging.getLogger(__name__)
@@ -109,11 +102,7 @@ class PluginContext:
         if self.config_manager:
             return await self.config_manager.get_plugin_config(plugin_name, config_key)
 
-        # Fallback to legacy config format
-        if hasattr(self.config, "plugins"):
-            for plugin_config in self.config.plugins:
-                if plugin_config.get("name") == plugin_name:
-                    return plugin_config.get("config", {})
+        # No config manager available
         return {}
 
     async def get_base_config(self, config_key: str = "default") -> Any:
@@ -121,14 +110,6 @@ class PluginContext:
         if self.config_manager:
             return await self.config_manager.get_base_config(config_key)
         return self.config
-
-    def get_plugin_config_sync(self, plugin_name: str) -> dict[str, Any]:
-        """Get configuration specific to a plugin (synchronous legacy method)."""
-        if hasattr(self.config, "plugins"):
-            for plugin_config in self.config.plugins:
-                if plugin_config.get("name") == plugin_name:
-                    return plugin_config.get("config", {})
-        return {}
 
     def set_plugin_data(self, plugin_name: str, key: str, value: Any) -> None:
         """Store plugin-specific data."""
