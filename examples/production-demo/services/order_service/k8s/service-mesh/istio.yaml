@@ -1,0 +1,99 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: order-service-virtualservice
+  namespace: store-system
+spec:
+  hosts:
+  - "order-service.framework.local"
+  gateways:
+  - microservices-framework-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/order-service/"
+    route:
+    - destination:
+        host: order-service
+        port:
+          number: 8001
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+    timeout: 30s
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 100ms
+  - match:
+    - uri:
+        prefix: "/health"
+    route:
+    - destination:
+        host: order-service
+        port:
+          number: 8001
+    retries:
+      attempts: 2
+      perTryTimeout: 2s
+    timeout: 5s
+  - match:
+    - uri:
+        prefix: "/metrics"
+    route:
+    - destination:
+        host: order-service
+        port:
+          number: 8001
+    timeout: 10s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: order-service-destination
+  namespace: store-system
+spec:
+  host: order-service
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 50
+        connectTimeout: 30s
+      http:
+        http1MaxPendingRequests: 25
+        http2MaxRequests: 50
+        maxRequestsPerConnection: 5
+        maxRetries: 3
+        h2UpgradePolicy: UPGRADE
+    loadBalancer:
+      simple: ROUND_ROBIN
+    circuitBreaker:
+      consecutiveGatewayErrors: 3
+      consecutiveErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+    outlierDetection:
+      consecutiveGatewayErrors: 3
+      consecutive5xxErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+  - name: v2
+    labels:
+      version: v2
+  portLevelSettings:
+  - port:
+      number: 50051
+    connectionPool:
+      tcp:
+        maxConnections: 25
+      http:
+        maxRequestsPerConnection: 3

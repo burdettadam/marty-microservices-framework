@@ -8,7 +8,8 @@ minimal mocking to ensure real functionality is tested.
 import inspect
 
 import pytest
-from src.framework.messaging.core import (
+
+from framework.messaging.core import (
     Message,
     MessageHeaders,
     MessagePriority,
@@ -16,7 +17,7 @@ from src.framework.messaging.core import (
 )
 
 # Import messaging strategy components
-from src.framework.messaging.dlq import (
+from framework.messaging.dlq import (
     DLQConfig,
     DLQManager,
     DLQMessage,
@@ -157,8 +158,8 @@ def test_retry_strategy_delay_calculation():
 
 def test_discover_messaging_strategy_classes():
     """Discover all messaging strategy-related classes."""
-    from src.framework.messaging import core as core_module
-    from src.framework.messaging import dlq as dlq_module
+    from framework.messaging import core as core_module
+    from framework.messaging import dlq as dlq_module
 
     # Find strategy-related classes in DLQ module
     dlq_classes = []

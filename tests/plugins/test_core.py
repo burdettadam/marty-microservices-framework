@@ -13,12 +13,7 @@ from typing import Any
 
 import pytest
 
-from src.framework.plugins import (
-    MMFPlugin,
-    PluginContext,
-    PluginManager,
-    PluginMetadata,
-)
+from framework.plugins import MMFPlugin, PluginContext, PluginManager, PluginMetadata
 
 from . import TestPlugin
 

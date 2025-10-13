@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order_service/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVICE_NAME=order-service
+      - HTTP_PORT=8001
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - PAYMENT_SERVICE_URL=http://payment-service:8002
+      - INVENTORY_SERVICE_URL=http://inventory-service:8003
+    networks:
+      - store-network
+    depends_on:
+      - payment-service
+      - inventory-service
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment_service/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - SERVICE_NAME=payment-service
+      - HTTP_PORT=8002
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+    networks:
+      - store-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  inventory-service:
+    build:
+      context: .
+      dockerfile: services/inventory_service/Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - SERVICE_NAME=inventory-service
+      - HTTP_PORT=8003
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+    networks:
+      - store-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - store-network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - store-network
+    depends_on:
+      - prometheus
+
+networks:
+  store-network:
+    driver: bridge
+
+volumes:
+  grafana-storage:

@@ -9,10 +9,11 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from src.framework.config_factory import create_service_config
-from src.framework.logging import UnifiedServiceLogger
-from src.framework.monitoring import setup_fastapi_monitoring
-from src.framework.observability import init_observability
+
+from framework.config_factory import create_service_config
+from framework.logging import UnifiedServiceLogger
+from framework.monitoring import setup_fastapi_monitoring
+from observability import init_observability
 
 # Initialize logger
 logger = logging.getLogger(__name__)

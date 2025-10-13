@@ -11,11 +11,12 @@ from pathlib import Path
 
 import docker
 import pytest
-from src.framework.events.event_bus import EventBus
-from src.framework.messaging.core import MessageBus
 from testcontainers.kafka import KafkaContainer
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
+
+from framework.events.event_bus import EventBus
+from framework.messaging.core import MessageBus
 
 
 @pytest.fixture(scope="session")

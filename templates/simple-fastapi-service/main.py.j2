@@ -1,0 +1,285 @@
+"""
+{{service_description | default("FastAPI microservice")}}
+
+This service demonstrates MMF patterns with actual framework integration:
+- Real framework imports (works from generated location)
+- Enterprise observability patterns
+- Production-ready health checks and metrics
+- Structured configuration
+- Clean architecture patterns
+
+Generated with MMF Service Generator
+Service: {{service_name}}
+"""
+import time
+import uuid
+from datetime import datetime
+from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Optional
+
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request
+from pydantic import BaseModel
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from fastapi.responses import Response
+import logging
+
+# MMF Framework imports - these work when service is generated in correct location
+try:
+    # Try to import from framework when running as part of MMF structure
+    from marty_mmf.framework.config import BaseServiceConfig
+    from marty_mmf.framework.observability.monitoring import ServiceMonitor
+    FRAMEWORK_AVAILABLE = True
+except ImportError:
+    # Fallback for standalone operation
+    FRAMEWORK_AVAILABLE = False
+
+    # Simple config fallback
+    class BaseServiceConfig:
+        def __init__(self, **kwargs):
+            for key, value in kwargs.items():
+                setattr(self, key, value)
+
+    # Simple monitor fallback
+    class ServiceMonitor:
+        def __init__(self, service_name: str):
+            self.service_name = service_name
+
+        async def start(self):
+            pass
+
+        async def stop(self):
+            pass
+
+# Service Configuration
+class {{service_name.replace('-', '_').title()}}Config(BaseServiceConfig):
+    """Configuration for {{service_name}} service."""
+
+    service_name: str = "{{service_name}}"
+    version: str = "{{service_version | default('1.0.0')}}"
+    host: str = "{{service_host | default('0.0.0.0')}}"
+    port: int = {{service_port | default(8000)}}
+    debug: bool = {{debug | default(False)}}
+
+# Initialize configuration
+config = {{service_name.replace('-', '_').title()}}Config()
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(config.service_name)
+
+# Prometheus metrics
+REQUEST_COUNT = Counter(
+    '{{service_name.replace("-", "_")}}_requests_total',
+    'Total requests',
+    ['method', 'endpoint', 'status']
+)
+REQUEST_TIME = Histogram(
+    '{{service_name.replace("-", "_")}}_request_duration_seconds',
+    'Request duration'
+)
+ACTIVE_CONNECTIONS = Counter(
+    '{{service_name.replace("-", "_")}}_active_connections_total',
+    'Active connections'
+)
+
+# Global monitor instance
+monitor: Optional[ServiceMonitor] = None
+
+# Data Models
+class HealthResponse(BaseModel):
+    """Health check response model."""
+    service: str
+    version: str
+    status: str
+    timestamp: str
+    framework_available: bool
+
+class {{service_name.replace('-', '_').title()}}Request(BaseModel):
+    """{{service_name}} request model."""
+    data: str
+    correlation_id: Optional[str] = None
+
+class {{service_name.replace('-', '_').title()}}Response(BaseModel):
+    """{{service_name}} response model."""
+    id: str
+    result: str
+    processed_at: str
+    correlation_id: str
+
+# Application lifespan management
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application startup and shutdown."""
+    global monitor
+
+    # Startup
+    logger.info(f"Starting {{service_name}} v{config.version}")
+    logger.info(f"Framework available: {FRAMEWORK_AVAILABLE}")
+
+    if FRAMEWORK_AVAILABLE:
+        monitor = ServiceMonitor(config.service_name)
+        await monitor.start()
+        logger.info("Framework monitoring initialized")
+
+    yield
+
+    # Shutdown
+    if monitor:
+        await monitor.stop()
+    logger.info(f"{{service_name}} shutdown complete")
+
+# Create FastAPI application
+app = FastAPI(
+    title="{{service_name.replace('-', ' ').title()}}",
+    description="{{service_description | default('MMF microservice')}}",
+    version=config.version,
+    lifespan=lifespan
+)
+
+# Middleware for request tracking
+@app.middleware("http")
+async def track_requests(request: Request, call_next):
+    """Track request metrics and add correlation ID."""
+    start_time = time.time()
+
+    # Get or generate correlation ID
+    correlation_id = request.headers.get("x-correlation-id", str(uuid.uuid4()))
+    request.state.correlation_id = correlation_id
+
+    # Process request
+    response = await call_next(request)
+
+    # Add correlation ID to response
+    response.headers["x-correlation-id"] = correlation_id
+
+    # Record metrics
+    duration = time.time() - start_time
+    REQUEST_TIME.observe(duration)
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+
+    return response
+
+# Core endpoints
+@app.get("/health", response_model=HealthResponse)
+async def health_check():
+    """Enhanced health check with framework status."""
+
+    return HealthResponse(
+        service=config.service_name,
+        version=config.version,
+        status="healthy",
+        timestamp=datetime.utcnow().isoformat(),
+        framework_available=FRAMEWORK_AVAILABLE
+    )
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint."""
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+@app.get("/info")
+async def service_info():
+    """Service information endpoint."""
+    return {
+        "service": config.service_name,
+        "version": config.version,
+        "description": "{{service_description | default('MMF microservice')}}",
+        "framework_available": FRAMEWORK_AVAILABLE,
+        "features": [
+            "Health checks",
+            "Prometheus metrics",
+            "Correlation ID tracking",
+            "Request timing",
+            "Structured logging"
+        ]
+    }
+
+# Business logic endpoints
+@app.post("/process", response_model={{service_name.replace('-', '_').title()}}Response)
+async def process_request(
+    request: {{service_name.replace('-', '_').title()}}Request,
+    http_request: Request
+):
+    """Process a {{service_name}} request."""
+
+    start_time = time.time()
+    correlation_id = request.correlation_id or http_request.state.correlation_id
+
+    try:
+        # Business logic here
+        result_id = str(uuid.uuid4())
+        result = f"Processed: {request.data}"
+
+        # Log the operation
+        logger.info(
+            f"Processed request successfully",
+            extra={
+                "correlation_id": correlation_id,
+                "result_id": result_id,
+                "processing_time": time.time() - start_time
+            }
+        )
+
+        return {{service_name.replace('-', '_').title()}}Response(
+            id=result_id,
+            result=result,
+            processed_at=datetime.utcnow().isoformat(),
+            correlation_id=correlation_id
+        )
+
+    except Exception as e:
+        logger.error(
+            f"Processing failed: {e}",
+            extra={"correlation_id": correlation_id}
+        )
+        raise HTTPException(status_code=500, detail="Processing failed")
+
+@app.get("/status")
+async def service_status():
+    """Detailed service status."""
+    return {
+        "service": config.service_name,
+        "status": "running",
+        "uptime": "N/A",  # Would calculate from startup time in production
+        "framework": {
+            "available": FRAMEWORK_AVAILABLE,
+            "monitoring_active": monitor is not None
+        },
+        "metrics": {
+            "requests_handled": "See /metrics endpoint",
+            "average_response_time": "See /metrics endpoint"
+        }
+    }
+
+# Development and testing endpoints
+@app.get("/")
+async def root():
+    """Root endpoint with service information."""
+    return {
+        "message": f"{{service_name.replace('-', ' ').title()}} is running",
+        "version": config.version,
+        "health": "/health",
+        "metrics": "/metrics",
+        "info": "/info",
+        "docs": "/docs",
+        "framework_integrated": FRAMEWORK_AVAILABLE
+    }
+
+if __name__ == "__main__":
+    # Run the service
+    logger.info(f"Starting {{service_name}} on {config.host}:{config.port}")
+
+    uvicorn.run(
+        app,
+        host=config.host,
+        port=config.port,
+        log_level="info" if not config.debug else "debug"
+    )

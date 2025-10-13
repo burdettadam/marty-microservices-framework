@@ -9,8 +9,9 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from src.framework.config import BaseServiceConfig as FrameworkConfig
-from src.framework.logging import UnifiedServiceLogger as StructuredLogger
+
+from framework.config import BaseServiceConfig as FrameworkConfig
+from framework.logging import UnifiedServiceLogger as StructuredLogger
 
 
 @pytest.fixture

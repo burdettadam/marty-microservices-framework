@@ -1,596 +1,439 @@
 """
-Structured Logging Framework for Marty Microservices Framework
+Unified logging framework for Marty Microservices Framework.
 
-Provides comprehensive structured logging capabilities with:
-- JSON structured logging format
-- Correlation IDs and trace context integration
-- Performance metrics and business event logging
-- Integration with ELK/EFK stack
-- Centralized log aggregation and analysis
+This module provides standardized logging with JSON format, correlation IDs,
+trace ID support, and service context - ported from Marty's logging framework.
 """
 
-import builtins
-import importlib.util
 import json
 import logging
+import os
 import sys
-import time
-import traceback
-import uuid
-from contextlib import contextmanager
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import datetime
 from typing import Any
 
-# OpenTelemetry integration availability check
-OTEL_AVAILABLE = importlib.util.find_spec("opentelemetry") is not None
+from opentelemetry import trace
 
-if OTEL_AVAILABLE:
-    try:
-        from opentelemetry.trace import get_current_span
-    except ImportError:
-        OTEL_AVAILABLE = False
+# Default log format with service name and trace context
+DEFAULT_LOG_FORMAT = (
+    "%(asctime)s - %(levelname)s - [%(service_name)s] - [%(name)s] - "
+    "[%(module)s.%(funcName)s:%(lineno)d] - %(message)s"
+)
 
-# FastAPI integration availability check
-FASTAPI_AVAILABLE = importlib.util.find_spec("fastapi") is not None
+# Enhanced format with trace context
+TRACE_LOG_FORMAT = (
+    "%(asctime)s - %(levelname)s - [%(service_name)s] - [%(trace_id)s:%(span_id)s] - "
+    "[%(name)s] - [%(module)s.%(funcName)s:%(lineno)d] - %(message)s"
+)
 
-if FASTAPI_AVAILABLE:
-    try:
-        from fastapi import Request
-        from starlette.middleware.base import BaseHTTPMiddleware
-    except ImportError:
-        FASTAPI_AVAILABLE = False
+LOG_LEVELS = {
+    "CRITICAL": logging.CRITICAL,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+    "NOTSET": logging.NOTSET,
+}
 
-
-class LogLevel(Enum):
-    """Standard log levels"""
-
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
+DEFAULT_LOG_LEVEL = "INFO"
+LOG_OFF_LEVEL = "OFF"
 
 
-class LogCategory(Enum):
-    """Categories for log classification"""
+class ServiceNameFilter(logging.Filter):
+    """Filter to inject service name into log records."""
 
-    APPLICATION = "application"
-    SECURITY = "security"
-    PERFORMANCE = "performance"
-    BUSINESS = "business"
-    INFRASTRUCTURE = "infrastructure"
-    AUDIT = "audit"
-    ACCESS = "access"
-    ERROR = "error"
-    MONITORING = "monitoring"
+    def __init__(self, service_name: str) -> None:
+        """Initialize filter with service name."""
+        super().__init__()
+        self.service_name = service_name
 
-
-@dataclass
-class LogContext:
-    """Context information for logging"""
-
-    correlation_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    trace_id: str | None = None
-    span_id: str | None = None
-    user_id: str | None = None
-    session_id: str | None = None
-    request_id: str | None = None
-    service_name: str = "unknown"
-    service_version: str = "1.0.0"
-    environment: str = "production"
-    namespace: str = "default"
-    custom_fields: builtins.dict[str, Any] = field(default_factory=dict)
-
-    def to_dict(self) -> builtins.dict[str, Any]:
-        """Convert to dictionary for JSON serialization"""
-        result = asdict(self)
-        # Remove None values and empty custom_fields
-        result = {k: v for k, v in result.items() if v is not None}
-        if not result.get("custom_fields"):
-            result.pop("custom_fields", None)
-        return result
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Add service name to log record."""
+        record.service_name = self.service_name  # type: ignore[attr-defined]
+        return True
 
 
-@dataclass
-class StructuredLogEntry:
-    """Structured log entry"""
+class TraceContextFilter(logging.Filter):
+    """Filter to inject trace context into log records."""
 
-    timestamp: str
-    level: str
-    message: str
-    category: str
-    service_name: str
-    context: builtins.dict[str, Any]
-    fields: builtins.dict[str, Any] = field(default_factory=dict)
-    error: builtins.dict[str, Any] | None = None
-    performance: builtins.dict[str, Any] | None = None
-    business: builtins.dict[str, Any] | None = None
-
-    def to_json(self) -> str:
-        """Convert to JSON string"""
-        return json.dumps(asdict(self), default=str, ensure_ascii=False)
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Add trace_id and span_id to log record if available."""
+        current_span = trace.get_current_span()
+        if current_span and current_span.is_recording():
+            span_context = current_span.get_span_context()
+            record.trace_id = format(span_context.trace_id, "032x")  # type: ignore[attr-defined]
+            record.span_id = format(span_context.span_id, "016x")  # type: ignore[attr-defined]
+        else:
+            record.trace_id = "00000000000000000000000000000000"  # type: ignore[attr-defined]
+            record.span_id = "0000000000000000"  # type: ignore[attr-defined]
+        return True
 
 
-class StructuredLogger:
+class CorrelationFilter(logging.Filter):
+    """Filter to inject correlation ID into log records."""
+
+    def __init__(self, correlation_id: str | None = None) -> None:
+        """Initialize filter with correlation ID."""
+        super().__init__()
+        self.correlation_id = correlation_id or self._generate_correlation_id()
+
+    def _generate_correlation_id(self) -> str:
+        """Generate a new correlation ID."""
+        import uuid
+
+        return str(uuid.uuid4())
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Add correlation_id to log record."""
+        record.correlation_id = self.correlation_id  # type: ignore[attr-defined]
+        return True
+
+    def update_correlation_id(self, correlation_id: str) -> None:
+        """Update the correlation ID."""
+        self.correlation_id = correlation_id
+
+
+class UnifiedJSONFormatter(logging.Formatter):
+    """JSON formatter for structured logging with comprehensive context."""
+
+    def __init__(self, include_trace: bool = True, include_correlation: bool = True):
+        super().__init__()
+        self.include_trace = include_trace
+        self.include_correlation = include_correlation
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record as JSON with full context."""
+        log_entry = {
+            "timestamp": datetime.fromtimestamp(record.created).isoformat(),
+            "level": record.levelname,
+            "service": getattr(record, "service_name", "unknown"),
+            "logger": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno,
+            "file": record.filename,
+            "thread": record.thread,
+            "process": record.process,
+        }
+
+        # Add trace context if available and enabled
+        if self.include_trace:
+            trace_id = getattr(record, "trace_id", None)
+            span_id = getattr(record, "span_id", None)
+            if trace_id and span_id:
+                log_entry["trace_id"] = trace_id
+                log_entry["span_id"] = span_id
+
+        # Add correlation ID if available and enabled
+        if self.include_correlation:
+            correlation_id = getattr(record, "correlation_id", None)
+            if correlation_id:
+                log_entry["correlation_id"] = correlation_id
+
+        # Add exception info if present
+        if record.exc_info:
+            log_entry["exception"] = {
+                "type": record.exc_info[0].__name__ if record.exc_info[0] else None,
+                "message": str(record.exc_info[1]) if record.exc_info[1] else None,
+                "traceback": self.formatException(record.exc_info) if record.exc_info else None,
+            }
+
+        # Add extra fields from the record
+        for key, value in record.__dict__.items():
+            if key not in {
+                "name",
+                "msg",
+                "args",
+                "levelname",
+                "levelno",
+                "pathname",
+                "filename",
+                "module",
+                "lineno",
+                "funcName",
+                "created",
+                "msecs",
+                "relativeCreated",
+                "thread",
+                "threadName",
+                "processName",
+                "process",
+                "getMessage",
+                "exc_info",
+                "exc_text",
+                "stack_info",
+                "service_name",
+                "trace_id",
+                "span_id",
+                "correlation_id",
+            }:
+                log_entry[key] = value
+
+        return json.dumps(log_entry, default=str, ensure_ascii=False)
+
+
+class UnifiedServiceLogger:
     """
-    Enhanced structured logger with comprehensive features
+    Unified service logger with comprehensive context and structured logging.
 
-    Features:
-    - JSON structured output
-    - Automatic trace context injection
-    - Performance metrics logging
-    - Business event logging
-    - Error tracking with stack traces
-    - Correlation ID management
+    Combines Marty's logging patterns with MMF's audit capabilities.
     """
 
     def __init__(
         self,
-        name: str,
-        service_name: str = "microservice",
-        service_version: str = "1.0.0",
-        environment: str = "production",
-        namespace: str = "default",
-        log_level: LogLevel = LogLevel.INFO,
-        enable_console_output: bool = True,
-        enable_file_output: bool = False,
-        file_path: str | None = None,
-        max_field_length: int = 1000,
-    ):
-        self.name = name
+        service_name: str,
+        module_name: str | None = None,
+        enable_json_logging: bool = True,
+        enable_trace_context: bool = True,
+        enable_correlation: bool = True,
+        correlation_id: str | None = None,
+        log_level: str = DEFAULT_LOG_LEVEL,
+    ) -> None:
+        """
+        Initialize unified service logger.
+
+        Args:
+            service_name: Name of the service for context
+            module_name: Module name (typically __name__)
+            enable_json_logging: Whether to use JSON format
+            enable_trace_context: Whether to include trace context
+            enable_correlation: Whether to include correlation IDs
+            correlation_id: Specific correlation ID to use
+            log_level: Logging level
+        """
         self.service_name = service_name
-        self.service_version = service_version
-        self.environment = environment
-        self.namespace = namespace
-        self.max_field_length = max_field_length
+        self.module_name = module_name or service_name
+        self.enable_json_logging = enable_json_logging
+        self.enable_trace_context = enable_trace_context
+        self.enable_correlation = enable_correlation
 
-        # Create underlying logger
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(getattr(logging, log_level.value))
+        # Create the underlying logger
+        self._logger = logging.getLogger(self.module_name)
+        self._setup_logger(log_level, correlation_id)
 
+        # Add service context to all log messages
+        self._service_context = {"service": service_name}
+
+    def _setup_logger(self, log_level: str, correlation_id: str | None) -> None:
+        """Set up the logger with appropriate handlers and filters."""
         # Clear existing handlers
-        self.logger.handlers.clear()
+        self._logger.handlers.clear()
 
-        # Setup handlers
-        if enable_console_output:
-            self._setup_console_handler()
+        # Set log level
+        if log_level != LOG_OFF_LEVEL:
+            self._logger.setLevel(LOG_LEVELS.get(log_level, logging.INFO))
+        else:
+            self._logger.setLevel(logging.CRITICAL + 1)  # Effectively turn off logging
 
-        if enable_file_output and file_path:
-            self._setup_file_handler(file_path)
+        # Create console handler
+        console_handler = logging.StreamHandler(sys.stdout)
 
-        # Context storage
-        self._context_stack: builtins.list[LogContext] = []
-
-        self.logger.info(f"Structured logger initialized for {service_name}")
-
-    def _setup_console_handler(self):
-        """Setup console handler with JSON formatter"""
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(self._create_json_formatter())
-        self.logger.addHandler(handler)
-
-    def _setup_file_handler(self, file_path: str):
-        """Setup file handler with JSON formatter"""
-        handler = logging.FileHandler(file_path)
-        handler.setFormatter(self._create_json_formatter())
-        self.logger.addHandler(handler)
-
-    def _create_json_formatter(self):
-        """Create JSON formatter"""
-        return JsonFormatter(self)
-
-    def _get_current_context(self) -> LogContext:
-        """Get current logging context"""
-        if self._context_stack:
-            return self._context_stack[-1]
-
-        # Create default context
-        context = LogContext(
-            service_name=self.service_name,
-            service_version=self.service_version,
-            environment=self.environment,
-            namespace=self.namespace,
-        )
-
-        # Add trace context if available
-        if OTEL_AVAILABLE:
-            current_span = get_current_span()
-            if current_span and current_span.get_span_context().is_valid:
-                context.trace_id = format(current_span.get_span_context().trace_id, "032x")
-                context.span_id = format(current_span.get_span_context().span_id, "016x")
-
-        return context
-
-    @contextmanager
-    def context(self, **kwargs):
-        """Context manager for temporary context"""
-        current_context = self._get_current_context()
-        new_context = LogContext(
-            correlation_id=kwargs.get("correlation_id", current_context.correlation_id),
-            trace_id=kwargs.get("trace_id", current_context.trace_id),
-            span_id=kwargs.get("span_id", current_context.span_id),
-            user_id=kwargs.get("user_id", current_context.user_id),
-            session_id=kwargs.get("session_id", current_context.session_id),
-            request_id=kwargs.get("request_id", current_context.request_id),
-            service_name=current_context.service_name,
-            service_version=current_context.service_version,
-            environment=current_context.environment,
-            namespace=current_context.namespace,
-            custom_fields={
-                **current_context.custom_fields,
-                **kwargs.get("custom_fields", {}),
-            },
-        )
-
-        self._context_stack.append(new_context)
-        try:
-            yield new_context
-        finally:
-            self._context_stack.pop()
-
-    def _truncate_field(self, value: Any) -> Any:
-        """Truncate field value if too long"""
-        if isinstance(value, str) and len(value) > self.max_field_length:
-            return value[: self.max_field_length] + "... [truncated]"
-        return value
-
-    def _create_log_entry(
-        self,
-        level: LogLevel,
-        message: str,
-        category: LogCategory,
-        fields: builtins.dict[str, Any] | None = None,
-        error: Exception | None = None,
-        performance_data: builtins.dict[str, Any] | None = None,
-        business_data: builtins.dict[str, Any] | None = None,
-    ) -> StructuredLogEntry:
-        """Create structured log entry"""
-        context = self._get_current_context()
-
-        # Process fields
-        processed_fields = {}
-        if fields:
-            for key, value in fields.items():
-                processed_fields[key] = self._truncate_field(value)
-
-        # Process error information
-        error_data = None
-        if error:
-            error_data = {
-                "type": type(error).__name__,
-                "message": str(error),
-                "stack_trace": traceback.format_exc() if error.__traceback__ else None,
-            }
-
-        return StructuredLogEntry(
-            timestamp=datetime.now(timezone.utc).isoformat(),
-            level=level.value,
-            message=message,
-            category=category.value,
-            service_name=self.service_name,
-            context=context.to_dict(),
-            fields=processed_fields,
-            error=error_data,
-            performance=performance_data,
-            business=business_data,
-        )
-
-    def debug(
-        self,
-        message: str,
-        category: LogCategory = LogCategory.APPLICATION,
-        fields: builtins.dict[str, Any] | None = None,
-        **kwargs,
-    ):
-        """Debug level logging"""
-        log_entry = self._create_log_entry(LogLevel.DEBUG, message, category, fields, **kwargs)
-        self.logger.debug(log_entry.to_json())
-
-    def info(
-        self,
-        message: str,
-        category: LogCategory = LogCategory.APPLICATION,
-        fields: builtins.dict[str, Any] | None = None,
-        **kwargs,
-    ):
-        """Info level logging"""
-        log_entry = self._create_log_entry(LogLevel.INFO, message, category, fields, **kwargs)
-        self.logger.info(log_entry.to_json())
-
-    def warning(
-        self,
-        message: str,
-        category: LogCategory = LogCategory.APPLICATION,
-        fields: builtins.dict[str, Any] | None = None,
-        **kwargs,
-    ):
-        """Warning level logging"""
-        log_entry = self._create_log_entry(LogLevel.WARNING, message, category, fields, **kwargs)
-        self.logger.warning(log_entry.to_json())
-
-    def error(
-        self,
-        message: str,
-        error: Exception | None = None,
-        category: LogCategory = LogCategory.ERROR,
-        fields: builtins.dict[str, Any] | None = None,
-        **kwargs,
-    ):
-        """Error level logging"""
-        log_entry = self._create_log_entry(
-            LogLevel.ERROR, message, category, fields, error=error, **kwargs
-        )
-        self.logger.error(log_entry.to_json())
-
-    def critical(
-        self,
-        message: str,
-        error: Exception | None = None,
-        category: LogCategory = LogCategory.ERROR,
-        fields: builtins.dict[str, Any] | None = None,
-        **kwargs,
-    ):
-        """Critical level logging"""
-        log_entry = self._create_log_entry(
-            LogLevel.CRITICAL, message, category, fields, error=error, **kwargs
-        )
-        self.logger.critical(log_entry.to_json())
-
-    def security(
-        self,
-        message: str,
-        security_event: str,
-        user_id: str | None = None,
-        source_ip: str | None = None,
-        fields: builtins.dict[str, Any] | None = None,
-    ):
-        """Security event logging"""
-        security_fields = {
-            "security_event": security_event,
-            **({"user_id": user_id} if user_id else {}),
-            **({"source_ip": source_ip} if source_ip else {}),
-            **(fields or {}),
-        }
-
-        log_entry = self._create_log_entry(
-            LogLevel.WARNING, message, LogCategory.SECURITY, security_fields
-        )
-        self.logger.warning(log_entry.to_json())
-
-    def performance(
-        self,
-        message: str,
-        operation: str,
-        duration_ms: float,
-        fields: builtins.dict[str, Any] | None = None,
-    ):
-        """Performance logging"""
-        performance_data = {
-            "operation": operation,
-            "duration_ms": duration_ms,
-            "timestamp": time.time(),
-        }
-
-        log_entry = self._create_log_entry(
-            LogLevel.INFO,
-            message,
-            LogCategory.PERFORMANCE,
-            fields,
-            performance_data=performance_data,
-        )
-        self.logger.info(log_entry.to_json())
-
-    def business(
-        self,
-        message: str,
-        event_type: str,
-        entity_type: str | None = None,
-        entity_id: str | None = None,
-        amount: float | None = None,
-        currency: str | None = None,
-        fields: builtins.dict[str, Any] | None = None,
-    ):
-        """Business event logging"""
-        business_data = {
-            "event_type": event_type,
-            **({"entity_type": entity_type} if entity_type else {}),
-            **({"entity_id": entity_id} if entity_id else {}),
-            **({"amount": amount} if amount is not None else {}),
-            **({"currency": currency} if currency else {}),
-        }
-
-        log_entry = self._create_log_entry(
-            LogLevel.INFO,
-            message,
-            LogCategory.BUSINESS,
-            fields,
-            business_data=business_data,
-        )
-        self.logger.info(log_entry.to_json())
-
-    def audit(
-        self,
-        message: str,
-        action: str,
-        resource: str,
-        user_id: str | None = None,
-        success: bool = True,
-        fields: builtins.dict[str, Any] | None = None,
-    ):
-        """Audit logging"""
-        audit_fields = {
-            "action": action,
-            "resource": resource,
-            "success": success,
-            **({"user_id": user_id} if user_id else {}),
-            **(fields or {}),
-        }
-
-        log_entry = self._create_log_entry(LogLevel.INFO, message, LogCategory.AUDIT, audit_fields)
-        self.logger.info(log_entry.to_json())
-
-    def access(
-        self,
-        message: str,
-        method: str,
-        path: str,
-        status_code: int,
-        duration_ms: float,
-        user_id: str | None = None,
-        source_ip: str | None = None,
-        user_agent: str | None = None,
-    ):
-        """Access logging"""
-        access_fields = {
-            "http_method": method,
-            "http_path": path,
-            "http_status": status_code,
-            "response_time_ms": duration_ms,
-            **({"user_id": user_id} if user_id else {}),
-            **({"source_ip": source_ip} if source_ip else {}),
-            **({"user_agent": user_agent} if user_agent else {}),
-        }
-
-        log_entry = self._create_log_entry(
-            LogLevel.INFO, message, LogCategory.ACCESS, access_fields
-        )
-        self.logger.info(log_entry.to_json())
-
-
-class JsonFormatter(logging.Formatter):
-    """JSON formatter for structured logging"""
-
-    def __init__(self, structured_logger: StructuredLogger):
-        super().__init__()
-        self.structured_logger = structured_logger
-
-    def format(self, record):
-        # The record message should already be JSON from StructuredLogger
-        return record.getMessage()
-
-
-class LoggingMiddleware(BaseHTTPMiddleware):
-    """FastAPI middleware for request/response logging"""
-
-    def __init__(self, app, logger: StructuredLogger):
-        super().__init__(app)
-        self.logger = logger
-
-    async def dispatch(self, request: Request, call_next):
-        # Generate request ID
-        request_id = str(uuid.uuid4())
-        start_time = time.time()
-
-        # Extract user information if available
-        user_id = getattr(request.state, "user_id", None)
-
-        # Create context for this request
-        with self.logger.context(
-            request_id=request_id,
-            user_id=user_id,
-            custom_fields={
-                "request_method": request.method,
-                "request_path": str(request.url.path),
-                "request_query": str(request.url.query) if request.url.query else None,
-            },
-        ):
-            # Log request
-            self.logger.access(
-                f"Request started: {request.method} {request.url.path}",
-                method=request.method,
-                path=str(request.url.path),
-                status_code=0,  # Not yet available
-                duration_ms=0,  # Not yet available
-                source_ip=request.client.host if request.client else None,
-                user_agent=request.headers.get("user-agent"),
+        # Choose formatter
+        if self.enable_json_logging:
+            formatter = UnifiedJSONFormatter(
+                include_trace=self.enable_trace_context, include_correlation=self.enable_correlation
             )
+        else:
+            format_string = TRACE_LOG_FORMAT if self.enable_trace_context else DEFAULT_LOG_FORMAT
+            formatter = logging.Formatter(format_string)
 
-            try:
-                # Process request
-                response = await call_next(request)
+        console_handler.setFormatter(formatter)
 
-                # Calculate duration
-                duration_ms = (time.time() - start_time) * 1000
+        # Add filters
+        console_handler.addFilter(ServiceNameFilter(self.service_name))
 
-                # Log response
-                self.logger.access(
-                    f"Request completed: {request.method} {request.url.path} -> {response.status_code}",
-                    method=request.method,
-                    path=str(request.url.path),
-                    status_code=response.status_code,
-                    duration_ms=duration_ms,
-                    user_id=user_id,
-                    source_ip=request.client.host if request.client else None,
-                    user_agent=request.headers.get("user-agent"),
-                )
+        if self.enable_trace_context:
+            console_handler.addFilter(TraceContextFilter())
 
-                return response
+        if self.enable_correlation:
+            self.correlation_filter = CorrelationFilter(correlation_id)
+            console_handler.addFilter(self.correlation_filter)
 
-            except Exception as e:
-                # Calculate duration
-                duration_ms = (time.time() - start_time) * 1000
+        self._logger.addHandler(console_handler)
 
-                # Log error
-                self.logger.error(
-                    f"Request failed: {request.method} {request.url.path}",
-                    error=e,
-                    fields={
-                        "request_method": request.method,
-                        "request_path": str(request.url.path),
-                        "duration_ms": duration_ms,
-                    },
-                )
+    def update_correlation_id(self, correlation_id: str) -> None:
+        """Update the correlation ID for this logger."""
+        if self.enable_correlation and hasattr(self, "correlation_filter"):
+            self.correlation_filter.update_correlation_id(correlation_id)
 
-                raise
+    def debug(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        """Log debug message with service context."""
+        self._log_with_context(logging.DEBUG, msg, args, kwargs)
+
+    def info(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        """Log info message with service context."""
+        self._log_with_context(logging.INFO, msg, args, kwargs)
+
+    def warning(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        """Log warning message with service context."""
+        self._log_with_context(logging.WARNING, msg, args, kwargs)
+
+    def error(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        """Log error message with service context."""
+        self._log_with_context(logging.ERROR, msg, args, kwargs)
+
+    def critical(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        """Log critical message with service context."""
+        self._log_with_context(logging.CRITICAL, msg, args, kwargs)
+
+    def exception(self, msg: str, *args: Any, **kwargs: Any) -> None:
+        """Log exception with service context and stack trace."""
+        kwargs.setdefault("exc_info", True)
+        self.error(msg, *args, **kwargs)
+
+    def _log_with_context(
+        self, level: int, msg: str, args: tuple[Any, ...], kwargs: dict[str, Any]
+    ) -> None:
+        """Log message with service context."""
+        # Add service context to extra fields
+        extra = kwargs.setdefault("extra", {})
+        extra.update(self._service_context)
+
+        self._logger.log(level, msg, *args, **kwargs)
+
+    # Service lifecycle logging methods (ported from Marty)
+    def log_service_startup(self, additional_info: dict[str, Any] | None = None) -> None:
+        """Log standardized service startup message."""
+        info = {"status": "starting", **self._service_context}
+        if additional_info:
+            info.update(additional_info)
+
+        self.info("Service starting up", extra=info)
+
+    def log_service_ready(
+        self,
+        port: int | None = None,
+        additional_info: dict[str, Any] | None = None,
+    ) -> None:
+        """Log standardized service ready message."""
+        info = {"status": "ready", **self._service_context}
+        if port:
+            info["port"] = port
+        if additional_info:
+            info.update(additional_info)
+
+        self.info("Service ready", extra=info)
+
+    def log_service_shutdown(self, reason: str | None = None) -> None:
+        """Log standardized service shutdown message."""
+        info = {"status": "shutting_down", **self._service_context}
+        if reason:
+            info["reason"] = reason
+
+        self.info("Service shutting down", extra=info)
+
+    def log_request_start(self, request_id: str, operation: str, **context: Any) -> None:
+        """Log start of request processing."""
+        info = {
+            "request_id": request_id,
+            "operation": operation,
+            "phase": "start",
+            **self._service_context,
+            **context,
+        }
+        self.info("Request started", extra=info)
+
+    def log_request_end(
+        self, request_id: str, operation: str, duration: float, success: bool = True, **context: Any
+    ) -> None:
+        """Log end of request processing."""
+        info = {
+            "request_id": request_id,
+            "operation": operation,
+            "phase": "end",
+            "duration": duration,
+            "success": success,
+            **self._service_context,
+            **context,
+        }
+        if success:
+            self.info("Request completed", extra=info)
+        else:
+            self.error("Request failed", extra=info)
+
+    def log_performance_metric(
+        self, metric_name: str, value: float, unit: str = "ms", **context: Any
+    ) -> None:
+        """Log performance metric."""
+        info = {
+            "metric_name": metric_name,
+            "value": value,
+            "unit": unit,
+            "metric_type": "performance",
+            **self._service_context,
+            **context,
+        }
+        self.info("Performance metric", extra=info)
+
+    def log_business_event(self, event_type: str, **context: Any) -> None:
+        """Log business event."""
+        info = {
+            "event_type": event_type,
+            "event_category": "business",
+            **self._service_context,
+            **context,
+        }
+        self.info("Business event", extra=info)
+
+    def log_security_event(self, event_type: str, severity: str = "info", **context: Any) -> None:
+        """Log security event."""
+        info = {
+            "event_type": event_type,
+            "event_category": "security",
+            "severity": severity,
+            **self._service_context,
+            **context,
+        }
+
+        # Use appropriate log level based on severity
+        if severity == "critical":
+            self.critical("Security event", extra=info)
+        elif severity == "error":
+            self.error("Security event", extra=info)
+        elif severity == "warning":
+            self.warning("Security event", extra=info)
+        else:
+            self.info("Security event", extra=info)
 
 
-@contextmanager
-def performance_logger(logger: StructuredLogger, operation: str, **fields):
-    """Context manager for performance logging"""
-    start_time = time.time()
+def get_unified_logger(
+    service_name: str, module_name: str | None = None, **kwargs: Any
+) -> UnifiedServiceLogger:
+    """
+    Get a unified service logger instance.
 
-    logger.debug(f"Starting operation: {operation}", fields=fields)
-
-    try:
-        yield
-        duration_ms = (time.time() - start_time) * 1000
-        logger.performance(
-            f"Operation completed: {operation}",
-            operation=operation,
-            duration_ms=duration_ms,
-            fields=fields,
-        )
-    except Exception as e:
-        duration_ms = (time.time() - start_time) * 1000
-        logger.error(
-            f"Operation failed: {operation}",
-            error=e,
-            fields={**fields, "duration_ms": duration_ms},
-        )
-        raise
+    This is the main entry point for getting a standardized logger
+    that works across all MMF services.
+    """
+    return UnifiedServiceLogger(service_name, module_name, **kwargs)
 
 
-# Factory functions
-def create_structured_logger(
+def setup_unified_logging(
     service_name: str,
-    environment: str = "production",
-    log_level: LogLevel = LogLevel.INFO,
-    **kwargs,
-) -> StructuredLogger:
-    """Create a structured logger with default configuration"""
-    return StructuredLogger(
-        name=service_name,
-        service_name=service_name,
-        environment=environment,
-        log_level=log_level,
-        **kwargs,
+    log_level: str = DEFAULT_LOG_LEVEL,
+    enable_json: bool = True,
+    enable_trace: bool = True,
+    enable_correlation: bool = True,
+) -> UnifiedServiceLogger:
+    """
+    Set up unified logging for a service.
+
+    This function should be called early in service startup to establish
+    consistent logging across the service.
+    """
+    # Optionally configure based on environment variables
+    log_level = os.getenv("LOG_LEVEL", log_level)
+    enable_json = os.getenv("LOG_FORMAT", "json" if enable_json else "text") == "json"
+    enable_trace = os.getenv("ENABLE_TRACE_LOGGING", str(enable_trace)).lower() == "true"
+    enable_correlation = (
+        os.getenv("ENABLE_CORRELATION_LOGGING", str(enable_correlation)).lower() == "true"
     )
 
-
-def setup_fastapi_logging(app, service_name: str, **logger_kwargs) -> StructuredLogger:
-    """Setup FastAPI with structured logging middleware"""
-    logger = create_structured_logger(service_name, **logger_kwargs)
-    app.add_middleware(LoggingMiddleware, logger=logger)
-    return logger
+    return UnifiedServiceLogger(
+        service_name=service_name,
+        log_level=log_level,
+        enable_json_logging=enable_json,
+        enable_trace_context=enable_trace,
+        enable_correlation=enable_correlation,
+    )

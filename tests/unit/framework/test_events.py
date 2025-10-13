@@ -8,7 +8,8 @@ import asyncio
 from unittest.mock import patch
 
 import pytest
-from src.framework.events import Event, EventBus, EventHandler
+
+from framework.events import Event, EventBus, EventHandler
 
 
 # Mock EventSubscription for testing since it doesn't exist yet

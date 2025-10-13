@@ -20,8 +20,9 @@ from typing import Any, Dict, List, Optional, Set, dict, list
 import uvicorn
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from src.framework.config_factory import create_service_config
-from src.framework.discovery import (
+
+from framework.config_factory import create_service_config
+from framework.discovery import (
     ConsulServiceRegistry,
     DiscoveryManagerConfig,
     EtcdServiceRegistry,
@@ -35,9 +36,9 @@ from src.framework.discovery import (
     ServiceQuery,
     ServiceRegistry,
 )
-from src.framework.discovery.monitoring import DiscoveryMetrics, MetricsCollector
-from src.framework.health import HealthChecker
-from src.framework.logging import UnifiedServiceLogger
+from framework.discovery.monitoring import DiscoveryMetrics, MetricsCollector
+from framework.health import HealthChecker
+from framework.logging import UnifiedServiceLogger
 
 logger = UnifiedServiceLogger(__name__)
 

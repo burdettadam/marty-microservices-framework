@@ -8,8 +8,9 @@ import asyncio
 import json
 
 import pytest
-from src.framework.events import Event
-from src.framework.messaging import Message
+
+from framework.events import Event
+from framework.messaging import Message
 
 
 @pytest.mark.integration

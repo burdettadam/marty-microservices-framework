@@ -58,7 +58,7 @@ class ServiceGenerator:
             **options: Additional template variables including service mesh options
         """
         # Validate service type
-        valid_types = ["grpc", "fastapi", "hybrid", "minimal"]
+        valid_types = ["fastapi", "simple-fastapi", "api-gateway", "service-discovery", "config-service"]
         if service_type not in valid_types:
             raise ValueError(f"Service type must be one of: {valid_types}")
 
@@ -66,32 +66,44 @@ class ServiceGenerator:
         template_vars = self._prepare_template_vars(service_name, **options)
 
         # Determine template directory
-        if service_type == "grpc":
-            template_subdir = "service/grpc_service"
-        elif service_type == "fastapi":
-            template_subdir = "service/fastapi_service"
-        elif service_type == "hybrid":
-            template_subdir = "service/hybrid_service"
-        else:  # minimal
-            template_subdir = "service/minimal_service"
+        if service_type == "fastapi":
+            template_subdir = "fastapi-service"
+        elif service_type == "simple-fastapi":
+            template_subdir = "simple-fastapi-service"
+        elif service_type == "api-gateway":
+            template_subdir = "api-gateway-service"
+        elif service_type == "service-discovery":
+            template_subdir = "service-discovery"
+        else:  # config-service
+            template_subdir = "config-service"
 
         # Generate service files
         self._generate_from_template_dir(template_subdir, template_vars)
 
-        # Generate Kubernetes manifests
-        self._generate_k8s_manifests(template_vars)
+        # Generate Kubernetes manifests (skip for simple templates)
+        if service_type != "simple-fastapi":
+            self._generate_k8s_manifests(template_vars)
 
         print(f"✅ Generated {service_type} service: {service_name}")
         print(f"📁 Location: {self.output_dir / template_vars['service_package']}")
-        print("🚀 To get started:")
-        print("   1. Review and customize the generated configuration")
-        print("   2. Add any new dependencies with: uv add <package-name>")
-        print("   3. Implement your business logic in the service class")
-        print("   4. Add your API endpoints or gRPC methods")
-        print(f"   5. Run tests: uv run pytest src/{template_vars['service_package']}/tests/")
-        print(
-            f"   6. Build Docker image: docker build -f src/{template_vars['service_package']}/Dockerfile ."
-        )
+
+        if service_type == "simple-fastapi":
+            print("🚀 Simple FastAPI Service - Quick Start:")
+            print("   1. cd to the service directory")
+            print("   2. Install dependencies: pip install -r requirements.txt")
+            print("   3. Run the service: python main.py")
+            print("   4. Test health: curl http://localhost:8000/health")
+            print("   5. View docs: http://localhost:8000/docs")
+        else:
+            print("🚀 To get started:")
+            print("   1. Review and customize the generated configuration")
+            print("   2. Add any new dependencies with: uv add <package-name>")
+            print("   3. Implement your business logic in the service class")
+            print("   4. Add your API endpoints or gRPC methods")
+            print(f"   5. Run tests: uv run pytest {template_vars['service_package']}/tests/")
+            print(
+                f"   6. Build Docker image: docker build -f {template_vars['service_package']}/Dockerfile ."
+            )
 
         # Add service mesh deployment instructions
         if template_vars.get("service_mesh_enabled", False):
@@ -181,12 +193,13 @@ class ServiceGenerator:
         service_dir = self.output_dir / template_vars["service_package"]
         service_dir.mkdir(parents=True, exist_ok=True)
 
-        # Create subdirectories
-        (service_dir / "app").mkdir(exist_ok=True)
-        (service_dir / "app" / "api").mkdir(exist_ok=True)
-        (service_dir / "app" / "core").mkdir(exist_ok=True)
-        (service_dir / "app" / "services").mkdir(exist_ok=True)
-        (service_dir / "tests").mkdir(exist_ok=True)
+        # Create subdirectories (skip complex structure for simple templates)
+        if template_subdir != "simple-fastapi-service":
+            (service_dir / "app").mkdir(exist_ok=True)
+            (service_dir / "app" / "api").mkdir(exist_ok=True)
+            (service_dir / "app" / "core").mkdir(exist_ok=True)
+            (service_dir / "app" / "services").mkdir(exist_ok=True)
+            (service_dir / "tests").mkdir(exist_ok=True)
 
         # Generate files from templates
         for template_file in template_dir.glob("*.j2"):
@@ -346,7 +359,7 @@ Service Mesh:
 
     parser.add_argument(
         "service_type",
-        choices=["grpc", "fastapi", "hybrid", "minimal"],
+        choices=["grpc", "fastapi", "hybrid", "minimal", "simple-fastapi"],
         help="Type of service to generate",
     )
 
@@ -400,12 +413,12 @@ Service Mesh:
     # Determine directories
     script_dir = Path(__file__).parent
     templates_root = script_dir.parent
-    templates_dir = templates_root
-    output_dir = args.output_dir or (Path.cwd() / "src")
+    templates_dir = templates_root / "templates"
+    output_dir = args.output_dir or Path.cwd()
 
     # Validate inputs
-    if not (templates_dir / "service").exists():
-        print(f"Error: Service templates directory not found: {templates_dir / 'service'}")
+    if not templates_dir.exists():
+        print(f"Error: Templates directory not found: {templates_dir}")
         sys.exit(1)
 
     # Validate service name

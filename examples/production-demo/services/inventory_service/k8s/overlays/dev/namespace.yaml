@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: inventory-service-dev
+  labels:
+    environment: dev
+    app.kubernetes.io/name: inventory-service

@@ -1,0 +1,17 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: payment-service
+  labels:
+    app.kubernetes.io/name: payment-service
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: payment-service
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: payment-service
+  # Ensure at least 1 pod is available during disruptions
+  minAvailable: 1
+  # Alternative: maxUnavailable: 50%
+  # Use minAvailable for services that need guaranteed availability
+  # Use maxUnavailable for services that can tolerate more disruption

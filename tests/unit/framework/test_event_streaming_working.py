@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from typing import Any
 
 import pytest
-from src.framework.event_streaming import (
+
+from framework.event_streaming import (
     AggregateRoot,
     Command,
     CommandBus,

@@ -163,7 +163,7 @@ class TestObservabilityValidation:
     def test_metrics_collection_components(self):
         """Test metrics collection components."""
         try:
-            from src.framework.monitoring.core import MetricsCollector
+            from framework.monitoring.core import MetricsCollector
 
             # Basic instantiation test
             collector = MetricsCollector()
@@ -179,7 +179,7 @@ class TestObservabilityValidation:
     def test_logging_configuration(self):
         """Test logging configuration validation."""
         try:
-            from src.framework.logging import UnifiedServiceLogger
+            from framework.logging import UnifiedServiceLogger
 
             # Test logger instantiation
             logger = UnifiedServiceLogger("test-service")

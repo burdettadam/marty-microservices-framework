@@ -11,25 +11,25 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from src.framework.resilience.bulkhead import (
+from framework.resilience.bulkhead import (
     BulkheadConfig,
     SemaphoreBulkhead,
     ThreadPoolBulkhead,
 )
-from src.framework.resilience.circuit_breaker import (
+from framework.resilience.circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerError,
     CircuitBreakerState,
 )
-from src.framework.resilience.retry import (
+from framework.resilience.retry import (
     ExponentialBackoff,
     RetryConfig,
     RetryError,
     RetryManager,
     RetryStrategy,
 )
-from src.framework.resilience.timeout import (
+from framework.resilience.timeout import (
     ResilienceTimeoutError,
     TimeoutConfig,
     TimeoutManager,

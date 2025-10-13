@@ -11,7 +11,7 @@ import pytest
 def test_import_event_types():
     """Test that event types can be imported."""
     try:
-        from src.framework.events.types import EventPriority
+        from framework.events.types import EventPriority
 
         assert issubclass(EventPriority, Enum)
         print("✓ EventPriority imported successfully")
@@ -22,7 +22,7 @@ def test_import_event_types():
 def test_event_priority_enum():
     """Test EventPriority enum values."""
     try:
-        from src.framework.events.types import EventPriority
+        from framework.events.types import EventPriority
 
         # Test enum members exist
         assert hasattr(EventPriority, "LOW")
@@ -45,7 +45,7 @@ def test_event_priority_enum():
 def test_event_priority_iteration():
     """Test that event priorities can be iterated."""
     try:
-        from src.framework.events.types import EventPriority
+        from framework.events.types import EventPriority
 
         priorities = list(EventPriority)
         assert len(priorities) == 4
@@ -65,7 +65,7 @@ def test_event_priority_iteration():
 def test_event_models():
     """Test basic event model imports."""
     try:
-        from src.framework.events.types import Event, EventMetadata
+        from framework.events.types import Event, EventMetadata
 
         # Test classes exist
         assert Event is not None
@@ -83,7 +83,7 @@ def test_event_data_creation():
         import uuid
         from datetime import datetime, timezone
 
-        from src.framework.events.types import Event, EventPriority
+        from framework.events.types import Event, EventPriority
 
         # Create basic event
         event_data = {
@@ -112,7 +112,7 @@ def test_event_data_creation():
 def test_event_validation():
     """Test event validation and constraints."""
     try:
-        from src.framework.events.types import EventPriority
+        from framework.events.types import EventPriority
 
         # Test priority values
         assert EventPriority.CRITICAL != EventPriority.LOW

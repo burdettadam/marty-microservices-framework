@@ -1,276 +1,125 @@
-# Observability Infrastructure
+# Marty Microservices Framework - Observability
 
-This directory contains comprehensive observability infrastructure for the Marty Microservices Framework, providing enterprise-grade monitoring, event streaming, and performance analysis capabilities.
+This document describes how to use the unified observability features in the Marty Microservices Framework.
 
 ## Overview
 
-The observability stack includes:
-
-- **Kafka Event Streaming**: Enterprise event bus for microservice communication
-- **Prometheus Monitoring**: Metrics collection and alerting
-- **Grafana Dashboards**: Visualization and business intelligence
-- **Load Testing**: Performance analysis and capacity planning
-- **Distributed Tracing**: Request flow visibility
-- **Log Aggregation**: Centralized logging with Loki
+The framework provides unified metrics and tracing setup to eliminate per-service duplication. All services can use the same observability infrastructure with automatic HTTP/gRPC request metrics, custom application metrics, and distributed tracing.
 
 ## Quick Start
 
-### 1. Start the Observability Stack
-
-```bash
-# Start Kafka infrastructure
-docker-compose -f observability/kafka/docker-compose.kafka.yml up -d
-
-# Start monitoring stack
-docker-compose -f observability/monitoring/docker-compose.monitoring.yml up -d
-```
-
-### 2. Access Dashboards
-
-- **Grafana**: http://localhost:3000 (admin/admin123)
-- **Prometheus**: http://localhost:9090
-- **Kafka UI**: http://localhost:8080
-- **Jaeger**: http://localhost:16686
-
-### 3. Integrate with Your Service
+### Basic Service Initialization
 
 ```python
-from observability.kafka import EventBus, KafkaConfig
-from observability.metrics import MetricsCollector, MetricsConfig
+from marty_microservices_framework import init_observability
 
-# Setup metrics
-metrics_config = MetricsConfig(
-    service_name="my-service",
-    service_version="1.0.0"
-)
-metrics = MetricsCollector(metrics_config)
+# Initialize all observability components
+monitor = init_observability("my-service")
 
-# Setup event bus
-kafka_config = KafkaConfig(
-    bootstrap_servers=["localhost:9092"],
-    consumer_group_id="my-service"
-)
-event_bus = EventBus(kafka_config, "my-service")
+# Your service code here...
+
+# Cleanup on shutdown
+monitor.stop_monitoring()
 ```
 
-## Components
-
-### 📊 Kafka Event Streaming (`kafka/`)
-
-Enterprise-grade event streaming infrastructure with:
-
-- **Event Bus**: Async publishing and consumption with aiokafka
-- **Standard Event Format**: Correlation IDs and structured messages
-- **Topic Patterns**: Service and domain event organization
-- **Monitoring**: Kafka metrics and consumer lag tracking
-
-**Key Features:**
-- Automatic retries and error handling
-- Dead letter queue support
-- Distributed tracing integration
-- Performance monitoring
-
-[📖 Kafka Documentation](kafka/README.md)
-
-### 📈 Monitoring Stack (`monitoring/`)
-
-Comprehensive monitoring with Prometheus, Grafana, and Alertmanager:
-
-- **Prometheus**: Metrics collection from all services
-- **Grafana**: Rich dashboards for service and business metrics
-- **Alertmanager**: Smart alerting with team routing
-- **Alert Rules**: Pre-configured alerts for common issues
-
-**Included Dashboards:**
-- Microservice Detail (gRPC metrics, latency, errors)
-- Platform Overview (system health, resource usage)
-- Business Metrics (transaction volume, success rates)
-- Kafka Monitoring (throughput, consumer lag)
-
-[📖 Monitoring Documentation](monitoring/README.md)
-
-### 🎯 Metrics Collection (`metrics/`)
-
-Standardized metrics collection for microservices:
-
-- **gRPC Metrics**: Request rates, latency percentiles, error rates
-- **Business Metrics**: Transaction tracking, success rates
-- **System Metrics**: Database connections, cache hit rates
-- **Custom Metrics**: Easy creation of service-specific metrics
-
-**Example Usage:**
-```python
-# Automatic gRPC metrics
-@grpc_metrics_decorator(metrics_collector)
-async def get_user(request):
-    return user_service.get_user(request.user_id)
-
-# Business transaction tracking
-@business_metrics_decorator(metrics_collector, "user_creation")
-async def create_user(user_data):
-    return await user_repository.create(user_data)
-```
-
-### ⚡ Load Testing (`load_testing/`)
-
-Performance testing and capacity planning:
-
-- **gRPC Load Testing**: Service-specific performance testing
-- **HTTP Load Testing**: REST API performance validation
-- **Real-time Monitoring**: Live performance metrics during tests
-- **Comprehensive Reporting**: Detailed performance analysis
-
-**Example Load Test:**
-```python
-config = LoadTestConfig(
-    target_host="localhost",
-    target_port=50051,
-    concurrent_users=50,
-    test_duration_seconds=300,
-    protocol="grpc"
-)
-
-runner = LoadTestRunner()
-report = await runner.run_load_test(config)
-```
-
-## Integration Patterns
-
-### Service Template Integration
-
-Each microservice template includes observability by default:
+### Using Custom Metrics
 
 ```python
-# In your service initialization
-from observability import setup_observability
+from marty_microservices_framework import get_framework_metrics
 
-async def main():
-    # Setup observability stack
-    metrics, event_bus, tracer = await setup_observability(
-        service_name="user-service",
-        service_version="1.2.0"
-    )
+# Get framework metrics instance
+metrics = get_framework_metrics("my-service")
 
-    # Start your service with observability
-    server = create_grpc_server(metrics, event_bus)
-    await server.start()
+# Record document processing
+metrics.record_document_processed("passport", "success")
+
+# Record processing time
+metrics.record_processing_time("passport", 0.5)
+
+# Set gauge values
+metrics.set_active_connections(10)
+metrics.set_queue_size("processing_queue", 5)
 ```
 
-### Event-Driven Architecture
+### HTTP/gRPC Metrics Middleware
+
+#### FastAPI Services
 
 ```python
-# Publishing domain events
-await publish_domain_event(
-    event_bus,
-    domain="user",
-    event_type="user.created",
-    data={"user_id": user.id, "email": user.email},
-    correlation_id=context.correlation_id
-)
+from fastapi import FastAPI
+from marty_microservices_framework import create_fastapi_metrics_middleware
 
-# Consuming events with metrics
-@event_handler("user.events")
-async def handle_user_event(event: EventMessage):
-    metrics.record_business_transaction(
-        transaction_type="user_notification",
-        duration=0.1,
-        status="success"
-    )
+app = FastAPI()
+app.middleware("http")(create_fastapi_metrics_middleware("my-service"))
 ```
 
-### Performance Monitoring
+#### gRPC Services
 
 ```python
-# Custom business metrics
-revenue_counter = metrics.create_custom_counter(
-    name="revenue_total",
-    description="Total revenue processed",
-    labels=["currency", "region"]
-)
+from marty_microservices_framework import create_grpc_metrics_interceptor
 
-# Track critical operations
-with metrics.time_operation("database_query"):
-    results = await database.execute_query(sql)
+# Add to your gRPC server interceptors
+interceptor = create_grpc_metrics_interceptor("my-service")
+server = grpc.aio.server(interceptors=[interceptor])
 ```
 
-## Alerting Strategy
+### Manual Tracing
 
-### Alert Severities
+```python
+from marty_microservices_framework import traced_operation, trace_function
 
-- **Critical**: Service down, very high error rates (>20%), critical latency (>3s)
-- **Warning**: High error rates (>5%), high latency (>1s), resource exhaustion
-- **Info**: Unusual patterns, capacity planning alerts
+# Context manager for operations
+with traced_operation("database_query", table="users") as span:
+    span.set_attribute("query_type", "select")
+    # Your database code here
 
-### Team Routing
+# Decorator for functions
+@trace_function("my_operation")
+def my_function():
+    pass
+```
 
-- **Platform Team**: Infrastructure and service health alerts
-- **Business Team**: Transaction volume and success rate alerts
-- **On-Call**: Critical alerts requiring immediate response
+## Metrics Available
 
-### Runbooks
+### Automatic Request Metrics
 
-Each alert includes runbook links for resolution guidance:
-- Service down: Restart procedures, health checks
-- High error rates: Log analysis, recent deployment checks
-- High latency: Performance profiling, resource scaling
+- `mmf_requests_total`: Total requests (counter)
+- `mmf_request_duration_seconds`: Request duration (histogram)
+- `mmf_errors_total`: Total errors (counter)
 
-## Performance Benchmarks
+### Custom Application Metrics
 
-### Target SLOs
+- `mmf_documents_processed_total`: Documents processed (counter)
+- `mmf_processing_duration_seconds`: Processing time (histogram)
+- `mmf_active_connections`: Active connections (gauge)
+- `mmf_queue_size`: Queue sizes (gauge)
 
-- **Availability**: 99.9% uptime
-- **Latency**: P95 < 500ms, P99 < 1000ms
-- **Error Rate**: < 1% for business operations
-- **Throughput**: 1000+ RPS per service instance
+### System Metrics
 
-### Load Testing Scenarios
+- CPU, memory, disk, and network usage metrics
 
-- **Normal Load**: 10 concurrent users, 100 RPS
-- **Peak Load**: 50 concurrent users, 500 RPS
-- **Stress Test**: 100+ concurrent users, 1000+ RPS
-- **Endurance**: Extended duration tests (1+ hours)
+## Configuration
 
-## Troubleshooting
+Observability is configured via environment variables:
 
-### Common Issues
+### Tracing (OpenTelemetry)
 
-1. **High Memory Usage**: Check for memory leaks, adjust container limits
-2. **Database Connection Exhaustion**: Review connection pooling configuration
-3. **Kafka Consumer Lag**: Scale consumer instances, optimize processing
-4. **Alert Fatigue**: Review alert thresholds, implement alert correlation
+- `OTEL_TRACING_ENABLED`: Enable/disable tracing (default: false)
+- `OTEL_SERVICE_NAME`: Service name
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: OTLP endpoint (default: localhost:4317)
+- `OTEL_CONSOLE_EXPORT`: Enable console export (default: false)
 
-### Debug Workflows
+### Metrics
 
-1. **Performance Issues**:
-   - Check Grafana dashboards for anomalies
-   - Run targeted load tests
-   - Review trace data in Jaeger
+Metrics use Prometheus client library. No additional configuration needed - metrics are automatically registered.
 
-2. **Integration Issues**:
-   - Verify Kafka connectivity
-   - Check service discovery and registration
-   - Review correlation IDs in logs
+## Migration from Per-Service Setup
 
-3. **Capacity Planning**:
-   - Analyze historical trends
-   - Run load tests with projected traffic
-   - Review resource utilization patterns
+To migrate from per-service metrics:
 
-## Security Considerations
+1. Remove custom Prometheus setup code
+2. Replace with `init_observability()` call
+3. Use `get_framework_metrics()` for custom metrics
+4. Add metrics middleware to HTTP/gRPC servers
 
-- **Metrics**: No sensitive data in metric labels
-- **Events**: PII tokenization in event payloads
-- **Monitoring**: Access controls for dashboards and metrics
-- **Alerting**: Secure webhook endpoints and notification channels
-
-## Contributing
-
-When adding new observability features:
-
-1. Follow the established patterns for metrics and events
-2. Add appropriate dashboards and alerts
-3. Include load testing scenarios
-4. Update documentation with examples
-5. Add integration tests for observability components
-
-For detailed implementation guides, see the component-specific documentation in each subdirectory.
+The framework handles all the heavy lifting for metrics collection and tracing setup.

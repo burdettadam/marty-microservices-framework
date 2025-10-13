@@ -8,7 +8,7 @@ import os
 import sys
 
 # Test that our files exist and have the expected structure
-base_path = "src/framework/integration/external_connectors"
+base_path = "framework/integration/external_connectors"
 
 print("🔍 Validating decomposed external_connectors structure...")
 print("=" * 60)

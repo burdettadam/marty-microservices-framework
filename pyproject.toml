@@ -39,10 +39,15 @@ dependencies = [
     "aiohttp>=3.13.0",
     "aiofiles>=24.1.0",
     "pydantic-settings>=2.11.0",
+    "psutil>=7.1.0",
+    "pyjwt>=2.10.1",
+    "cryptography>=46.0.2",
+    "bcrypt>=5.0.0",
+    "passlib>=1.7.4",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/framework", "security", "observability"]
+packages = ["framework", "security", "observability"]
 
 # Optional dependency groups
 [project.optional-dependencies]
@@ -174,6 +179,7 @@ dev = [
     "build>=1.3.0",
     "twine>=6.2.0",
     "radon>=6.0.1",
+    "marty-msf[cli,microservices,observability]",
 ]
 
 # Ruff configuration
@@ -188,6 +194,7 @@ exclude = [
     "__pycache__",
     "templates/",
     "microservice_project_template/",
+    "examples/",
 ]
 
 [tool.ruff.lint]
@@ -224,30 +231,31 @@ select = [
 [tool.ruff.lint.per-file-ignores]
 # FastAPI dependency injection patterns legitimately use Depends() in defaults
 "examples/security_example.py" = ["B008"]
-"src/framework/audit/examples.py" = ["B008"]
+"framework/audit/examples.py" = ["B008"]
 # Gateway __init__.py has structural issues with multiple __all__ declarations - needs separate cleanup
-"src/framework/gateway/__init__.py" = ["F401"]
+"framework/gateway/__init__.py" = ["F401"]
 # Messaging __init__.py also has structural issues with multiple __all__ declarations - needs separate cleanup
-"src/framework/messaging/__init__.py" = ["F401"]
+"framework/messaging/__init__.py" = ["F401"]
 # Validation scripts intentionally import modules for testing - imports are required
 "validate_decomposition.py" = ["F401"]
 # Queue module has duplicated import blocks and availability testing - needs structural cleanup
-"src/framework/messaging/queue.py" = ["F401"]
+"framework/messaging/queue.py" = ["F401"]
 # Optional dependency testing - imports used for availability checking
 "security/compliance/risk_management.py" = ["F401"]
 "security/monitoring.py" = ["F401"]
 "security/threat_detection/event_processor.py" = ["F401"]
 "security/threat_detection/ml_analytics.py" = ["F401"]
-"src/framework/integration/external_connectors/test_imports.py" = ["F401"]
-"src/framework/integration/external_connectors/tests/test_integration.py" = ["F401"]
-"src/framework/monitoring/examples.py" = ["F401"]
-"src/framework/observability/monitoring.py" = ["F401"]
-"src/framework/observability/unified_observability.py" = ["F401"]
+"framework/integration/external_connectors/test_imports.py" = ["F401"]
+"framework/integration/external_connectors/tests/test_integration.py" = ["F401"]
+"observability/monitoring/examples.py" = ["F401"]
+"observability/monitoring.py" = ["F401"]
+"observability/unified_observability.py" = ["F401"]
 "tests/plugins/test_integration.py" = ["F401"]
 "tests/unit/framework/test_deployment_strategies.py" = ["F401"]
 "tests/unit/framework/test_resilience_strategies.py" = ["F401"]
 
 [tool.uv.sources]
+marty-msf = { workspace = true }
 # rich = { git = "https://github.com/Textualize/rich.git" }  # Pinned to official release
 
 [tool.pytest.ini_options]

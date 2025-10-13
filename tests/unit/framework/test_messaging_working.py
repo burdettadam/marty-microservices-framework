@@ -4,7 +4,7 @@ Working messaging tests with real framework implementations.
 Tests messaging infrastructure components using actual implementations instead of mocks.
 """
 
-from src.framework.messaging.core import (
+from framework.messaging.core import (
     Message,
     MessageHeaders,
     MessagePriority,

@@ -6,7 +6,8 @@ to maximize real behavior validation and coverage.
 """
 
 import pytest
-from src.framework.event_streaming.core import (
+
+from framework.event_streaming.core import (
     DomainEvent,
     Event,
     EventHandler,
@@ -14,7 +15,7 @@ from src.framework.event_streaming.core import (
     InMemoryEventBus,
     InMemoryEventStore,
 )
-from src.framework.event_streaming.cqrs import (
+from framework.event_streaming.cqrs import (
     Command,
     CommandBus,
     CommandHandler,
@@ -26,12 +27,12 @@ from src.framework.event_streaming.cqrs import (
     QueryResult,
     ReadModelStore,
 )
-from src.framework.event_streaming.event_sourcing import (
+from framework.event_streaming.event_sourcing import (
     AggregateRepository,
     AggregateRoot,
     Snapshot,
 )
-from src.framework.event_streaming.saga import (
+from framework.event_streaming.saga import (
     CompensationAction,
     Saga,
     SagaContext,

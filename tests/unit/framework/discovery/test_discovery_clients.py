@@ -1,17 +1,18 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from src.framework.discovery.clients.hybrid import HybridDiscovery
-from src.framework.discovery.clients.server_side import ServerSideDiscovery
-from src.framework.discovery.config import CacheStrategy, DiscoveryConfig, ServiceQuery
-from src.framework.discovery.core import (
+
+from framework.discovery.clients.hybrid import HybridDiscovery
+from framework.discovery.clients.server_side import ServerSideDiscovery
+from framework.discovery.config import CacheStrategy, DiscoveryConfig, ServiceQuery
+from framework.discovery.core import (
     HealthStatus,
     ServiceEndpoint,
     ServiceInstance,
     ServiceInstanceType,
     ServiceMetadata,
 )
-from src.framework.discovery.results import DiscoveryResult
+from framework.discovery.results import DiscoveryResult
 
 
 def _make_instance(

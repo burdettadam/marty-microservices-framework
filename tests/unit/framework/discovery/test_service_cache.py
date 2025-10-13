@@ -1,9 +1,10 @@
 import asyncio
 
 import pytest
-from src.framework.discovery.cache import ServiceCache
-from src.framework.discovery.config import CacheStrategy, DiscoveryConfig, ServiceQuery
-from src.framework.discovery.core import (
+
+from framework.discovery.cache import ServiceCache
+from framework.discovery.config import CacheStrategy, DiscoveryConfig, ServiceQuery
+from framework.discovery.core import (
     HealthStatus,
     ServiceEndpoint,
     ServiceInstance,

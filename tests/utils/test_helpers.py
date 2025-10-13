@@ -16,12 +16,13 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import redis
-from src.framework.config import FrameworkConfig
-from src.framework.database import DatabaseConnection
-from src.framework.events import Event, EventBus
-from src.framework.messaging import Message, MessageBus
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
+
+from framework.config import FrameworkConfig
+from framework.database import DatabaseConnection
+from framework.events import Event, EventBus
+from framework.messaging import Message, MessageBus
 
 
 class TestServiceManager:

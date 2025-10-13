@@ -1,17 +1,24 @@
 """
-Metrics collection infrastructure
+Framework metrics module.
+
+This module provides a convenient interface to the framework's metrics collection
+capabilities. It re-exports the main metrics classes from the observability module.
 """
 
-from .collector import (
+from ..observability.monitoring import (
+    HealthCheck,
+    HealthStatus,
+    Metric,
     MetricsCollector,
-    MetricsConfig,
-    business_metrics_decorator,
-    grpc_metrics_decorator,
+    MetricType,
+    SystemMetrics,
 )
 
 __all__ = [
     "MetricsCollector",
-    "MetricsConfig",
-    "business_metrics_decorator",
-    "grpc_metrics_decorator",
+    "Metric",
+    "MetricType",
+    "HealthCheck",
+    "HealthStatus",
+    "SystemMetrics",
 ]

@@ -1,417 +1,412 @@
-# Security Framework for Microservices
+# Enterprise Security Framework
 
-A comprehensive security framework providing enterprise-grade security capabilities for microservices applications.
+The Enterprise Security Framework provides comprehensive security capabilities for microservices, including authentication, authorization, rate limiting, and security middleware.
 
-## 🛡️ Overview
+## 🔐 Features
 
-This security framework provides a complete suite of security tools and middleware designed specifically for microservices architectures:
+### **Multi-Factor Authentication**
+- **JWT Authentication**: Secure token-based authentication with configurable expiration
+- **API Key Authentication**: Header or query parameter API key validation
+- **Mutual TLS (mTLS)**: Certificate-based authentication for high-security environments
 
-- **Authentication & Authorization**: JWT-based authentication with RBAC support
-- **Rate Limiting**: Advanced rate limiting with Redis-backed sliding window algorithm
-- **Security Headers**: Comprehensive security headers with CSP, HSTS, and more
-- **Security Scanning**: Automated vulnerability scanning and security auditing
-- **Policy Enforcement**: RBAC policies and Kubernetes security policies
-- **Secret Management**: Secure configuration and secret handling patterns
+### **Role-Based Access Control (RBAC)**
+- **Granular Permissions**: Resource-level permissions with read/write/delete/admin levels
+- **Role Inheritance**: Hierarchical role system with permission inheritance
+- **Decorators**: Simple `@require_permission` and `@require_role` decorators
+
+### **Advanced Rate Limiting**
+- **Multiple Backends**: In-memory and Redis-based rate limiting
+- **Flexible Rules**: Per-endpoint, per-user, and global rate limits
+- **Sliding Window**: Accurate rate limiting using sliding window algorithm
+
+### **Security Middleware**
+- **FastAPI Integration**: Drop-in middleware for FastAPI applications
+- **gRPC Support**: Security interceptors for gRPC services
+- **Security Headers**: Automatic security header injection
 
 ## 🚀 Quick Start
 
-### 1. Basic Security Setup
+### 1. Basic Setup
 
 ```python
-from fastapi import FastAPI
-from security import (
-    AuthenticationMiddleware,
-    RateLimitMiddleware,
-    SecurityHeadersMiddleware,
-    create_security_headers_config
+from framework.security import (
+    SecurityConfig,
+    SecurityLevel,
+    JWTConfig,
+    FastAPISecurityMiddleware,
+    require_authentication
+)
+from fastapi import FastAPI, Depends
+
+# Create security configuration
+security_config = SecurityConfig(
+    security_level=SecurityLevel.HIGH,
+    service_name="my-service",
+    jwt_config=JWTConfig(
+        secret_key="your-secret-key",
+        access_token_expire_minutes=30
+    ),
+    enable_jwt=True,
+    enable_rate_limiting=True
 )
 
+# Create FastAPI app
 app = FastAPI()
 
-# Add security middleware (order matters!)
-app.add_middleware(
-    SecurityHeadersMiddleware,
-    config=create_security_headers_config(environment="production")
-)
+# Add security middleware
+app.add_middleware(FastAPISecurityMiddleware, config=security_config)
 
-app.add_middleware(
-    RateLimitMiddleware,
+# Protected endpoint
+@app.get("/protected")
+async def protected_endpoint(user=Depends(require_authentication)):
+    return {"message": f"Hello {user.username}!"}
+```
+
+### 2. Environment-Based Configuration
+
+```python
+# Use environment variables for configuration
+security_config = SecurityConfig.from_environment("my-service")
+
+# Set environment variables:
+# JWT_SECRET_KEY=your-secret-key
+# SECURITY_LEVEL=high
+# RATE_LIMIT_ENABLED=true
+# REDIS_URL=redis://localhost:6379
+```
+
+### 3. Role-Based Authorization
+
+```python
+from framework.security import require_role_dependency, require_permission_dependency
+
+# Require specific role
+@app.get("/admin")
+async def admin_endpoint(user=Depends(require_role_dependency("admin"))):
+    return {"message": "Admin only"}
+
+# Require specific permission
+@app.get("/write-data")
+async def write_endpoint(user=Depends(require_permission_dependency("api:write"))):
+    return {"message": "Write permission required"}
+```
+
+## 📋 Configuration Options
+
+### Security Levels
+
+```python
+class SecurityLevel(Enum):
+    LOW = "low"          # Development
+    MEDIUM = "medium"    # Staging
+    HIGH = "high"        # Production
+    CRITICAL = "critical" # High-security production
+```
+
+### JWT Configuration
+
+```python
+jwt_config = JWTConfig(
+    secret_key="your-secret-key",
+    algorithm="HS256",
+    access_token_expire_minutes=30,
+    refresh_token_expire_days=7,
+    issuer="your-service",
+    audience="your-audience"
+)
+```
+
+### Rate Limiting Configuration
+
+```python
+rate_limit_config = RateLimitConfig(
+    enabled=True,
+    default_rate="100/minute",
     redis_url="redis://localhost:6379",
-    default_requests_per_hour=1000
-)
-
-app.add_middleware(
-    AuthenticationMiddleware,
-    jwt_secret_key="your-secret-key",
-    excluded_paths=["/health", "/docs"]
-)
-```
-
-### 2. Protecting Endpoints with Roles
-
-```python
-from fastapi import Depends
-from security import require_roles, get_current_user_dependency
-
-# Protect endpoint with role requirement
-@app.post("/admin/users")
-@require_roles(["admin", "user_manager"])
-async def create_user():
-    return {"message": "User created"}
-
-# Get current user in endpoint
-@app.get("/profile")
-async def get_profile(user=Depends(get_current_user_dependency(security_config))):
-    return {"user_id": user["user_id"], "roles": user["roles"]}
-```
-
-### 3. Custom Rate Limiting
-
-```python
-from security import rate_limit
-
-@app.post("/upload")
-@rate_limit(requests=5, window_seconds=300)  # 5 uploads per 5 minutes
-async def upload_file():
-    return {"message": "File uploaded"}
-```
-
-## 📦 Components
-
-### Authentication Middleware
-
-- JWT token validation and generation
-- Role-based access control (RBAC)
-- Session management
-- Security audit logging
-- Rate limiting per user
-
-```python
-from security.middleware.auth_middleware import AuthenticationMiddleware, SecurityConfig
-
-config = SecurityConfig(
-    jwt_secret_key="your-secret-key",
-    jwt_expiration_hours=24,
-    enable_audit_logging=True,
-    redis_url="redis://localhost:6379"
-)
-
-middleware = AuthenticationMiddleware(app, config)
-```
-
-### Rate Limiting Middleware
-
-- Sliding window algorithm
-- Per-user, per-IP, and per-endpoint limits
-- Redis-backed distributed rate limiting
-- Burst limit support
-- Configurable rules
-
-```python
-from security.middleware.rate_limiting import RateLimitMiddleware, RateLimitConfig, RateLimitRule
-
-config = RateLimitConfig(
-    redis_url="redis://localhost:6379",
-    default_rule=RateLimitRule(requests=1000, window_seconds=3600),
-    per_endpoint_rules={
-        "POST:/auth/login": RateLimitRule(requests=5, window_seconds=300)
+    per_endpoint_limits={
+        "/sensitive": "10/minute",
+        "/admin": "5/minute"
+    },
+    per_user_limits={
+        "admin_user": "1000/minute"
     }
 )
-
-middleware = RateLimitMiddleware(app, config)
 ```
 
-### Security Headers Middleware
+## 🔧 Authentication Methods
 
-- Content Security Policy (CSP)
-- HTTP Strict Transport Security (HSTS)
-- X-Frame-Options, X-Content-Type-Options
-- CORS configuration
-- Permissions Policy
+### JWT Authentication
 
 ```python
-from security.middleware.security_headers import SecurityHeadersMiddleware, SecurityHeadersConfig
+# Login endpoint
+@app.post("/auth/login")
+async def login(credentials: LoginCredentials):
+    # Validate credentials
+    jwt_auth = JWTAuthenticator(security_config)
+    result = await jwt_auth.authenticate({
+        "username": credentials.username,
+        "password": credentials.password
+    })
 
-config = SecurityHeadersConfig(
-    environment="production",
-    api_only=True,
-    cors_allow_origins=["https://your-frontend.com"]
-)
+    if result.success:
+        return {"access_token": result.metadata["access_token"]}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
 
-middleware = SecurityHeadersMiddleware(app, config)
+# Use JWT token
+# Authorization: Bearer <token>
 ```
 
-## 🔧 Security Tools
+### API Key Authentication
 
-### Security Scanner
+```python
+# Configure API keys
+api_key_config = APIKeyConfig(
+    header_name="X-API-Key",
+    valid_keys=["key1", "key2", "key3"]
+)
 
-Comprehensive security analysis tool:
+# Use API key
+# X-API-Key: your-api-key
+```
+
+### Mutual TLS (mTLS)
+
+```python
+# Configure mTLS
+mtls_config = MTLSConfig(
+    ca_cert_path="/path/to/ca.crt",
+    verify_client_cert=True,
+    allowed_issuers=["trusted-ca"]
+)
+
+# Client certificate automatically validated
+```
+
+## 🛡️ Authorization System
+
+### Permission System
+
+```python
+from framework.security import Permission, PermissionLevel
+
+# Define permissions
+read_permission = Permission("read", "api", PermissionLevel.READ)
+write_permission = Permission("write", "api", PermissionLevel.WRITE)
+admin_permission = Permission("admin", "system", PermissionLevel.ADMIN)
+
+# Check permissions
+@require_permission("api:read")
+async def read_data():
+    return {"data": "some data"}
+
+@require_permission("api:write")
+async def write_data():
+    return {"message": "data written"}
+```
+
+### Role System
+
+```python
+from framework.security import Role, get_rbac
+
+# Create custom roles
+rbac = get_rbac()
+
+# Create role with permissions
+viewer_role = Role("viewer", description="Read-only access")
+viewer_role.add_permission(read_permission)
+
+editor_role = Role("editor", description="Read-write access")
+editor_role.add_permission(read_permission)
+editor_role.add_permission(write_permission)
+
+# Register roles
+rbac.register_role(viewer_role)
+rbac.register_role(editor_role)
+
+# Use roles
+@require_role("editor")
+async def edit_endpoint():
+    return {"message": "editing allowed"}
+```
+
+## ⚡ Rate Limiting
+
+### Basic Rate Limiting
+
+```python
+from framework.security import rate_limit, initialize_rate_limiter
+
+# Initialize rate limiter
+initialize_rate_limiter(rate_limit_config)
+
+# Apply rate limiting
+@rate_limit(endpoint="sensitive_endpoint")
+async def sensitive_operation():
+    return {"message": "rate limited"}
+
+# Custom identifier
+@rate_limit(identifier_func=lambda request: request.headers.get("user-id"))
+async def user_specific_endpoint():
+    return {"message": "per-user rate limited"}
+```
+
+### Rate Limit Responses
+
+Rate limited requests return HTTP 429 with headers:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1640995200
+Retry-After: 60
+```
+
+## 🔒 Security Headers
+
+Automatically applied security headers:
+
+```
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Referrer-Policy: strict-origin-when-cross-origin
+```
+
+## 🎯 gRPC Integration
+
+```python
+from framework.security import GRPCSecurityInterceptor
+import grpc
+
+# Create gRPC server with security
+server = grpc.aio.server(
+    interceptors=[GRPCSecurityInterceptor(security_config)]
+)
+
+# Security is automatically applied to all gRPC methods
+```
+
+## 🧪 Testing
+
+### Test with JWT
 
 ```bash
-# Run full security audit
-./security/scanners/security_scan.sh
+# 1. Get JWT token
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "demo", "password": "password"}'
 
-# Run specific scans
-./security/scanners/security_scan.sh deps        # Dependencies only
-./security/scanners/security_scan.sh code        # Code analysis only
-./security/scanners/security_scan.sh secrets     # Secrets scanning
-./security/scanners/security_scan.sh containers  # Container security
+# 2. Use token
+curl -H "Authorization: Bearer <token>" \
+  http://localhost:8000/api/protected
 ```
 
-### Security Audit Tool
-
-Python-based comprehensive security auditor:
+### Test with API Key
 
 ```bash
-# Run security audit
-python security/tools/security_audit.py
-
-# With custom project root
-python security/tools/security_audit.py --project-root /path/to/project
-
-# Verbose output
-python security/tools/security_audit.py --verbose
+curl -H "X-API-Key: demo-api-key-1" \
+  http://localhost:8000/api/service
 ```
 
-## 📋 Security Policies
+### Test Rate Limiting
 
-### RBAC Policies
-
-Role-based access control with comprehensive policy definitions:
-
-```yaml
-# security/policies/rbac_policies.yaml
-roles:
-  admin:
-    permissions:
-      - "*:*:*"
-
-  developer:
-    permissions:
-      - "services:*:read"
-      - "configs:*:read"
-      - "code:*:create"
-      - "code:*:update"
+```bash
+# Make multiple requests quickly to trigger rate limiting
+for i in {1..150}; do
+  curl http://localhost:8000/api/sensitive
+done
 ```
 
-### Kubernetes Security Policies
+## 🔧 Advanced Configuration
 
-Production-ready Kubernetes security configurations:
-
-- Network policies for micro-segmentation
-- Pod security standards
-- RBAC configurations
-- Security contexts and resource limits
-
-```yaml
-# Example network policy
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: default-deny-all
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-  - Egress
-```
-
-## 🏗️ Architecture
-
-### Security Middleware Stack
-
-```
-┌─────────────────────────────────────┐
-│           Request                   │
-└─────────────┬───────────────────────┘
-              │
-┌─────────────▼───────────────────────┐
-│     Security Headers Middleware    │
-│  (CSP, HSTS, CORS, etc.)          │
-└─────────────┬───────────────────────┘
-              │
-┌─────────────▼───────────────────────┐
-│     Rate Limiting Middleware       │
-│  (Per-user, per-IP, per-endpoint)  │
-└─────────────┬───────────────────────┘
-              │
-┌─────────────▼───────────────────────┐
-│   Authentication Middleware        │
-│  (JWT validation, RBAC, audit)     │
-└─────────────┬───────────────────────┘
-              │
-┌─────────────▼───────────────────────┐
-│         Application                 │
-└─────────────────────────────────────┘
-```
-
-### Security Features
-
-- **Defense in Depth**: Multiple layers of security controls
-- **Zero Trust**: Verify every request and user
-- **Principle of Least Privilege**: Minimal required permissions
-- **Security by Default**: Secure defaults with opt-out for relaxed policies
-- **Audit Everything**: Comprehensive security logging and monitoring
-
-## 🔒 Best Practices
-
-### 1. Middleware Order
-
-Always add middleware in the correct order:
-
-1. Security Headers (first)
-2. Rate Limiting
-3. Authentication (last)
-
-### 2. Secret Management
+### Custom Authentication Backend
 
 ```python
-import os
-from security import SecurityConfig
+from framework.security import BaseAuthenticator
 
-# Use environment variables for secrets
-config = SecurityConfig(
-    jwt_secret_key=os.getenv("JWT_SECRET_KEY"),
-    redis_url=os.getenv("REDIS_URL")
-)
+class CustomAuthenticator(BaseAuthenticator):
+    async def authenticate(self, credentials):
+        # Custom authentication logic
+        pass
+
+    async def validate_token(self, token):
+        # Custom token validation
+        pass
 ```
 
-### 3. Environment-Specific Configurations
+### Custom Rate Limit Backend
 
 ```python
-# Production
-config = create_security_headers_config(
-    environment="production",
-    api_only=True,
-    allow_origins=["https://your-app.com"]
-)
+from framework.security import RateLimitBackend
 
-# Development
-config = create_security_headers_config(
-    environment="development",
-    allow_origins=["http://localhost:3000"]
-)
+class CustomRateLimitBackend(RateLimitBackend):
+    async def increment(self, key, window, limit):
+        # Custom rate limiting logic
+        pass
+
+    async def reset(self, key):
+        # Custom reset logic
+        pass
 ```
 
-### 4. Rate Limiting Strategy
+## 📊 Monitoring & Observability
+
+The security framework integrates with the observability stack:
+
+- **Metrics**: Authentication success/failure rates, rate limit hits
+- **Logging**: Security events, authentication attempts, authorization failures
+- **Tracing**: Request correlation IDs through security pipeline
+
+## 🚨 Security Best Practices
+
+1. **Secret Management**: Never hardcode secrets, use environment variables or key vaults
+2. **Token Expiration**: Use short-lived access tokens with refresh tokens
+3. **Rate Limiting**: Always enable rate limiting in production
+4. **HTTPS Only**: Never transmit authentication tokens over HTTP
+5. **Audit Logging**: Enable comprehensive audit logging for compliance
+6. **Principle of Least Privilege**: Grant minimal required permissions
+7. **Regular Rotation**: Rotate secrets and certificates regularly
+
+## 🔄 Migration from Basic Auth
 
 ```python
-# API tier-based rate limiting
-rate_limits = {
-    "free_tier": RateLimitRule(requests=100, window_seconds=3600),
-    "premium_tier": RateLimitRule(requests=1000, window_seconds=3600),
-    "enterprise_tier": RateLimitRule(requests=10000, window_seconds=3600)
-}
+# Before: Basic authentication
+@app.get("/api/data")
+async def get_data(token: str = Depends(oauth2_scheme)):
+    # Manual token validation
+    user = validate_token(token)
+    if not user:
+        raise HTTPException(status_code=401)
+    return {"data": "some data"}
+
+# After: Enterprise Security Framework
+@app.get("/api/data")
+async def get_data(user=Depends(require_authentication)):
+    # Automatic authentication + authorization + rate limiting
+    return {"data": "some data"}
 ```
 
-## 📊 Monitoring and Alerting
+## 📚 Examples
 
-### Security Metrics
+See `examples/security_example.py` for a complete working example demonstrating:
 
-The framework automatically exports security metrics:
-
-- Authentication attempts and failures
-- Rate limit hits and violations
-- Security header compliance
-- Policy violations
-
-### Audit Logging
-
-Comprehensive security audit logs:
-
-```json
-{
-  "timestamp": "2023-10-07T10:30:00Z",
-  "event_type": "authentication",
-  "user_id": "user123",
-  "endpoint": "/api/users",
-  "method": "POST",
-  "ip_address": "192.168.1.100",
-  "success": true
-}
-```
-
-## 🧪 Testing Security
-
-### Unit Tests
-
-```python
-import pytest
-from security.middleware.auth_middleware import JWTAuthenticator, SecurityConfig
-
-def test_jwt_validation():
-    config = SecurityConfig(jwt_secret_key="test-key")
-    auth = JWTAuthenticator(config)
-
-    token = auth.create_access_token("user123", ["user"])
-    payload = auth.verify_token(token)
-
-    assert payload["sub"] == "user123"
-    assert "user" in payload["roles"]
-```
-
-### Integration Tests
-
-```python
-from fastapi.testclient import TestClient
-
-def test_protected_endpoint():
-    client = TestClient(app)
-
-    # Test without authentication
-    response = client.get("/protected")
-    assert response.status_code == 401
-
-    # Test with valid token
-    headers = {"Authorization": f"Bearer {valid_token}"}
-    response = client.get("/protected", headers=headers)
-    assert response.status_code == 200
-```
-
-## 🚨 Security Scanning
-
-### Automated Scanning
-
-The framework includes automated security scanning that checks for:
-
-- Code vulnerabilities (Bandit, Semgrep)
-- Dependency vulnerabilities (Safety, pip-audit)
-- Container security issues
-- Configuration security problems
-- Infrastructure security gaps
-
-### CI/CD Integration
-
-```yaml
-# .github/workflows/security.yml
-name: Security Scan
-on: [push, pull_request]
-
-jobs:
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Run Security Scan
-        run: |
-          ./security/scanners/security_scan.sh
-          python security/tools/security_audit.py
-```
-
-## 📚 Additional Resources
-
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
-- [Kubernetes Security Best Practices](https://kubernetes.io/docs/concepts/security/)
-- [JWT Best Practices](https://tools.ietf.org/html/rfc8725)
+- JWT and API key authentication
+- Role-based authorization
+- Rate limiting
+- Security middleware integration
+- Error handling
 
 ## 🤝 Contributing
 
-1. Follow security best practices in all contributions
-2. Add security tests for new features
-3. Update security documentation
-4. Run security scans before submitting PRs
+The Enterprise Security Framework is designed to be extensible. You can:
 
-## 📄 License
+1. Add custom authentication providers
+2. Implement custom authorization logic
+3. Create specialized rate limiting backends
+4. Extend middleware functionality
 
-This security framework is part of the Marty Microservices Framework and follows the same licensing terms.
+---
+
+*Enterprise Security Framework - Part of the Marty Microservices Framework*

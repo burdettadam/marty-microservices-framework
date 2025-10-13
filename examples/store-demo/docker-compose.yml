@@ -1,0 +1,115 @@
+services:
+  # Order Service
+  order-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.order
+    container_name: mmf-order-service
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - mmf-network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.payment
+    container_name: mmf-payment-service
+    ports:
+      - "8002:8002"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - mmf-network
+
+  # Inventory Service
+  inventory-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.inventory
+    container_name: mmf-inventory-service
+    ports:
+      - "8003:8003"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - mmf-network
+
+  # Demo Runner Service
+  demo-runner:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.demo
+    container_name: mmf-demo-runner
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DOCKER_ENV=true
+    depends_on:
+      order-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+    volumes:
+      - ./reports:/app/reports
+    networks:
+      - mmf-network
+
+  # Prometheus for Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: mmf-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - mmf-network
+
+  # Grafana for Dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mmf-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - mmf-network
+
+networks:
+  mmf-network:
+    driver: bridge
+
+volumes:
+  grafana-storage:

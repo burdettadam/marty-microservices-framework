@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-service
+  annotations:
+    marty.io/database-migration-required: "true"
+    marty.io/service-mesh-enabled: "true"
+spec:
+  replicas: 3  # Higher replica count for production
+  template:
+    metadata:
+      annotations:
+        # Enhanced observability for Marty services
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+        prometheus.io/path: "/metrics"
+        # Jaeger tracing
+        sidecar.jaegertracing.io/inject: "true"
+        # Fluentd logging
+        fluentd.io/parse: "json"
+    spec:
+      initContainers:
+        - name: wait-for-migration
+          image: inventory-service:latest
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for database migration to complete..."
+              until kubectl get job inventory-service-migration -o jsonpath='{.status.conditions[?(@.type=="Complete")].status}' | grep -q True; do
+                echo "Migration not complete yet, waiting..."
+                sleep 10
+              done
+              echo "Migration completed successfully"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop:
+                - ALL
+      containers:
+        - name: inventory-service
+          env:
+            # Additional environment variables for Marty services
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-service-secrets
+                  key: database_url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-service-secrets
+                  key: redis_url
+                  optional: true
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: inventory-service-config
+                  key: kafka_brokers
+                  optional: true
+            - name: JAEGER_ENDPOINT
+              value: "http://jaeger-collector.monitoring:14268/api/traces"
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: inventory-service-config
+                  key: log_level
+            - name: SERVICE_MESH_ENABLED
+              value: "true"
+          volumeMounts:
+            - name: storage
+              mountPath: /app/data
+            - name: logs
+              mountPath: /app/logs
+            - name: tmp
+              mountPath: /tmp
+            - name: var-run
+              mountPath: /var/run
+          # Enhanced resource limits for Marty services
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+              ephemeral-storage: 200Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+              ephemeral-storage: 2Gi
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: inventory-service-storage
+        - name: logs
+          persistentVolumeClaim:
+            claimName: inventory-service-logs
+        - name: tmp
+          emptyDir: {}
+        - name: var-run
+          emptyDir: {}
