@@ -9,16 +9,26 @@ This release plan outlines the removal of compatibility shims and cleanup of leg
 ### 1. Deprecation Warnings Added
 
 #### Resilience Domain
-- **File**: `src/framework/resilience/fault_tolerance.py`
-- **Status**: ✅ COMPLETED - Added explicit deprecation warning
-- **Impact**: Users will see warnings when importing from this module
-- **Migration Path**: Import directly from specific modules:
-  - `circuit_breakers.py` - Circuit breaker fault tolerance patterns
-  - `retry_logic.py` - Retry patterns with configurable backoff strategies
-  - `bulkheads.py` - Bulkhead patterns for resource isolation
-  - `timeouts.py` - Timeout patterns for preventing resource exhaustion
+- **Status**: ✅ COMPLETED - Legacy files removed completely
+- **Impact**: Direct imports from legacy files will fail
+- **Migration Path**: Import directly from current modules:
+  - `circuit_breaker.py` - Circuit breaker fault tolerance patterns
+  - `retry.py` - Retry patterns with configurable backoff strategies
+  - `bulkhead.py` - Bulkhead patterns for resource isolation
+  - `timeout.py` - Timeout patterns for preventing resource exhaustion
   - `chaos_engineering.py` - Chaos engineering for testing system resilience
   - `metrics.py` - Comprehensive metrics collection and monitoring
+
+#### Security Domain
+- **Status**: ✅ COMPLETED - Legacy hardening.py removed completely
+- **Impact**: Direct imports from hardening.py will fail
+- **Migration Path**: Import from modular security components:
+  - `framework.py` - SecurityHardeningFramework
+  - `authentication/` - Authentication management
+  - `authorization/` - Authorization and policy management
+  - `cryptography/` - Cryptographic operations
+  - `secrets/` - Secrets management
+  - `scanning/` - Security vulnerability scanning
 
 #### Data Domain
 - **File**: `src/framework/data/advanced_patterns.py`

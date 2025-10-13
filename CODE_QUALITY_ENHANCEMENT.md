@@ -35,7 +35,7 @@ Added automated code quality checks to enforce complexity and length limits in t
 **Recent Progress**: Following the shim-based decomposition, many previously large modules have been significantly reduced:
 
 **Still Large (requiring attention):**
-- `src/framework/security/hardening.py` (1480 lines) - **Requires decomposition**
+- Legacy `src/framework/security/hardening.py` (1480 lines) - **Removed - decomposed into modular components**
 - `src/framework/ml/intelligent_services.py` (1305 lines) - **Requires decomposition**
 - `src/framework/performance/optimization.py` (1243 lines) - **Requires decomposition**
 - `src/framework/deployment/infrastructure.py` (1232 lines) - **Requires decomposition**
@@ -97,7 +97,7 @@ uv run pre-commit run --all-files
 Based on the current analysis and successful shim-based decomposition progress, the following files should be prioritized for decomposition:
 
 **High Priority (>1200 lines):**
-1. `src/framework/security/hardening.py` (1480 lines) - Security hardening configurations
+1. Legacy `src/framework/security/hardening.py` (1480 lines) - Security hardening configurations (REMOVED)
 2. `src/framework/ml/intelligent_services.py` (1305 lines) - ML service integrations
 3. `src/framework/performance/optimization.py` (1243 lines) - Performance optimization tools
 4. `src/framework/deployment/infrastructure.py` (1232 lines) - Infrastructure deployment
