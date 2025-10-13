@@ -17,8 +17,8 @@ framework_path = Path(__file__).parent.parent.parent / "src"
 sys.path.insert(0, str(framework_path))
 
 try:
-    from framework.plugins.core import PluginMetadata
-    from framework.plugins.discovery import (
+    from src.framework.plugins.core import PluginMetadata
+    from src.framework.plugins.discovery import (
         CompositePluginDiscoverer,
         DirectoryPluginDiscoverer,
         PackagePluginDiscoverer,
@@ -108,7 +108,7 @@ class TestDirectoryPluginDiscoverer:
 Test plugin module for {plugin_name}
 """
 
-from framework.plugins.core import MMFPlugin, PluginContext
+from src.framework.plugins.core import MMFPlugin, PluginContext
 from typing import Dict, Any
 
 class {plugin_name.replace("-", "").title()}Plugin(MMFPlugin):
