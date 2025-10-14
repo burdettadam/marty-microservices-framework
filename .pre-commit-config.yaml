@@ -158,20 +158,20 @@ repos:
         name: Service Generation Smoke Test
         entry: bash
         language: system
-        files: ^(scripts/dev/generate_service\.py|services/.*\.j2)$
+        files: ^(src/marty_msf/cli/.*\.py|services/.*\.j2)$
         args:
           - -c
           - |
             TEMP_DIR=$(mktemp -d)
             CURRENT_DIR=$(pwd)
             cd "$CURRENT_DIR"
-            uv run python scripts/dev/generate_service.py fastapi smoke-test --output-dir "$TEMP_DIR/test_output"
-            if [ -d "$TEMP_DIR/test_output/smoke_test" ]; then
+            # Test CLI service generation
+            uv run python -m marty_msf.cli service init fastapi smoke-test
+            if [ -d "plugins/smoke_test" ]; then
               echo "✅ Service generation smoke test passed"
-              rm -rf "$TEMP_DIR"
+              rm -rf "plugins/smoke_test"
             else
               echo "❌ Service generation smoke test failed"
-              rm -rf "$TEMP_DIR"
               exit 1
             fi
         require_serial: true

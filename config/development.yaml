@@ -137,3 +137,33 @@ resilience:
     max_attempts: 2
     backoff_multiplier: 1.2
     max_delay_seconds: 10
+
+# Development plugin configuration
+plugins:
+  enabled: true
+  auto_discovery: true
+
+  # Development plugin loading (more lenient)
+  loading:
+    parallel: false  # Sequential loading for easier debugging
+    timeout_seconds: 60  # Longer timeout for debugging
+
+  # Enable all development plugins
+  default_plugins:
+    - name: "production_payment"
+      enabled: true
+      priority: 100
+      config_override:
+        service:
+          debug: true
+          port: 8081
+        payment:
+          test_mode: true
+        fraud_detection:
+          enabled: false  # Disabled in dev for easier testing
+
+  # Development security (less restrictive)
+  security:
+    require_signature: false
+    sandboxing:
+      enabled: false

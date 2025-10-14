@@ -146,3 +146,39 @@ services:
     retry_attempts: 3
     batch_size: 100
     rate_limit_per_minute: 60
+
+# Plugin system configuration
+plugins:
+  enabled: true
+  auto_discovery: true
+  discovery_paths:
+    - "./plugins"
+    - "/opt/mmf/plugins"
+  config_dir: "./config/plugins"
+
+  # Isolation level for plugin execution
+  isolation_level: "process"  # Options: process, thread, none
+
+  # Plugin loading configuration
+  loading:
+    parallel: true
+    timeout_seconds: 30
+    retry_attempts: 3
+
+  # Default plugins to load (can be overridden per environment)
+  default_plugins:
+    - name: "production_payment"
+      enabled: true
+      priority: 100
+
+  # Plugin security settings
+  security:
+    require_signature: false  # Set to true in production
+    allowed_sources:
+      - "local"
+      - "official"
+    sandboxing:
+      enabled: false  # Enable in production
+      resource_limits:
+        memory_mb: 512
+        cpu_percent: 50

@@ -2171,11 +2171,13 @@ scrape_configs:
 
 # Import and add migration commands
 try:
-    from marty_msf.cli.commands import migrate
+    from marty_msf.cli.commands import migrate, plugin, service
 
     cli.add_command(migrate)
+    cli.add_command(plugin)
+    cli.add_command(service)
 except ImportError:
-    # Migration commands not available
+    # Migration, plugin, and service commands not available
     pass
 
 
