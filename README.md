@@ -2,6 +2,53 @@
 
 A comprehensive, production-ready framework for building enterprise-grade microservices with Python, FastAPI, gRPC, and modern development practices.
 
+## 📁 Project Structure
+
+```
+.
+├── README.md
+├── Makefile
+├── pyproject.toml
+├── docs/                       # Documentation
+│   ├── guides/                 # Development guides
+│   ├── architecture/           # Architecture documentation
+│   └── demos/                  # Demo documentation & quickstarts
+├── src/                        # Source code
+│   └── marty_msf/              # Main framework package
+│       ├── framework/          # Core framework modules
+│       ├── cli/                # Command-line interface
+│       ├── security/           # Security modules
+│       └── observability/      # Monitoring & observability
+├── services/                   # Service templates & examples
+│   ├── fastapi/                # FastAPI service templates
+│   ├── grpc/                   # gRPC service templates
+│   ├── hybrid/                 # Hybrid service templates
+│   └── shared/                 # Shared service components & Jinja assets
+├── examples/                   # Usage examples
+│   ├── demos/                  # Demo applications
+│   │   ├── order-service/      # Order service demo
+│   │   ├── payment-service/    # Payment service demo
+│   │   ├── inventory-service/  # Inventory service demo
+│   │   └── runner/             # Demo runner scripts
+│   └── notebooks/              # Jupyter notebooks for tutorials
+├── ops/                        # Operations & deployment
+│   ├── k8s/                    # Kubernetes manifests
+│   ├── service-mesh/           # Service mesh configuration
+│   ├── dashboards/             # Monitoring dashboards
+│   └── ci-cd/                  # CI/CD pipelines
+├── scripts/                    # Utility scripts
+│   ├── dev/                    # Development scripts
+│   └── tooling/                # Build & maintenance tools
+├── tests/                      # Test suite
+│   ├── unit/                   # Unit tests
+│   ├── integration/            # Integration tests
+│   ├── e2e/                    # End-to-end tests
+│   └── quality/                # Code quality & lint tests
+├── tools/                      # Development tools
+│   └── scaffolding/            # Project generators & templates
+└── var/                        # Runtime files (gitignored logs, pids, reports)
+```
+
 ## 🚀 Quick Start - Local Development Environment
 
 ### Get Started in 2 Minutes!
@@ -48,118 +95,137 @@ make generate TYPE=fastapi NAME=my-api
 # Generate a gRPC service
 make generate TYPE=grpc NAME=my-grpc-service
 
-# Create a complete project
-make new NAME=my-awesome-project
-cd my-awesome-project
-make dev
+# Generate a hybrid service (FastAPI + gRPC)
+make generate TYPE=hybrid NAME=my-hybrid-service
 ```
 
-## 🏪 Store Demo - Complete Microservices Example
+## 📚 Framework Components
 
-Experience a full e-commerce microservices demo with realistic load testing:
+### Core Framework (`src/marty_msf/framework/`)
+- **API Gateway**: Intelligent routing and load balancing
+- **Service Discovery**: Consul-based service registration
+- **Configuration Management**: Centralized config with hot-reload
+- **Event Streaming**: Kafka integration for messaging
+- **Database Integration**: Multi-database support with connection pooling
+- **Caching**: Redis-based distributed caching
+- **Performance Monitoring**: Real-time metrics and profiling
+
+### CLI Tools (`src/marty_msf/cli/`)
+- Project scaffolding and code generation
+- Service templates and boilerplate
+- Dependency management
+- Docker and Kubernetes deployment automation
+- Configuration validation and management
+
+### Security (`src/marty_msf/security/`)
+- JWT-based authentication and authorization
+- OAuth2 and OpenID Connect integration
+- Rate limiting and DDoS protection
+- Zero-trust networking components
+- Certificate management
+
+### Observability (`src/marty_msf/observability/`)
+- Prometheus metrics collection
+- Grafana dashboard templates
+- Distributed tracing with Jaeger
+- Structured logging
+- Performance analytics and alerting
+
+## 🎯 Running Demo Applications
+
+The framework includes several demo applications to showcase different patterns:
 
 ```bash
-# Quick start with Docker Compose
-cd examples/store-demo
-docker compose up -d
-docker compose exec demo-runner python /app/mmf_demo_runner.py
+# Run the complete store demo (order, payment, inventory services)
+cd examples/demos/runner
+./start_demo.sh
 
-# View results at:
-# - Reports: ./reports/ (JSON + text files)
-# - Prometheus: http://localhost:9090
-# - Grafana: http://localhost:3000
+# Stop the demo
+./stop_demo.sh
 ```
 
-**What's included:**
-- 🛒 **Order Service** - Order processing with audit logging
-- 💳 **Payment Service** - Payment processing with fraud detection
-- 📦 **Inventory Service** - Stock management and reservations
-- 📊 **Analytics** - Performance monitoring and bottleneck analysis
-- 🎯 **Load Testing** - Realistic failure scenarios (63-70% success rate)
-
-➡️ **[Complete Store Demo Guide](docs/STORE_DEMO.md)**
+### Demo Services:
+- **Order Service**: Handles order processing and workflow
+- **Payment Service**: Manages payment processing and transactions
+- **Inventory Service**: Tracks inventory levels and stock management
 
 ## 🧪 Testing
 
-```bash
-# Run all tests
-make test
-
-# Run specific test types
-make test-unit           # Unit tests only
-make test-integration    # Integration tests
-make test-kind          # Kubernetes E2E tests
-```
-
-## 🎯 What's Included
-
-- **🏗️ Service Templates** - Pre-built FastAPI, gRPC, and hybrid service templates
-- **⚡ Code Generation** - Automated service scaffolding with `make generate`
-- **🛡️ Enterprise Security** - Authentication, authorization, rate limiting, audit logging
-- **📊 Observability** - Monitoring, tracing, metrics, and health checks
-- **🔧 Plugin System** - Extensible architecture with plugin management
-- **🧪 Testing Framework** - Comprehensive testing utilities and patterns
-- **📦 Project Templates** - Complete project structure with best practices
-
-## 📚 Documentation
-
-- **[Architecture Overview](docs/architecture.md)** - Comprehensive framework architecture
-- **[Complete Documentation](docs/README.md)** - Full documentation index
-- **[CLI Guide](docs/guides/CLI_README.md)** - Command-line usage ([Quick Reference](CLI_README.md))
-- **[Migration Guide](docs/guides/MIGRATION_GUIDE.md)** - Migrating existing services
-- **[Plugin System](docs/guides/plugin-system.md)** - Plugin development
-- **[Observability](docs/guides/observability.md)** - Monitoring setup
-
-## 🛠️ Common Commands
+The framework includes comprehensive testing at multiple levels:
 
 ```bash
-# Local Development Environment
-make kind-up             # Start local Kubernetes + observability stack
-make kind-status         # Check cluster status
-make kind-logs           # View service logs
-make kind-down           # Stop cluster
+# Run unit tests
+make test-unit
 
-# Development
-make dev                 # Setup development environment
-make check               # Run all code quality checks
-make fix                 # Fix formatting and linting issues
+# Run integration tests
+make test-integration
 
-# Testing
-make test                # Run all tests
-make test-coverage       # Run tests with coverage report
-make test-quick          # Fast tests with fail-fast
+# Run end-to-end tests
+make test-e2e
 
-# Generation
-make generate TYPE=fastapi NAME=user-service
-make generate TYPE=grpc NAME=data-processor
-make new NAME=payment-system
-
-# Utilities
-make clean               # Clean build artifacts
-make docs                # Show documentation links
-make status              # Show framework status
+# Run all tests with coverage
+make test-all
 ```
+
+## 📖 Documentation
+
+- **[Architecture Guide](docs/architecture/)**: System design and patterns
+- **[Development Guides](docs/guides/)**: Setup and development workflows
+- **[Demo Documentation](docs/demos/)**: Tutorial walkthroughs
+- **[API Reference](docs/api/)**: Complete API documentation
+
+## 🛠️ Development
+
+### Prerequisites
+- Python 3.10+
+- Docker & Docker Compose
+- kubectl
+- Make
+
+### Development Setup
+```bash
+# Install development dependencies
+make install-dev
+
+# Set up pre-commit hooks
+make setup-hooks
+
+# Run code quality checks
+make lint
+
+# Run security scans
+make security
+```
+
+## 🚢 Deployment
+
+The framework supports multiple deployment targets:
+
+```bash
+# Deploy to local Kubernetes
+make deploy-local
+
+# Deploy to staging
+make deploy-staging
+
+# Deploy to production
+make deploy-prod
+```
+
+## 📋 License
+
+MIT License - see [LICENSE](LICENSE) for details.
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests: `make test`
-5. Run quality checks: `make check`
-6. Submit a pull request
+4. Add tests
+5. Submit a pull request
 
-## 📄 License
+## 📞 Support
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-- **Documentation**: [docs/README.md](docs/README.md)
-- **Development Scripts**: [scripts/README.md](scripts/README.md)
-- **Issues**: GitHub Issues
-- **Discussions**: GitHub Discussions
-
----
-
-**Ready to build amazing microservices?** Start with `make setup` and `make docs`! 🚀
+- 📧 Email: team@marty-msf.com
+- 🐛 Issues: [GitHub Issues](https://github.com/marty-framework/marty-microservices-framework/issues)
+- 📖 Documentation: [marty-msf.readthedocs.io](https://marty-msf.readthedocs.io)

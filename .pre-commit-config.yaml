@@ -12,7 +12,7 @@ repos:
         name: Fix end of files
       - id: check-yaml
         name: Check YAML syntax
-        exclude: ^(microservice_project_template/k8s/.*\.yaml|k8s/.*\.yaml|service-mesh/.*\.yaml|security/.*\.yaml)$
+        exclude: ^(ops/k8s/.*\.yaml|tools/scaffolding/.*\.yaml|ops/service-mesh/.*\.yaml|src/marty_msf/security/.*\.yaml)$
         args: [--allow-multiple-documents]
       - id: check-json
         name: Check JSON syntax
@@ -39,7 +39,7 @@ repos:
       - id: ruff
         name: Lint Python code with Ruff
         args: [--fix, --exit-non-zero-on-fix]
-        exclude: ^templates/.*\.py$|^microservice_project_template/
+        exclude: ^(services/.*\.py$|tools/scaffolding/.*\.py$|services/shared/modern_service_template\.py$)
 
   # Code complexity checks
   # Code Quality Analysis - Comprehensive complexity and length checks
@@ -47,7 +47,7 @@ repos:
     hooks:
       - id: code-quality-check
         name: Code Quality Check (Complexity & Length)
-        entry: uv run python scripts/check_code_quality.py
+        entry: uv run python scripts/dev/check_code_quality.py
         language: system
         files: \.py$
         exclude: ^(tests/|templates/|examples/|microservice_project_template/)
@@ -89,7 +89,7 @@ repos:
       #   entry: uv run mypy
       #   language: system
       #   files: ^scripts/.*\.py$
-      #   args: [scripts/verify_security_framework.py, --config-file=mypy.ini]
+      #   args: [scripts/dev/verify_security_framework.py, --config-file=mypy.ini]
       #   require_serial: true
       #   pass_filenames: false
 
@@ -98,8 +98,8 @@ repos:
       #   name: Validate Service Templates
       #   entry: uv run python
       #   language: system
-      #   files: ^(scripts/.*\.py|service/.*\.j2|mypy\.ini|requirements\.txt)$
-      #   args: [scripts/validate_templates.py]
+      #   files: ^(scripts/.*\.py|services/.*\.j2|mypy\.ini|requirements\.txt)$
+      #   args: [scripts/dev/validate_templates.py]
       #   require_serial: true
       #   pass_filenames: false
 
@@ -108,8 +108,8 @@ repos:
       #   name: Run Framework Tests
       #   entry: uv run python
       #   language: system
-      #   files: ^(scripts/.*\.py|service/.*\.j2|mypy\.ini|requirements\.txt|Makefile|observability/.*)$
-      #   args: [scripts/test_framework.py]
+      #   files: ^(scripts/.*\.py|services/.*\.j2|mypy\.ini|requirements\.txt|Makefile|src/marty_msf/.*)$
+      #   args: [scripts/dev/test_framework.py]
       #   require_serial: true
       #   pass_filenames: false
 
@@ -119,7 +119,7 @@ repos:
       #   entry: uv run python
       #   language: system
       #   files: ^observability/.*\.py$
-      #   args: [scripts/validate_observability.py]
+      #   args: [scripts/dev/validate_observability.py]
       #   require_serial: true
       #   pass_filenames: false
 
@@ -158,14 +158,14 @@ repos:
         name: Service Generation Smoke Test
         entry: bash
         language: system
-        files: ^(scripts/generate_service\.py|service/.*\.j2)$
+        files: ^(scripts/dev/generate_service\.py|services/.*\.j2)$
         args:
           - -c
           - |
             TEMP_DIR=$(mktemp -d)
             CURRENT_DIR=$(pwd)
             cd "$CURRENT_DIR"
-            uv run python scripts/generate_service.py fastapi smoke-test --output-dir "$TEMP_DIR/test_output"
+            uv run python scripts/dev/generate_service.py fastapi smoke-test --output-dir "$TEMP_DIR/test_output"
             if [ -d "$TEMP_DIR/test_output/smoke_test" ]; then
               echo "✅ Service generation smoke test passed"
               rm -rf "$TEMP_DIR"
@@ -388,7 +388,7 @@ repos:
               PY_CMD="uv run python"
             fi
             export PYTHONPATH="$(pwd):$PYTHONPATH"
-            if $PY_CMD -c "import marty_cli; print('CLI import successful')" 2>/dev/null; then
+            if $PY_CMD -c "import marty_msf.cli; print('CLI import successful')" 2>/dev/null; then
               echo "  ✅ CLI module imports successfully (via $PY_CMD)"
             else
               echo "  ❌ CLI module import failed (tried $PY_CMD)"

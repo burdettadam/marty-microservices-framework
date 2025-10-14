@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from framework.event_streaming.saga import Saga, SagaOrchestrator, SagaStatus
+from marty_msf.framework.event_streaming.saga import Saga, SagaOrchestrator, SagaStatus
 
 
 class ControllableSaga(Saga):

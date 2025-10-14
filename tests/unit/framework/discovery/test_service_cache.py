@@ -2,9 +2,13 @@ import asyncio
 
 import pytest
 
-from framework.discovery.cache import ServiceCache
-from framework.discovery.config import CacheStrategy, DiscoveryConfig, ServiceQuery
-from framework.discovery.core import (
+from marty_msf.framework.discovery.cache import ServiceCache
+from marty_msf.framework.discovery.config import (
+    CacheStrategy,
+    DiscoveryConfig,
+    ServiceQuery,
+)
+from marty_msf.framework.discovery.core import (
     HealthStatus,
     ServiceEndpoint,
     ServiceInstance,

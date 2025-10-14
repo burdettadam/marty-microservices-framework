@@ -11,7 +11,7 @@ import pytest
 
 # Core deployment imports
 try:
-    from framework.deployment.strategies import (
+    from marty_msf.framework.deployment.strategies import (
         Deployment,
         DeploymentConfig,
         DeploymentOrchestrator,
@@ -28,10 +28,13 @@ except ImportError as e:
 
 # Service discovery and mesh imports
 try:
-    from framework.mesh.discovery.health_checker import HealthChecker
-    from framework.mesh.discovery.registry import ServiceRegistry
-    from framework.mesh.load_balancing import LoadBalancer
-    from framework.mesh.service_mesh import ServiceDiscoveryConfig, ServiceEndpoint
+    from marty_msf.framework.mesh.discovery.health_checker import HealthChecker
+    from marty_msf.framework.mesh.discovery.registry import ServiceRegistry
+    from marty_msf.framework.mesh.load_balancing import LoadBalancer
+    from marty_msf.framework.mesh.service_mesh import (
+        ServiceDiscoveryConfig,
+        ServiceEndpoint,
+    )
 
     SERVICE_MESH_AVAILABLE = True
 except ImportError as e:

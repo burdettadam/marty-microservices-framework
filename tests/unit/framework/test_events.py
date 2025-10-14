@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from framework.events import Event, EventBus, EventHandler
+from marty_msf.framework.events import Event, EventBus, EventHandler
 
 
 # Mock EventSubscription for testing since it doesn't exist yet

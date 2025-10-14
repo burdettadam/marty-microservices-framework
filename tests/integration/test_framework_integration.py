@@ -9,8 +9,8 @@ import json
 
 import pytest
 
-from framework.events import Event
-from framework.messaging import Message
+from marty_msf.framework.events import Event
+from marty_msf.framework.messaging import Message
 
 
 @pytest.mark.integration

@@ -10,7 +10,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from framework.config import BaseServiceConfig, FrameworkConfig
+from marty_msf.framework.config import BaseServiceConfig, FrameworkConfig
 
 
 @pytest.mark.unit

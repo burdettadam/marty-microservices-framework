@@ -299,7 +299,7 @@ class TestSecurityFramework:
 
         # Test that security monitoring can be imported
         try:
-            from security.monitoring import SecurityMonitor
+            from marty_msf.security.monitoring import SecurityMonitor
             monitor = SecurityMonitor()
             assert monitor is not None
         except ImportError:

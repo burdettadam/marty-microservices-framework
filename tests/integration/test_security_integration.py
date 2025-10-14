@@ -11,18 +11,18 @@ import json
 from datetime import datetime
 from typing import Any
 
-from security.compliance import ComplianceManager
-from security.compliance.risk_management import RiskCategory, RiskManager
-from security.identity_access import IAMManager, RBACManager
-from security.monitoring import (
+from marty_msf.security.compliance import ComplianceManager
+from marty_msf.security.compliance.risk_management import RiskCategory, RiskManager
+from marty_msf.security.identity_access import IAMManager, RBACManager
+from marty_msf.security.monitoring import (
     SecurityEventSeverity,
     SecurityEventType,
     SecurityMonitoringSystem,
 )
-from security.threat_detection import ThreatDetectionManager, ThreatLevel
+from marty_msf.security.threat_detection import ThreatDetectionManager, ThreatLevel
 
 # Import security components
-from security.zero_trust import ZeroTrustManager
+from marty_msf.security.zero_trust import ZeroTrustManager
 
 
 class SecurityIntegrationTestSuite:
@@ -145,7 +145,7 @@ class SecurityIntegrationTestSuite:
             # Create test policy using available API
             from datetime import datetime, timedelta
 
-            from security.zero_trust import (
+            from marty_msf.security.zero_trust import (
                 AccessDecision,
                 AccessPolicy,
                 SecurityLevel,

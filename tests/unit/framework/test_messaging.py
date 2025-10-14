@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from framework.messaging import Message, MessageBus, MessageHandler
+from marty_msf.framework.messaging import Message, MessageBus, MessageHandler
 
 
 @pytest.mark.unit

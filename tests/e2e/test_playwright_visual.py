@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 from aiohttp import web  # Added for F821 'web'
 from playwright.async_api import Browser, Page, async_playwright
+
 from tests.e2e.conftest import PerformanceAnalyzer
 
 
