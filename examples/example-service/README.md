@@ -1,12 +1,12 @@
-# Example Service Service
+# Example Service
 
-Generated service with example_business plugin integration.
-Ready for business logic implementation.
+Generated service demonstrating MMF plugin integration patterns.
+This example shows how services work with the MMF plugin architecture.
 
 ## Features
 
 - 🚀 FastAPI-based service
-- 🔌 Plugin integration with example_business
+- 🔌 Plugin integration ready (follows new plugin strategy)
 - 🏥 Health checks and monitoring
 - 📝 Structured logging with correlation IDs
 - ⚙️ Configuration management
@@ -32,13 +32,51 @@ Ready for business logic implementation.
 4. **View API docs:**
    Open http://localhost:8080/docs
 
+## New Plugin Strategy
+
+This service follows the updated MMF plugin architecture:
+
+### Domain Plugins as Top-Level Packages
+
+Plugins are now organized as domain bundles at the top level:
+
+```
+plugins/
+├── business-logic-plugin/          # Domain plugin
+│   ├── __init__.py
+│   ├── plugin.py                   # MMFPlugin implementation
+│   ├── services/                   # Business services
+│   ├── models/                     # Domain models
+│   └── api/                        # API endpoints
+├── payment-processing/             # Another domain plugin
+└── inventory-management/           # Yet another domain plugin
+```
+
+### Plugin Registration
+
+Plugins are registered via entry points in `pyproject.toml`:
+
+```toml
+[project.entry-points."mmf.plugins"]
+business_logic = "plugins.business_logic_plugin:BusinessLogicPlugin"
+payment_processing = "plugins.payment_processing:PaymentPlugin"
+```
+
+### Service Integration
+
+Services integrate with plugins through the MMF framework:
+
+1. **Service discovers plugins** via entry point discovery
+2. **Plugins expose capabilities** through the MMFPlugin interface
+3. **Services consume plugin services** through dependency injection
+
 ## Business Logic Implementation
 
 ### Add Your Business Logic
 
 1. **Service Logic**: Implement in `app/services/example_service_service.py`
 2. **API Endpoints**: Add in `app/api/routes.py`
-3. **Plugin Logic**: Implement in `plugins/example_business/example_business_plugin.py`
+3. **Plugin Integration**: Create top-level plugin packages under `plugins/`
 4. **Configuration**: Update `app/core/config.py`
 
 ### Example Implementation
@@ -61,17 +99,56 @@ async def calculate(request: CalculationRequest):
 
 ## Plugin Integration
 
-The service integrates with the `example_business` plugin:
+This service demonstrates the new MMF plugin architecture:
 
-- **Plugin Location**: `plugins/example_business/`
-- **Business Logic**: `example_business_plugin.py`
-- **Configuration**: `plugin.yaml`
+### Gateway Plugins vs. Service Plugins
 
-### Plugin Development
+MMF supports two types of plugins:
 
-1. Implement business logic in `ExampleBusinessBusinessLogic`
-2. Add methods for your specific business operations
-3. Update configuration schema as needed
+1. **Service Plugins (MMFPlugin)**: Domain bundles that provide business logic and services
+   - Located at top-level: `plugins/<domain-plugin>/`
+   - Registered via entry points in `pyproject.toml`
+   - Implement `MMFPlugin` interface
+   - Provide business services and domain logic
+
+2. **Gateway Plugins**: Middleware-like request/response hooks
+   - Located in gateway configuration
+   - Handle cross-cutting concerns (auth, logging, etc.)
+   - Different from domain service plugins
+
+### Creating a Domain Plugin
+
+1. **Create plugin structure**:
+   ```bash
+   marty service init production my-business-domain
+   ```
+
+2. **Implement plugin class**:
+   ```python
+   # plugins/my_business_domain/plugin.py
+   from marty_msf.framework.plugins.core import MMFPlugin
+
+   class MyBusinessDomainPlugin(MMFPlugin):
+       def get_metadata(self):
+           return {
+               "name": "my-business-domain",
+               "version": "1.0.0",
+               "description": "Business domain logic"
+           }
+   ```
+
+3. **Register via entry points**:
+   ```toml
+   [project.entry-points."mmf.plugins"]
+   my_business = "plugins.my_business_domain:MyBusinessDomainPlugin"
+   ```
+
+### Plugin Development Best Practices
+
+1. **One domain per plugin**: Each plugin represents a business domain
+2. **Entry point registration**: Always register plugins via pyproject.toml
+3. **Top-level organization**: Place plugins under top-level `plugins/` directory
+4. **Avoid embedded plugins**: Don't embed plugins inside individual services
 
 ## Configuration
 

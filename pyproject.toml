@@ -146,7 +146,8 @@ marty = "marty_msf.cli:cli"
 marty-msf = "marty_msf.cli:cli"
 
 [project.entry-points."mmf.plugins"]
-production_payment = "plugins.production_payment_service:ProductionPaymentPlugin"
+# Production plugins will be registered here when they exist
+# production_payment = "plugins.production_payment_service:ProductionPaymentPlugin"
 
 [dependency-groups]
 dev = [

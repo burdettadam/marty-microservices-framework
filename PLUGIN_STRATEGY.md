@@ -1,53 +1,56 @@
-# Refined Plugin Strategy for Marty Microservices Framework
+# MMF Plugin Strategy
 
 ## Overview
 
-The production payment service plugin has been successfully integrated into the MMF framework using a refined plugin strategy that follows enterprise patterns and best practices. This strategy provides auto-loading capabilities, comprehensive configuration management, and seamless service generation.
+The Marty Microservices Framework (MMF) implements a robust plugin architecture that supports domain-driven plugin development with comprehensive integration capabilities. This strategy emphasizes plugins as domain bundles with entry-point registration and automated service generation.
+
+## Plugin Architecture Principles
+
+### Domain Bundle Approach
+- **Plugins represent business domains**, not individual services
+- **Multiple services per plugin** when they share domain boundaries
+- **Single entry point registration** per domain with multiple service exposures
+- **Shared configuration** and lifecycle management within domain boundaries
+
+### Two Plugin Types
+
+#### 1. Service Plugins (MMFPlugin)
+Domain bundles that provide business logic and services:
+```
+plugins/<domain-plugin>/
+├── __init__.py                     # Plugin package entry point
+├── plugin.py                       # MMFPlugin implementation
+├── services/                       # Business service implementations
+├── models/                         # Domain models
+├── api/                           # API endpoints (if needed)
+└── config/                        # Plugin configuration
+```
+
+#### 2. Gateway Plugins (Middleware)
+Cross-cutting concern handlers for the API gateway:
+- Authentication and authorization
+- Rate limiting and throttling
+- Request/response transformation
+- Logging and monitoring
 
 ## Architecture Components
 
-### 1. Plugin Structure
-```
-plugins/production_payment_service/
-├── __init__.py                     # Plugin package entry point
-├── plugin.yaml                     # Plugin manifest (ops visibility)
-└── production_payment_plugin.py    # Main plugin implementation
-```
-
-### 2. Framework Integration Points
-
-#### Plugin Class Implementation
-- **Base Class**: `MMFPlugin` from `src/marty_msf/framework/plugins/core.py`
-- **Required Methods**:
-  - `metadata` property: Returns `PluginMetadata` with name, version, dependencies
-  - `_initialize_plugin()`: Plugin-specific initialization logic
-  - `get_service_definitions()`: Returns list of `ServiceDefinition` objects
-  - `get_configuration_schema()`: Defines plugin configuration structure
+### 1. Plugin Discovery and Registration
 
 #### Entry Point Registration
 ```toml
 # In pyproject.toml
 [project.entry-points."mmf.plugins"]
-production_payment = "plugins.production_payment_service:ProductionPaymentPlugin"
+payment_processing = "plugins.payment_processing:PaymentPlugin"
+inventory_mgmt = "plugins.inventory_management:InventoryPlugin"
 ```
 
-### 3. Configuration Management
-
-#### Framework-Level Configuration
-- **Base Config** (`config/base.yaml`): Plugin system defaults and discovery paths
-- **Environment Configs**: Environment-specific plugin loading rules
-  - `config/development.yaml`: Lenient loading, debug mode
-  - `config/production.yaml`: Strict loading, security sandboxing
-
-#### Plugin-Specific Configuration
-- **Plugin Config** (`config/plugins/production_payment_service.yaml`): Runtime settings
-- **Environment Overrides**: Per-environment plugin configuration
-
-### 4. Service Generation with Plugins
-
-#### Generator Script
-- **Location**: `scripts/generate_plugin_service.py`
-- **Purpose**: Create services with automatic plugin integration
+#### Plugin Base Class
+- **Interface**: `MMFPlugin` from `src/marty_msf/framework/plugins/core.py`
+- **Required Methods**:
+  - `get_metadata()`: Returns plugin name, version, dependencies
+  - `get_service_definitions()`: Returns available services
+  - Optional: `initialize()`, `shutdown()`, `get_configuration_schema()`
 - **Usage**:
   ```bash
   python3 scripts/generate_plugin_service.py --name payment-service --plugin production_payment
