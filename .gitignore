@@ -264,3 +264,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Plugins directory (ignore all except README)
+plugins/
+!plugins/README.md

@@ -6,6 +6,20 @@ This document provides a comprehensive guide to the Marty Microservices Framewor
 
 The MMF plugin system enables external applications to integrate seamlessly with MMF infrastructure while maintaining clean separation of concerns. Marty's trust and PKI services have been transformed from standalone microservices into MMF plugins, allowing them to leverage MMF's comprehensive infrastructure capabilities.
 
+## Plugins as Domain Bundles
+
+In MMF, treat a plugin as a domain bundle rather than a single service. A plugin packages a cohesive domain (capabilities, policies, and data contracts) and may expose one or more services that share the same domain boundaries and runtime concerns.
+
+- Scope: A plugin owns a domain area (e.g., payments, trust/PKI, identity) and groups closely related services, models, and configuration.
+- Multiple services: A single plugin can register multiple services/endpoints. Prefer adding services to an existing plugin when they share domain rules, dependencies, and lifecycle.
+- Entry points: Register the plugin once via `pyproject.toml` entry points and let it expose several service definitions through the plugin API.
+- Configuration: Keep domain-level configuration in a single plugin config file with per‑service subsections when needed.
+- Testing: Co-locate domain tests (unit/integration) with the plugin; test services together when they share domain logic.
+
+When to create a new plugin vs. add a service:
+- Create a new plugin when you need a separate domain boundary, distinct deployment cadence/ownership, or non-overlapping dependencies/security posture.
+- Add a new service to an existing plugin when the functionality is part of the same domain model, reuses the same infra and policies, or benefits from shared configuration and tests.
+
 ## Architecture
 
 ### Plugin System Components

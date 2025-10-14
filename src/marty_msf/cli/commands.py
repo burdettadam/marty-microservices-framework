@@ -1,17 +1,33 @@
 """
-Migration commands for converting Helm charts to Kustomize manifests.
+Migration and plugin commands for converting Helm charts to Kustomize manifests
+and generating MMF plugins.
 """
 
+import json
 import os
 import subprocess
+import sys
+from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 console = Console()
+
+try:
+    from .generators import ServiceGenerator
+
+    # Legacy alias for backward compatibility
+    MinimalPluginGenerator = ServiceGenerator
+except ImportError:
+    ServiceGenerator = None
+    MinimalPluginGenerator = None
+    console.print("⚠️  Service generator not available", style="yellow")
 
 
 @click.group()
@@ -428,3 +444,688 @@ def _get_compatibility_notes(component: str, compatible: bool) -> str:
         return "Ready for migration"
     else:
         return notes_map.get(component, "Manual work required")
+
+
+# Plugin management functionality
+class MMFConfig:
+    """Configuration manager for MMF CLI."""
+
+    def __init__(self, project_root: Path | None = None):
+        # Default to 4 levels up from this file to get project root
+        default_root = Path(__file__).parent.parent.parent.parent
+        self.project_root = project_root or default_root
+        self.plugins_dir = self.project_root / "plugins"
+        self.config_file = self.project_root / ".mmf" / "config.json"
+
+    def load_config(self) -> dict[str, Any]:
+        """Load configuration from file."""
+        if not self.config_file.exists():
+            return {}
+        try:
+            return json.loads(self.config_file.read_text())
+        except (json.JSONDecodeError, OSError):
+            return {}
+
+    def save_config(self, config: dict[str, Any]):
+        """Save configuration to file."""
+        self.config_file.parent.mkdir(parents=True, exist_ok=True)
+        self.config_file.write_text(json.dumps(config, indent=2))
+
+
+# Global config instance
+mmf_config = MMFConfig()
+
+
+# Feature definitions with descriptions
+AVAILABLE_FEATURES = {
+    "database": {
+        "name": "Database Integration",
+        "description": "Add database connectivity (PostgreSQL, MySQL, MongoDB)",
+        "options": ["postgresql", "mysql", "mongodb"],
+        "default": "postgresql"
+    },
+    "cache": {
+        "name": "Cache Integration",
+        "description": "Add caching layer (Redis)",
+        "options": ["redis"],
+        "default": "redis"
+    },
+    "messaging": {
+        "name": "Message Queue",
+        "description": "Add message queue support (RabbitMQ, Kafka)",
+        "options": ["rabbitmq", "kafka"],
+        "default": "rabbitmq"
+    },
+    "auth": {
+        "name": "Authentication",
+        "description": "Add authentication support (JWT)",
+        "options": ["jwt"],
+        "default": "jwt"
+    },
+    "background_tasks": {
+        "name": "Background Tasks",
+        "description": "Add background task processing (Celery, RQ)",
+        "options": ["celery", "rq"],
+        "default": "celery"
+    },
+    "monitoring": {
+        "name": "Monitoring & Metrics",
+        "description": "Add monitoring and metrics collection (Prometheus)",
+        "options": ["prometheus"],
+        "default": "prometheus"
+    }
+}
+
+SERVICE_TYPES = [
+    "business",
+    "data",
+    "integration",
+    "utility",
+    "api",
+    "worker"
+]
+
+
+def validate_name(ctx, param, value):
+    """Validate plugin/service name."""
+    if not value:
+        return None
+
+    # Check length
+    if len(value) > 50:
+        name_type = "Plugin name" if param.name == 'name' else "Service name"
+        raise click.BadParameter(f"{name_type} must be 50 characters or less")
+
+    # Check format (letters, numbers, hyphens only)
+    if not all(c.isalnum() or c == '-' for c in value):
+        name_type = "Plugin name" if param.name == 'name' else "Service name"
+        raise click.BadParameter(f"{name_type} can only contain letters, numbers, and hyphens")
+
+    # Cannot start or end with hyphen
+    if value.startswith('-') or value.endswith('-'):
+        name_type = "Plugin name" if param.name == 'name' else "Service name"
+        raise click.BadParameter(f"{name_type} cannot start or end with a hyphen")
+
+    return value
+
+
+def get_existing_plugins() -> list[str]:
+    """Get list of existing plugins."""
+    if not mmf_config.plugins_dir.exists():
+        return []
+
+    plugins = []
+    for item in mmf_config.plugins_dir.iterdir():
+        if item.is_dir() and not item.name.startswith('.'):
+            # Check if it looks like a plugin (has pyproject.toml)
+            if (item / "pyproject.toml").exists():
+                plugins.append(item.name)
+
+    return sorted(plugins)
+
+
+def get_plugin_services(plugin_name: str) -> list[str]:
+    """Get list of services in a plugin."""
+    plugin_dir = mmf_config.plugins_dir / plugin_name
+    if not plugin_dir.exists():
+        return []
+
+    services_dir = plugin_dir / "app" / "services"
+    if not services_dir.exists():
+        return []
+
+    services = []
+    for item in services_dir.iterdir():
+        if item.is_file() and item.suffix == ".py" and not item.name.startswith("__"):
+            # Remove _service.py suffix if present
+            service_name = item.stem
+            if service_name.endswith("_service"):
+                service_name = service_name[:-8]
+            services.append(service_name)
+
+    return sorted(services)
+
+
+def prompt_for_features() -> dict[str, str]:
+    """Interactive feature selection."""
+    selected_features = {}
+
+    console.print("\n🔧 Available Features:")
+    console.print("(Select features to add to your plugin)")
+
+    for feature_key, feature_info in AVAILABLE_FEATURES.items():
+        console.print(f"\n📦 {feature_info['name']}")
+        console.print(f"   {feature_info['description']}")
+
+        if click.confirm(f"   Enable {feature_info['name']}?", default=False):
+            if len(feature_info['options']) > 1:
+                # Multiple options available
+                console.print("   Choose implementation:")
+                for i, option in enumerate(feature_info['options'], 1):
+                    console.print(f"   {i}. {option}")
+
+                choice = click.prompt(
+                    "Select option",
+                    type=click.IntRange(1, len(feature_info['options'])),
+                    default=1
+                )
+                selected_features[feature_key] = feature_info['options'][choice - 1]
+            else:
+                # Single option
+                selected_features[feature_key] = feature_info['default']
+
+    return selected_features
+
+
+def display_services(plugin: str, services: list[str]):
+    """Display services with their metadata."""
+    config = mmf_config.load_config()
+    plugin_info = config.get('plugins', {}).get(plugin, {})
+    service_configs = {s['name']: s for s in plugin_info.get('services', [])}
+
+    for plugin_service in services:
+        service_info = service_configs.get(plugin_service, {})
+        service_type = service_info.get('type', 'unknown')
+        created = service_info.get('created_at', '')[:10] if service_info.get('created_at') else ''
+
+        console.print(f"\n   🔸 [green]{plugin_service}[/green]")
+        console.print(f"      Type: {service_type}")
+        if created:
+            console.print(f"      Created: {created}")
+
+
+def generate_service(plugin_dir: Path, plugin_name: str, service_name: str, service_type: str, features: tuple) -> bool:
+    """Generate a new service in an existing plugin."""
+
+    if not MinimalPluginGenerator:
+        console.print("❌ Plugin generator not available", style="red")
+        return False
+
+    # Import the generator functionality
+    try:
+        generator = MinimalPluginGenerator()
+        return generator.add_service_to_plugin(plugin_dir, plugin_name, service_name, service_type, features)
+
+    except ImportError as e:
+        console.print(f"❌ Error importing generator: {e}", style="red")
+        return False
+    except Exception as e:
+        console.print(f"❌ Error generating service: {e}", style="red")
+        return False
+
+
+# Plugin Commands
+@click.group()
+def plugin():
+    """Plugin management commands."""
+    pass
+
+
+@plugin.command('init')
+@click.option('--name', '-n', callback=validate_name, help='Plugin name')
+@click.option('--features', '-f', multiple=True, help='Enable specific features')
+@click.option('--interactive/--no-interactive', default=True, help='Interactive mode')
+@click.option('--template', default='minimal', help='Plugin template to use')
+def plugin_init(name: str | None, features: tuple, interactive: bool, template: str):
+    """Initialize a new plugin."""
+
+    if not MinimalPluginGenerator:
+        console.print("❌ Plugin generator not available", style="red")
+        return
+
+    # Get plugin name
+    if not name:
+        if interactive:
+            name = click.prompt("Plugin name", type=str)
+            # Apply validation
+            try:
+                name = validate_name(None, type('MockParam', (), {'name': 'name'})(), name)
+            except click.BadParameter as e:
+                console.print(f"❌ {e}", style="red")
+                return
+        else:
+            console.print("❌ Plugin name is required", style="red")
+            return
+
+    # Check if plugin already exists
+    existing_plugins = get_existing_plugins()
+    if name in existing_plugins:
+        console.print(f"❌ Plugin '{name}' already exists", style="red")
+        return
+
+    # Feature selection
+    selected_features = {}
+    if interactive and not features:
+        selected_features = prompt_for_features()
+    elif features:
+        # Parse command line features
+        for feature in features:
+            if '=' in feature:
+                key, value = feature.split('=', 1)
+                if key in AVAILABLE_FEATURES:
+                    selected_features[key] = value
+            else:
+                if feature in AVAILABLE_FEATURES:
+                    selected_features[feature] = AVAILABLE_FEATURES[feature]['default']
+
+    # Create plugin
+    console.print("\n📁 Creating plugin structure...")
+
+    # Import and use the generator
+    try:
+        generator = MinimalPluginGenerator()
+        success = generator.generate_plugin_with_features(name, selected_features, template)
+
+        if success:
+            # Save plugin configuration
+            config = mmf_config.load_config()
+            if 'plugins' not in config:
+                config['plugins'] = {}
+
+            config['plugins'][name] = {
+                'template': template,
+                'features': selected_features,
+                'created_at': datetime.now().isoformat(),
+                'services': []
+            }
+
+            mmf_config.save_config(config)
+
+            console.print(f"✅ Plugin '{name}' created successfully!", style="green")
+
+            if selected_features:
+                console.print("\n🔧 Enabled features:")
+                for feature, implementation in selected_features.items():
+                    feature_name = AVAILABLE_FEATURES[feature]['name']
+                    console.print(f"   • {feature_name}: {implementation}")
+
+            console.print("\n🚀 Next steps:")
+            console.print(f"   cd plugins/{name}")
+            console.print("   marty plugin service add <service-name>")
+            console.print("   ./scripts/deploy.sh")
+        else:
+            console.print(f"❌ Failed to create plugin '{name}'", style="red")
+
+    except ImportError as e:
+        console.print(f"❌ Error importing generator: {e}", style="red")
+
+
+@plugin.command('list')
+def plugin_list():
+    """List all plugins."""
+    plugins = get_existing_plugins()
+
+    if not plugins:
+        console.print("📦 No plugins found")
+        console.print("\n💡 Create your first plugin with: marty plugin init")
+        return
+
+    console.print(f"📦 Found {len(plugins)} plugin(s):")
+
+    config = mmf_config.load_config()
+    for plugin_item in plugins:
+        plugin_info = config.get('plugins', {}).get(plugin_item, {})
+        template = plugin_info.get('template', 'unknown')
+        features = plugin_info.get('features', {})
+        services = get_plugin_services(plugin_item)
+
+        console.print(f"\n🔸 [green]{plugin_item}[/green]")
+        console.print(f"   Template: {template}")
+
+        if features:
+            feature_list = ", ".join(features.keys())
+            console.print(f"   Features: {feature_list}")
+
+        if services:
+            console.print(f"   Services: {', '.join(services)}")
+        else:
+            console.print("   Services: none")
+
+
+@plugin.command('status')
+@click.argument('name', required=True)
+def plugin_status(name: str):
+    """Show detailed status of a plugin."""
+    plugins = get_existing_plugins()
+
+    if name not in plugins:
+        console.print(f"❌ Plugin '{name}' not found", style="red")
+        available = ", ".join(plugins) if plugins else "none"
+        console.print(f"Available plugins: {available}")
+        return
+
+    plugin_dir = mmf_config.plugins_dir / name
+    config = mmf_config.load_config()
+    plugin_info = config.get('plugins', {}).get(name, {})
+
+    console.print(f"📦 Plugin: [green]{name}[/green]")
+    console.print(f"   Path: {plugin_dir}")
+    console.print(f"   Template: {plugin_info.get('template', 'unknown')}")
+
+    # Features
+    features = plugin_info.get('features', {})
+    if features:
+        console.print("\n🔧 Features:")
+        for feature, implementation in features.items():
+            feature_name = AVAILABLE_FEATURES.get(feature, {}).get('name', feature)
+            console.print(f"   • {feature_name}: {implementation}")
+
+    # Services
+    services = get_plugin_services(name)
+    if services:
+        console.print(f"\n⚙️  Services ({len(services)}):")
+        display_services(name, services)
+    else:
+        console.print("\n⚙️  Services: none")
+
+    # Infrastructure status
+    if (plugin_dir / "Dockerfile").exists():
+        console.print("\n☸️  Kubernetes: Ready for deployment")
+
+    if (plugin_dir / "k8s").exists():
+        console.print("🐳 Docker: Containerization ready")
+
+
+@plugin.group('service')
+def plugin_service():
+    """Service management commands for plugins."""
+    pass
+
+
+@plugin_service.command('add')
+@click.option('--name', '-n', callback=validate_name, help='Service name')
+@click.option('--plugin', '-p', help='Plugin to add service to')
+@click.option('--type', 'service_type', type=click.Choice(SERVICE_TYPES),
+              default='business', help='Service type')
+@click.option('--features', '-f', multiple=True, help='Service-specific features')
+def service_add(name: str | None, plugin: str | None, service_type: str, features: tuple):
+    """Add a new service to a plugin."""
+
+    if not MinimalPluginGenerator:
+        console.print("❌ Plugin generator not available", style="red")
+        return
+
+    # Get plugin name
+    existing_plugins = get_existing_plugins()
+    if not existing_plugins:
+        console.print("❌ No plugins found. Create one first with: marty plugin init", style="red")
+        return
+
+    if not plugin:
+        if len(existing_plugins) == 1:
+            plugin = existing_plugins[0]
+        else:
+            console.print("📦 Available plugins:")
+            for i, p in enumerate(existing_plugins, 1):
+                console.print(f"   {i}. {p}")
+
+            choice = click.prompt(
+                "Select plugin",
+                type=click.IntRange(1, len(existing_plugins))
+            )
+            plugin = existing_plugins[choice - 1]
+
+    if plugin not in existing_plugins:
+        console.print(f"❌ Plugin '{plugin}' not found", style="red")
+        return
+
+    # Get service name
+    if not name:
+        name = click.prompt("Service name", type=str)
+        # Apply validation
+        try:
+            name = validate_name(None, type('MockParam', (), {'name': 'name'})(), name)
+        except click.BadParameter as e:
+            console.print(f"❌ {e}", style="red")
+            return
+
+    # Check if service already exists
+    existing_services = get_plugin_services(plugin)
+    if name in existing_services:
+        console.print(f"❌ Service '{name}' already exists in plugin '{plugin}'", style="red")
+        return
+
+    # Generate service
+    plugin_dir = mmf_config.plugins_dir / plugin
+    success = generate_service(plugin_dir, plugin, name, service_type, features)
+
+    if success:
+        # Update plugin configuration
+        config = mmf_config.load_config()
+        if 'plugins' not in config:
+            config['plugins'] = {}
+        if plugin not in config['plugins']:
+            config['plugins'][plugin] = {'services': []}
+        if 'services' not in config['plugins'][plugin]:
+            config['plugins'][plugin]['services'] = []
+
+        config['plugins'][plugin]['services'].append({
+            'name': name,
+            'type': service_type,
+            'features': list(features),
+            'created_at': datetime.now().isoformat()
+        })
+
+        mmf_config.save_config(config)
+
+        console.print(f"✅ Service '{name}' added to plugin '{plugin}'!", style="green")
+        console.print(f"   Type: {service_type}")
+
+        console.print("\n🚀 Next steps:")
+        console.print(f"   # Edit business logic in app/services/{name.replace('-', '_')}_service.py")
+        console.print("   # Add API endpoints in app/api/routes.py")
+        console.print("   uv run pytest tests/ -v")
+    else:
+        console.print(f"❌ Failed to add service '{name}'", style="red")
+
+
+@plugin_service.command('list')
+@click.option('--plugin', '-p', help='Show services for specific plugin')
+def service_list(plugin: str | None):
+    """List services across plugins or in a specific plugin."""
+    existing_plugins = get_existing_plugins()
+
+    if not existing_plugins:
+        console.print("📦 No plugins found")
+        return
+
+    if plugin:
+        if plugin not in existing_plugins:
+            console.print(f"❌ Plugin '{plugin}' not found", style="red")
+            return
+
+        services = get_plugin_services(plugin)
+        if services:
+            console.print(f"⚙️  Services in '{plugin}':")
+            display_services(plugin, services)
+        else:
+            console.print(f"⚙️  No services in plugin '{plugin}'")
+    else:
+        # Show all services across all plugins
+        total_services = 0
+        for current_plugin in existing_plugins:
+            services = get_plugin_services(current_plugin)
+            if services:
+                console.print(f"\n📦 Plugin: {current_plugin}")
+                display_services(current_plugin, services)
+                total_services += len(services)
+            else:
+                console.print(f"\n📦 Plugin: {current_plugin}")
+                console.print("   No services")
+
+        if total_services == 0:
+            console.print("\n⚙️  No services found in any plugin")
+
+
+# Service Commands (comprehensive service generation)
+@click.group()
+def service():
+    """Service management commands for comprehensive microservice generation."""
+    pass
+
+
+@service.command('init')
+@click.argument('service_type', type=click.Choice(['fastapi', 'simple-fastapi', 'production', 'grpc', 'hybrid', 'minimal']))
+@click.argument('service_name')
+@click.option('--description', help='Service description')
+@click.option('--author', default='Marty Development Team', help='Author name')
+@click.option('--grpc-port', type=int, default=50051, help='gRPC port (default: 50051)')
+@click.option('--http-port', type=int, default=8080, help='HTTP port for FastAPI services (default: 8080)')
+@click.option('--service-mesh', is_flag=True, help='Enable service mesh configuration')
+@click.option('--service-mesh-type', type=click.Choice(['istio', 'linkerd']), default='istio', help='Service mesh type')
+@click.option('--namespace', default='microservice-framework', help='Kubernetes namespace')
+@click.option('--domain', default='framework.local', help='Service domain')
+def service_init(service_type: str, service_name: str, description: str | None, author: str,
+                grpc_port: int, http_port: int, service_mesh: bool, service_mesh_type: str,
+                namespace: str, domain: str):
+    """Initialize a new microservice."""
+
+    if not ServiceGenerator:
+        console.print("❌ Service generator not available", style="red")
+        return
+
+    console.print("📁 Creating comprehensive service...", style="blue")
+
+    # Create generator instance
+    generator = ServiceGenerator()
+
+    # Generate service
+    success = generator.generate_service(
+        service_type=service_type,
+        service_name=service_name,
+        description=description,
+        author=author,
+        grpc_port=grpc_port,
+        http_port=http_port,
+        service_mesh=service_mesh,
+        service_mesh_type=service_mesh_type,
+        namespace=namespace,
+        domain=domain
+    )
+
+    if success:
+        console.print(f"✅ Service '{service_name}' created successfully!", style="green")
+
+        # Show next steps based on service type
+        next_steps_panel = Panel(
+            f"""[bold]Next Steps:[/bold]
+
+1. 📁 Navigate to the service: [cyan]cd plugins/{service_name.replace('-', '_')}[/cyan]
+2. 📦 Install dependencies: [cyan]uv sync[/cyan]
+3. 🚀 Run the service: [cyan]python main.py[/cyan]
+4. 🔍 Test health endpoint: [cyan]curl http://localhost:{http_port}/health[/cyan]
+5. 📚 View API docs: [cyan]http://localhost:{http_port}/docs[/cyan]
+
+[dim]Service type: {service_type}
+Template features: Jinja2-based templates with full customization[/dim]""",
+            title="🚀 Service Ready",
+            border_style="green"
+        )
+        console.print(next_steps_panel)
+    else:
+        console.print("❌ Failed to create service", style="red")
+
+
+@service.command('list')
+def list_services():
+    """List all generated services."""
+
+    console.print("╭───────────────────────────────────╮", style="blue")
+    console.print("│ Marty Microservices Framework CLI │", style="blue")
+    console.print("╰────────── Version 1.0.0 ──────────╯", style="blue")
+
+    # Look for services in plugins directory
+    plugins_dir = Path(__file__).parent.parent.parent.parent / "plugins"
+
+    if not plugins_dir.exists():
+        console.print("📁 No plugins directory found", style="yellow")
+        return
+
+    services = []
+    for item in plugins_dir.iterdir():
+        if item.is_dir() and not item.name.startswith('.'):
+            # Check if it has service characteristics
+            main_py = item / "main.py"
+            dockerfile = item / "Dockerfile"
+            app_dir = item / "app"
+
+            service_type = "unknown"
+            if main_py.exists() and app_dir.exists():
+                if dockerfile.exists():
+                    service_type = "production"
+                else:
+                    service_type = "minimal"
+
+            services.append({
+                "name": item.name,
+                "type": service_type,
+                "path": item
+            })
+
+    if not services:
+        console.print("📦 No services found", style="yellow")
+        return
+
+    console.print(f"📦 Found {len(services)} service(s):\n")
+
+    for service in services:
+        icon = "🔸" if service["type"] != "unknown" else "🔹"
+        console.print(f"{icon} {service['name']}")
+        console.print(f"   Type: {service['type']}")
+        console.print(f"   Path: {service['path']}")
+        console.print()
+
+
+@service.command('status')
+@click.argument('service_name')
+def service_status(service_name: str):
+    """Check the status of a service."""
+
+    console.print(f"🔍 Checking status of service: {service_name}", style="blue")
+
+    # Look for the service
+    plugins_dir = Path(__file__).parent.parent.parent.parent / "plugins"
+    service_dir = plugins_dir / service_name.replace('-', '_')
+
+    if not service_dir.exists():
+        console.print(f"❌ Service '{service_name}' not found", style="red")
+        return
+
+    # Check service components
+    checks = [
+        ("Main file", service_dir / "main.py"),
+        ("App module", service_dir / "app" / "__init__.py"),
+        ("Dockerfile", service_dir / "Dockerfile"),
+        ("Requirements", service_dir / "requirements.txt"),
+        ("K8s manifests", service_dir / "k8s"),
+        ("Tests", service_dir / "tests"),
+    ]
+
+    console.print(f"📁 Service directory: {service_dir}\n")
+
+    for check_name, path in checks:
+        exists = path.exists()
+        status = "✅" if exists else "❌"
+        console.print(f"{status} {check_name}: {path.name}")
+
+    # Try to determine service type
+    if (service_dir / "app" / "api").exists():
+        service_type = "FastAPI-based"
+    elif (service_dir / "main.py").exists():
+        service_type = "Python service"
+    else:
+        service_type = "Unknown"
+
+    console.print(f"\n🏷️  Service type: {service_type}")
+
+    # Check for running processes (basic check)
+    import subprocess
+    try:
+        result = subprocess.run(['pgrep', '-f', f'python.*{service_name}'],
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+            console.print("🟢 Service appears to be running", style="green")
+        else:
+            console.print("🔴 Service is not running", style="red")
+    except FileNotFoundError:
+        console.print("⚠️  Cannot check running status (pgrep not available)", style="yellow")

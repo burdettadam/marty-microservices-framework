@@ -145,6 +145,9 @@ Issues = "https://github.com/marty-framework/marty-microservices-framework/issue
 marty = "marty_msf.cli:cli"
 marty-msf = "marty_msf.cli:cli"
 
+[project.entry-points."mmf.plugins"]
+production_payment = "plugins.production_payment_service:ProductionPaymentPlugin"
+
 [dependency-groups]
 dev = [
     # Testing framework and utilities

@@ -197,3 +197,33 @@ health:
     period_seconds: 5
     timeout_seconds: 3
     failure_threshold: 2
+
+# Production plugin configuration
+plugins:
+  enabled: true
+  auto_discovery: false  # Explicit plugin loading in production
+
+  # Production plugin loading (strict)
+  loading:
+    parallel: true
+    timeout_seconds: 15  # Strict timeout
+    retry_attempts: 1  # Fail fast in production
+
+  # Production plugins - explicitly enabled
+  default_plugins:
+    - name: "production_payment"
+      enabled: true
+      priority: 100
+      required: true  # Service fails to start if plugin fails
+
+  # Production security (strict)
+  security:
+    require_signature: true  # Require signed plugins
+    allowed_sources:
+      - "official"
+    sandboxing:
+      enabled: true  # Enable sandboxing
+      resource_limits:
+        memory_mb: 256
+        cpu_percent: 30
+        network_connections: 100
