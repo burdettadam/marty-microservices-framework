@@ -6,8 +6,8 @@ import pytest
 
 # Import messaging components
 try:
-    from framework.messaging.core import Message, MessageStatus
-    from framework.messaging.dlq import (
+    from marty_msf.framework.messaging.core import Message, MessageStatus
+    from marty_msf.framework.messaging.dlq import (
         DLQConfig,
         DLQManager,
         RetryConfig,
@@ -50,8 +50,12 @@ except ImportError:
 def test_import_messaging_strategies():
     """Test importing messaging strategy classes."""
     try:
-        from framework.messaging.core import Message, MessageStatus
-        from framework.messaging.dlq import DLQManager, RetryConfig, RetryStrategy
+        from marty_msf.framework.messaging.core import Message, MessageStatus
+        from marty_msf.framework.messaging.dlq import (
+            DLQManager,
+            RetryConfig,
+            RetryStrategy,
+        )
 
         assert RetryStrategy is not None
         assert DLQManager is not None
@@ -71,7 +75,7 @@ def test_import_messaging_strategies():
 def test_retry_strategy_enum():
     """Test RetryStrategy enum functionality."""
     try:
-        from framework.messaging.dlq import RetryStrategy
+        from marty_msf.framework.messaging.dlq import RetryStrategy
 
         # Test all available strategies
         all_strategies = list(RetryStrategy)
@@ -105,7 +109,7 @@ def test_message_creation():
         assert simple_message.id is not None and len(simple_message.id) > 0
 
         # Test message with custom headers
-        from framework.messaging.core import MessageHeaders, MessagePriority
+        from marty_msf.framework.messaging.core import MessageHeaders, MessagePriority
 
         custom_headers = MessageHeaders(
             correlation_id="corr-123", routing_key="user.created", priority=MessagePriority.HIGH
@@ -207,8 +211,8 @@ async def test_retry_strategy_delay_calculation():
 def test_discover_messaging_strategy_classes():
     """Discover all messaging strategy-related classes."""
     try:
-        from framework.messaging import core as core_module
-        from framework.messaging import dlq as dlq_module
+        from marty_msf.framework.messaging import core as core_module
+        from marty_msf.framework.messaging import dlq as dlq_module
 
         # Find strategy-related classes in DLQ module
         dlq_classes = []
@@ -248,8 +252,8 @@ def test_discover_messaging_strategy_classes():
 async def test_messaging_strategy_integration():
     """Test integration between messaging strategies and components."""
     try:
-        from framework.messaging.core import Message
-        from framework.messaging.dlq import (
+        from marty_msf.framework.messaging.core import Message
+        from marty_msf.framework.messaging.dlq import (
             DLQConfig,
             DLQManager,
             RetryConfig,

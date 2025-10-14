@@ -9,8 +9,8 @@ import random
 
 import pytest
 
-from framework.discovery.core import HealthStatus, ServiceInstance
-from framework.discovery.load_balancing import (
+from marty_msf.framework.discovery.core import HealthStatus, ServiceInstance
+from marty_msf.framework.discovery.load_balancing import (
     AdaptiveBalancer,
     ConsistentHashBalancer,
     HealthBasedBalancer,

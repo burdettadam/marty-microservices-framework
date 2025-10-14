@@ -1,8 +1,7 @@
 include README.md
 include LICENSE
-recursive-include marty_cli/templates *
-recursive-include templates *
-prune templates/*/.git
+recursive-include services *
+prune services/*/.git
 global-exclude *.pyc
 global-exclude *.pyo
 global-exclude __pycache__

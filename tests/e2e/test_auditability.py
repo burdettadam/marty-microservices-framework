@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
+
 from tests.e2e.conftest import AuditEvent, PerformanceAnalyzer
 
 

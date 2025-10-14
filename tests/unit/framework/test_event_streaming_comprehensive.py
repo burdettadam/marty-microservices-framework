@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from framework.event_streaming import (
+from marty_msf.framework.event_streaming import (
     AggregateRoot,
     Command,
     CommandBus,

@@ -17,11 +17,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 # Framework imports
-from framework.config import BaseServiceConfig
-from framework.events.event_bus import EventBus
-from framework.logging import UnifiedServiceLogger as StructuredLogger
-from framework.messaging.manager import MessagingManager as MessageBus
-from framework.monitoring.core import MetricsCollector
+from marty_msf.framework.config import BaseServiceConfig
+from marty_msf.framework.events.event_bus import EventBus
+from marty_msf.framework.logging import UnifiedServiceLogger as StructuredLogger
+from marty_msf.framework.messaging.manager import MessagingManager as MessageBus
+from marty_msf.framework.monitoring.core import MetricsCollector
 
 # Test configuration
 TEST_CONFIG = {

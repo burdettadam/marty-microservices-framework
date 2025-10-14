@@ -22,7 +22,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from framework.plugins import MMFPlugin, PluginContext, PluginMetadata
+from marty_msf.framework.plugins import MMFPlugin, PluginContext, PluginMetadata
 
 
 # Test fixtures

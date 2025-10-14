@@ -15,8 +15,8 @@ from testcontainers.kafka import KafkaContainer
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
-from framework.events.event_bus import EventBus
-from framework.messaging.core import MessageBus
+from marty_msf.framework.events.event_bus import EventBus
+from marty_msf.framework.messaging.core import MessageBus
 
 
 @pytest.fixture(scope="session")

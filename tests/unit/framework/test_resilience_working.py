@@ -13,7 +13,7 @@ import asyncio
 
 import pytest
 
-from framework.resilience import (  # Basic Components; Pattern Management; Convenience Functions
+from marty_msf.framework.resilience import (  # Basic Components; Pattern Management; Convenience Functions
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerError,
@@ -27,8 +27,8 @@ from framework.resilience import (  # Basic Components; Pattern Management; Conv
     initialize_resilience,
     retry_async,
 )
-from framework.resilience.retry import RetryError
-from framework.resilience.timeout import ResilienceTimeoutError, with_timeout
+from marty_msf.framework.resilience.retry import RetryError
+from marty_msf.framework.resilience.timeout import ResilienceTimeoutError, with_timeout
 
 
 class TestCircuitBreaker:

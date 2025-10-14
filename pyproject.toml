@@ -47,7 +47,7 @@ dependencies = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["framework", "security", "observability"]
+packages = ["src/marty_msf"]
 
 # Optional dependency groups
 [project.optional-dependencies]
@@ -142,8 +142,8 @@ Repository = "https://github.com/marty-framework/marty-microservices-framework"
 Issues = "https://github.com/marty-framework/marty-microservices-framework/issues"
 
 [project.scripts]
-marty = "marty_cli:cli"
-marty-msf = "marty_cli:cli"
+marty = "marty_msf.cli:cli"
+marty-msf = "marty_msf.cli:cli"
 
 [dependency-groups]
 dev = [
@@ -192,8 +192,8 @@ exclude = [
     "build",
     "dist",
     "__pycache__",
-    "templates/",
-    "microservice_project_template/",
+    "services/",
+    "tools/scaffolding/",
     "examples/",
 ]
 
@@ -210,6 +210,15 @@ ignore = [
 
     # Exception handling improvements needed
     "B904",  # raise-without-from-inside-except
+
+        # FastAPI specific patterns
+    "B008",  # do-not-perform-function-calls-in-argument-defaults (FastAPI Depends pattern)
+
+    # Import-related - framework modules with __all__ declarations
+    "F401",  # unused-import - many framework __init__.py files have re-exports
+
+    # Naming conventions for HTTP handlers
+    "N802",  # invalid-function-name - HTTP handlers use camelCase (do_GET, do_POST)
 
     # Legacy code cleanup needed
 

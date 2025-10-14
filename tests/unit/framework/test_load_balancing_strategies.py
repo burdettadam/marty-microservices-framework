@@ -4,8 +4,8 @@ Complete and corrected load balancing strategy tests.
 
 import pytest
 
-from framework.discovery.core import HealthStatus, ServiceInstance
-from framework.discovery.load_balancing import (
+from marty_msf.framework.discovery.core import HealthStatus, ServiceInstance
+from marty_msf.framework.discovery.load_balancing import (
     HealthBasedBalancer,
     LeastConnectionsBalancer,
     LoadBalancingConfig,

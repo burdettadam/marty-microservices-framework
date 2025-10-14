@@ -13,8 +13,8 @@ def test_bypass_direct_import():
     """Test bypassing all package imports by importing files directly."""
     try:
         # Import files directly without going through package __init__.py
-        import framework.discovery.core as core_module
-        import framework.discovery.load_balancing as lb_module
+        import marty_msf.framework.discovery.core as core_module
+        import marty_msf.framework.discovery.load_balancing as lb_module
 
         # Verify key classes exist
         assert hasattr(lb_module, "LoadBalancingStrategy")
@@ -33,7 +33,7 @@ def test_bypass_direct_import():
 async def test_service_instance_creation_bypass():
     """Test ServiceInstance creation bypassing all package imports."""
     try:
-        import framework.discovery.core as core_module
+        import marty_msf.framework.discovery.core as core_module
 
         # Test ServiceInstance creation
         ServiceInstance = core_module.ServiceInstance
@@ -54,8 +54,8 @@ async def test_service_instance_creation_bypass():
 async def test_round_robin_functionality_bypass():
     """Test RoundRobin load balancing bypassing imports."""
     try:
-        import framework.discovery.core as core_module
-        import framework.discovery.load_balancing as lb_module
+        import marty_msf.framework.discovery.core as core_module
+        import marty_msf.framework.discovery.load_balancing as lb_module
 
         # Get classes
         RoundRobinLoadBalancer = lb_module.RoundRobinLoadBalancer
@@ -91,8 +91,8 @@ async def test_round_robin_functionality_bypass():
 async def test_weighted_functionality_bypass():
     """Test Weighted load balancing bypassing imports."""
     try:
-        import framework.discovery.core as core_module
-        import framework.discovery.load_balancing as lb_module
+        import marty_msf.framework.discovery.core as core_module
+        import marty_msf.framework.discovery.load_balancing as lb_module
 
         # Get classes
         WeightedLoadBalancer = lb_module.WeightedLoadBalancer
@@ -122,8 +122,8 @@ async def test_weighted_functionality_bypass():
 async def test_random_functionality_bypass():
     """Test Random load balancing bypassing imports."""
     try:
-        import framework.discovery.core as core_module
-        import framework.discovery.load_balancing as lb_module
+        import marty_msf.framework.discovery.core as core_module
+        import marty_msf.framework.discovery.load_balancing as lb_module
 
         # Get classes if they exist
         if hasattr(lb_module, "RandomLoadBalancer"):
@@ -150,8 +150,8 @@ async def test_random_functionality_bypass():
 async def test_least_connections_functionality_bypass():
     """Test LeastConnections load balancing bypassing imports."""
     try:
-        import framework.discovery.core as core_module
-        import framework.discovery.load_balancing as lb_module
+        import marty_msf.framework.discovery.core as core_module
+        import marty_msf.framework.discovery.load_balancing as lb_module
 
         # Get classes if they exist
         if hasattr(lb_module, "LeastConnectionsLoadBalancer"):
@@ -177,7 +177,7 @@ async def test_least_connections_functionality_bypass():
 def test_discover_all_load_balancing_strategies():
     """Discover all available load balancing strategy classes."""
     try:
-        import framework.discovery.load_balancing as lb_module
+        import marty_msf.framework.discovery.load_balancing as lb_module
 
         # Find all classes in the module
         strategies = []

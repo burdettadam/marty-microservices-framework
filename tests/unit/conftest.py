@@ -10,8 +10,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from framework.config import BaseServiceConfig as FrameworkConfig
-from framework.logging import UnifiedServiceLogger as StructuredLogger
+from marty_msf.framework.config import BaseServiceConfig as FrameworkConfig
+from marty_msf.framework.logging import UnifiedServiceLogger as StructuredLogger
 
 
 @pytest.fixture

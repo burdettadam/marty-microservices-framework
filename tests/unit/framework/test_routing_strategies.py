@@ -11,7 +11,11 @@ import pytest
 def test_import_routing_strategies():
     """Test that routing strategies can be imported."""
     try:
-        from framework.messaging.routing import MatchType, RoutingConfig, RoutingType
+        from marty_msf.framework.messaging.routing import (
+            MatchType,
+            RoutingConfig,
+            RoutingType,
+        )
 
         assert issubclass(RoutingType, Enum)
         assert issubclass(MatchType, Enum)
@@ -24,7 +28,7 @@ def test_import_routing_strategies():
 def test_routing_type_enum():
     """Test RoutingType enum values."""
     try:
-        from framework.messaging.routing import RoutingType
+        from marty_msf.framework.messaging.routing import RoutingType
 
         # Test enum members exist
         assert hasattr(RoutingType, "DIRECT")
@@ -51,7 +55,7 @@ def test_routing_type_enum():
 def test_match_type_enum():
     """Test MatchType enum values."""
     try:
-        from framework.messaging.routing import MatchType
+        from marty_msf.framework.messaging.routing import MatchType
 
         # Test enum members exist
         assert hasattr(MatchType, "EXACT")
@@ -74,7 +78,7 @@ def test_match_type_enum():
 def test_routing_config_creation():
     """Test RoutingConfig creation and default values."""
     try:
-        from framework.messaging.routing import RoutingConfig
+        from marty_msf.framework.messaging.routing import RoutingConfig
 
         # Test default configuration
         config = RoutingConfig()
@@ -101,7 +105,11 @@ def test_routing_config_creation():
 def test_routing_rule_creation():
     """Test RoutingRule creation."""
     try:
-        from framework.messaging.routing import MatchType, RoutingRule, RoutingType
+        from marty_msf.framework.messaging.routing import (
+            MatchType,
+            RoutingRule,
+            RoutingType,
+        )
 
         # Test basic routing rule creation
         rule = RoutingRule(
@@ -129,7 +137,7 @@ def test_routing_rule_creation():
 def test_routing_strategies_iteration():
     """Test that routing strategies can be iterated."""
     try:
-        from framework.messaging.routing import MatchType, RoutingType
+        from marty_msf.framework.messaging.routing import MatchType, RoutingType
 
         # Test RoutingType iteration
         routing_types = list(RoutingType)
@@ -160,7 +168,7 @@ def test_routing_strategies_iteration():
 def test_routing_strategy_validation():
     """Test routing strategy validation and constraints."""
     try:
-        from framework.messaging.routing import MatchType, RoutingType
+        from marty_msf.framework.messaging.routing import MatchType, RoutingType
 
         # Test routing type values are strings
         for routing_type in RoutingType:
@@ -185,7 +193,7 @@ def test_routing_strategy_validation():
 def test_routing_engine_creation():
     """Test RoutingEngine creation with configuration."""
     try:
-        from framework.messaging.routing import RoutingConfig, RoutingEngine
+        from marty_msf.framework.messaging.routing import RoutingConfig, RoutingEngine
 
         # Test engine creation with default config
         config = RoutingConfig()

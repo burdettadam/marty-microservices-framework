@@ -13,7 +13,12 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from framework.plugins import MMFPlugin, PluginContext, PluginManager, PluginMetadata
+from marty_msf.framework.plugins import (
+    MMFPlugin,
+    PluginContext,
+    PluginManager,
+    PluginMetadata,
+)
 
 
 # Mock classes for testing

@@ -19,10 +19,10 @@ import redis
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
-from framework.config import FrameworkConfig
-from framework.database import DatabaseConnection
-from framework.events import Event, EventBus
-from framework.messaging import Message, MessageBus
+from marty_msf.framework.config import FrameworkConfig
+from marty_msf.framework.database import DatabaseConnection
+from marty_msf.framework.events import Event, EventBus
+from marty_msf.framework.messaging import Message, MessageBus
 
 
 class TestServiceManager:

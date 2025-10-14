@@ -10,14 +10,14 @@ from typing import Any
 
 import pytest
 
-from framework.event_streaming.core import (
+from marty_msf.framework.event_streaming.core import (
     Event,
     EventHandler,
     EventMetadata,
     InMemoryEventBus,
     InMemoryEventStore,
 )
-from framework.event_streaming.cqrs import (
+from marty_msf.framework.event_streaming.cqrs import (
     Command,
     CommandBus,
     CommandHandler,
@@ -25,11 +25,11 @@ from framework.event_streaming.cqrs import (
     QueryBus,
     QueryHandler,
 )
-from framework.event_streaming.event_sourcing import (
+from marty_msf.framework.event_streaming.event_sourcing import (
     AggregateRoot,
     EventSourcedRepository,
 )
-from framework.event_streaming.saga import Saga, SagaManager
+from marty_msf.framework.event_streaming.saga import Saga, SagaManager
 
 
 # Mock classes for testing

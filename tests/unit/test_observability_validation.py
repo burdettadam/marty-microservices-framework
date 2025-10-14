@@ -43,7 +43,7 @@ class TestObservabilityValidation:
         """Test that Kafka modules can be imported and instantiated."""
         try:
             sys.path.insert(0, str(Path.cwd()))
-            from observability.kafka import EventBus, KafkaConfig
+            from marty_msf.observability.kafka import EventBus, KafkaConfig
 
             # Basic instantiation test
             config = KafkaConfig()
@@ -163,7 +163,7 @@ class TestObservabilityValidation:
     def test_metrics_collection_components(self):
         """Test metrics collection components."""
         try:
-            from framework.monitoring.core import MetricsCollector
+            from marty_msf.framework.monitoring.core import MetricsCollector
 
             # Basic instantiation test
             collector = MetricsCollector()
@@ -179,7 +179,7 @@ class TestObservabilityValidation:
     def test_logging_configuration(self):
         """Test logging configuration validation."""
         try:
-            from framework.logging import UnifiedServiceLogger
+            from marty_msf.framework.logging import UnifiedServiceLogger
 
             # Test logger instantiation
             logger = UnifiedServiceLogger("test-service")

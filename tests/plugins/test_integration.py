@@ -82,7 +82,7 @@ def create_plugin():
 
         # Test plugin discovery
         try:
-            from framework.plugins.discovery import DirectoryPluginDiscoverer
+            from marty_msf.framework.plugins.discovery import DirectoryPluginDiscoverer
 
             discoverer = DirectoryPluginDiscoverer(plugin_dir)
             plugins = discoverer.discover()
@@ -99,7 +99,8 @@ def create_plugin():
         """Test plugin manager with full integration."""
         try:
             from conftest import TestPlugin
-            from framework.plugins.core import PluginManager, PluginMetadata
+
+            from marty_msf.framework.plugins.core import PluginManager, PluginMetadata
 
             manager = PluginManager(mock_context)
 
@@ -136,7 +137,11 @@ class TestServiceRegistrationIntegration:
         """Test service registry with full integration."""
         try:
             from conftest import TestPlugin
-            from framework.plugins.services import ServiceDefinition, ServiceRegistry
+
+            from marty_msf.framework.plugins.services import (
+                ServiceDefinition,
+                ServiceRegistry,
+            )
 
             registry = ServiceRegistry(mock_context)
 
@@ -186,7 +191,10 @@ class TestServiceRegistrationIntegration:
     async def test_route_mounting_integration(self, mock_context):
         """Test route mounting and request handling."""
         try:
-            from framework.plugins.services import ServiceDefinition, ServiceRegistry
+            from marty_msf.framework.plugins.services import (
+                ServiceDefinition,
+                ServiceRegistry,
+            )
 
             registry = ServiceRegistry(mock_context)
 
@@ -441,7 +449,9 @@ class TestConfigurationIntegration:
 
         # Test configuration loading (mocked)
         try:
-            from framework.config.plugin_config import create_plugin_config_manager
+            from marty_msf.framework.config.plugin_config import (
+                create_plugin_config_manager,
+            )
 
             config_manager = create_plugin_config_manager(config_dir)
             assert config_manager is not None

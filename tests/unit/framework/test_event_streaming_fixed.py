@@ -7,7 +7,7 @@ to maximize real behavior validation and coverage.
 
 import pytest
 
-from framework.event_streaming.core import (
+from marty_msf.framework.event_streaming.core import (
     DomainEvent,
     Event,
     EventHandler,
@@ -15,7 +15,7 @@ from framework.event_streaming.core import (
     InMemoryEventBus,
     InMemoryEventStore,
 )
-from framework.event_streaming.cqrs import (
+from marty_msf.framework.event_streaming.cqrs import (
     Command,
     CommandBus,
     CommandHandler,
@@ -27,12 +27,12 @@ from framework.event_streaming.cqrs import (
     QueryResult,
     ReadModelStore,
 )
-from framework.event_streaming.event_sourcing import (
+from marty_msf.framework.event_streaming.event_sourcing import (
     AggregateRepository,
     AggregateRoot,
     Snapshot,
 )
-from framework.event_streaming.saga import (
+from marty_msf.framework.event_streaming.saga import (
     CompensationAction,
     Saga,
     SagaContext,
