@@ -47,6 +47,84 @@ MMF Plugin Architecture
     └── @event_handler
 ```
 
+## Plugin Types
+
+MMF supports two distinct types of plugins that serve different purposes:
+
+### Service Plugins (MMFPlugin)
+
+Service plugins are domain bundles that provide business logic and services. They are the primary extension mechanism for adding domain-specific functionality to MMF applications.
+
+**Characteristics:**
+- **Location**: Top-level `plugins/<domain-plugin>/` directories
+- **Registration**: Via entry points in `pyproject.toml`
+- **Interface**: Implement the `MMFPlugin` base class
+- **Purpose**: Provide business services and domain logic
+- **Scope**: Own a complete business domain (e.g., payments, identity, trust/PKI)
+- **Lifecycle**: Managed by MMF's PluginManager
+
+**Example:**
+```python
+# plugins/payment_processing/plugin.py
+from marty_msf.framework.plugins.core import MMFPlugin
+
+class PaymentProcessingPlugin(MMFPlugin):
+    def get_metadata(self):
+        return {
+            "name": "payment-processing",
+            "version": "1.0.0",
+            "description": "Payment processing domain logic"
+        }
+
+    def get_service_definitions(self):
+        return [
+            {"name": "payment-service", "class": PaymentService},
+            {"name": "billing-service", "class": BillingService}
+        ]
+```
+
+**Entry Point Registration:**
+```toml
+[project.entry-points."mmf.plugins"]
+payment_processing = "plugins.payment_processing:PaymentProcessingPlugin"
+```
+
+### Gateway Plugins (Middleware)
+
+Gateway plugins are middleware-like components that handle cross-cutting concerns at the API gateway level. They process requests and responses for all traffic flowing through the gateway.
+
+**Characteristics:**
+- **Location**: Gateway configuration and middleware directories
+- **Registration**: Via gateway configuration, not entry points
+- **Interface**: Implement gateway middleware interfaces
+- **Purpose**: Handle cross-cutting concerns (auth, logging, rate limiting, etc.)
+- **Scope**: Operate on HTTP requests/responses across all services
+- **Lifecycle**: Managed by the API Gateway
+
+**Example:**
+```python
+# Gateway middleware plugin
+class AuthenticationGatewayPlugin:
+    async def process_request(self, request):
+        # Validate authentication for all incoming requests
+        pass
+
+    async def process_response(self, response):
+        # Add security headers to all responses
+        pass
+```
+
+### Key Differences
+
+| Aspect | Service Plugins (MMFPlugin) | Gateway Plugins (Middleware) |
+|--------|----------------------------|------------------------------|
+| **Purpose** | Business domain logic | Cross-cutting concerns |
+| **Scope** | Domain-specific services | All HTTP traffic |
+| **Registration** | Entry points in pyproject.toml | Gateway configuration |
+| **Interface** | MMFPlugin base class | Gateway middleware interface |
+| **Location** | `plugins/<domain>/` | Gateway middleware config |
+| **Examples** | Payment processing, User management | Authentication, Rate limiting |
+
 ### Marty Plugin Structure
 
 ```
