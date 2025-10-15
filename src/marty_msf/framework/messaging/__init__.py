@@ -1,15 +1,102 @@
 """
-Messaging Infrastructure Package.
+Enhanced Messaging Infrastructure Package.
 
 Provides comprehensive messaging capabilities including:
-- Message queues with multiple brokers (RabbitMQ, Kafka, Redis, In-Memory)
-- Event streaming and processing
+- Unified Event Bus with multiple backend support
+- Message queues with multiple brokers (RabbitMQ, NATS, Kafka, AWS SNS/SQS, Redis, In-Memory)
+- Event streaming and processing with pluggable backends
 - Event sourcing and CQRS patterns
-- Reliable async communication patterns
+- Saga pattern integration for distributed transactions
+- Multiple messaging patterns (pub/sub, request/response, streaming, point-to-point)
+
+Enhanced Features:
+- Extended backend support (NATS, AWS SNS)
+- Unified messaging patterns API
+- Smart backend selection
+- Enhanced Saga integration
+- Pattern-specific optimizations
 
 Usage Examples:
 
-1. Basic Message Queue:
+1. Unified Event Bus (Recommended):
+```python
+from marty_msf.framework.messaging import (
+    create_unified_event_bus,
+    NATSBackend,
+    NATSConfig,
+    MessageBackendType
+)
+
+# Create unified event bus
+event_bus = create_unified_event_bus()
+
+# Configure and register backends
+nats_config = NATSConfig(servers=["nats://localhost:4222"])
+nats_backend = NATSBackend(nats_config)
+event_bus.register_backend(MessageBackendType.NATS, nats_backend)
+
+await event_bus.start()
+
+# Publish event (pub/sub pattern)
+await event_bus.publish_event(
+    event_type="user_registered",
+    data={"user_id": "123", "email": "user@example.com"}
+)
+
+# Send command (point-to-point pattern)
+await event_bus.send_command(
+    command_type="process_payment",
+    data={"order_id": "456", "amount": 99.99},
+    target_service="payment_service"
+)
+
+# Query with response (request/response pattern)
+response = await event_bus.query(
+    query_type="get_user_profile",
+    data={"user_id": "123"},
+    target_service="user_service"
+)
+```
+
+2. Enhanced Saga Integration:
+```python
+from marty_msf.framework.messaging import create_distributed_saga_manager
+
+# Create saga manager
+saga_manager = create_distributed_saga_manager(event_bus)
+
+# Register saga
+saga_manager.register_saga("order_processing", OrderProcessingSaga)
+
+# Start distributed saga
+saga_id = await saga_manager.create_and_start_saga(
+    "order_processing",
+    {"order_id": "123", "customer_id": "456"}
+)
+```
+
+3. Backend-Specific Usage:
+```python
+# NATS for high-performance messaging
+from marty_msf.framework.messaging import NATSBackend, NATSConfig
+
+nats_config = NATSConfig(
+    servers=["nats://localhost:4222"],
+    jetstream_enabled=True
+)
+nats_backend = NATSBackend(nats_config)
+
+# AWS SNS for cloud-native pub/sub
+from marty_msf.framework.messaging import AWSSNSBackend, AWSSNSConfig
+
+sns_config = AWSSNSConfig(
+    region_name="us-east-1",
+    fifo_topics=True
+)
+sns_backend = AWSSNSBackend(sns_config)
+```
+
+4. Legacy Message Queue (Still Supported):
 ```python
 from marty_msf.framework.messaging import MessageConfig, MessageQueue, MessageHandler, Message
 
@@ -159,6 +246,24 @@ from .core import (
 # Dead letter queue support
 from .dlq import DLQConfig, DLQManager, DLQMessage, RetryStrategy
 
+# Extended messaging components (New)
+from .extended import (
+    AWSSNSBackend,
+    AWSSNSConfig,
+    DistributedSagaManager,
+    EnhancedSagaOrchestrator,
+    MessageBackendType,
+    MessagingPattern,
+    NATSBackend,
+    NATSConfig,
+    NATSMessage,
+    PatternSelector,
+    UnifiedEventBus,
+    UnifiedEventBusImpl,
+    create_distributed_saga_manager,
+    create_unified_event_bus,
+)
+
 # Messaging management
 from .manager import (
     MessagingConfig,
@@ -270,6 +375,19 @@ __all__ = [
     "EventBus",
     "EventHandler",
     "EventMetadata",
+    # Extended messaging system (New)
+    "AWSSNSBackend",
+    "AWSSNSConfig",
+    "DistributedSagaManager",
+    "EnhancedSagaOrchestrator",
+    "MessageBackendType",
+    "MessagingPattern",
+    "NATSBackend",
+    "NATSConfig",
+    "NATSMessage",
+    "PatternSelector",
+    "UnifiedEventBus",
+    "UnifiedEventBusImpl",
     # Backend implementations
     "BackendConfig",
     "BackendFactory",
@@ -321,9 +439,11 @@ __all__ = [
     "ProtobufSerializer",
     "SerializationError",
     # Factory functions
+    "create_distributed_saga_manager",
     "create_event_manager",
     "create_message_queue",
     "create_messaging_config_from_dict",
+    "create_unified_event_bus",
     # Context managers
     "event_streaming_context",
     "message_queue_context",
