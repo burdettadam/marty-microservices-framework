@@ -1,0 +1,102 @@
+{
+  "id": "abac_financial_operations",
+  "name": "Financial Operations ABAC Policy",
+  "description": "Attribute-based access control for financial operations with context-aware decisions",
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "high_value_transaction_approval",
+      "description": "High-value transactions require additional approval",
+      "resource": "/api/v1/transactions/*",
+      "action": "POST",
+      "principal": {
+        "roles": ["finance_manager", "cfo"]
+      },
+      "environment": {
+        "transaction_amount": {"operator": ">", "value": 10000},
+        "business_hours": true
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "regional_transaction_access",
+      "description": "Users can only access transactions from their region",
+      "resource": "/api/v1/transactions/*",
+      "action": ["GET", "PUT"],
+      "principal": {
+        "roles": ["finance_user", "accountant"]
+      },
+      "environment": {
+        "user_region": {"operator": "equals", "value": "${resource.region}"}
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "time_based_sensitive_access",
+      "description": "Sensitive financial data only accessible during business hours",
+      "resource": "/api/v1/reports/financial/*",
+      "action": "GET",
+      "principal": {
+        "roles": ["analyst", "auditor", "finance_manager"]
+      },
+      "environment": {
+        "current_hour": {"operator": "between", "value": [9, 17]},
+        "weekday": true
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "ip_restricted_admin_access",
+      "description": "Administrative actions restricted to trusted networks",
+      "resource": "/api/v1/admin/*",
+      "action": "*",
+      "principal": {
+        "roles": ["admin", "system_admin"]
+      },
+      "environment": {
+        "source_ip": {
+          "operator": "in_cidr",
+          "value": ["10.0.0.0/8", "192.168.1.0/24"]
+        }
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "mfa_required_sensitive",
+      "description": "Multi-factor authentication required for sensitive operations",
+      "resource": "/api/v1/sensitive/*",
+      "action": ["POST", "PUT", "DELETE"],
+      "principal": {
+        "mfa_verified": true,
+        "mfa_age": {"operator": "<", "value": 300}
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "department_data_isolation",
+      "description": "Users can only access data from their department",
+      "resource": "/api/v1/data/*",
+      "action": ["GET", "POST", "PUT"],
+      "principal": {
+        "department": {"operator": "equals", "value": "${resource.department}"}
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "emergency_override",
+      "description": "Emergency accounts can override restrictions",
+      "resource": "*",
+      "action": "*",
+      "principal": {
+        "roles": ["emergency_admin"],
+        "emergency_mode": true
+      },
+      "environment": {
+        "incident_active": true
+      },
+      "effect": "allow",
+      "priority": 1000
+    }
+  ],
+  "default_effect": "deny"
+}
