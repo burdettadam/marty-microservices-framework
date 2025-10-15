@@ -82,9 +82,9 @@ setup_observability() {
     print_status "Setting up observability stack..."
 
     # Apply observability namespace and components
-    kubectl apply -f "$PROJECT_ROOT/k8s/observability/prometheus.yaml"
-    kubectl apply -f "$PROJECT_ROOT/k8s/observability/grafana.yaml"
-    kubectl apply -f "$PROJECT_ROOT/k8s/observability/kafka.yaml"
+    kubectl apply -f "$PROJECT_ROOT/ops/k8s/observability/prometheus.yaml"
+    kubectl apply -f "$PROJECT_ROOT/ops/k8s/observability/grafana.yaml"
+    kubectl apply -f "$PROJECT_ROOT/ops/k8s/observability/kafka.yaml"
 
     # Wait for observability components to be ready
     print_status "Waiting for observability components to be ready..."

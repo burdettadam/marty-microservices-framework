@@ -23,7 +23,7 @@ echo "Applying base manifests..." >&2
 kubectl apply -k "${ROOT_DIR}/k8s/overlays/dev"
 
 echo "Applying observability stack..." >&2
-kubectl apply -k "${ROOT_DIR}/k8s/observability"
+kubectl apply -k "${ROOT_DIR}/ops/k8s/observability"
 
 echo "Waiting for pods to be ready..." >&2
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=microservice-template --timeout=120s

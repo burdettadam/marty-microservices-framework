@@ -41,6 +41,99 @@
       "features": {},
       "created_at": "2025-10-14T10:03:51.812499",
       "services": []
+    },
+    "petstore-domain": {
+      "template": "minimal",
+      "features": {},
+      "created_at": "2025-10-14T15:21:33.245491",
+      "services": []
+    },
+    "petstore_domain": {
+      "services": [
+        {
+          "name": "payment-service",
+          "type": "business",
+          "features": [
+            "database,monitoring,auth"
+          ],
+          "created_at": "2025-10-14T13:06:50.622928"
+        },
+        {
+          "name": "petstore-api",
+          "type": "api",
+          "features": [
+            "database,monitoring,caching"
+          ],
+          "created_at": "2025-10-14T13:08:03.680151"
+        },
+        {
+          "name": "payment-service",
+          "type": "business",
+          "features": [
+            "database,monitoring,auth"
+          ],
+          "created_at": "2025-10-14T13:10:24.426826"
+        },
+        {
+          "name": "petstore-api",
+          "type": "api",
+          "features": [
+            "database,monitoring,caching"
+          ],
+          "created_at": "2025-10-14T13:11:21.832209"
+        },
+        {
+          "name": "payment-service",
+          "type": "business",
+          "features": [
+            "database",
+            "monitoring"
+          ],
+          "created_at": "2025-10-14T14:39:29.858608"
+        },
+        {
+          "name": "payment-service",
+          "type": "business",
+          "features": [
+            "database",
+            "monitoring"
+          ],
+          "created_at": "2025-10-14T14:44:14.341252"
+        },
+        {
+          "name": "payment-service",
+          "type": "business",
+          "features": [
+            "database",
+            "monitoring"
+          ],
+          "created_at": "2025-10-14T14:46:02.341353"
+        },
+        {
+          "name": "payment-service",
+          "type": "business",
+          "features": [
+            "database",
+            "monitoring"
+          ],
+          "created_at": "2025-10-14T15:22:30.451924"
+        },
+        {
+          "name": "delivery-board",
+          "type": "business",
+          "features": [
+            "database",
+            "monitoring"
+          ],
+          "created_at": "2025-10-14T15:31:18.836843"
+        },
+        {
+          "name": "petstore-domain",
+          "type": "business",
+          "features": [],
+          "created_at": "2025-10-14T15:40:34.343321"
+        }
+      ]
     }
   }
 }

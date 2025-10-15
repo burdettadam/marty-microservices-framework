@@ -98,6 +98,24 @@ The Marty Microservices Framework follows a layered, plugin-based architecture d
 - Event sourcing capabilities
 - CQRS pattern support
 
+##### Kafka Infrastructure Decision
+The framework adopts **Apache Kafka with KRaft mode** for production event streaming:
+
+- **Modern KRaft Mode**: Uses Kafka's new consensus protocol (KIP-500) eliminating Zookeeper dependency
+- **Simplified Operations**: Reduces infrastructure complexity and operational overhead
+- **Better Performance**: Improved startup times and reduced resource consumption
+- **Future-Proof**: Zookeeper-based deployments are deprecated in Kafka 4.0+
+
+**Alternative Configurations Evaluated:**
+- **Bitnami Kafka**: Rejected due to unstable `latest` tag and Zookeeper dependency
+- **Confluent Platform 6.x**: Rejected due to outdated version and Zookeeper requirement
+- **Wurstmeister Kafka**: Rejected due to deprecated/unmaintained image
+- **Apache Kafka without Zookeeper**: Rejected to maintain production parity
+
+**Selected**: Confluent Platform 7.4.0 + Zookeeper for production parity across all environments
+
+**Configuration Location**: `ops/k8s/observability/kafka.yaml` (used for both development and production)
+
 ### 3. Plugin Layer
 
 #### Plugin Management (`src/framework/plugins/`)
@@ -119,6 +137,12 @@ The Marty Microservices Framework follows a layered, plugin-based architecture d
 - Kustomize configurations for environment management
 - Health check and readiness probes
 - Resource management and scaling
+
+#### Message Streaming Infrastructure
+- **Apache Kafka (KRaft Mode)**: Production event streaming without Zookeeper
+- **Development Configuration**: Single-node setup with auto-topic creation
+- **Production Configuration**: Multi-node setup with observability integration
+- **High Availability**: Replication and persistence configured for durability
 
 #### Service Mesh Support
 - Istio/Linkerd integration

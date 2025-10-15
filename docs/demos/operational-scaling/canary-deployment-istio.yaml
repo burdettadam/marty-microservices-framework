@@ -1,0 +1,298 @@
+# Canary Deployment with Istio Service Mesh
+# This demonstrates progressive traffic shifting for safe deployments
+
+# Virtual Service for Canary Deployment
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: petstore-domain-canary
+  namespace: petstore
+  labels:
+    app: petstore-domain
+    deployment-strategy: canary
+spec:
+  hosts:
+  - petstore-domain
+  - petstore-domain.petstore.svc.cluster.local
+  http:
+  # Route for canary testing (header-based)
+  - match:
+    - headers:
+        canary:
+          exact: "true"
+    route:
+    - destination:
+        host: petstore-domain
+        subset: canary
+      weight: 100
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 100ms
+  # Route for beta users (custom header)
+  - match:
+    - headers:
+        user-group:
+          exact: "beta"
+    route:
+    - destination:
+        host: petstore-domain
+        subset: canary
+      weight: 100
+  # Progressive traffic shifting for general users
+  - route:
+    - destination:
+        host: petstore-domain
+        subset: stable
+      weight: 90  # Start with 90% stable
+    - destination:
+        host: petstore-domain
+        subset: canary
+      weight: 10  # 10% canary traffic
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+      retryOn: 5xx,connect-failure,refused-stream
+    timeout: 10s
+---
+# Destination Rule for Traffic Management
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: petstore-domain-destination
+  namespace: petstore
+  labels:
+    app: petstore-domain
+    deployment-strategy: canary
+spec:
+  host: petstore-domain
+  trafficPolicy:
+    # Load balancing policy
+    loadBalancer:
+      simple: LEAST_CONN
+    # Connection pool settings
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 100
+        maxRetries: 3
+        idleTimeout: 90s
+    # Circuit breaker settings
+    outlierDetection:
+      consecutiveGatewayErrors: 3
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+    trafficPolicy:
+      portLevelSettings:
+      - port:
+          number: 8000
+        connectionPool:
+          tcp:
+            maxConnections: 50
+  - name: canary
+    labels:
+      version: canary
+    trafficPolicy:
+      portLevelSettings:
+      - port:
+          number: 8000
+        connectionPool:
+          tcp:
+            maxConnections: 25
+---
+# Gateway for External Traffic
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: petstore-gateway
+  namespace: petstore
+  labels:
+    app: petstore-domain
+    component: ingress
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - petstore.example.com
+    - petstore-api.example.com
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: petstore-tls-secret
+    hosts:
+    - petstore.example.com
+    - petstore-api.example.com
+---
+# Security Policy - Authentication
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: petstore-auth-policy
+  namespace: petstore
+  labels:
+    app: petstore-domain
+    component: security
+spec:
+  selector:
+    matchLabels:
+      app: petstore-domain
+  rules:
+  # Allow requests from ML advisor service
+  - from:
+    - source:
+        principals: ["cluster.local/ns/petstore/sa/ml-pet-advisor"]
+  # Allow requests from payment service
+  - from:
+    - source:
+        principals: ["cluster.local/ns/petstore/sa/payment-service"]
+  # Allow requests from delivery service
+  - from:
+    - source:
+        principals: ["cluster.local/ns/petstore/sa/delivery-service"]
+  # Allow external requests through gateway
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+  # Allow health checks
+  - to:
+    - operation:
+        paths: ["/health", "/ready"]
+---
+# Peer Authentication for mTLS
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: petstore-mtls
+  namespace: petstore
+  labels:
+    component: security
+spec:
+  selector:
+    matchLabels:
+      app: petstore-domain
+  mtls:
+    mode: STRICT
+---
+# Service Monitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: petstore-domain-metrics
+  namespace: petstore
+  labels:
+    app: petstore-domain
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: petstore-domain
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: http
+  - port: http
+    interval: 60s
+    path: /api/petstore-domain/health
+    scheme: http
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'up'
+      targetLabel: service_health
+      replacement: 'petstore_domain'
+---
+# Envoy Filter for Custom Metrics
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: petstore-custom-metrics
+  namespace: petstore
+  labels:
+    app: petstore-domain
+    component: observability
+spec:
+  workloadSelector:
+    labels:
+      app: petstore-domain
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.filters.network.http_connection_manager"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.wasm
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+          config:
+            root_id: custom_metrics
+            vm_config:
+              vm_id: custom_metrics
+              runtime: envoy.wasm.runtime.v8
+              code:
+                local:
+                  inline_string: |
+                    class CustomMetrics {
+                      onRequestHeaders() {
+                        const path = this.getRequestHeader(":path");
+                        if (path.startsWith("/api/petstore-domain")) {
+                          this.addMetric("petstore_requests_total", 1);
+                        }
+                        return FilterHeadersStatus.Continue;
+                      }
+                    }
+---
+# Telemetry Configuration for Metrics Collection
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: petstore-metrics
+  namespace: petstore
+  labels:
+    app: petstore-domain
+    component: observability
+spec:
+  selector:
+    matchLabels:
+      app: petstore-domain
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: ALL_METRICS
+      tagOverrides:
+        request_id:
+          value: "%{REQUEST_ID}"
+        canary_version:
+          value: "%{DOWNSTREAM_LOCAL_ADDRESS}"
+  accessLogging:
+  - providers:
+    - name: otel

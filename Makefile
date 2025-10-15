@@ -151,11 +151,11 @@ kind-up: ## Start local Kubernetes cluster with observability stack
 		brew install helm; \
 	fi
 	@echo "🏗️ Creating Kind cluster..."
-	@kind create cluster --name microservices-framework --config k8s/kind-cluster-config.yaml || true
+	@kind create cluster --name microservices-framework --config ops/k8s/kind-cluster-config.yaml || true
 	@echo "⏳ Waiting for cluster to be ready..."
 	@kubectl wait --for=condition=Ready nodes --all --timeout=300s
 	@echo "📊 Deploying observability stack..."
-	@kubectl apply -f k8s/observability/
+	@kubectl apply -f ops/k8s/observability/
 	@echo "⏳ Waiting for observability pods to be ready..."
 	@kubectl wait --for=condition=Ready pods -l app=prometheus -n observability --timeout=300s || true
 	@kubectl wait --for=condition=Ready pods -l app=grafana -n observability --timeout=300s || true
