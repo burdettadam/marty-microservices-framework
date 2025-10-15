@@ -143,6 +143,170 @@ async def get_user(user_id: str) -> dict:
 - Event sourcing capabilities
 - CQRS pattern support
 
+#### **Extended Messaging System (`src/framework/messaging/`)**
+
+The framework provides a comprehensive, unified messaging system supporting multiple backends and messaging patterns for enterprise-grade microservices communication.
+
+**Core Components:**
+
+##### Unified Event Bus (`unified_event_bus.py`)
+- **Single API for All Patterns**: Unified interface supporting pub/sub, request/response, stream processing, and point-to-point messaging
+- **Backend Abstraction**: Automatic backend selection based on messaging pattern and requirements
+- **Pattern-Specific Optimizations**: Each pattern uses the most appropriate backend automatically
+- **Smart Backend Selection**: Uses PatternSelector for intelligent backend recommendation
+
+##### Supported Backends
+1. **NATS Backend** (`nats_backend.py`)
+   - High-performance, low-latency messaging
+   - JetStream support for stream processing
+   - Request/response with built-in timeouts
+   - Excellent for micro-service communication
+
+2. **AWS SNS Backend** (`aws_sns_backend.py`)
+   - Cloud-native pub/sub and broadcast messaging
+   - FIFO topics with exactly-once delivery
+   - Message filtering and attributes
+   - Dead letter queue support
+
+3. **RabbitMQ Backend** (Enhanced existing implementation)
+   - Complex routing and exchange patterns
+   - Message persistence and clustering
+   - Priority queues and TTL support
+   - Traditional enterprise messaging
+
+4. **Kafka Backend** (Enhanced existing implementation)
+   - High-throughput stream processing
+   - Event replay capabilities
+   - Partitioned topics for scalability
+   - Real-time analytics pipelines
+
+5. **Redis Backend** (Enhanced existing implementation)
+   - Lightweight pub/sub for caching scenarios
+   - Streams for simple event processing
+   - In-memory performance
+
+##### Messaging Patterns
+
+**Publish/Subscribe Pattern:**
+```python
+# Publish domain events
+await event_bus.publish_event(
+    event_type="user_registered",
+    data={"user_id": "123", "email": "user@example.com"}
+)
+
+# Subscribe to events
+await event_bus.subscribe_to_events(
+    event_types=["user_registered", "user_updated"],
+    handler=handle_user_events
+)
+```
+
+**Request/Response Pattern:**
+```python
+# Send query and get response
+response = await event_bus.query(
+    query_type="get_user_profile",
+    data={"user_id": "123"},
+    target_service="user_service"
+)
+```
+
+**Stream Processing Pattern:**
+```python
+# Process event streams in batches
+await event_bus.process_stream(
+    stream_name="analytics_events",
+    processor=process_analytics_batch,
+    consumer_group="analytics_processor",
+    batch_size=100
+)
+```
+
+**Point-to-Point Pattern:**
+```python
+# Send commands to specific services
+await event_bus.send_command(
+    command_type="process_payment",
+    data={"order_id": "123", "amount": 99.99},
+    target_service="payment_service"
+)
+```
+
+##### Enhanced Saga Integration (`saga_integration.py`)
+
+**Distributed Saga Orchestration:**
+- **Enhanced Saga Orchestrator**: Uses unified event bus for saga coordination
+- **Multi-Backend Saga Support**: Saga events can use different backends for different steps
+- **Compensation Logic**: Automatic compensation handling with event-driven rollback
+- **Saga State Management**: Persistent saga state with event sourcing
+
+**Example Saga Implementation:**
+```python
+class OrderProcessingSaga:
+    def __init__(self):
+        self.steps = [
+            {"step_name": "validate_order", "service": "order_service"},
+            {"step_name": "reserve_inventory", "service": "inventory_service"},
+            {"step_name": "process_payment", "service": "payment_service"},
+            {"step_name": "ship_order", "service": "shipping_service"}
+        ]
+
+# Create distributed saga manager
+saga_manager = create_distributed_saga_manager(event_bus)
+saga_manager.register_saga("order_processing", OrderProcessingSaga)
+
+# Start saga
+saga_id = await saga_manager.create_and_start_saga(
+    "order_processing",
+    {"order_id": "123", "customer_id": "456"}
+)
+```
+
+##### Pattern Selection Guidelines
+
+**Backend Selection Matrix:**
+
+| Use Case | Scale | Recommended Backend | Pattern |
+|----------|-------|-------------------|---------|
+| Real-time notifications | High | NATS | Pub/Sub |
+| Task queues | Medium | RabbitMQ | Point-to-Point |
+| Analytics processing | High | Kafka | Stream Processing |
+| Micro-service communication | Medium | NATS | Request/Response |
+| Cloud-native pub/sub | Any | AWS SNS | Pub/Sub |
+| Financial transactions | High | Kafka + NATS | Stream + Request/Response |
+
+**When to Use Each Pattern:**
+
+- **Pub/Sub**: Multiple services need to react to the same event (user registration, order updates)
+- **Request/Response**: Immediate response required (authentication, payment authorization)
+- **Stream Processing**: Continuous data flows with ordering (analytics, financial transactions)
+- **Point-to-Point**: Task processing with guaranteed delivery (background jobs, email sending)
+
+##### Configuration and Deployment
+
+**Backend Configuration:**
+```python
+# Configure multiple backends
+nats_config = NATSConfig(servers=["nats://localhost:4222"])
+aws_config = AWSSNSConfig(region_name="us-east-1")
+
+event_bus.register_backend(MessageBackendType.NATS, NATSBackend(nats_config))
+event_bus.register_backend(MessageBackendType.AWS_SNS, AWSSNSBackend(aws_config))
+```
+
+**Infrastructure Requirements:**
+- **NATS**: Lightweight, minimal infrastructure
+- **AWS SNS**: Managed service, no infrastructure needed
+- **RabbitMQ**: Cluster deployment with persistence
+- **Kafka**: High-availability cluster with storage
+- **Redis**: In-memory cluster for caching scenarios
+
+**Deployment Strategy:**
+- **Development**: In-memory backend for testing
+- **Staging**: Single-node NATS for integration testing
+- **Production**: Multi-backend setup based on use case requirements
+
 #### **Data Consistency Patterns (`src/marty_msf/patterns/`)**
 - **Saga Orchestration**: Long-running transaction coordination with compensation handlers
 - **Transactional Outbox Pattern**: ACID-compliant event publishing with reliability guarantees
