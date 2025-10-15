@@ -196,10 +196,30 @@ The framework adopts **Apache Kafka with KRaft mode** for production event strea
 - **High Availability**: Replication and persistence configured for durability
 
 #### Service Mesh Support
-- Istio/Linkerd integration
-- Traffic management and routing
-- Security policies and mTLS
-- Observability and monitoring
+- **Dual Mesh Strategy**: First-class support for both Istio and Linkerd
+- **Automatic Sidecar Injection**: Transparent proxy injection for all services
+- **Traffic Management**: Advanced routing, load balancing, and fault tolerance
+- **Security Policies**: Mutual TLS (mTLS) and fine-grained authorization
+- **Observability Integration**: Seamless metrics, tracing, and logging
+
+**Service Mesh Features:**
+- **Circuit Breakers**: Automatic failure detection and service protection
+- **Retry Policies**: Intelligent retry mechanisms with exponential backoff
+- **Rate Limiting**: Request throttling and quota management
+- **Fault Injection**: Chaos engineering for resilience testing
+- **Traffic Splitting**: Blue-green and canary deployment support
+
+**Operational Benefits:**
+- **Zero-Code Implementation**: Infrastructure-level resilience patterns
+- **Consistent Policy Enforcement**: Uniform policies across all services
+- **Enhanced Security**: Network-level encryption and authentication
+- **Simplified Operations**: Centralized configuration and monitoring
+
+#### Kustomize Integration
+- **Environment Management**: Streamlined configuration across dev/staging/prod
+- **Service Mesh Overlays**: Automated generation of mesh-specific configurations
+- **Policy Templates**: Reusable templates for common resilience patterns
+- **GitOps Ready**: Declarative configurations for continuous deployment
 
 ## 🔧 Design Principles
 
@@ -423,6 +443,38 @@ The petstore domain plugin has been enhanced to demonstrate the outbox pattern:
 - **Message Brokers**: Kafka or RabbitMQ for reliable event delivery
 - **Configuration**: Environment-specific settings for scaling and performance
 - **Monitoring**: Integration with existing Prometheus/Grafana observability stack
+
+### 🛠️ CLI Tools and Developer Experience
+
+The framework provides comprehensive command-line tools for development, migration, and operations:
+
+#### Migration Commands (`marty migrate`)
+- **helm-to-kustomize**: Convert Helm charts to Kustomize manifests with MMF optimizations
+- **generate-overlay**: Create environment-specific Kustomize overlays with service mesh support
+- **validate-migration**: Verify migration consistency and functional parity
+- **check-compatibility**: Assess Helm chart migration readiness and complexity
+
+#### Service Mesh Commands (`marty service-mesh`)
+- **install**: Deploy and configure Istio or Linkerd service mesh with MMF integration
+- **apply-policies**: Apply traffic policies (circuit breakers, retries, rate limiting, fault injection)
+- **status**: Monitor service mesh health, injection status, and policy compliance
+
+#### Plugin Commands (`marty plugin`)
+- **create**: Generate new microservice plugins with architectural patterns
+- **add-service**: Add services to existing plugins with feature integration
+- **list**: Display available plugins and their configurations
+
+#### Service Generation Features
+- **Architectural Patterns**: Support for layered, hexagonal, clean, and CQRS/ES architectures
+- **Service Templates**: FastAPI, gRPC, and hybrid service scaffolding
+- **Feature Integration**: Database, caching, authentication, and observability components
+- **Service Mesh Integration**: Automatic annotation generation and policy application
+
+#### Development Workflow Integration
+- **Environment Management**: Seamless dev/staging/prod configuration management
+- **Policy Templates**: Pre-configured resilience patterns for common scenarios
+- **Monitoring Setup**: Automatic service mesh metrics and dashboard configuration
+- **GitOps Support**: Declarative configurations ready for continuous deployment
 
 ---
 

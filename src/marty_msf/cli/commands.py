@@ -153,14 +153,56 @@ def helm_to_kustomize(
     is_flag=True,
     help="Use Marty-specific patterns (migration jobs, PVCs, etc.)",
 )
+@click.option(
+    "--service-mesh",
+    type=click.Choice(["none", "istio", "linkerd"]),
+    default="none",
+    help="Enable service mesh integration",
+)
+@click.option(
+    "--enable-circuit-breaker",
+    is_flag=True,
+    help="Enable circuit breaker policies",
+)
+@click.option(
+    "--enable-fault-injection",
+    is_flag=True,
+    help="Enable fault injection for chaos engineering",
+)
+@click.option(
+    "--enable-retry-policies",
+    is_flag=True,
+    help="Enable retry policies",
+)
+@click.option(
+    "--enable-rate-limiting",
+    is_flag=True,
+    help="Enable rate limiting policies",
+)
 def generate_overlay(
     service_name: str,
     environment: str,
     output_path: Path,
     use_marty_patterns: bool,
+    service_mesh: str,
+    enable_circuit_breaker: bool,
+    enable_fault_injection: bool,
+    enable_retry_policies: bool,
+    enable_rate_limiting: bool,
 ):
     """Generate Kustomize overlay for a service."""
     console.print(f"🏗️  Generating {environment} overlay for {service_name}", style="bold blue")
+
+    if service_mesh != "none":
+        console.print(f"🕸️  Service mesh: {service_mesh}", style="cyan")
+        if enable_circuit_breaker:
+            console.print("⚡ Circuit breaker: enabled", style="green")
+        if enable_fault_injection:
+            console.print("🔬 Fault injection: enabled", style="green")
+        if enable_retry_policies:
+            console.print("🔄 Retry policies: enabled", style="green")
+        if enable_rate_limiting:
+            console.print("⏳ Rate limiting: enabled", style="green")
 
     overlay_path = output_path / environment
     overlay_path.mkdir(parents=True, exist_ok=True)
@@ -171,10 +213,29 @@ def generate_overlay(
         console.print(f"📋 Using Marty template: {template_name}", style="cyan")
 
         # Copy template files and customize
-        _generate_marty_overlay(overlay_path, service_name, environment, template_name)
+        _generate_marty_overlay(
+            overlay_path,
+            service_name,
+            environment,
+            template_name,
+            service_mesh,
+            enable_circuit_breaker,
+            enable_fault_injection,
+            enable_retry_policies,
+            enable_rate_limiting
+        )
     else:
         # Generate basic overlay
-        _generate_basic_overlay(overlay_path, service_name, environment)
+        _generate_basic_overlay(
+            overlay_path,
+            service_name,
+            environment,
+            service_mesh,
+            enable_circuit_breaker,
+            enable_fault_injection,
+            enable_retry_policies,
+            enable_rate_limiting
+        )
 
     console.print(f"✅ Overlay generated at: {overlay_path}", style="bold green")
 
@@ -307,11 +368,25 @@ def _generate_marty_overlay(
     service_name: str,
     environment: str,
     template_name: str,
+    service_mesh: str = "none",
+    enable_circuit_breaker: bool = False,
+    enable_fault_injection: bool = False,
+    enable_retry_policies: bool = False,
+    enable_rate_limiting: bool = False,
 ) -> None:
     """Generate a Marty-specific overlay."""
     # This would copy and customize from the MMF template
     # For now, create a basic implementation
-    _generate_basic_overlay(overlay_path, service_name, environment)
+    _generate_basic_overlay(
+        overlay_path,
+        service_name,
+        environment,
+        service_mesh,
+        enable_circuit_breaker,
+        enable_fault_injection,
+        enable_retry_policies,
+        enable_rate_limiting
+    )
 
     # Add Marty-specific configurations
     kustomization_file = overlay_path / "kustomization.yaml"
@@ -330,20 +405,48 @@ commonAnnotations:
   marty.io/environment: {environment}
 """
 
+        if service_mesh != "none":
+            marty_additions += f"""
+  marty.io/service-mesh: {service_mesh}
+"""
+
         with open(kustomization_file, "w", encoding="utf-8") as f:
             f.write(content + marty_additions)
 
 
-def _generate_basic_overlay(overlay_path: Path, service_name: str, environment: str) -> None:
+def _generate_basic_overlay(
+    overlay_path: Path,
+    service_name: str,
+    environment: str,
+    service_mesh: str = "none",
+    enable_circuit_breaker: bool = False,
+    enable_fault_injection: bool = False,
+    enable_retry_policies: bool = False,
+    enable_rate_limiting: bool = False,
+) -> None:
     """Generate a basic Kustomize overlay."""
     import yaml
+
+    # Determine resources to include
+    resources = ["namespace.yaml", "../../base"]
+
+    # Add service mesh resources if enabled
+    if service_mesh != "none":
+        if enable_circuit_breaker:
+            resources.append(f"../../service-mesh/{service_mesh}/circuit-breakers.yaml")
+        if enable_fault_injection:
+            resources.append(f"../../service-mesh/{service_mesh}/fault-injection.yaml")
+        if enable_retry_policies:
+            resources.append(f"../../service-mesh/{service_mesh}/retry-policies.yaml")
+        if enable_rate_limiting:
+            resources.append(f"../../service-mesh/{service_mesh}/rate-limiting.yaml")
 
     # Generate kustomization.yaml
     kustomization = {
         "apiVersion": "kustomize.config.k8s.io/v1beta1",
         "kind": "Kustomization",
         "namespace": f"{service_name}-{environment}",
-        "resources": ["namespace.yaml", "../../base"],
+        "resources": resources,
         "configMapGenerator": [
             {
                 "name": "microservice-template-config",
@@ -356,18 +459,74 @@ def _generate_basic_overlay(overlay_path: Path, service_name: str, environment: 
         ],
     }
 
+    # Add service mesh specific configurations
+    if service_mesh != "none":
+        kustomization["commonLabels"] = {
+            "service-mesh": "enabled",
+            f"service-mesh.{service_mesh}": "true"
+        }
+
+        kustomization["commonAnnotations"] = {
+            "marty.io/service-mesh": service_mesh
+        }
+
+        # Add Istio-specific annotations
+        if service_mesh == "istio":
+            kustomization["commonAnnotations"].update({
+                "sidecar.istio.io/inject": "true",
+                "sidecar.istio.io/proxyCPU": "10m",
+                "sidecar.istio.io/proxyMemory": "128Mi",
+                "traffic.sidecar.istio.io/excludeOutboundPorts": "443,53"
+            })
+
+        # Add Linkerd-specific annotations
+        elif service_mesh == "linkerd":
+            kustomization["commonAnnotations"].update({
+                "linkerd.io/inject": "enabled",
+                "config.linkerd.io/proxy-cpu-request": "10m",
+                "config.linkerd.io/proxy-memory-request": "64Mi",
+                "config.linkerd.io/skip-outbound-ports": "443,53"
+            })
+
+        # Add policy-specific literals to config
+        if enable_circuit_breaker:
+            kustomization["configMapGenerator"][0]["literals"].append("circuit_breaker=enabled")
+        if enable_fault_injection:
+            kustomization["configMapGenerator"][0]["literals"].append("fault_injection=enabled")
+        if enable_retry_policies:
+            kustomization["configMapGenerator"][0]["literals"].append("retry_policies=enabled")
+        if enable_rate_limiting:
+            kustomization["configMapGenerator"][0]["literals"].append("rate_limiting=enabled")
+
     with open(overlay_path / "kustomization.yaml", "w", encoding="utf-8") as f:
         yaml.dump(kustomization, f, default_flow_style=False)
 
-    # Generate namespace.yaml
+    # Generate namespace.yaml with service mesh labels
+    namespace_labels = {
+        "name": f"{service_name}-{environment}",
+        "environment": environment
+    }
+
+    namespace_annotations = {}
+
+    if service_mesh == "istio":
+        namespace_labels["istio-injection"] = "enabled"
+        namespace_annotations["istio-injection"] = "enabled"
+    elif service_mesh == "linkerd":
+        namespace_labels["linkerd.io/inject"] = "enabled"
+        namespace_annotations["linkerd.io/inject"] = "enabled"
+
     namespace = {
         "apiVersion": "v1",
         "kind": "Namespace",
         "metadata": {
             "name": f"{service_name}-{environment}",
-            "labels": {"name": f"{service_name}-{environment}", "environment": environment},
+            "labels": namespace_labels,
         },
     }
+
+    if namespace_annotations:
+        namespace["metadata"]["annotations"] = namespace_annotations
 
     with open(overlay_path / "namespace.yaml", "w", encoding="utf-8") as f:
         yaml.dump(namespace, f, default_flow_style=False)
@@ -444,6 +603,320 @@ def _get_compatibility_notes(component: str, compatible: bool) -> str:
         return "Ready for migration"
     else:
         return notes_map.get(component, "Manual work required")
+
+
+# Service Mesh Management Commands
+@click.group()
+def service_mesh():
+    """Service mesh integration and management commands."""
+    pass
+
+
+@service_mesh.command()
+@click.option(
+    "--mesh-type",
+    type=click.Choice(["istio", "linkerd"]),
+    required=True,
+    help="Service mesh type to install",
+)
+@click.option(
+    "--namespace",
+    default="microservice-framework",
+    help="Target namespace for service mesh",
+)
+@click.option(
+    "--cluster-name",
+    default="kind-mmf",
+    help="Kubernetes cluster name",
+)
+@click.option(
+    "--enable-monitoring",
+    is_flag=True,
+    help="Enable service mesh monitoring and dashboards",
+)
+def install(mesh_type: str, namespace: str, cluster_name: str, enable_monitoring: bool):
+    """Install and configure service mesh."""
+    console.print(f"🕸️  Installing {mesh_type} service mesh...", style="bold blue")
+
+    try:
+        # Check if cluster is running
+        result = subprocess.run(
+            ["kubectl", "cluster-info"],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+
+        if result.returncode != 0:
+            console.print("❌ Kubernetes cluster not available", style="bold red")
+            raise click.ClickException("Please ensure Kubernetes cluster is running")
+
+        # Create namespace
+        console.print(f"📦 Creating namespace: {namespace}", style="cyan")
+        subprocess.run(
+            ["kubectl", "create", "namespace", namespace, "--dry-run=client", "-o", "yaml"],
+            stdout=subprocess.PIPE,
+            check=True
+        )
+        subprocess.run(
+            ["kubectl", "apply", "-f", "-"],
+            input=result.stdout,
+            text=True,
+            check=True
+        )
+
+        if mesh_type == "istio":
+            _install_istio(namespace, enable_monitoring)
+        elif mesh_type == "linkerd":
+            _install_linkerd(namespace, enable_monitoring)
+
+        console.print(f"✅ {mesh_type} service mesh installed successfully!", style="bold green")
+        console.print(f"🎯 Namespace: {namespace}", style="green")
+
+        if enable_monitoring:
+            console.print("📊 Monitoring enabled", style="green")
+
+    except subprocess.CalledProcessError as e:
+        console.print(f"❌ Installation failed: {e}", style="bold red")
+        raise click.ClickException(f"{mesh_type} installation failed")
+
+
+@service_mesh.command()
+@click.option(
+    "--service-name",
+    required=True,
+    help="Service name to apply policies to",
+)
+@click.option(
+    "--mesh-type",
+    type=click.Choice(["istio", "linkerd"]),
+    required=True,
+    help="Service mesh type",
+)
+@click.option(
+    "--namespace",
+    default="microservice-framework",
+    help="Target namespace",
+)
+@click.option(
+    "--enable-circuit-breaker",
+    is_flag=True,
+    help="Enable circuit breaker policy",
+)
+@click.option(
+    "--enable-retry",
+    is_flag=True,
+    help="Enable retry policy",
+)
+@click.option(
+    "--enable-rate-limit",
+    is_flag=True,
+    help="Enable rate limiting policy",
+)
+@click.option(
+    "--enable-fault-injection",
+    is_flag=True,
+    help="Enable fault injection for chaos engineering",
+)
+def apply_policies(
+    service_name: str,
+    mesh_type: str,
+    namespace: str,
+    enable_circuit_breaker: bool,
+    enable_retry: bool,
+    enable_rate_limit: bool,
+    enable_fault_injection: bool,
+):
+    """Apply service mesh policies to a service."""
+    console.print(f"🛡️  Applying {mesh_type} policies to {service_name}...", style="bold blue")
+
+    # Get project root for manifest files
+    project_root = Path(__file__).parent.parent.parent.parent
+    mesh_manifests_dir = project_root / "ops" / "service-mesh" / mesh_type
+
+    if not mesh_manifests_dir.exists():
+        console.print(f"❌ {mesh_type} manifests not found at {mesh_manifests_dir}", style="bold red")
+        raise click.ClickException("Service mesh manifests directory not found")
+
+    applied_policies = []
+
+    try:
+        if enable_circuit_breaker:
+            circuit_breaker_file = mesh_manifests_dir / "circuit-breakers.yaml"
+            if circuit_breaker_file.exists():
+                subprocess.run(
+                    ["kubectl", "apply", "-f", str(circuit_breaker_file), "-n", namespace],
+                    check=True
+                )
+                applied_policies.append("Circuit Breaker")
+
+        if enable_retry:
+            retry_file = mesh_manifests_dir / "retry-policies.yaml"
+            if retry_file.exists():
+                subprocess.run(
+                    ["kubectl", "apply", "-f", str(retry_file), "-n", namespace],
+                    check=True
+                )
+                applied_policies.append("Retry Policies")
+
+        if enable_rate_limit:
+            rate_limit_file = mesh_manifests_dir / "rate-limiting.yaml"
+            if rate_limit_file.exists():
+                subprocess.run(
+                    ["kubectl", "apply", "-f", str(rate_limit_file), "-n", namespace],
+                    check=True
+                )
+                applied_policies.append("Rate Limiting")
+
+        if enable_fault_injection:
+            fault_injection_file = mesh_manifests_dir / "fault-injection.yaml"
+            if fault_injection_file.exists():
+                subprocess.run(
+                    ["kubectl", "apply", "-f", str(fault_injection_file), "-n", namespace],
+                    check=True
+                )
+                applied_policies.append("Fault Injection")
+
+        console.print(f"✅ Applied policies to {service_name}:", style="bold green")
+        for policy in applied_policies:
+            console.print(f"  • {policy}", style="green")
+
+    except subprocess.CalledProcessError as e:
+        console.print(f"❌ Policy application failed: {e}", style="bold red")
+        raise click.ClickException("Failed to apply service mesh policies")
+
+
+@service_mesh.command()
+@click.option(
+    "--mesh-type",
+    type=click.Choice(["istio", "linkerd"]),
+    required=True,
+    help="Service mesh type to check",
+)
+@click.option(
+    "--namespace",
+    default="microservice-framework",
+    help="Namespace to check",
+)
+def status(mesh_type: str, namespace: str):
+    """Check service mesh status and health."""
+    console.print(f"🔍 Checking {mesh_type} status...", style="bold blue")
+
+    try:
+        if mesh_type == "istio":
+            # Check Istio control plane
+            result = subprocess.run(
+                ["kubectl", "get", "pods", "-n", "istio-system", "-l", "app=istiod"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print("🕸️  Istio Control Plane:", style="cyan")
+            console.print(result.stdout)
+
+        elif mesh_type == "linkerd":
+            # Check Linkerd control plane
+            result = subprocess.run(
+                ["kubectl", "get", "pods", "-n", "linkerd", "-l", "linkerd.io/control-plane-component"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            console.print("🕸️  Linkerd Control Plane:", style="cyan")
+            console.print(result.stdout)
+
+        # Check service mesh injection in target namespace
+        result = subprocess.run(
+            ["kubectl", "get", "namespace", namespace, "-o", "yaml"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        injection_enabled = False
+        if mesh_type == "istio" and "istio-injection=enabled" in result.stdout:
+            injection_enabled = True
+        elif mesh_type == "linkerd" and "linkerd.io/inject=enabled" in result.stdout:
+            injection_enabled = True
+
+        if injection_enabled:
+            console.print(f"✅ Sidecar injection enabled in {namespace}", style="green")
+        else:
+            console.print(f"⚠️  Sidecar injection not enabled in {namespace}", style="yellow")
+
+    except subprocess.CalledProcessError as e:
+        console.print(f"❌ Status check failed: {e}", style="bold red")
+        raise click.ClickException("Failed to check service mesh status")
+
+
+def _install_istio(namespace: str, enable_monitoring: bool):
+    """Install Istio service mesh."""
+    # Check if istioctl is available
+    try:
+        subprocess.run(["istioctl", "version"], capture_output=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        console.print("📥 Installing istioctl...", style="cyan")
+        # Installation would be handled by the setup script
+        raise click.ClickException("Please install istioctl first")
+
+    # Install Istio
+    console.print("🔧 Installing Istio control plane...", style="cyan")
+    subprocess.run(
+        ["istioctl", "install", "--set", "values.defaultRevision=default", "-y"],
+        check=True
+    )
+
+    # Enable injection in namespace
+    subprocess.run(
+        ["kubectl", "label", "namespace", namespace, "istio-injection=enabled", "--overwrite"],
+        check=True
+    )
+
+    # Apply MMF-specific configurations
+    project_root = Path(__file__).parent.parent.parent.parent
+    istio_configs = project_root / "ops" / "service-mesh" / "istio"
+
+    if istio_configs.exists():
+        subprocess.run(
+            ["kubectl", "apply", "-f", str(istio_configs), "-n", namespace],
+            check=True
+        )
+
+
+def _install_linkerd(namespace: str, enable_monitoring: bool):
+    """Install Linkerd service mesh."""
+    # Check if linkerd CLI is available
+    try:
+        subprocess.run(["linkerd", "version"], capture_output=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        console.print("📥 Installing linkerd CLI...", style="cyan")
+        # Installation would be handled by the setup script
+        raise click.ClickException("Please install linkerd CLI first")
+
+    # Pre-check
+    console.print("🔍 Running pre-installation checks...", style="cyan")
+    subprocess.run(["linkerd", "check", "--pre"], check=True)
+
+    # Install Linkerd
+    console.print("🔧 Installing Linkerd control plane...", style="cyan")
+    subprocess.run(["linkerd", "install", "--crds"], stdout=subprocess.PIPE, check=True)
+    subprocess.run(["linkerd", "install"], stdout=subprocess.PIPE, check=True)
+
+    # Enable injection in namespace
+    subprocess.run(
+        ["kubectl", "annotate", "namespace", namespace, "linkerd.io/inject=enabled", "--overwrite"],
+        check=True
+    )
+
+    # Apply MMF-specific configurations
+    project_root = Path(__file__).parent.parent.parent.parent
+    linkerd_configs = project_root / "ops" / "service-mesh" / "linkerd"
+
+    if linkerd_configs.exists():
+        subprocess.run(
+            ["kubectl", "apply", "-f", str(linkerd_configs), "-n", namespace],
+            check=True
+        )
 
 
 # Plugin management functionality

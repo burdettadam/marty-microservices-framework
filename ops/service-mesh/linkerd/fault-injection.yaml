@@ -1,0 +1,141 @@
+---
+# Linkerd TrafficSplit for Fault Injection (Chaos Engineering)
+apiVersion: split.smi-spec.io/v1alpha1
+kind: TrafficSplit
+metadata:
+  name: payment-service-fault-injection
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: fault-injection
+    marty.io/chaos-engineering: enabled
+spec:
+  service: payment-service
+  backends:
+  - service: payment-service-normal
+    weight: 95
+  - service: payment-service-delayed
+    weight: 3
+  - service: payment-service-error
+    weight: 2
+---
+# Delayed Response Service for Latency Injection
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service-delayed
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/fault-type: delay
+spec:
+  selector:
+    app: payment-service
+    fault-type: delay
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: http
+---
+# Error Response Service for Failure Injection
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service-error
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/fault-type: error
+spec:
+  selector:
+    app: payment-service
+    fault-type: error
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: http
+---
+# User Service Fault Injection via TrafficSplit
+apiVersion: split.smi-spec.io/v1alpha1
+kind: TrafficSplit
+metadata:
+  name: user-service-fault-injection
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: fault-injection
+spec:
+  service: user-service
+  backends:
+  - service: user-service-normal
+    weight: 90
+  - service: user-service-delayed
+    weight: 10
+---
+# External Service Fault Injection
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-api-fault-proxy
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: fault-injection
+spec:
+  type: ExternalName
+  externalName: external-api.example.com
+  ports:
+  - port: 443
+    name: https
+---
+# Development Environment Fault Injection (Higher Rates)
+apiVersion: split.smi-spec.io/v1alpha1
+kind: TrafficSplit
+metadata:
+  name: dev-fault-injection
+  namespace: microservice-framework-dev
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/environment: development
+    marty.io/policy-type: fault-injection
+spec:
+  service: "*"
+  backends:
+  - service: "*-normal"
+    weight: 80
+  - service: "*-delayed"
+    weight: 15
+  - service: "*-error"
+    weight: 5
+---
+# Chaos Engineering Configuration Map
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linkerd-fault-injection-config
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: fault-injection
+data:
+  fault-injection.yaml: |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: chaos-config
+    data:
+      # Fault injection percentages
+      delay_percentage: "5"
+      error_percentage: "2"
+      delay_duration: "3s"
+      error_status: "503"
+
+      # Environment-specific settings
+      dev_delay_percentage: "15"
+      dev_error_percentage: "5"
+
+      # Service-specific overrides
+      payment_service_delay: "3"
+      payment_service_error: "1"
+      user_service_delay: "10"
+      external_api_error: "15"
