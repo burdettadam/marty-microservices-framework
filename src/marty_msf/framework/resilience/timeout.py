@@ -61,6 +61,23 @@ class TimeoutConfig:
     # Propagate timeout to nested operations
     propagate_timeout: bool = True
 
+    # External dependency specific timeouts
+    database_timeout: float = 10.0
+    api_call_timeout: float = 15.0
+    message_queue_timeout: float = 5.0
+    cache_timeout: float = 2.0
+    file_operation_timeout: float = 30.0
+
+    # Circuit breaker integration
+    circuit_breaker_timeout: float = 60.0  # How long to keep circuit open
+
+    # Adaptive timeout settings
+    enable_adaptive_timeout: bool = False
+    adaptive_timeout_percentile: float = 0.95  # Use 95th percentile of response times
+    adaptive_timeout_multiplier: float = 2.0  # Multiply percentile by this factor
+    adaptive_timeout_min: float = 1.0  # Minimum adaptive timeout
+    adaptive_timeout_max: float = 120.0  # Maximum adaptive timeout
+
 
 class TimeoutContext:
     """Context for tracking timeout information."""
