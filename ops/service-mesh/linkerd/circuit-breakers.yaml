@@ -1,0 +1,154 @@
+---
+# Linkerd TrafficSplit for Circuit Breaker Behavior
+apiVersion: split.smi-spec.io/v1alpha1
+kind: TrafficSplit
+metadata:
+  name: payment-service-circuit-breaker
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: circuit-breaker
+spec:
+  service: payment-service
+  backends:
+  - service: payment-service-primary
+    weight: 90
+  - service: payment-service-fallback
+    weight: 10
+---
+# Linkerd ServiceProfile with Retry and Timeout
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: payment-service.microservice-framework.svc.cluster.local
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: circuit-breaker
+spec:
+  routes:
+  - name: payment-routes
+    condition:
+      method: POST
+      pathRegex: "/api/v1/payments/.*"
+    responseClasses:
+    - condition:
+        status:
+          min: 500
+          max: 599
+      isFailure: true
+    - condition:
+        status:
+          min: 400
+          max: 499
+      isFailure: false
+    timeout: 30s
+    retryBudget:
+      retryRatio: 0.2
+      minRetriesPerSecond: 10
+      ttl: 10s
+---
+# External API Circuit Breaker Pattern
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: external-api.example.com
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: circuit-breaker
+spec:
+  routes:
+  - name: external-api-routes
+    condition:
+      method: GET
+      pathRegex: "/.*"
+    responseClasses:
+    - condition:
+        status:
+          min: 500
+          max: 599
+      isFailure: true
+    - condition:
+        status:
+          min: 400
+          max: 499
+      isFailure: false
+    timeout: 15s
+    retryBudget:
+      retryRatio: 0.1
+      minRetriesPerSecond: 5
+      ttl: 30s
+---
+# Database Connection Profile
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: postgresql.database.svc.cluster.local
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: circuit-breaker
+spec:
+  routes:
+  - name: database-queries
+    timeout: 60s
+    retryBudget:
+      retryRatio: 0.05
+      minRetriesPerSecond: 1
+      ttl: 60s
+---
+# gRPC Service Profile with Circuit Breaker
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: user-service.microservice-framework.svc.cluster.local
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: circuit-breaker
+    marty.io/protocol: grpc
+spec:
+  routes:
+  - name: grpc-user-service
+    condition:
+      method: POST
+    responseClasses:
+    - condition:
+        status:
+          min: 500
+          max: 599
+      isFailure: true
+    timeout: 20s
+    retryBudget:
+      retryRatio: 0.15
+      minRetriesPerSecond: 8
+      ttl: 15s
+---
+# Critical Service Circuit Breaker
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: auth-service.microservice-framework.svc.cluster.local
+  namespace: microservice-framework
+  labels:
+    app.kubernetes.io/managed-by: marty-msf
+    marty.io/policy-type: circuit-breaker
+    marty.io/priority: critical
+spec:
+  routes:
+  - name: auth-routes
+    condition:
+      method: POST
+      pathRegex: "/api/v1/auth/.*"
+    responseClasses:
+    - condition:
+        status:
+          min: 500
+          max: 599
+      isFailure: true
+    timeout: 10s
+    retryBudget:
+      retryRatio: 0.3
+      minRetriesPerSecond: 15
+      ttl: 5s
