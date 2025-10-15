@@ -33,7 +33,7 @@ from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTEN
 
 # Import service components
 from app.core.config import get_settings
-from app.core.middleware import add_correlation_id_middleware
+from marty_msf.observability.correlation_middleware import add_correlation_id_middleware
 from app.api.routes import router
 from app.services.{{service_package}}_service import {{service_class}}Service
 
@@ -49,11 +49,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger("{{service_name}}")
 
-# Prometheus Metrics
-REQUEST_COUNTER = Counter('{{service_package}}_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
-REQUEST_DURATION = Histogram('{{service_package}}_request_duration_seconds', 'Request duration', ['method', 'endpoint'])
-ACTIVE_REQUESTS = Gauge('{{service_package}}_active_requests', 'Active requests')
-BUSINESS_OPERATIONS = Counter('{{service_package}}_business_operations_total', 'Business operations', ['operation', 'status'])
+# Prometheus Metrics (with duplicate registration protection)
+from prometheus_client import REGISTRY, CollectorRegistry
+
+# Initialize metrics with error handling for duplicates
+REQUEST_COUNTER = None
+REQUEST_DURATION = None
+ACTIVE_REQUESTS = None
+BUSINESS_OPERATIONS = None
+
+try:
+    REQUEST_COUNTER = Counter('{{service_package}}_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
+    REQUEST_DURATION = Histogram('{{service_package}}_request_duration_seconds', 'Request duration', ['method', 'endpoint'])
+    ACTIVE_REQUESTS = Gauge('{{service_package}}_active_requests', 'Active requests')
+    BUSINESS_OPERATIONS = Counter('{{service_package}}_business_operations_total', 'Business operations', ['operation', 'status'])
+except ValueError as e:
+    if "Duplicated timeseries" in str(e):
+        logger.warning(f"Metrics already registered: {e}")
+        # Create with different registry or skip metrics
+        pass
+    else:
+        raise
 
 # Global service instance
 service_instance = None
@@ -109,23 +125,27 @@ add_correlation_id_middleware(app)
 async def metrics_middleware(request: Request, call_next):
     """Middleware to collect metrics for all requests"""
     start_time = time.time()
-    ACTIVE_REQUESTS.inc()
+    if ACTIVE_REQUESTS:
+        ACTIVE_REQUESTS.inc()
 
     try:
         response = await call_next(request)
 
-        # Record metrics
+        # Record metrics (if available)
         duration = time.time() - start_time
-        REQUEST_DURATION.labels(method=request.method, endpoint=request.url.path).observe(duration)
-        REQUEST_COUNTER.labels(
-            method=request.method,
-            endpoint=request.url.path,
-            status=response.status_code
-        ).inc()
+        if REQUEST_DURATION:
+            REQUEST_DURATION.labels(method=request.method, endpoint=request.url.path).observe(duration)
+        if REQUEST_COUNTER:
+            REQUEST_COUNTER.labels(
+                method=request.method,
+                endpoint=request.url.path,
+                status=response.status_code
+            ).inc()
 
         return response
     finally:
-        ACTIVE_REQUESTS.dec()
+        if ACTIVE_REQUESTS:
+            ACTIVE_REQUESTS.dec()
 
 # Exception handlers
 @app.exception_handler(HTTPException)

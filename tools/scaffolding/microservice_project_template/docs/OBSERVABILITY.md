@@ -13,12 +13,12 @@ The template ships with sensible defaults for logs, metrics, and traces. All com
   - `grpc_server_requests_total{method,code}` — request throughput
   - `grpc_server_handling_seconds_bucket` — latency histogram
   - `service_health_status` — readiness flag for dashboards/alerts
-- `k8s/observability/prometheus.yaml` sets up a Prometheus deployment scraping metrics via Kubernetes service discovery.
+- `ops/k8s/observability/prometheus.yaml` sets up a Prometheus deployment scraping metrics via Kubernetes service discovery.
 
 ## Tracing
 - OpenTelemetry exporter configured in `observability/tracing.py`.
 - Controlled via `APP_TRACING_ENABLED` and `APP_TRACING_ENDPOINT` environment variables.
-- Collector deployment (`k8s/observability/otel-collector.yaml`) fans out to logging and OTLP backends.
+- Collector deployment (`ops/k8s/observability/otel-collector.yaml`) fans out to logging and OTLP backends.
 
 ## Dashboards
 - Grafana deployment with a starter dashboard showing request rate and latency percentiles.

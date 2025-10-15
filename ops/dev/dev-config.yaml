@@ -1,0 +1,51 @@
+# MMF Development Configuration
+# Configuration for local development with kind and kubectl
+
+# Kind cluster configuration
+kind:
+  cluster_name: "microservices-framework"
+  config_file: "ops/k8s/kind-config.yaml"
+
+# Port forwarding configuration
+port_forwarding:
+  # Default ports for services
+  default_ports:
+    - service: 8080
+      local: 8080
+    - service: 8081
+      local: 8081
+    - service: 8082
+      local: 8082
+
+  # Service-specific port forwarding rules
+  services:
+    petstore-domain:
+      service_name: "petstore-domain-service"
+      namespace: "default"
+      service_port: 80
+      local_port: 8080
+      endpoints:
+        - "/health"
+        - "/docs"
+        - "/api/v1/status"
+        - "/api/v1/payment-service/health"
+
+# Development scripts
+scripts:
+  setup_cluster: "ops/dev/setup-kind-cluster.sh"
+  deploy_service: "ops/dev/deploy-service.sh"
+  port_forward: "ops/dev/port-forward.sh"
+  cleanup: "ops/dev/cleanup.sh"
+
+# Docker build configuration
+docker:
+  build_context: "."  # Build from framework root
+  dockerfile_path: "plugins/{service}/Dockerfile"
+  image_tag_format: "{service}:latest"
+  kind_load: true
+
+# Testing configuration
+testing:
+  health_check_timeout: 30
+  endpoint_test_timeout: 10
+  retry_count: 3

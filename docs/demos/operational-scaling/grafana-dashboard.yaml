@@ -1,0 +1,454 @@
+# Grafana Dashboard Configuration for MMF Petstore Analytics
+# This dashboard provides comprehensive monitoring for the petstore microservices
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: petstore-grafana-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+    app: grafana
+data:
+  petstore-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "MMF Petstore Experience Polish Dashboard",
+        "tags": ["mmf", "petstore", "microservices"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "title": "Service Health Overview",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=\"petstore-domain\"}",
+                "legendFormat": "Petstore Domain"
+              },
+              {
+                "expr": "up{job=\"ml-pet-advisor\"}",
+                "legendFormat": "ML Advisor"
+              },
+              {
+                "expr": "up{job=\"payment-service\"}",
+                "legendFormat": "Payment Service"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "displayMode": "list",
+                  "orientation": "horizontal"
+                },
+                "mappings": [
+                  {
+                    "options": {
+                      "0": {
+                        "text": "DOWN",
+                        "color": "red"
+                      },
+                      "1": {
+                        "text": "UP",
+                        "color": "green"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 0
+            }
+          },
+          {
+            "title": "Request Rate (RPS)",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=\"petstore-domain\"}[5m])",
+                "legendFormat": "{{method}} {{handler}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Requests per second"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 0
+            }
+          },
+          {
+            "title": "Response Time Percentiles",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job=\"petstore-domain\"}[5m]))",
+                "legendFormat": "50th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"petstore-domain\"}[5m]))",
+                "legendFormat": "95th percentile"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=\"petstore-domain\"}[5m]))",
+                "legendFormat": "99th percentile"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Response time (seconds)",
+                "min": 0
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 24,
+              "x": 0,
+              "y": 8
+            }
+          },
+          {
+            "title": "Error Rate by Service",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=\"petstore-domain\",status=~\"4..|5..\"}[5m]) / rate(http_requests_total{job=\"petstore-domain\"}[5m]) * 100",
+                "legendFormat": "Petstore Domain Error Rate"
+              },
+              {
+                "expr": "rate(http_requests_total{job=\"ml-pet-advisor\",status=~\"4..|5..\"}[5m]) / rate(http_requests_total{job=\"ml-pet-advisor\"}[5m]) * 100",
+                "legendFormat": "ML Advisor Error Rate"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Error rate (%)",
+                "max": 10,
+                "min": 0
+              }
+            ],
+            "alert": {
+              "conditions": [
+                {
+                  "evaluator": {
+                    "params": [5],
+                    "type": "gt"
+                  },
+                  "operator": {
+                    "type": "and"
+                  },
+                  "query": {
+                    "params": ["A", "1m", "now"]
+                  },
+                  "reducer": {
+                    "params": [],
+                    "type": "avg"
+                  },
+                  "type": "query"
+                }
+              ],
+              "executionErrorState": "alerting",
+              "for": "2m",
+              "frequency": "10s",
+              "handler": 1,
+              "name": "High Error Rate Alert",
+              "noDataState": "no_data",
+              "notifications": []
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 16
+            }
+          },
+          {
+            "title": "ML Model Performance",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "ml_recommendation_confidence_avg{job=\"ml-pet-advisor\"}",
+                "legendFormat": "Average Confidence"
+              },
+              {
+                "expr": "ml_recommendation_processing_time_p95{job=\"ml-pet-advisor\"}",
+                "legendFormat": "95th Percentile Processing Time"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Confidence / Processing Time"
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 16
+            }
+          },
+          {
+            "title": "Customer Journey Funnel",
+            "type": "bargauge",
+            "targets": [
+              {
+                "expr": "petstore_journey_step_total{step=\"browse_pets\"}",
+                "legendFormat": "Browse Pets"
+              },
+              {
+                "expr": "petstore_journey_step_total{step=\"create_order\"}",
+                "legendFormat": "Create Order"
+              },
+              {
+                "expr": "petstore_journey_step_total{step=\"process_payment\"}",
+                "legendFormat": "Process Payment"
+              },
+              {
+                "expr": "petstore_journey_step_total{step=\"schedule_delivery\"}",
+                "legendFormat": "Schedule Delivery"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "displayMode": "gradient",
+                  "orientation": "horizontal"
+                }
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 24
+            }
+          },
+          {
+            "title": "Pod Scaling Events",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "kube_deployment_status_replicas{deployment=\"petstore-domain\"}",
+                "legendFormat": "Current Replicas"
+              },
+              {
+                "expr": "kube_deployment_spec_replicas{deployment=\"petstore-domain\"}",
+                "legendFormat": "Desired Replicas"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Pod count",
+                "min": 0
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 24
+            }
+          },
+          {
+            "title": "Resource Utilization",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"petstore-domain-.*\"}[5m]) * 100",
+                "legendFormat": "CPU Usage %"
+              },
+              {
+                "expr": "container_memory_usage_bytes{pod=~\"petstore-domain-.*\"} / container_spec_memory_limit_bytes{pod=~\"petstore-domain-.*\"} * 100",
+                "legendFormat": "Memory Usage %"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Utilization %",
+                "max": 100,
+                "min": 0
+              }
+            ],
+            "gridPos": {
+              "h": 8,
+              "w": 24,
+              "x": 0,
+              "y": 32
+            }
+          },
+          {
+            "title": "Canary Deployment Progress",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "istio_request_total{destination_service_name=\"petstore-domain\",destination_version=\"stable\"}",
+                "legendFormat": "Stable Version"
+              },
+              {
+                "expr": "istio_request_total{destination_service_name=\"petstore-domain\",destination_version=\"canary\"}",
+                "legendFormat": "Canary Version"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "displayLabels": ["name", "percent"]
+                }
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 40
+            }
+          },
+          {
+            "title": "Business Metrics",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "petstore_orders_total",
+                "legendFormat": "Total Orders"
+              },
+              {
+                "expr": "petstore_revenue_total",
+                "legendFormat": "Revenue ($)"
+              },
+              {
+                "expr": "petstore_conversion_rate",
+                "legendFormat": "Conversion Rate (%)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "displayMode": "list",
+                  "orientation": "horizontal"
+                }
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 40
+            }
+          }
+        ]
+      }
+    }
+---
+# Prometheus Alerting Rules
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: petstore-alerts
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: alerting
+spec:
+  groups:
+  - name: petstore.rules
+    rules:
+    - alert: PetstoreHighErrorRate
+      expr: |
+        (
+          rate(http_requests_total{job="petstore-domain",status=~"4..|5.."}[5m])
+          /
+          rate(http_requests_total{job="petstore-domain"}[5m])
+        ) * 100 > 5
+      for: 2m
+      labels:
+        severity: warning
+        service: petstore-domain
+      annotations:
+        summary: "High error rate detected in petstore domain service"
+        description: "Error rate is {{ $value }}% which is above the 5% threshold"
+
+    - alert: PetstoreHighLatency
+      expr: |
+        histogram_quantile(0.95,
+          rate(http_request_duration_seconds_bucket{job="petstore-domain"}[5m])
+        ) > 1.0
+      for: 5m
+      labels:
+        severity: warning
+        service: petstore-domain
+      annotations:
+        summary: "High latency detected in petstore domain service"
+        description: "95th percentile latency is {{ $value }}s which is above 1s threshold"
+
+    - alert: PetstoreServiceDown
+      expr: up{job="petstore-domain"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: petstore-domain
+      annotations:
+        summary: "Petstore domain service is down"
+        description: "Petstore domain service has been down for more than 1 minute"
+
+    - alert: MLAdvisorHighProcessingTime
+      expr: ml_recommendation_processing_time_p95{job="ml-pet-advisor"} > 2000
+      for: 3m
+      labels:
+        severity: warning
+        service: ml-pet-advisor
+      annotations:
+        summary: "ML advisor service has high processing time"
+        description: "95th percentile processing time is {{ $value }}ms which is above 2000ms threshold"
+
+    - alert: PetstorePodCrashLooping
+      expr: |
+        rate(kube_pod_container_status_restarts_total{pod=~"petstore-.*"}[15m]) > 0
+      for: 5m
+      labels:
+        severity: critical
+        service: petstore
+      annotations:
+        summary: "Petstore pod is crash looping"
+        description: "Pod {{ $labels.pod }} is restarting frequently"
+
+    - alert: PetstoreHighMemoryUsage
+      expr: |
+        (
+          container_memory_usage_bytes{pod=~"petstore-domain-.*"}
+          /
+          container_spec_memory_limit_bytes{pod=~"petstore-domain-.*"}
+        ) * 100 > 90
+      for: 5m
+      labels:
+        severity: warning
+        service: petstore-domain
+      annotations:
+        summary: "High memory usage in petstore pods"
+        description: "Memory usage is {{ $value }}% which is above 90% threshold"

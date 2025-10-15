@@ -1,0 +1,223 @@
+# Horizontal Pod Autoscaler (HPA) for Petstore Domain Service
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: petstore-domain-hpa
+  namespace: petstore
+  labels:
+    app: petstore-domain
+    component: autoscaling
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: petstore-domain
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Custom metric: requests per second
+  - type: Pods
+    pods:
+      metric:
+        name: requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "50"
+  # Queue length metric for ML service
+  - type: Object
+    object:
+      metric:
+        name: queue_length
+      describedObject:
+        apiVersion: v1
+        kind: Service
+        name: ml-pet-advisor
+      target:
+        type: Value
+        value: "10"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 30
+      - type: Pods
+        value: 4
+        periodSeconds: 30
+      selectPolicy: Max
+---
+# Vertical Pod Autoscaler (VPA) for ML Pet Advisor
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: ml-pet-advisor-vpa
+  namespace: petstore
+  labels:
+    app: ml-pet-advisor
+    component: autoscaling
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-pet-advisor
+  updatePolicy:
+    updateMode: "Auto"  # Auto, Initial, Off
+  resourcePolicy:
+    containerPolicies:
+    - containerName: ml-pet-advisor
+      minAllowed:
+        cpu: 100m
+        memory: 128Mi
+      maxAllowed:
+        cpu: 2000m
+        memory: 4Gi
+      controlledResources: ["cpu", "memory"]
+      controlledValues: RequestsAndLimits
+---
+# Pod Disruption Budget for High Availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: petstore-domain-pdb
+  namespace: petstore
+  labels:
+    app: petstore-domain
+    component: availability
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: petstore-domain
+---
+# Pod Disruption Budget for ML Service
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ml-pet-advisor-pdb
+  namespace: petstore
+  labels:
+    app: ml-pet-advisor
+    component: availability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ml-pet-advisor
+---
+# Network Policy for Security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: petstore-network-policy
+  namespace: petstore
+  labels:
+    component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: petstore-domain
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          app: ml-pet-advisor
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: ml-pet-advisor
+    ports:
+    - protocol: TCP
+      port: 8003
+  - to: []  # Allow DNS resolution
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# Resource Quota for the Namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: petstore-quota
+  namespace: petstore
+  labels:
+    component: resource-management
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    persistentvolumeclaims: "10"
+    pods: "50"
+    services: "10"
+    secrets: "20"
+    configmaps: "20"
+---
+# Limit Range for Resource Constraints
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: petstore-limits
+  namespace: petstore
+  labels:
+    component: resource-management
+spec:
+  limits:
+  - default:
+      cpu: 500m
+      memory: 1Gi
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    max:
+      cpu: 2000m
+      memory: 4Gi
+    min:
+      cpu: 50m
+      memory: 64Mi
+    type: Container
+  - default:
+      storage: 10Gi
+    max:
+      storage: 100Gi
+    min:
+      storage: 1Gi
+    type: PersistentVolumeClaim

@@ -274,9 +274,7 @@ async def get_service_config(request: Request):
             detail="Failed to retrieve configuration"
         )
 
-# Error handlers for this router
-@router.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
+async def handle_http_exception(request: Request, exc: HTTPException):
     """Handle HTTP exceptions with proper logging"""
     correlation_id = getattr(request.state, 'correlation_id', 'unknown')
 

@@ -17,3 +17,16 @@ logger = logging.getLogger(__name__)
 # from marty_msf.observability.metrics import MetricsCollector
 # from marty_msf.observability.tracing import TracingManager
 # from marty_msf.observability.logging import StructuredLogger
+
+# Common middleware exports
+from .correlation_middleware import (
+    CorrelationIdMiddleware,
+    add_correlation_id_middleware,
+)
+from .metrics_middleware import MetricsMiddleware
+
+__all__ = [
+    "CorrelationIdMiddleware",
+    "add_correlation_id_middleware",
+    "MetricsMiddleware",
+]
