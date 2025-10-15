@@ -98,6 +98,12 @@ The Marty Microservices Framework follows a layered, plugin-based architecture d
 - Event sourcing capabilities
 - CQRS pattern support
 
+#### **Data Consistency Patterns (`src/marty_msf/patterns/`)**
+- **Saga Orchestration**: Long-running transaction coordination with compensation handlers
+- **Transactional Outbox Pattern**: ACID-compliant event publishing with reliability guarantees
+- **CQRS (Command Query Responsibility Segregation)**: Optimized read/write model separation
+- **Event Sourcing Integration**: State reconstruction from event streams with snapshot support
+
 ##### Kafka Infrastructure Decision
 The framework adopts **Apache Kafka with KRaft mode** for production event streaming:
 
@@ -290,11 +296,88 @@ Heavy observability and analytics toolchains are now distributed via extras so b
 
 ## 📚 Related Documentation
 
+- **[Data Consistency Patterns](../data-consistency-patterns.md)** - Comprehensive guide to saga, outbox, and CQRS patterns
 - **[Plugin Development Guide](guides/plugin-system.md)**
 - **[Testing Strategy](development/TESTING_STRATEGY.md)**
 - **[Migration Guide](guides/MIGRATION_GUIDE.md)**
 - **[Observability Setup](guides/observability.md)**
 - **[CLI Usage](guides/CLI_README.md)**
+
+## 🎯 Recent Architecture Enhancements
+
+### Data Consistency Patterns Implementation (October 2025)
+
+The framework has been enhanced with enterprise-grade data consistency patterns to address the challenges of distributed transaction management and reliable event publishing in microservices architectures.
+
+#### **Key Implementation Decisions:**
+
+1. **Saga Orchestration Enhancement**
+   - **Decision**: Enhanced existing `saga.py` with advanced compensation handlers rather than creating from scratch
+   - **Rationale**: Preserved existing integrations while adding enterprise features like parallel execution and state management
+   - **Location**: `src/marty_msf/patterns/saga/` (enhanced existing implementation)
+
+2. **Transactional Outbox Pattern**
+   - **Decision**: Implemented comprehensive outbox pattern with batch processing and dead letter queues
+   - **Rationale**: Ensures ACID compliance for business data and events, eliminates dual-write problems
+   - **Features**:
+     - Batch processing for performance (configurable batch sizes)
+     - Dead letter queue handling for failed events
+     - Multi-broker support (Kafka/RabbitMQ)
+     - Retry mechanisms with exponential backoff
+   - **Location**: `src/marty_msf/patterns/outbox/enhanced_outbox.py`
+
+3. **CQRS Templates and Implementation**
+   - **Decision**: Created comprehensive CQRS templates with validation and projection builders
+   - **Rationale**: Enables optimal read/write model separation with built-in caching and validation
+   - **Features**:
+     - Command/Query handlers with generic type support
+     - Read model projections with event-driven updates
+     - Validation framework for commands and queries
+     - Caching layer for performance optimization
+   - **Location**: `src/marty_msf/patterns/cqrs/enhanced_cqrs.py`
+
+4. **Unified Configuration System**
+   - **Decision**: Created environment-specific configuration management
+   - **Rationale**: Supports development, production, and testing environments with different scaling requirements
+   - **Features**: Database, event store, message broker, saga, and CQRS configurations
+   - **Location**: `src/marty_msf/patterns/config.py`
+
+#### **Architecture Impact:**
+
+- **Reliability**: Transactional outbox ensures no lost events due to system failures
+- **Scalability**: CQRS enables independent scaling of read and write operations
+- **Consistency**: Saga orchestration manages complex business workflows with proper compensation
+- **Observability**: Comprehensive metrics and monitoring for all data consistency operations
+
+#### **Integration with Existing Framework:**
+
+- **Backward Compatibility**: All existing functionality preserved
+- **Plugin Integration**: Data consistency patterns available as optional framework capabilities
+- **Configuration**: Unified configuration system supports existing and new patterns
+- **Testing**: Comprehensive test suite demonstrates integrated usage patterns
+
+#### **Petstore Demo Enhancement:**
+
+The petstore domain plugin has been enhanced to demonstrate the outbox pattern:
+
+- **New Endpoints**: `/api/v1/petstore-outbox/*` showcasing transactional outbox pattern
+- **Reliable Events**: All business operations (pet creation, orders, user registration) use outbox pattern
+- **Metrics**: Real-time outbox processing metrics available at `/petstore-outbox/metrics`
+- **Health Checks**: Outbox-specific health checks for monitoring reliability
+
+#### **Performance Considerations:**
+
+- **Batch Processing**: Outbox events processed in configurable batches (default: 100 events)
+- **Connection Pooling**: Optimized database and message broker connections
+- **Caching**: Multi-level caching for CQRS read models
+- **Async Processing**: Non-blocking outbox event processing
+
+#### **Deployment Requirements:**
+
+- **Database**: PostgreSQL with outbox tables for transactional guarantee
+- **Message Brokers**: Kafka or RabbitMQ for reliable event delivery
+- **Configuration**: Environment-specific settings for scaling and performance
+- **Monitoring**: Integration with existing Prometheus/Grafana observability stack
 
 ---
 
