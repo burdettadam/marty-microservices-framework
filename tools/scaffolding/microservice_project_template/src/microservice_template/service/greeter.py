@@ -1,7 +1,8 @@
-"""Sample gRPC service implementation with analytics capabilities."""
+"""Sample gRPC service implementation with analytics capabilities and resilience patterns."""
 
 from __future__ import annotations
 
+import asyncio
 import io
 import json
 import time
@@ -15,9 +16,25 @@ from microservice_template.proto import greeter_pb2, greeter_pb2_grpc
 from microservice_template.service.analytics import AnalyticsService
 from opentelemetry import trace
 
+# Import resilience patterns for robust service design
+from marty_msf.framework.resilience import (
+    BulkheadConfig,
+    CircuitBreakerConfig,
+    ResilienceConfig,
+    RetryConfig,
+    TimeoutConfig,
+    api_call,
+    cache_call,
+    database_call,
+    register_api_dependency,
+    register_cache_dependency,
+    register_database_dependency,
+    resilience_pattern,
+)
+
 
 class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
-    """Example business logic demonstrating logging, tracing, and metrics."""
+    """Example business logic demonstrating logging, tracing, metrics, and resilience patterns."""
 
     def __init__(self, settings: AppSettings, metrics: MetricsServer) -> None:
         self._settings = settings
@@ -26,6 +43,61 @@ class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
         self._start_time = time.monotonic()
         self._tracer = trace.get_tracer(__name__)
         self._analytics = AnalyticsService()
+
+        # Initialize resilience patterns for external dependencies
+        self._setup_resilience_patterns()
+
+    def _setup_resilience_patterns(self) -> None:
+        """Setup resilience patterns for external dependencies."""
+        # Register database dependency with bulkhead and circuit breaker
+        register_database_dependency(
+            name="primary_db",
+            max_concurrent=10,
+            timeout_seconds=10.0,
+            enable_circuit_breaker=True,
+        )
+
+        # Register external API dependency
+        register_api_dependency(
+            name="analytics_api",
+            max_concurrent=15,
+            timeout_seconds=15.0,
+            enable_circuit_breaker=True,
+        )
+
+        # Register cache dependency
+        register_cache_dependency(
+            name="redis_cache",
+            max_concurrent=50,
+            timeout_seconds=2.0,
+            enable_circuit_breaker=False,
+        )
+
+        self._logger.info("Resilience patterns initialized for external dependencies")
+
+    # Example of a database operation with resilience patterns
+    @database_call(dependency_name="primary_db", operation_name="get_user_data")
+    async def _get_user_data(self, user_id: str) -> dict:
+        """Simulate database call with resilience patterns."""
+        # This would be an actual database call in production
+        await asyncio.sleep(0.1)  # Simulate I/O
+        return {"user_id": user_id, "name": "Sample User", "preferences": {}}
+
+    # Example of an external API call with resilience patterns
+    @api_call(dependency_name="analytics_api", operation_name="submit_analytics")
+    async def _submit_analytics_data(self, data: dict) -> bool:
+        """Simulate external API call with resilience patterns."""
+        # This would be an actual API call in production
+        await asyncio.sleep(0.2)  # Simulate network I/O
+        return True
+
+    # Example of a cache operation with resilience patterns
+    @cache_call(dependency_name="redis_cache", operation_name="get_cached_result")
+    async def _get_cached_result(self, key: str) -> dict | None:
+        """Simulate cache lookup with resilience patterns."""
+        # This would be an actual cache call in production
+        await asyncio.sleep(0.01)  # Simulate fast cache access
+        return None  # Cache miss simulation
 
     async def SayHello(
         self,

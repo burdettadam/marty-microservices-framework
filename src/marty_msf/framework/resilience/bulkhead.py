@@ -65,6 +65,15 @@ class BulkheadConfig:
     # Enable metrics collection
     collect_metrics: bool = True
 
+    # External dependency specific settings
+    dependency_name: str | None = None
+    dependency_type: str | None = None  # "database", "api", "cache", "message_queue", etc.
+
+    # Circuit breaker integration for bulkheads
+    enable_circuit_breaker: bool = False
+    circuit_breaker_failure_threshold: int = 5
+    circuit_breaker_timeout: float = 60.0
+
 
 class BulkheadPool(ABC):
     """Abstract base class for bulkhead implementations."""
@@ -502,6 +511,56 @@ DATABASE_CONFIG = BulkheadConfig(
     bulkhead_type=BulkheadType.SEMAPHORE,
     timeout_seconds=15.0,
     reject_on_full=False,
+    dependency_type="database",
+    enable_circuit_breaker=True,
+)
+
+# External dependency configurations for different service types
+EXTERNAL_API_CONFIG = BulkheadConfig(
+    max_concurrent=15,  # API call concurrency
+    bulkhead_type=BulkheadType.SEMAPHORE,
+    timeout_seconds=20.0,
+    reject_on_full=True,
+    dependency_type="api",
+    enable_circuit_breaker=True,
+    circuit_breaker_failure_threshold=3,
+)
+
+CACHE_CONFIG = BulkheadConfig(
+    max_concurrent=50,  # High concurrency for cache
+    bulkhead_type=BulkheadType.SEMAPHORE,
+    timeout_seconds=2.0,
+    reject_on_full=True,
+    dependency_type="cache",
+    enable_circuit_breaker=False,  # Cache failures shouldn't circuit break
+)
+
+MESSAGE_QUEUE_CONFIG = BulkheadConfig(
+    max_concurrent=20,  # Message queue operations
+    bulkhead_type=BulkheadType.SEMAPHORE,
+    timeout_seconds=10.0,
+    reject_on_full=False,
+    dependency_type="message_queue",
+    enable_circuit_breaker=True,
+    circuit_breaker_failure_threshold=5,
+)
+
+FILE_SYSTEM_CONFIG = BulkheadConfig(
+    max_concurrent=8,  # File I/O operations
+    bulkhead_type=BulkheadType.THREAD_POOL,
+    timeout_seconds=30.0,
+    reject_on_full=True,
+    dependency_type="file_system",
+    enable_circuit_breaker=False,
+)
+
+MEMORY_INTENSIVE_CONFIG = BulkheadConfig(
+    max_concurrent=2,  # Memory-heavy operations
+    bulkhead_type=BulkheadType.THREAD_POOL,
+    timeout_seconds=120.0,
+    reject_on_full=True,
+    dependency_type="memory_intensive",
+    enable_circuit_breaker=False,
 )
 
 EXTERNAL_API_CONFIG = BulkheadConfig(

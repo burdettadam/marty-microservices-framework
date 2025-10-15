@@ -77,6 +77,68 @@ common_resilience: &common_resilience
     backoff_multiplier: 1.5
     max_delay_seconds: 30
 
+  # Timeout configurations for different dependency types
+  timeouts:
+    default_timeout: 30.0
+    database_timeout: 10.0
+    api_call_timeout: 15.0
+    message_queue_timeout: 5.0
+    cache_timeout: 2.0
+    file_operation_timeout: 30.0
+    circuit_breaker_timeout: 60.0
+
+  # Bulkhead configurations for resource isolation
+  bulkheads:
+    # Database operations
+    database:
+      max_concurrent: 10
+      timeout_seconds: 15.0
+      bulkhead_type: "semaphore"
+      reject_on_full: false
+      enable_circuit_breaker: true
+
+    # External API calls
+    external_api:
+      max_concurrent: 15
+      timeout_seconds: 20.0
+      bulkhead_type: "semaphore"
+      reject_on_full: true
+      enable_circuit_breaker: true
+      circuit_breaker_failure_threshold: 3
+
+    # Cache operations
+    cache:
+      max_concurrent: 50
+      timeout_seconds: 2.0
+      bulkhead_type: "semaphore"
+      reject_on_full: true
+      enable_circuit_breaker: false
+
+    # Message queue operations
+    message_queue:
+      max_concurrent: 20
+      timeout_seconds: 10.0
+      bulkhead_type: "semaphore"
+      reject_on_full: false
+      enable_circuit_breaker: true
+      circuit_breaker_failure_threshold: 5
+
+    # File system operations
+    file_system:
+      max_concurrent: 8
+      timeout_seconds: 30.0
+      bulkhead_type: "thread_pool"
+      reject_on_full: true
+      enable_circuit_breaker: false
+
+    # CPU-intensive operations
+    cpu_intensive:
+      max_concurrent: 4
+      timeout_seconds: 60.0
+      bulkhead_type: "thread_pool"
+      reject_on_full: true
+      enable_circuit_breaker: false
+
 # Service ports
 ports: *default_ports
 

@@ -87,10 +87,55 @@ The Marty Microservices Framework follows a layered, plugin-based architecture d
 - Performance monitoring and alerting
 
 #### Resilience Patterns (`src/framework/resilience/`)
-- Circuit breakers for fault tolerance
-- Retry mechanisms with exponential backoff
-- Bulkhead isolation patterns
-- Timeout handling and graceful degradation
+
+The framework provides enterprise-grade resilience patterns for building fault-tolerant microservices:
+
+**Core Patterns:**
+- **Circuit Breakers**: Automatic fault tolerance with configurable failure thresholds and recovery timeouts
+- **Retry Mechanisms**: Intelligent retry with exponential backoff, jitter, and circuit breaker integration
+- **Bulkhead Isolation**: Resource isolation using thread pools and semaphores to prevent cascade failures
+- **Timeout Management**: Comprehensive timeout handling with dependency-specific configurations
+- **Fallback Strategies**: Graceful degradation with cached responses, default values, and alternative flows
+
+**External Dependency Management:**
+- **Bulkhead Isolation per Dependency**: Separate resource pools for different external services (database, APIs, cache)
+- **Configurable Timeout Strategies**: Dependency-specific timeouts (database: 10s, APIs: 15s, cache: 2s)
+- **Circuit Breaker Integration**: Automatic circuit breaking based on failure rates and thresholds
+- **Adaptive Configurations**: Environment-specific settings (development, testing, production)
+
+**Implementation Features:**
+- **Thread-Pool Bulkheads**: For CPU-intensive operations with configurable worker limits
+- **Semaphore Bulkheads**: For I/O operations with high concurrency support
+- **External Dependency Registration**: Simple API for registering and configuring dependencies
+- **Comprehensive Metrics**: Real-time monitoring of bulkhead utilization, circuit breaker states, and timeout rates
+- **Health Checks**: Integrated health monitoring with resilience pattern statistics
+
+**Configuration Example:**
+```yaml
+resilience:
+  bulkheads:
+    database:
+      max_concurrent: 10
+      timeout_seconds: 10.0
+      enable_circuit_breaker: true
+    external_api:
+      max_concurrent: 15
+      timeout_seconds: 15.0
+      circuit_breaker_failure_threshold: 3
+```
+
+**Usage Patterns:**
+```python
+# Register external dependencies
+register_database_dependency("user_db", max_concurrent=10)
+register_api_dependency("payment_gateway", max_concurrent=5)
+
+# Use decorators for automatic resilience
+@database_call(dependency_name="user_db", operation_name="get_user")
+async def get_user(user_id: str) -> dict:
+    # Database call automatically protected by bulkhead and timeout
+    return await db.get_user(user_id)
+```
 
 #### Event-Driven Architecture (`src/framework/events/`)
 - Event bus for inter-service communication

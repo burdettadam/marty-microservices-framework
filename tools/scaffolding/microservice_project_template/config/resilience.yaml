@@ -1,0 +1,218 @@
+# Resilience Configuration Template
+# This file demonstrates how to configure bulkheads, timeouts, and circuit breakers
+# for external dependencies in your microservice
+
+# Service-level resilience configuration
+resilience:
+  # Global timeout settings
+  timeouts:
+    default_timeout: 30.0
+    database_timeout: 10.0
+    api_call_timeout: 15.0
+    message_queue_timeout: 5.0
+    cache_timeout: 2.0
+    file_operation_timeout: 30.0
+    circuit_breaker_timeout: 60.0
+
+    # Adaptive timeout settings (experimental)
+    enable_adaptive_timeout: false
+    adaptive_timeout_percentile: 0.95
+    adaptive_timeout_multiplier: 2.0
+    adaptive_timeout_min: 1.0
+    adaptive_timeout_max: 120.0
+
+  # Circuit breaker global settings
+  circuit_breaker:
+    failure_threshold: 5
+    recovery_timeout: 60
+    half_open_max_calls: 3
+    use_failure_rate: true
+    failure_rate_threshold: 0.5
+
+  # Retry policy configuration
+  retry_policy:
+    max_attempts: 3
+    backoff_multiplier: 1.5
+    max_delay_seconds: 30
+    jitter: true
+
+  # Bulkhead configurations for resource isolation
+  bulkheads:
+    # Database operations bulkhead
+    database:
+      max_concurrent: 10
+      timeout_seconds: 15.0
+      bulkhead_type: "semaphore"
+      reject_on_full: false
+      enable_circuit_breaker: true
+      circuit_breaker_failure_threshold: 5
+      circuit_breaker_timeout: 60.0
+
+    # External API calls bulkhead
+    external_api:
+      max_concurrent: 15
+      timeout_seconds: 20.0
+      bulkhead_type: "semaphore"
+      reject_on_full: true
+      enable_circuit_breaker: true
+      circuit_breaker_failure_threshold: 3
+      circuit_breaker_timeout: 60.0
+
+    # Cache operations bulkhead
+    cache:
+      max_concurrent: 50
+      timeout_seconds: 2.0
+      bulkhead_type: "semaphore"
+      reject_on_full: true
+      enable_circuit_breaker: false  # Cache failures shouldn't circuit break
+
+    # Message queue operations bulkhead
+    message_queue:
+      max_concurrent: 20
+      timeout_seconds: 10.0
+      bulkhead_type: "semaphore"
+      reject_on_full: false
+      enable_circuit_breaker: true
+      circuit_breaker_failure_threshold: 5
+      circuit_breaker_timeout: 60.0
+
+    # File system operations bulkhead
+    file_system:
+      max_concurrent: 8
+      timeout_seconds: 30.0
+      bulkhead_type: "thread_pool"
+      reject_on_full: true
+      enable_circuit_breaker: false
+
+    # CPU-intensive operations bulkhead
+    cpu_intensive:
+      max_concurrent: 4
+      timeout_seconds: 60.0
+      bulkhead_type: "thread_pool"
+      reject_on_full: true
+      enable_circuit_breaker: false
+
+    # Memory-intensive operations bulkhead
+    memory_intensive:
+      max_concurrent: 2
+      timeout_seconds: 120.0
+      bulkhead_type: "thread_pool"
+      reject_on_full: true
+      enable_circuit_breaker: false
+
+# Specific external dependency configurations
+external_dependencies:
+  # Primary database connection
+  user_database:
+    type: "database"
+    bulkhead:
+      max_concurrent: 10
+      timeout_seconds: 10.0
+      enable_circuit_breaker: true
+    circuit_breaker:
+      failure_threshold: 5
+      recovery_timeout: 60
+    retry:
+      max_attempts: 3
+      base_delay: 1.0
+
+  # Payment gateway API
+  payment_gateway:
+    type: "external_api"
+    bulkhead:
+      max_concurrent: 5  # Limited for payment operations
+      timeout_seconds: 20.0
+      enable_circuit_breaker: true
+    circuit_breaker:
+      failure_threshold: 3  # Stricter for payments
+      recovery_timeout: 120  # Longer recovery for payments
+    retry:
+      max_attempts: 2  # Limited retries for payments
+      base_delay: 2.0
+
+  # Notification service
+  notification_service:
+    type: "external_api"
+    bulkhead:
+      max_concurrent: 15
+      timeout_seconds: 10.0
+      enable_circuit_breaker: true
+    circuit_breaker:
+      failure_threshold: 5
+      recovery_timeout: 60
+    retry:
+      max_attempts: 3
+      base_delay: 1.0
+
+  # Redis cache
+  session_cache:
+    type: "cache"
+    bulkhead:
+      max_concurrent: 100
+      timeout_seconds: 1.0
+      enable_circuit_breaker: false
+    retry:
+      max_attempts: 2
+      base_delay: 0.1
+
+  # Analytics service (optional dependency)
+  analytics_service:
+    type: "external_api"
+    bulkhead:
+      max_concurrent: 10
+      timeout_seconds: 5.0
+      enable_circuit_breaker: false  # Don't break for analytics
+    retry:
+      max_attempts: 1  # Single attempt for analytics
+
+# Monitoring and metrics configuration
+resilience_monitoring:
+  enable_metrics: true
+  metrics_export_interval: 60  # seconds
+  health_check_interval: 30   # seconds
+
+  # Alert thresholds
+  alerts:
+    circuit_breaker_open_threshold: 1      # Alert when any circuit breaker opens
+    bulkhead_utilization_threshold: 0.8    # Alert when bulkhead is 80% full
+    failure_rate_threshold: 0.1            # Alert when failure rate exceeds 10%
+    timeout_rate_threshold: 0.05           # Alert when timeout rate exceeds 5%
+
+# Environment-specific overrides
+development:
+  resilience:
+    timeouts:
+      default_timeout: 60.0  # Longer timeouts for debugging
+    circuit_breaker:
+      failure_threshold: 10  # More lenient in development
+    bulkheads:
+      database:
+        max_concurrent: 5    # Lower concurrency for dev
+      external_api:
+        max_concurrent: 3
+
+testing:
+  resilience:
+    timeouts:
+      default_timeout: 5.0   # Shorter timeouts for faster tests
+    circuit_breaker:
+      failure_threshold: 2   # Faster circuit breaking for tests
+    bulkheads:
+      database:
+        max_concurrent: 2
+      external_api:
+        max_concurrent: 2
+
+production:
+  resilience:
+    timeouts:
+      default_timeout: 30.0
+    circuit_breaker:
+      failure_threshold: 5
+      use_failure_rate: true
+      failure_rate_threshold: 0.3
+    bulkheads:
+      database:
+        max_concurrent: 20   # Higher concurrency for production
+      external_api:
+        max_concurrent: 25
