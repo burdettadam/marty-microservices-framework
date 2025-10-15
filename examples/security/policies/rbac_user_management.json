@@ -1,0 +1,62 @@
+{
+  "id": "rbac_user_management",
+  "name": "User Management RBAC Policy",
+  "description": "Role-based access control for user management operations",
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "admin_full_access",
+      "description": "Administrators have full access to all user management operations",
+      "resource": "/api/v1/users/*",
+      "action": "*",
+      "principal": {
+        "roles": ["admin", "super_admin"]
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "manager_read_write",
+      "description": "Managers can read and update user information",
+      "resource": "/api/v1/users/*",
+      "action": ["GET", "PUT", "PATCH"],
+      "principal": {
+        "roles": ["manager"]
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "user_read_only",
+      "description": "Regular users can only read user information",
+      "resource": "/api/v1/users/*",
+      "action": "GET",
+      "principal": {
+        "roles": ["user"]
+      },
+      "effect": "allow"
+    },
+    {
+      "id": "user_own_profile",
+      "description": "Users can manage their own profile",
+      "resource": "/api/v1/users/profile",
+      "action": "*",
+      "principal": {
+        "type": "user"
+      },
+      "effect": "allow",
+      "conditions": {
+        "user_owns_resource": true
+      }
+    },
+    {
+      "id": "service_account_api",
+      "description": "Service accounts can access user API for integration",
+      "resource": "/api/v1/users/*",
+      "action": ["GET", "POST", "PUT"],
+      "principal": {
+        "type": "service",
+        "service_name": ["user-service", "notification-service", "analytics-service"]
+      },
+      "effect": "allow"
+    }
+  ]
+}
