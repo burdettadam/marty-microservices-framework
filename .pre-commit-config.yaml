@@ -12,10 +12,11 @@ repos:
         name: Fix end of files
       - id: check-yaml
         name: Check YAML syntax
-        exclude: ^(ops/k8s/.*\.yaml|tools/scaffolding/.*\.yaml|ops/service-mesh/.*\.yaml|src/marty_msf/security/.*\.yaml)$
+        exclude: ^(ops/k8s/.*\.yaml|tools/scaffolding/.*\.yaml|ops/service-mesh/.*\.yaml|src/marty_msf/security/.*\.yaml|examples/demos/istio-1\.27\.2/.*\.yaml)$
         args: [--allow-multiple-documents]
       - id: check-json
         name: Check JSON syntax
+        exclude: ^examples/demos/istio-1\.27\.2/.*\.json$
       - id: check-toml
         name: Check TOML syntax
       - id: check-merge-conflict
@@ -23,6 +24,7 @@ repos:
       - id: check-added-large-files
         name: Check for large files
         args: ['--maxkb=1000']
+        exclude: ^examples/demos/istio-1\.27\.2/bin/istioctl$
 
   # Import sorting with isort
   - repo: https://github.com/pycqa/isort
@@ -39,7 +41,7 @@ repos:
       - id: ruff
         name: Lint Python code with Ruff
         args: [--fix, --exit-non-zero-on-fix]
-        exclude: ^(services/.*\.py$|tools/scaffolding/.*\.py$|services/shared/modern_service_template\.py$)
+        exclude: ^(services/.*\.py$|tools/scaffolding/.*\.py$|services/shared/modern_service_template\.py$|.*\.ipynb$)
 
   # Code complexity checks
   # Code Quality Analysis - Comprehensive complexity and length checks

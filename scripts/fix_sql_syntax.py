@@ -28,13 +28,13 @@ class SQLGenerator:
         elif isinstance(value, str):
             # String values need to be JSON-encoded (with quotes)
             return json.dumps(value)
-        elif isinstance(value, (dict, list)):
+        elif isinstance(value, dict | list):
             # Objects and arrays need to be JSON-encoded
             return json.dumps(value)
         elif isinstance(value, bool):
             # Boolean values need to be lowercase in JSON
             return json.dumps(value)
-        elif isinstance(value, (int, float)):
+        elif isinstance(value, int | float):
             # Numbers can be used directly
             return json.dumps(value)
         else:

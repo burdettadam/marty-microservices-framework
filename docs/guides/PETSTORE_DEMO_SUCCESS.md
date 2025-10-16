@@ -24,7 +24,7 @@ Successfully deployed and demonstrated the **Petstore microservice** in a local 
 
 ## 📊 Database Schema Fixed
 
-### Fixed PostgreSQL Issues in `plugins/petstore_domain/db/init.sql`
+### Fixed PostgreSQL Issues in `examples/demos/petstore_domain/db/init.sql`
 ```sql
 -- BEFORE (Incorrect):
 CREATE INDEX idx_saga_events_saga_id_created_at ON saga_events USING btree(saga_id, created_at DESC);

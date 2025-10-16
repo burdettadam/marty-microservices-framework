@@ -16,7 +16,7 @@ Unlike the basic demo runners, this script provides:
 
 ### 1. Basic Demo (2 minutes)
 ```bash
-cd plugins/petstore_domain
+cd examples/demos/petstore_domain
 python3 experience_polish_demo.py --scenario quick
 ```
 
@@ -28,7 +28,7 @@ python3 experience_polish_demo.py --scenario quick
 
 ### 2. ML Recommendation Demo (1 minute)
 ```bash
-cd plugins/petstore_domain
+cd examples/demos/petstore_domain
 python3 dev/experience_polish_demo.py --scenario ml-demo
 ```
 
@@ -39,7 +39,7 @@ python3 dev/experience_polish_demo.py --scenario ml-demo
 
 ### 3. Error Resilience Demo (3 minutes)
 ```bash
-cd plugins/petstore_domain
+cd examples/demos/petstore_domain
 python3 experience_polish_demo.py --scenario error-demo --errors
 ```
 
@@ -51,7 +51,7 @@ python3 experience_polish_demo.py --scenario error-demo --errors
 
 ### 4. Full Experience with Analytics (5 minutes)
 ```bash
-cd plugins/petstore_domain
+cd examples/demos/petstore_domain
 python3 experience_polish_demo.py --scenario full --customers 3 --export-data
 ```
 
@@ -64,7 +64,7 @@ python3 experience_polish_demo.py --scenario full --customers 3 --export-data
 
 ### 5. Operational Scaling Demo
 ```bash
-cd plugins/petstore_domain
+cd examples/demos/petstore_domain
 python3 dev/experience_polish_demo.py --scenario ops-demo
 ```
 
