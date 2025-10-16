@@ -222,7 +222,7 @@ spec:
     - sourceLabels: [__name__]
       regex: 'up'
       targetLabel: service_health
-      replacement: 'petstore_domain'
+      replacement: 'examples_demos_petstore_domain'
 ---
 # Envoy Filter for Custom Metrics
 apiVersion: networking.istio.io/v1alpha3

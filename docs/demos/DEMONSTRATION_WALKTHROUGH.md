@@ -40,7 +40,7 @@ python -c "import marty_msf; print('MMF installed successfully')"
 #### Step 1: Deploy the Petstore Plugin
 ```bash
 # Deploy the petstore domain plugin
-kubectl apply -f plugins/petstore_domain/k8s/
+kubectl apply -f examples/demos/petstore_domain/k8s/
 
 # Verify deployment
 kubectl get pods -n petstore -l app=petstore-domain
