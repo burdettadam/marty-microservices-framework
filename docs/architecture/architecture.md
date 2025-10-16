@@ -525,6 +525,7 @@ Heavy observability and analytics toolchains are now distributed via extras so b
 
 ## 📚 Related Documentation
 
+- **[API Documentation Infrastructure](api-documentation-infrastructure.md)** - Unified API documentation and contract testing capabilities
 - **[Data Consistency Patterns](../data-consistency-patterns.md)** - Comprehensive guide to saga, outbox, and CQRS patterns
 - **[Plugin Development Guide](guides/plugin-system.md)**
 - **[Testing Strategy](development/TESTING_STRATEGY.md)**
@@ -612,6 +613,17 @@ The petstore domain plugin has been enhanced to demonstrate the outbox pattern:
 
 The framework provides comprehensive command-line tools for development, migration, and operations:
 
+#### API Documentation and Contract Testing Commands (`marty api`)
+- **docs**: Generate unified API documentation across REST and gRPC services with interactive examples
+- **create-contract**: Create consumer-driven contracts for REST and gRPC APIs with interactive prompts
+- **test-contracts**: Verify contracts against running services with detailed validation reports
+- **list-contracts**: Display available contracts with filtering by consumer, provider, or type
+- **register-version**: Register API versions with deprecation tracking and migration guides
+- **list-versions**: Show API version status, deprecation timelines, and compatibility information
+- **generate-grpc-contract**: Auto-generate contracts from Protocol Buffer definitions
+- **generate-contract-docs**: Create human-readable documentation from contract specifications
+- **monitor-contracts**: Continuous contract compliance monitoring with webhook notifications
+
 #### Migration Commands (`marty migrate`)
 - **helm-to-kustomize**: Convert Helm charts to Kustomize manifests with MMF optimizations
 - **generate-overlay**: Create environment-specific Kustomize overlays with service mesh support
@@ -628,6 +640,20 @@ The framework provides comprehensive command-line tools for development, migrati
 - **add-service**: Add services to existing plugins with feature integration
 - **list**: Display available plugins and their configurations
 
+#### API Documentation Features
+- **Unified Documentation**: Combines REST (OpenAPI) and gRPC (Protocol Buffers) documentation into cohesive API references
+- **Multi-Format Output**: Generates HTML, Markdown, Postman collections, and interactive documentation sites
+- **Version Management**: Tracks API versions, deprecation schedules, and migration paths across services
+- **Theme Support**: Multiple documentation themes (Redoc, Swagger UI, Stoplight) with responsive design
+- **Code Examples**: Automatic generation of client examples in multiple programming languages
+
+#### Contract Testing Capabilities
+- **Consumer-Driven Contracts**: Pact-compatible REST contracts and custom gRPC contract specifications
+- **Interactive Creation**: Guided contract creation with validation and type checking
+- **Verification Engine**: Validates provider implementations against consumer expectations
+- **Continuous Monitoring**: Automated contract testing with CI/CD integration and alerting
+- **Proto Integration**: Automatic contract generation from Protocol Buffer service definitions
+
 #### Service Generation Features
 - **Architectural Patterns**: Support for layered, hexagonal, clean, and CQRS/ES architectures
 - **Service Templates**: FastAPI, gRPC, and hybrid service scaffolding
@@ -639,6 +665,8 @@ The framework provides comprehensive command-line tools for development, migrati
 - **Policy Templates**: Pre-configured resilience patterns for common scenarios
 - **Monitoring Setup**: Automatic service mesh metrics and dashboard configuration
 - **GitOps Support**: Declarative configurations ready for continuous deployment
+- **Documentation Automation**: Integrated documentation generation in build pipelines
+- **Contract Validation**: Automated contract testing in CI/CD workflows
 
 ---
 

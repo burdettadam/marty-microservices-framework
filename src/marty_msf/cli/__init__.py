@@ -2272,6 +2272,14 @@ except ImportError:
     # Migration, plugin, and service commands not available
     pass
 
+# Add API documentation and contract testing commands
+try:
+    from .api_commands import add_api_commands
+    add_api_commands(cli)
+except ImportError:
+    # API commands not available
+    pass
+
 
 if __name__ == "__main__":
     cli()

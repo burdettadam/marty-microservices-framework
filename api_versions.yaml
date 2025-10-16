@@ -1,0 +1,16 @@
+petstore-domain:
+  1.0.0:
+    created_date: '2025-10-16T01:50:19.806514'
+    deprecation_date: '2024-12-31'
+    migration_guide: https://docs.petstore.example.com/migration/v1-to-v2
+    status: deprecated
+  2.0.0:
+    created_date: '2025-10-16T01:50:19.554481'
+    deprecation_date: null
+    migration_guide: null
+    status: active
+  2.1.0-beta:
+    created_date: '2025-10-16T01:50:20.056304'
+    deprecation_date: null
+    migration_guide: null
+    status: active
