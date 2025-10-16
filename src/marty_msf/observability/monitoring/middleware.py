@@ -9,25 +9,15 @@ import logging
 import time
 from datetime import datetime
 
-# FastAPI imports
-try:
-    from fastapi import FastAPI, Request, Response
-    from fastapi.middleware.base import BaseHTTPMiddleware
-    from fastapi.responses import JSONResponse
-    from starlette.middleware.base import RequestResponseEndpoint
-
-    FASTAPI_AVAILABLE = True
-except ImportError:
-    FASTAPI_AVAILABLE = False
-
 # gRPC imports
-try:
-    import grpc
-    from grpc._server import _Context as GrpcContext
+import grpc
 
-    GRPC_AVAILABLE = True
-except ImportError:
-    GRPC_AVAILABLE = False
+# FastAPI imports
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import JSONResponse
+from grpc._server import _Context as GrpcContext
+from starlette.middleware.base import RequestResponseEndpoint
 
 from .core import HealthStatus, get_monitoring_manager
 
@@ -84,12 +74,10 @@ def should_monitor_request(
     return True
 
 
-if FASTAPI_AVAILABLE:
-
-    class FastAPIMonitoringMiddleware(BaseHTTPMiddleware):
+class FastAPIMonitoringMiddleware(BaseHTTPMiddleware):
         """FastAPI middleware for monitoring and observability."""
 
-        def __init__(self, app: FastAPI, config: MonitoringMiddlewareConfig = None):
+        def __init__(self, app: FastAPI, config: MonitoringMiddlewareConfig | None = None):
             super().__init__(app)
             self.config = config or MonitoringMiddlewareConfig()
             logger.info("FastAPI monitoring middleware initialized")
@@ -254,12 +242,10 @@ if FASTAPI_AVAILABLE:
             return path
 
 
-if GRPC_AVAILABLE:
-
-    class GRPCMonitoringInterceptor(grpc.ServerInterceptor):
+class GRPCMonitoringInterceptor(grpc.ServerInterceptor):
         """gRPC server interceptor for monitoring."""
 
-        def __init__(self, config: MonitoringMiddlewareConfig = None):
+        def __init__(self, config: MonitoringMiddlewareConfig | None = None):
             self.config = config or MonitoringMiddlewareConfig()
             logger.info("gRPC monitoring interceptor initialized")
 
@@ -340,25 +326,15 @@ if GRPC_AVAILABLE:
             return monitoring_wrapper
 
 
-def setup_fastapi_monitoring(app: FastAPI, config: MonitoringMiddlewareConfig = None) -> None:
+def setup_fastapi_monitoring(app: FastAPI, config: MonitoringMiddlewareConfig | None = None) -> None:
     """Setup FastAPI monitoring middleware."""
-
-    if not FASTAPI_AVAILABLE:
-        logger.warning("FastAPI not available, skipping monitoring middleware setup")
-        return
-
     middleware = FastAPIMonitoringMiddleware(app, config)
     app.add_middleware(BaseHTTPMiddleware, dispatch=middleware.dispatch)
     logger.info("FastAPI monitoring middleware added")
 
 
-def setup_grpc_monitoring(server, config: MonitoringMiddlewareConfig = None):
+def setup_grpc_monitoring(server, config: MonitoringMiddlewareConfig | None = None):
     """Setup gRPC monitoring interceptor."""
-
-    if not GRPC_AVAILABLE:
-        logger.warning("gRPC not available, skipping monitoring interceptor setup")
-        return
-
     interceptor = GRPCMonitoringInterceptor(config)
     server.add_interceptor(interceptor)
     logger.info("gRPC monitoring interceptor added")

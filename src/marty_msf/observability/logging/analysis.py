@@ -20,19 +20,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Optional, dict, list
 
-# External dependencies (optional) - check availability using importlib
-AIOREDIS_AVAILABLE = importlib.util.find_spec("aioredis") is not None
-ELASTICSEARCH_AVAILABLE = importlib.util.find_spec("elasticsearch") is not None
-PROMETHEUS_AVAILABLE = importlib.util.find_spec("prometheus_client") is not None
-
-MONITORING_AVAILABLE = AIOREDIS_AVAILABLE and ELASTICSEARCH_AVAILABLE and PROMETHEUS_AVAILABLE
-
-# Import optional dependencies only if available
-if AIOREDIS_AVAILABLE:
-    import aioredis
-
-if PROMETHEUS_AVAILABLE:
-    from prometheus_client import Counter, Gauge, Histogram, start_http_server
+# External dependencies - fail if not available
+import aioredis
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 
 @dataclass
@@ -111,16 +101,15 @@ class LogAnalyzer:
         # Alert rules
         self.alert_rules: builtins.list[AlertRule] = self._create_default_alert_rules()
 
-        # Metrics (if monitoring available)
-        if MONITORING_AVAILABLE and enable_metrics:
+        # Metrics
+        if enable_metrics:
             self._setup_metrics()
 
-        # Initialize redis connection if available
+        # Initialize redis connection
         self.redis = None
-        if AIOREDIS_AVAILABLE:
-            # Redis will be connected async when needed
-            self._redis_host = redis_host
-            self._redis_port = redis_port
+        # Redis will be connected async when needed
+        self._redis_host = redis_host
+        self._redis_port = redis_port
 
         # Pattern cache
         self._compiled_patterns: builtins.dict[str, re.Pattern] = {}
@@ -200,7 +189,7 @@ class LogAnalyzer:
 
     async def _ensure_redis_connection(self):
         """Ensure redis connection is established"""
-        if self.redis is None and AIOREDIS_AVAILABLE:
+        if self.redis is None:
             try:
                 self.redis = await aioredis.from_url(
                     f"redis://{self._redis_host}:{self._redis_port}"
@@ -225,7 +214,7 @@ class LogAnalyzer:
         self.event_buffer.append(event)
 
         # Update metrics
-        if MONITORING_AVAILABLE and hasattr(self, "metrics"):
+        if hasattr(self, "metrics"):
             self.metrics["log_events_total"].labels(
                 service=event.service_name, level=event.level, category=event.category
             ).inc()
@@ -309,7 +298,7 @@ class LogAnalyzer:
                 duration_seconds = float(duration_ms) / 1000
 
                 # Update metrics
-                if MONITORING_AVAILABLE and hasattr(self, "metrics"):
+                if hasattr(self, "metrics"):
                     endpoint = event.fields.get("http_path", "unknown")
                     self.metrics["response_time_histogram"].labels(
                         service=event.service_name, endpoint=endpoint
@@ -333,7 +322,7 @@ class LogAnalyzer:
             security_event = event.fields.get("security_event", "unknown")
 
             # Update metrics
-            if MONITORING_AVAILABLE and hasattr(self, "metrics"):
+            if hasattr(self, "metrics"):
                 self.metrics["security_events_total"].labels(
                     service=event.service_name, event_type=security_event
                 ).inc()
@@ -375,7 +364,7 @@ class LogAnalyzer:
             event_type = business_data.get("event_type", "unknown")
 
             # Update metrics
-            if MONITORING_AVAILABLE and hasattr(self, "metrics"):
+            if hasattr(self, "metrics"):
                 self.metrics["business_events_total"].labels(
                     service=event.service_name, event_type=event_type
                 ).inc()
@@ -412,7 +401,7 @@ class LogAnalyzer:
         # Track active services
         current_services = {event.service_name for event in self.event_buffer}
 
-        if MONITORING_AVAILABLE and hasattr(self, "metrics"):
+        if hasattr(self, "metrics"):
             self.metrics["active_services"].set(len(current_services))
 
     def get_service_performance_summary(self, service_name: str) -> builtins.dict[str, Any]:
@@ -499,9 +488,7 @@ class LogStreamProcessor:
 
     async def start_redis_processing(self, stream_name: str = "logs"):
         """Process logs from Redis stream"""
-        if not MONITORING_AVAILABLE:
-            print("Redis not available for log processing")
-            return
+        # Process logs from Redis stream
 
         self.running = True
         import redis.asyncio as redis_client
@@ -536,10 +523,9 @@ async def main():
     # Create analyzer
     analyzer = LogAnalyzer()
 
-    # Start metrics server if available
-    if MONITORING_AVAILABLE:
-        start_http_server(8090)
-        print("Metrics server started on :8090")
+    # Start metrics server
+    start_http_server(8090)
+    print("Metrics server started on :8090")
 
     # Example log events
     sample_logs = [

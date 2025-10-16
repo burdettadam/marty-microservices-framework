@@ -1,0 +1,167 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MMF Service Overview",
+    "tags": ["mmf", "microservices", "overview"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "service",
+          "type": "query",
+          "query": "label_values(mmf_requests_total, service_name)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": ".*",
+          "multi": true
+        },
+        {
+          "name": "environment",
+          "type": "query",
+          "query": "label_values(mmf_requests_total, deployment_environment)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": ".*"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=~\"mmf-.*\", service_name=~\"$service\", deployment_environment=~\"$environment\"}",
+            "legendFormat": "{{service_name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mmf_requests_total{service_name=~\"$service\", deployment_environment=~\"$environment\"}[5m])",
+            "legendFormat": "{{service_name}} - {{method}} {{endpoint}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Requests/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mmf_requests_total{service_name=~\"$service\", deployment_environment=~\"$environment\", status_code=~\"5..\"}[5m]) / rate(mmf_requests_total{service_name=~\"$service\", deployment_environment=~\"$environment\"}[5m])",
+            "legendFormat": "{{service_name}} Error Rate"
+          }
+        ],
+        "yAxes": [
+          {"label": "Error Rate", "min": 0, "max": 1}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Response Time (95th percentile)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(mmf_request_duration_seconds_bucket{service_name=~\"$service\", deployment_environment=~\"$environment\"}[5m]))",
+            "legendFormat": "{{service_name}} p95"
+          }
+        ],
+        "yAxes": [
+          {"label": "Duration (s)", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Active Connections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "mmf_active_connections{service_name=~\"$service\", deployment_environment=~\"$environment\"}",
+            "legendFormat": "{{service_name}} - {{connection_type}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Connections", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Plugin Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mmf_plugin_operations_total{service_name=~\"$service\", deployment_environment=~\"$environment\"}[5m])",
+            "legendFormat": "{{plugin_id}} - {{operation}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Operations/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Database Operations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mmf_database_operations_total{service_name=~\"$service\", deployment_environment=~\"$environment\"}[5m])",
+            "legendFormat": "{{operation}} - {{table}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Operations/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "Cache Hit Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mmf_cache_operations_total{service_name=~\"$service\", deployment_environment=~\"$environment\", operation=\"hit\"}[5m]) / rate(mmf_cache_operations_total{service_name=~\"$service\", deployment_environment=~\"$environment\", operation=~\"hit|miss\"}[5m])",
+            "legendFormat": "{{backend}} Hit Rate"
+          }
+        ],
+        "yAxes": [
+          {"label": "Hit Rate", "min": 0, "max": 1}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      }
+    ]
+  }
+}

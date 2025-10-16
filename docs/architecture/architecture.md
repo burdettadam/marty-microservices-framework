@@ -80,11 +80,17 @@ The Marty Microservices Framework follows a layered, plugin-based architecture d
 - Secret management integration
 - Runtime configuration updates
 
-#### Observability (`src/framework/observability/`)
-- Distributed tracing with OpenTelemetry
-- Prometheus metrics collection
-- Structured logging with correlation IDs
-- Performance monitoring and alerting
+#### Observability (`src/marty_msf/observability/`)
+- **Enhanced Unified OpenTelemetry System**: Complete observability orchestration with standardized defaults across all services
+- **Multi-dimensional Correlation Tracking**: Request, user, session, plugin, and operation correlation with automatic propagation
+- **Zero-config Instrumentation**: Automatic OpenTelemetry instrumentation for FastAPI, gRPC, databases, HTTP clients, and caching layers
+- **Standardized Prometheus Metrics**: Consistent metric collection with MMF-specific labels and business metrics
+- **Distributed Tracing with Jaeger**: Complete request flow tracking across microservices with plugin interaction visibility
+- **Structured Logging with Context**: Correlation ID injection and trace context propagation in all log entries
+- **Default Grafana Dashboards**: Pre-built dashboards for service monitoring, plugin debugging, and performance analysis
+- **Plugin Developer Debugging**: Specialized tooling for troubleshooting plugin interactions and microservice dependencies
+- **Intelligent Alerting**: Environment-aware alert rules for service health, performance, and plugin operations
+- **Enhanced Middleware & Interceptors**: Ready-to-use correlation middleware for FastAPI and gRPC with graceful fallbacks
 
 #### Resilience Patterns (`src/framework/resilience/`)
 
@@ -407,6 +413,21 @@ The framework adopts **Apache Kafka with KRaft mode** for production event strea
 - **Zero Trust**: No implicit trust between components
 - **Compliance**: Built-in support for security standards and auditing
 
+### 5. Fail-Fast Dependency Management
+- **No Silent Degradation**: Services fail immediately if required dependencies are missing
+- **Explicit Dependencies**: All required components must be available at startup
+- **Clear Error Messages**: Missing dependencies result in immediate, descriptive failures
+- **Predictable Behavior**: Services either work fully or fail clearly - no partial functionality
+- **Development Safety**: Prevents deployment of misconfigured services to production
+
+**Design Rationale**: The framework follows a fail-fast approach for dependency management to ensure:
+- **Operational Clarity**: Teams know immediately when dependencies are missing
+- **Production Safety**: Prevents silent failures that could cause subtle bugs
+- **Configuration Validation**: Forces proper environment setup during deployment
+- **Debugging Efficiency**: Clear error messages reduce troubleshooting time
+
+This approach replaces previous graceful degradation patterns where services would continue running with reduced functionality when optional dependencies were missing.
+
 ## 🔄 Request Flow
 
 ### Typical Request Lifecycle:
@@ -451,16 +472,194 @@ The framework adopts **Apache Kafka with KRaft mode** for production event strea
 
 ## 🔍 Monitoring & Observability
 
+## 🔭 Enhanced Observability Architecture
+
+The MMF provides a **comprehensive observability system** built on OpenTelemetry standards with enhanced defaults, offering complete monitoring, debugging, and performance analysis capabilities across all microservices with specialized plugin debugging support.
+
+### Unified Observability Components
+
+#### 1. **OpenTelemetry Collector** - Central Telemetry Hub
+- **Multi-protocol ingestion**: OTLP, Jaeger, Zipkin support
+- **Enhanced processing**: MMF-specific attribute injection and correlation tracking
+- **Intelligent sampling**: Environment-aware sampling with tail sampling for important traces
+- **Export flexibility**: Multiple exporters for different platforms and tools
+
+#### 2. **Enhanced Correlation System** - Multi-dimensional Tracking
+- **Request correlation**: Primary correlation ID for request flow tracking
+- **User context**: User and session correlation for user journey analysis
+- **Plugin debugging**: Plugin-specific correlation for interaction troubleshooting
+- **Operation tracking**: Operation-level correlation for performance analysis
+- **Automatic propagation**: Zero-config correlation across HTTP and gRPC boundaries
+
+#### 3. **Metrics** - Prometheus & Monitoring
+- **Standardized metrics**: Consistent metrics across all MMF services
+- **Plugin metrics**: Specialized metrics for plugin operation monitoring
+- **Business metrics**: Framework for custom business-specific metrics
+- **Performance metrics**: Request rates, latencies, error rates, and resource utilization
+- **Infrastructure metrics**: Database, cache, and messaging system metrics
+
+#### 4. **Distributed Tracing** - Complete Request Flow Visibility
+- **Service dependencies**: Automatic service interaction mapping
+- **Plugin interactions**: Detailed plugin-to-plugin communication tracking
+- **Performance bottlenecks**: Latency analysis across the entire request path
+- **Error propagation**: Error context and root cause analysis
+- **Correlation linking**: Direct links between logs, metrics, and traces
+
+#### 5. **Structured Logging** - Context-aware Log Management
+- **Automatic correlation injection**: All logs include correlation context
+- **Plugin context**: Plugin-specific logging context for debugging
+- **Trace correlation**: Direct links from logs to distributed traces
+- **Structured format**: JSON logging with standardized fields
+- **Log aggregation**: Centralized log collection and analysis
+
+### Default Dashboards and Alerting
+
+#### Pre-built Dashboards
+1. **MMF Service Overview**: High-level service health and performance metrics
+2. **MMF Plugin Debugging**: Specialized dashboard for plugin interaction analysis
+3. **MMF Distributed Tracing**: Service dependency and trace analysis
+4. **MMF Performance Analysis**: Deep-dive performance and bottleneck analysis
+
+#### Intelligent Alerting
+- **Environment-aware**: Different thresholds for dev/staging/production
+- **Service-specific**: Customizable alerts per service type
+- **Plugin monitoring**: Alerts for plugin failures and performance issues
+- **Infrastructure health**: Database, cache, and messaging alerts
+- **Correlation tracking**: Alerts for observability system health
+
+### Plugin Developer Benefits
+
+#### Enhanced Debugging Capabilities
+- **Plugin interaction mapping**: Visualize how plugins communicate
+- **Performance analysis**: Identify slow or failing plugin operations
+- **Correlation tracking**: Follow requests through plugin chains
+- **Error analysis**: Root cause analysis for plugin failures
+- **Resource monitoring**: Plugin-specific resource usage tracking
+
+#### Zero-config Integration
+- **Automatic instrumentation**: No manual instrumentation required
+- **Standard middleware**: Drop-in correlation middleware for all service types
+- **Graceful fallbacks**: System works even if observability components are unavailable
+- **Environment detection**: Automatic configuration based on deployment environment
+
+### Architecture Benefits
+
+1. **Unified Experience**: Consistent observability across all service types
+2. **Plugin-first Design**: Specialized tooling for plugin ecosystem debugging
+3. **Production Ready**: Environment-aware configuration and sampling
+4. **Scalable**: Efficient data collection and processing for large deployments
+5. **Extensible**: Framework for adding custom metrics and dashboards
+6. **Maintainable**: Standardized configuration reduces operational overhead
+
+### Unified Observability Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 Service Templates                           │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │   FastAPI   │  │    gRPC     │  │      Hybrid         │ │
+│  │  + Unified  │  │  + Unified  │  │    + Unified        │ │
+│  │ Observability│  │Observability│  │   Observability     │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                               │
+┌─────────────────────────────────────────────────────────────┐
+│          MMF Unified Observability System                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │OpenTelemetry│  │ Correlation │  │    Prometheus       │ │
+│  │Orchestration│  │   Context   │  │     Metrics         │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │   Grafana   │  │    Jaeger   │  │   Structured        │ │
+│  │ Dashboards  │  │   Tracing   │  │     Logging         │ │
+│  └─────────────┘  └─────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
 ### Three Pillars of Observability:
 
-1. **Metrics**: Prometheus metrics with Grafana dashboards
-2. **Logs**: Structured logging with ELK/EFK stack integration
-3. **Traces**: Distributed tracing with Jaeger/Zipkin
+#### 1. **Metrics** - Prometheus & Grafana Integration
+- **Automatic Collection**: HTTP request metrics, gRPC call metrics, database query metrics
+- **Service-Specific Labeling**: Consistent labeling across all services with service name, version, and environment
+- **Pre-built Dashboards**:
+  - `mmf-service-overview.json`: Service health, performance, and infrastructure metrics
+  - `mmf-tracing-analysis.json`: Distributed tracing insights and span analysis
+  - `mmf-plugin-troubleshooting.json`: Plugin interaction debugging and performance monitoring
+- **Custom Metrics**: Easy creation of business-specific metrics with standardized collection
+
+#### 2. **Logs** - Structured Logging with Correlation
+- **Enhanced Correlation System**: Multi-dimensional tracking with correlation_id, request_id, user_id, session_id, and trace_id
+- **Automatic Context Injection**: All log messages include correlation context for end-to-end request tracking
+- **Structured Format**: JSON-formatted logs with standardized fields for parsing and analysis
+- **ELK/EFK Stack Ready**: Formatted for Elasticsearch, Logstash/Fluentd, and Kibana integration
+
+#### 3. **Traces** - Distributed Tracing with Jaeger
+- **Zero-Config Instrumentation**: Automatic instrumentation for FastAPI, gRPC, HTTP clients, databases, and Redis
+- **OpenTelemetry Standards**: Full compliance with OpenTelemetry specifications for vendor-neutral observability
+- **Span Context Propagation**: Automatic trace context propagation across service boundaries
+- **Custom Span Creation**: Easy addition of business-specific spans for detailed operation tracking
+
+### Enhanced Correlation Tracking
+
+The MMF introduces a sophisticated correlation system that extends beyond simple correlation IDs:
+
+```python
+# Automatic correlation in all services
+with with_correlation(
+    operation_name="process_payment",
+    correlation_id="req_123",
+    user_id="user_456",
+    session_id="sess_789"
+):
+    # All logs, metrics, and traces include full context
+    result = await process_payment(payment_data)
+```
+
+**Correlation Dimensions:**
+- `correlation_id`: Request-level tracking across all services
+- `request_id`: Individual API call identification
+- `user_id`: User-specific operation tracking
+- `session_id`: Session-level behavior analysis
+- `trace_id`: OpenTelemetry trace identification
+- `span_id`: Individual operation span tracking
+
+### Service Template Integration
+
+All MMF service templates (`fastapi`, `grpc`, `hybrid`) automatically include:
+
+1. **Unified Observability Initialization**: Zero-config setup in service startup
+2. **Correlation Middleware**: Automatic correlation ID propagation for HTTP and gRPC
+3. **Health Check Integration**: Observability status included in health endpoints
+4. **Graceful Fallbacks**: Services function normally even when observability components are unavailable
+
+### Plugin Developer Benefits
+
+For plugin developers troubleshooting microservice interactions:
+
+- **Cross-Service Tracing**: Follow requests across multiple services and plugins
+- **Performance Profiling**: Identify bottlenecks in plugin execution
+- **Error Analysis**: Correlate errors across the entire request lifecycle
+- **Integration Testing**: Verify plugin behavior with comprehensive observability data
+- **Dashboard Templates**: Ready-to-use Grafana dashboards for immediate insights
+
+### Infrastructure Requirements
+
+**Monitoring Stack Components:**
+- **Jaeger**: Distributed tracing backend (containerized deployment available in `ops/observability/`)
+- **Prometheus**: Metrics collection and storage
+- **Grafana**: Visualization and alerting platform with pre-configured dashboards
+- **Optional**: Elasticsearch + Kibana for log aggregation and analysis
+
+**Configuration:**
+- Environment-based observability configuration with dev/staging/production profiles
+- Optional dependency handling - services work without observability stack
+- Configurable sampling rates and export endpoints
 
 ### Health Monitoring:
-- **Health Checks**: Kubernetes-compatible health endpoints
-- **SLA/SLO Tracking**: Performance and availability monitoring
-- **Alerting**: Proactive issue detection and notification
+- **Health Checks**: Kubernetes-compatible health endpoints with observability status
+- **SLA/SLO Tracking**: Performance and availability monitoring with correlation insights
+- **Alerting**: Proactive issue detection with correlation context for faster debugging
+- **Plugin Monitoring**: Dedicated dashboards for plugin-specific performance and error tracking
 
 ## 🚀 Deployment Patterns
 

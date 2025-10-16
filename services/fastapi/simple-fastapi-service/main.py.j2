@@ -1,93 +1,61 @@
 """
-{{service_description | default("FastAPI microservice")}}
+{{service_description}}
 
-This service demonstrates MMF patterns with actual framework integration:
-- Real framework imports (works from generated location)
-- Enterprise observability patterns
-- Production-ready health checks and metrics
-- Structured configuration
-- Clean architecture patterns
-
-Generated with MMF Service Generator
-Service: {{service_name}}
+Generated FastAPI service with MMF unified observability integration.
+Includes health checks, metrics, distributed tracing, and enhanced correlation ID tracking.
 """
+
+import asyncio
+import logging
 import time
 import uuid
-from datetime import datetime
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel
-from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from fastapi.responses import Response
-import logging
+from pydantic import BaseModel
 
-# MMF Framework imports - these work when service is generated in correct location
-try:
-    # Try to import from framework when running as part of MMF structure
-    from marty_mmf.framework.config import BaseServiceConfig
-    from marty_mmf.framework.observability.monitoring import ServiceMonitor
-    FRAMEWORK_AVAILABLE = True
-except ImportError:
-    # Fallback for standalone operation
-    FRAMEWORK_AVAILABLE = False
+# MMF imports - fail if not available
+from marty_msf.monitoring import ServiceMonitor
 
-    # Simple config fallback
-    class BaseServiceConfig:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-
-    # Simple monitor fallback
-    class ServiceMonitor:
-        def __init__(self, service_name: str):
-            self.service_name = service_name
-
-        async def start(self):
-            pass
-
-        async def stop(self):
-            pass
-
-# Service Configuration
-class {{service_name.replace('-', '_').title()}}Config(BaseServiceConfig):
-    """Configuration for {{service_name}} service."""
-
+# Enhanced unified observability imports
+from marty_msf.observability.standard import create_standard_observability, get_observability
+from marty_msf.observability.standard_correlation import (
+    StandardCorrelationMiddleware,
+    CorrelationContext,
+    correlation_context,
+    inject_correlation_to_span
+)
+# Configuration
+class Config:
+    """Service configuration."""
     service_name: str = "{{service_name}}"
-    version: str = "{{service_version | default('1.0.0')}}"
-    host: str = "{{service_host | default('0.0.0.0')}}"
+    version: str = "{{service_version | default('0.1.0')}}"
+    host: str = "0.0.0.0"
     port: int = {{service_port | default(8000)}}
-    debug: bool = {{debug | default(False)}}
+    debug: bool = {{debug | default(false) | lower}}
 
-# Initialize configuration
-config = {{service_name.replace('-', '_').title()}}Config()
+config = Config()
 
 # Setup logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-logger = logging.getLogger(config.service_name)
+logger = logging.getLogger(__name__)
 
-# Prometheus metrics
-REQUEST_COUNT = Counter(
-    '{{service_name.replace("-", "_")}}_requests_total',
-    'Total requests',
-    ['method', 'endpoint', 'status']
-)
-REQUEST_TIME = Histogram(
-    '{{service_name.replace("-", "_")}}_request_duration_seconds',
-    'Request duration'
-)
-ACTIVE_CONNECTIONS = Counter(
-    '{{service_name.replace("-", "_")}}_active_connections_total',
-    'Active connections'
+# Initialize enhanced unified observability with MMF defaults
+observability = create_standard_observability(
+    service_name=config.service_name,
+    service_version=config.version,
+    service_type="fastapi"
 )
 
-# Global monitor instance
-monitor: Optional[ServiceMonitor] = None
+# Initialize monitoring
+monitor = None
 
 # Data Models
 class HealthResponse(BaseModel):
@@ -96,7 +64,7 @@ class HealthResponse(BaseModel):
     version: str
     status: str
     timestamp: str
-    framework_available: bool
+    observability_enabled: Optional[bool] = False
 
 class {{service_name.replace('-', '_').title()}}Request(BaseModel):
     """{{service_name}} request model."""
@@ -114,92 +82,137 @@ class {{service_name.replace('-', '_').title()}}Response(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application startup and shutdown."""
-    global monitor
+    global monitor, observability
 
     # Startup
     logger.info(f"Starting {{service_name}} v{config.version}")
-    logger.info(f"Framework available: {FRAMEWORK_AVAILABLE}")
+    logger.info("All framework features enabled")
 
-    if FRAMEWORK_AVAILABLE:
-        monitor = ServiceMonitor(config.service_name)
-        await monitor.start()
-        logger.info("Framework monitoring initialized")
+    # Initialize enhanced unified observability
+    await observability.initialize()
+    # Instrument the FastAPI app
+    observability.instrument_fastapi(app)
+    logger.info("Enhanced unified observability initialized and instrumented")
+
+    # Initialize framework monitoring
+    monitor = ServiceMonitor(config.service_name)
+    await monitor.start()
+    logger.info("Framework monitoring initialized")
 
     yield
 
     # Shutdown
-    if monitor:
-        await monitor.stop()
+    await monitor.stop()
+    await observability.shutdown()
     logger.info(f"{{service_name}} shutdown complete")
 
 # Create FastAPI application
 app = FastAPI(
     title="{{service_name.replace('-', ' ').title()}}",
-    description="{{service_description | default('MMF microservice')}}",
+    description="{{service_description | default('MMF microservice with enhanced observability')}}",
     version=config.version,
     lifespan=lifespan
 )
 
-# Middleware for request tracking
+# Add observability middleware
+app.add_middleware(StandardCorrelationMiddleware)
+
+# Enhanced middleware for request tracking with correlation
 @app.middleware("http")
 async def track_requests(request: Request, call_next):
-    """Track request metrics and add correlation ID."""
+    """Track request metrics and handle correlation IDs with enhanced observability."""
     start_time = time.time()
 
-    # Get or generate correlation ID
-    correlation_id = request.headers.get("x-correlation-id", str(uuid.uuid4()))
-    request.state.correlation_id = correlation_id
+    # Get correlation context from unified system
+    correlation_id = CorrelationContext.get_correlation_id() or str(uuid.uuid4())
+    CorrelationContext.set_correlation_id(correlation_id)
 
-    # Process request
+    # Process request with automatic metrics collection
     response = await call_next(request)
 
     # Add correlation ID to response
-    response.headers["x-correlation-id"] = correlation_id
+    response.headers["x-mmf-correlation-id"] = correlation_id
 
-    # Record metrics
-    duration = time.time() - start_time
-    REQUEST_TIME.observe(duration)
-    REQUEST_COUNT.labels(
-        method=request.method,
-        endpoint=request.url.path,
-        status=response.status_code
-    ).inc()
+    # Metrics are automatically collected by unified observability
+    # No manual metrics needed when using the enhanced system
 
     return response
 
 # Core endpoints
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Enhanced health check with framework status."""
-
+    """Enhanced health check with framework and observability status."""
     return HealthResponse(
         service=config.service_name,
         version=config.version,
         status="healthy",
         timestamp=datetime.utcnow().isoformat(),
-        framework_available=FRAMEWORK_AVAILABLE
+        observability_enabled=True
     )
 
 @app.get("/metrics")
 async def metrics():
-    """Prometheus metrics endpoint."""
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    """Prometheus metrics endpoint (automatically provided by unified observability)."""
+    if observability:
+        # Metrics are automatically exposed by standard observability
+        from fastapi.responses import Response
+        metrics_data = observability.get_metrics()
+        return Response(metrics_data, media_type="text/plain; version=0.0.4; charset=utf-8")
+
+@app.post("/{{service_name.replace('-', '_')}}", response_model={{service_name.replace('-', '_').title()}}Response)
+async def process_{{service_name.replace('-', '_')}}(request: {{service_name.replace('-', '_').title()}}Request):
+    """Process {{service_name}} request with enhanced correlation tracking."""
+
+    # Use correlation context for enhanced tracing
+    async with correlation_context(
+        operation_id="process_{{service_name.replace('-', '_')}}",
+        correlation_id=request.correlation_id
+    ):
+
+        # Simulate processing
+        await asyncio.sleep(0.1)
+
+        # Generate response with correlation
+        correlation_id = get_correlation_id() or request.correlation_id or str(uuid.uuid4())
+
+        response = {{service_name.replace('-', '_').title()}}Response(
+            id=str(uuid.uuid4()),
+            result=f"Processed: {request.data}",
+            processed_at=datetime.utcnow().isoformat(),
+            correlation_id=correlation_id
+        )
+
+        logger.info(f"Processed {{service_name}} request", extra={
+            "correlation_id": correlation_id,
+            "request_data": request.data,
+            "response_id": response.id
+        })
+
+        return response
 
 @app.get("/info")
 async def service_info():
     """Service information endpoint."""
+    features = [
+        "Enhanced correlation tracking",
+        "Health monitoring",
+        "Prometheus metrics",
+        "Request timing",
+        "Structured logging",
+        "OpenTelemetry tracing",
+        "Enhanced correlation tracking",
+        "Unified observability"
+    ]
+    else:
+        features.append("Basic correlation ID tracking")
+
     return {
         "service": config.service_name,
         "version": config.version,
         "description": "{{service_description | default('MMF microservice')}}",
-        "framework_available": FRAMEWORK_AVAILABLE,
-        "features": [
-            "Health checks",
-            "Prometheus metrics",
-            "Correlation ID tracking",
-            "Request timing",
-            "Structured logging"
-        ]
+        "framework_available": True,
+        "observability_enabled": True,
+        "features": features
     }
 
 # Business logic endpoints
@@ -208,50 +221,99 @@ async def process_request(
     request: {{service_name.replace('-', '_').title()}}Request,
     http_request: Request
 ):
-    """Process a {{service_name}} request."""
-
+    """Process a {{service_name}} request with enhanced observability."""
     start_time = time.time()
-    correlation_id = request.correlation_id or http_request.state.correlation_id
 
-    try:
-        # Business logic here
-        result_id = str(uuid.uuid4())
-        result = f"Processed: {request.data}"
+    # Get correlation ID from unified system
+    correlation_id = get_correlation_id() or str(uuid.uuid4())
 
-        # Log the operation
-        logger.info(
-            f"Processed request successfully",
-            extra={
-                "correlation_id": correlation_id,
-                "result_id": result_id,
-                "processing_time": time.time() - start_time
-            }
-        )
+    # Use correlation context for tracing
+    with with_correlation(
+        operation_name="process_request",
+        correlation_id=correlation_id,
+        result_id=str(uuid.uuid4())
+        ):
+            try:
+                # Business logic here
+                result_id = str(uuid.uuid4())
+                result = f"Processed: {request.data}"
 
-        return {{service_name.replace('-', '_').title()}}Response(
-            id=result_id,
-            result=result,
-            processed_at=datetime.utcnow().isoformat(),
-            correlation_id=correlation_id
-        )
+                # Enhanced logging with correlation context
+                logger.info(
+                    "Processed request successfully",
+                    extra={
+                        "correlation_id": correlation_id,
+                        "result_id": result_id,
+                        "processing_time": time.time() - start_time,
+                        "operation": "process_request"
+                    }
+                )
 
-    except Exception as e:
-        logger.error(
-            f"Processing failed: {e}",
-            extra={"correlation_id": correlation_id}
-        )
-        raise HTTPException(status_code=500, detail="Processing failed")
+                return {{service_name.replace('-', '_').title()}}Response(
+                    id=result_id,
+                    result=result,
+                    processed_at=datetime.utcnow().isoformat(),
+                    correlation_id=correlation_id
+                )
+
+            except Exception as e:
+                logger.error(
+                    f"Processing failed: {e}",
+                    extra={
+                        "correlation_id": correlation_id,
+                        "operation": "process_request",
+                        "error": str(e)
+                    }
+                )
+                raise HTTPException(status_code=500, detail="Processing failed")
+    else:
+        # Fallback to manual correlation handling
+        correlation_id = request.correlation_id or getattr(http_request.state, 'correlation_id', str(uuid.uuid4()))
+
+        try:
+            # Business logic here
+            result_id = str(uuid.uuid4())
+            result = f"Processed: {request.data}"
+
+            # Log the operation
+            logger.info(
+                "Processed request successfully",
+                extra={
+                    "correlation_id": correlation_id,
+                    "result_id": result_id,
+                    "processing_time": time.time() - start_time
+                }
+            )
+
+            return {{service_name.replace('-', '_').title()}}Response(
+                id=result_id,
+                result=result,
+                processed_at=datetime.utcnow().isoformat(),
+                correlation_id=correlation_id
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Processing failed: {e}",
+                extra={"correlation_id": correlation_id}
+            )
+            raise HTTPException(status_code=500, detail="Processing failed")
 
 @app.get("/status")
 async def service_status():
-    """Detailed service status."""
+    """Detailed service status with observability information."""
     return {
         "service": config.service_name,
         "status": "running",
         "uptime": "N/A",  # Would calculate from startup time in production
         "framework": {
-            "available": FRAMEWORK_AVAILABLE,
+            "available": True,
             "monitoring_active": monitor is not None
+        },
+        "observability": {
+            "unified_available": True,
+            "tracing_enabled": observability is not None and observability.tracer is not None if observability else False,
+            "metrics_enabled": observability is not None and observability.meter is not None if observability else False
         },
         "metrics": {
             "requests_handled": "See /metrics endpoint",
@@ -270,7 +332,8 @@ async def root():
         "metrics": "/metrics",
         "info": "/info",
         "docs": "/docs",
-        "framework_integrated": FRAMEWORK_AVAILABLE
+        "framework_integrated": True,
+        "observability_enabled": True
     }
 
 if __name__ == "__main__":

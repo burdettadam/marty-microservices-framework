@@ -8,7 +8,14 @@ Provides comprehensive SLO/SLI management including:
 - Error budget calculation and monitoring
 - Burn rate analysis and alerting
 - Dashboard integration and reporting
-- Automated SLO compliance assessment
+- Automated S        # Metrics
+        self.registry = CollectorRegistry()
+        self.slo_compliance_gauge = Gauge(
+            "marty_slo_compliance",
+            "SLO compliance percentage",
+            ["slo_name", "service"],
+            registry=self.registry,
+        )ance assessment
 """
 
 import asyncio
@@ -21,24 +28,9 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
-# External dependencies availability checks
-AIOHTTP_AVAILABLE = importlib.util.find_spec("aiohttp") is not None
-PROMETHEUS_AVAILABLE = importlib.util.find_spec("prometheus_client") is not None
-
-# Conditional imports
-if AIOHTTP_AVAILABLE:
-    try:
-        import aiohttp
-    except ImportError:
-        AIOHTTP_AVAILABLE = False
-
-if PROMETHEUS_AVAILABLE:
-    try:
-        from prometheus_client import CollectorRegistry, Counter, Gauge
-    except ImportError:
-        PROMETHEUS_AVAILABLE = False
-
-MONITORING_AVAILABLE = AIOHTTP_AVAILABLE and PROMETHEUS_AVAILABLE
+# Required external dependencies
+import aiohttp
+from prometheus_client import CollectorRegistry, Counter, Gauge
 
 
 class SLIType(Enum):
@@ -197,20 +189,19 @@ class SLICollector:
         self.measurements: builtins.dict[str, builtins.list[SLIMeasurement]] = {}
 
         # Metrics for tracking SLI collection
-        if MONITORING_AVAILABLE:
-            self.registry = CollectorRegistry()
-            self.sli_collection_counter = Counter(
-                "marty_sli_collections_total",
-                "Total SLI collections",
-                ["slo_name", "sli_type"],
-                registry=self.registry,
-            )
-            self.sli_value_gauge = Gauge(
-                "marty_sli_current_value",
-                "Current SLI value",
-                ["slo_name", "sli_type"],
-                registry=self.registry,
-            )
+        self.registry = CollectorRegistry()
+        self.sli_collection_counter = Counter(
+            "marty_sli_collections_total",
+            "Total SLI collections",
+            ["slo_name", "sli_type"],
+            registry=self.registry,
+        )
+        self.sli_value_gauge = Gauge(
+            "marty_sli_current_value",
+            "Current SLI value",
+            ["slo_name", "sli_type"],
+            registry=self.registry,
+        )
 
     async def collect_sli(self, slo: SLODefinition) -> SLIMeasurement | None:
         """Collect SLI measurement for a given SLO"""
@@ -239,14 +230,13 @@ class SLICollector:
                     self.measurements[slo.name] = self.measurements[slo.name][-1000:]
 
                 # Update metrics
-                if MONITORING_AVAILABLE:
-                    self.sli_collection_counter.labels(
-                        slo_name=slo.name, sli_type=slo.sli.sli_type.value
-                    ).inc()
+                self.sli_collection_counter.labels(
+                    slo_name=slo.name, sli_type=slo.sli.sli_type.value
+                ).inc()
 
-                    self.sli_value_gauge.labels(
-                        slo_name=slo.name, sli_type=slo.sli.sli_type.value
-                    ).set(measurement.value)
+                self.sli_value_gauge.labels(
+                    slo_name=slo.name, sli_type=slo.sli.sli_type.value
+                ).set(measurement.value)
 
             return measurement
 
@@ -341,12 +331,6 @@ class SLICollector:
 
     async def _query_prometheus(self, query: str) -> builtins.list[builtins.dict[str, Any]] | None:
         """Query Prometheus and return results"""
-        if not MONITORING_AVAILABLE:
-            # Simulate data for testing
-            import random
-
-            return [{"value": [time.time(), random.uniform(95.0, 99.9)]}]
-
         try:
             async with aiohttp.ClientSession() as session:
                 params = {"query": query}
@@ -376,23 +360,22 @@ class SLOTracker:
         self.alerts: builtins.dict[str, builtins.list[SLOAlert]] = {}
 
         # Metrics
-        if MONITORING_AVAILABLE:
-            self.registry = CollectorRegistry()
-            self.slo_compliance_gauge = Gauge(
-                "marty_slo_compliance_percentage",
-                "SLO compliance percentage",
-                ["slo_name", "service"],
-                registry=self.registry,
-            )
-            self.error_budget_gauge = Gauge(
-                "marty_slo_error_budget_remaining",
-                "Error budget remaining",
-                ["slo_name", "service"],
-                registry=self.registry,
-            )
-            self.burn_rate_gauge = Gauge(
-                "marty_slo_burn_rate",
-                "Error budget burn rate",
+        self.registry = CollectorRegistry()
+        self.slo_compliance_gauge = Gauge(
+            "marty_slo_compliance_percentage",
+            "SLO compliance percentage",
+            ["slo_name", "service"],
+            registry=self.registry,
+        )
+        self.error_budget_gauge = Gauge(
+            "marty_slo_error_budget_remaining",
+            "Error budget remaining",
+            ["slo_name", "service"],
+            registry=self.registry,
+        )
+        self.burn_rate_gauge = Gauge(
+            "marty_slo_burn_rate",
+            "Error budget burn rate",
                 ["slo_name", "service"],
                 registry=self.registry,
             )
@@ -481,18 +464,17 @@ class SLOTracker:
         await self._check_alerts(slo_name)
 
         # Update metrics
-        if MONITORING_AVAILABLE:
-            self.slo_compliance_gauge.labels(slo_name=slo_name, service=slo.service_name).set(
-                compliance
-            )
+        self.slo_compliance_gauge.labels(slo_name=slo_name, service=slo.service_name).set(
+            compliance
+        )
 
-            budget = self.error_budgets[slo_name]
-            self.error_budget_gauge.labels(slo_name=slo_name, service=slo.service_name).set(
-                budget.budget_remaining
-            )
+        budget = self.error_budgets[slo_name]
+        self.error_budget_gauge.labels(slo_name=slo_name, service=slo.service_name).set(
+            budget.budget_remaining
+        )
 
-            self.burn_rate_gauge.labels(slo_name=slo_name, service=slo.service_name).set(
-                budget.burn_rate
+        self.burn_rate_gauge.labels(slo_name=slo_name, service=slo.service_name).set(
+            budget.burn_rate
             )
 
         return {
@@ -629,7 +611,12 @@ class SLOTracker:
 
     def list_slos(self) -> builtins.dict[str, builtins.dict[str, Any]]:
         """List all registered SLOs with their current status"""
-        return {name: self.get_slo_status(name) for name in self.slos.keys()}
+        result = {}
+        for name in self.slos.keys():
+            status = self.get_slo_status(name)
+            if status is not None:
+                result[name] = status
+        return result
 
 
 class SLOManager:

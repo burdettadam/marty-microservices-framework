@@ -1,32 +1,74 @@
 """
 Observability module for the Marty Microservices Framework.
 
-This module provides observability features including:
-- Metrics collection
-- Distributed tracing
-- Structured logging
-- Monitoring and alerting
+This module provides comprehensive observability features including:
+- Unified OpenTelemetry instrumentation
+- Enhanced correlation ID tracking and context management
+- Prometheus metrics collection
+- Distributed tracing with automatic instrumentation
+- Structured logging with context propagation
+- Monitoring and alerting with Grafana dashboard integration
+
+Core Components:
+- UnifiedObservability: Central observability orchestrator
+- CorrelationManager: Multi-dimensional correlation tracking
+- Enhanced middleware for FastAPI and gRPC services
 """
 
 import logging
 
 logger = logging.getLogger(__name__)
 
-# Core observability components are available in submodules
-# Import specific components as needed:
-# from marty_msf.observability.metrics import MetricsCollector
-# from marty_msf.observability.tracing import TracingManager
-# from marty_msf.observability.logging import StructuredLogger
+from .correlation import (
+    CorrelationContext,
+    CorrelationHTTPClient,
+    CorrelationInterceptor,
+    CorrelationManager,
+    CorrelationMiddleware,
+    EnhancedCorrelationFilter,
+    get_correlation_id,
+    get_request_id,
+    get_session_id,
+    get_user_id,
+    set_correlation_id,
+    set_request_id,
+    set_user_id,
+    with_correlation,
+)
 
-# Common middleware exports
+# Legacy middleware exports (maintained for backward compatibility)
 from .correlation_middleware import (
     CorrelationIdMiddleware,
     add_correlation_id_middleware,
 )
-from .metrics_middleware import MetricsMiddleware
 
+# Import unified observability components
+from .unified import ObservabilityConfig, UnifiedObservability
+
+# All exports
 __all__ = [
+    # Unified observability
+    "UnifiedObservability",
+    "ObservabilityConfig",
+    # Enhanced correlation
+    "CorrelationContext",
+    "CorrelationManager",
+    "with_correlation",
+    "get_correlation_id",
+    "get_request_id",
+    "get_user_id",
+    "get_session_id",
+    "set_correlation_id",
+    "set_request_id",
+    "set_user_id",
+    "CorrelationHTTPClient",
+    "EnhancedCorrelationFilter",
+    "CorrelationMiddleware",
+    "CorrelationInterceptor",
+    # Legacy middleware
     "CorrelationIdMiddleware",
     "add_correlation_id_middleware",
     "MetricsMiddleware",
 ]
+
+logger.info("Marty MSF observability module fully loaded")
