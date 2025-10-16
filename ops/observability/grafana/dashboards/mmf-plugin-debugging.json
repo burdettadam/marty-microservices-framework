@@ -1,0 +1,126 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MMF Plugin Debugging",
+    "tags": ["mmf", "plugins", "debugging"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "plugin",
+          "type": "query",
+          "query": "label_values(mmf_plugin_operations_total, plugin_id)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": ".*",
+          "multi": true
+        },
+        {
+          "name": "service",
+          "type": "query",
+          "query": "label_values(mmf_plugin_operations_total, service_name)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": ".*"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Plugin Operation Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mmf_plugin_operations_total{plugin_id=~\"$plugin\", service_name=~\"$service\"}[5m])",
+            "legendFormat": "{{plugin_id}} - {{operation}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Operations/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Plugin Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(mmf_plugin_operations_total{plugin_id=~\"$plugin\", service_name=~\"$service\", status=\"error\"}[5m]) / rate(mmf_plugin_operations_total{plugin_id=~\"$plugin\", service_name=~\"$service\"}[5m])",
+            "legendFormat": "{{plugin_id}} Error Rate"
+          }
+        ],
+        "yAxes": [
+          {"label": "Error Rate", "min": 0, "max": 1}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Plugin Interaction Map",
+        "type": "nodeGraph",
+        "targets": [
+          {
+            "expr": "mmf_plugin_operations_total",
+            "format": "table"
+          }
+        ],
+        "gridPos": {"h": 12, "w": 24, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Correlation ID Tracking",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=~\"mmf-.*\"} |= \"correlation_id\" | json | plugin_id=~\"$plugin\"",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20}
+      },
+      {
+        "id": 5,
+        "title": "Plugin Performance Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(mmf_plugin_operation_duration_seconds_bucket{plugin_id=~\"$plugin\"}[5m])",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28}
+      },
+      {
+        "id": 6,
+        "title": "Plugin Status Timeline",
+        "type": "state-timeline",
+        "targets": [
+          {
+            "expr": "mmf_plugin_operations_total{plugin_id=~\"$plugin\", service_name=~\"$service\"}",
+            "legendFormat": "{{plugin_id}} - {{status}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28}
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Plugin Deployments",
+          "datasource": "Prometheus",
+          "expr": "changes(mmf_plugin_operations_total[1h]) > 0",
+          "titleFormat": "Plugin {{plugin_id}} deployment",
+          "textFormat": "Plugin deployment detected"
+        }
+      ]
+    }
+  }
+}

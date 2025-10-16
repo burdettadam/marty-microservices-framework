@@ -129,6 +129,17 @@ observability = [
     "opentelemetry-api>=1.37.0",
     "opentelemetry-sdk>=1.37.0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.37.0",
+    "opentelemetry-instrumentation-fastapi>=0.48b0",
+    "opentelemetry-instrumentation-grpc>=0.48b0",
+    "opentelemetry-instrumentation-httpx>=0.48b0",
+    "opentelemetry-instrumentation-psycopg2>=0.48b0",
+    "opentelemetry-instrumentation-redis>=0.48b0",
+    "opentelemetry-instrumentation-requests>=0.48b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.48b0",
+    # Core dependencies for instrumentation
+    "sqlalchemy>=2.0.0",
+    "redis>=4.0.0",
+    "psycopg2-binary>=2.9.0",
 ]
 
 # Complete installation (all features)

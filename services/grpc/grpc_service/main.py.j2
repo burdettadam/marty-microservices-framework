@@ -2,13 +2,13 @@
 {{service_description}}
 
 This is a gRPC service generated from the Marty Ultra-DRY service template.
-It uses enterprise-grade infrastructure components:
+It uses enterprise-grade infrastructure components with unified observability:
 - gRPC Service Factory with dependency injection
+- Unified OpenTelemetry instrumentation and correlation tracking
 - Configuration management with secrets
 - Multi-backend caching infrastructure
 - Message queues and event streaming
 - API Gateway integration
-- OpenTelemetry distributed tracing
 - Comprehensive health monitoring
 - Event-driven architecture
 - Repository pattern for data access
@@ -24,7 +24,6 @@ sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Phase 1 Infrastructure - Enterprise Base
 from src.framework.grpc import GRPCServiceFactory, ServiceDefinition, run_grpc_service
-from src.framework.observability import init_tracing, auto_instrument
 from src.framework.observability.monitoring import ServiceMonitor
 from src.framework.config import BaseServiceConfig
 {% if use_database %}
@@ -39,6 +38,14 @@ from src.framework.messaging.queue import MessageQueue
 from src.framework.messaging.streams import EventStreamManager
 from src.framework.gateway.api_gateway import APIGateway
 
+# Unified observability imports
+from marty_msf.observability.standard import create_standard_observability
+from marty_msf.observability.standard_correlation import (
+    StandardCorrelationInterceptor,
+    CorrelationContext,
+    set_plugin_correlation
+)
+
 # Import service implementation
 from .service import {{service_class}}Service, {{service_class}}ServiceConfig
 
@@ -46,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 async def create_service_factory() -> GRPCServiceFactory:
-    """Create and configure the gRPC service factory with Phase 2 infrastructure."""
+    """Create and configure the gRPC service factory with Phase 2 infrastructure and unified observability."""
 
     # Phase 1: Load base configuration
     config = {{service_class}}ServiceConfig()
@@ -58,9 +65,14 @@ async def create_service_factory() -> GRPCServiceFactory:
     # Load service-specific configuration
     service_config = await config_manager.get_config("{{service_name}}", config)
 
-    # Initialize observability
-    init_tracing(service_name="{{service_name}}")
-    auto_instrument()
+    # Initialize enhanced unified observability
+    observability = create_standard_observability(
+        service_name="{{service_name}}",
+        service_version="1.0.0",
+        service_type="grpc"
+    )
+    await observability.initialize()
+    logger.info("Enhanced unified observability initialized")
 
     # Phase 2: Initialize caching infrastructure
     cache_manager = CacheManager()
@@ -90,7 +102,13 @@ async def create_service_factory() -> GRPCServiceFactory:
 
     {% endif %}
     # Create service factory with enterprise infrastructure
-    factory = GRPCServiceFactory(service_config.model_dump())
+    factory_config = service_config.model_dump()
+
+    # Add observability interceptors
+    interceptors = [StandardCorrelationInterceptor()]
+    factory_config["interceptors"] = interceptors
+
+    factory = GRPCServiceFactory(factory_config)
 
     # Register service with all Phase 2 components
     def create_service():
@@ -136,13 +154,15 @@ async def create_service_factory() -> GRPCServiceFactory:
         "message_queue": message_queue,
         "event_stream_manager": event_stream_manager,
         "api_gateway": api_gateway,
+        "observability": observability,
     }
 
 
 async def main() -> None:
-    """Run {{service_name}} gRPC service with enterprise infrastructure."""
+    """Run {{service_name}} gRPC service with enterprise infrastructure and unified observability."""
 
     logger.info("Starting {{service_name}} service with Phase 2 enterprise infrastructure")
+    logger.info("All observability features enabled")
 
     # Create service factory with Phase 2 components
     factory, infrastructure = await create_service_factory()
@@ -164,6 +184,10 @@ async def main() -> None:
 
         # Stop monitoring
         monitor.stop_monitoring()
+
+        # Cleanup observability
+        if infrastructure.get("observability"):
+            await infrastructure["observability"].shutdown()
 
         # Cleanup Phase 2 components
         await infrastructure["api_gateway"].stop()

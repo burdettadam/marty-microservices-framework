@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mmf-alert-rules
+  namespace: observability
+data:
+  mmf-alerts.yml: |
+    groups:
+    - name: mmf-services
+      rules:
+      - alert: MMFServiceDown
+        expr: up{job="mmf-services"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: mmf-service
+        annotations:
+          summary: "MMF service {{ $labels.service_name }} is down"
+          description: "MMF service {{ $labels.service_name }} in namespace {{ $labels.kubernetes_namespace }} has been down for more than 1 minute."
+
+      - alert: MMFHighErrorRate
+        expr: |
+          (
+            rate(mmf_requests_total{status_code=~"5.."}[5m]) /
+            rate(mmf_requests_total[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: mmf-service
+        annotations:
+          summary: "MMF service {{ $labels.service_name }} has high error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} for MMF service {{ $labels.service_name }}"
+
+      - alert: MMFHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(mmf_request_duration_seconds_bucket[5m])
+          ) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          component: mmf-service
+        annotations:
+          summary: "MMF service {{ $labels.service_name }} has high latency"
+          description: "95th percentile latency is {{ $value }}s for MMF service {{ $labels.service_name }}"
+
+      - alert: MMFHighMemoryUsage
+        expr: |
+          (
+            container_memory_usage_bytes{pod=~"mmf-.*"} /
+            container_spec_memory_limit_bytes{pod=~"mmf-.*"}
+          ) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          component: mmf-service
+        annotations:
+          summary: "MMF service {{ $labels.pod }} has high memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }} for MMF service {{ $labels.pod }}"
+
+      - alert: MMFHighCPUUsage
+        expr: |
+          (
+            rate(container_cpu_usage_seconds_total{pod=~"mmf-.*"}[5m]) /
+            container_spec_cpu_quota{pod=~"mmf-.*"} *
+            container_spec_cpu_period{pod=~"mmf-.*"}
+          ) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: mmf-service
+        annotations:
+          summary: "MMF service {{ $labels.pod }} has high CPU usage"
+          description: "CPU usage is {{ $value | humanizePercentage }} for MMF service {{ $labels.pod }}"
+
+    - name: mmf-plugins
+      rules:
+      - alert: MMFPluginErrors
+        expr: |
+          rate(mmf_plugin_operations_total{status="error"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          component: mmf-plugin
+        annotations:
+          summary: "MMF plugin {{ $labels.plugin_id }} has errors"
+          description: "Plugin error rate is {{ $value | humanizePercentage }} for plugin {{ $labels.plugin_id }} in service {{ $labels.service_name }}"
+
+      - alert: MMFPluginHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(mmf_plugin_operation_duration_seconds_bucket[5m])
+          ) > 5.0
+        for: 5m
+        labels:
+          severity: warning
+          component: mmf-plugin
+        annotations:
+          summary: "MMF plugin {{ $labels.plugin_id }} has high latency"
+          description: "95th percentile latency is {{ $value }}s for plugin {{ $labels.plugin_id }}"
+
+      - alert: MMFPluginFailureSpike
+        expr: |
+          (
+            rate(mmf_plugin_operations_total{status="error"}[5m]) -
+            rate(mmf_plugin_operations_total{status="error"}[1h] offset 1h)
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: mmf-plugin
+        annotations:
+          summary: "MMF plugin {{ $labels.plugin_id }} failure spike detected"
+          description: "Plugin {{ $labels.plugin_id }} is experiencing a significant increase in failures"
+
+    - name: mmf-infrastructure
+      rules:
+      - alert: MMFDatabaseConnectionFailure
+        expr: |
+          rate(mmf_database_operations_total{status="error"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: mmf-database
+        annotations:
+          summary: "MMF service {{ $labels.service_name }} database connection failures"
+          description: "Database operation error rate is {{ $value | humanizePercentage }} for service {{ $labels.service_name }}"
+
+      - alert: MMFCachePerformanceDegradation
+        expr: |
+          (
+            rate(mmf_cache_operations_total{operation="hit"}[5m]) /
+            rate(mmf_cache_operations_total{operation=~"hit|miss"}[5m])
+          ) < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          component: mmf-cache
+        annotations:
+          summary: "MMF cache hit rate degradation for {{ $labels.service_name }}"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} for service {{ $labels.service_name }}"
+
+      - alert: MMFCorrelationTrackingFailure
+        expr: |
+          (
+            rate(mmf_requests_total[5m]) -
+            rate(mmf_requests_total{correlation_id!="unknown"}[5m])
+          ) / rate(mmf_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: mmf-observability
+        annotations:
+          summary: "MMF correlation tracking failures in {{ $labels.service_name }}"
+          description: "{{ $value | humanizePercentage }} of requests are missing correlation IDs in service {{ $labels.service_name }}"

@@ -1,0 +1,308 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MMF Plugin Developer Debugging",
+    "tags": ["mmf", "plugins", "debugging", "correlation"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "hideControls": false,
+    "graphTooltip": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Plugin Operations by ID",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(mmf_fastapi_plugin_operations_total{plugin_id=~\"$plugin_id\"}[5m])",
+            "legendFormat": "FastAPI {{plugin_id}} - {{operation}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(mmf_grpc_plugin_operations_total{plugin_id=~\"$plugin_id\"}[5m])",
+            "legendFormat": "gRPC {{plugin_id}} - {{operation}}",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(mmf_hybrid_plugin_operations_total{plugin_id=~\"$plugin_id\"}[5m])",
+            "legendFormat": "Hybrid {{plugin_id}} - {{operation}}",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "ops"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Plugin Success vs Error Rate",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(mmf_fastapi_plugin_operations_total{plugin_id=~\"$plugin_id\", status=\"success\"}[5m])",
+            "legendFormat": "FastAPI {{plugin_id}} Success",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(mmf_fastapi_plugin_operations_total{plugin_id=~\"$plugin_id\", status=\"error\"}[5m])",
+            "legendFormat": "FastAPI {{plugin_id}} Error",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(mmf_grpc_plugin_operations_total{plugin_id=~\"$plugin_id\", status=\"success\"}[5m])",
+            "legendFormat": "gRPC {{plugin_id}} Success",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(mmf_grpc_plugin_operations_total{plugin_id=~\"$plugin_id\", status=\"error\"}[5m])",
+            "legendFormat": "gRPC {{plugin_id}} Error",
+            "refId": "D"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 3,
+        "title": "Correlation ID Tracking",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(20, count by (correlation_id, plugin_id) (mmf_fastapi_plugin_operations_total))",
+            "legendFormat": "",
+            "refId": "A",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "auto",
+              "displayMode": "list",
+              "filterable": true
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "correlation_id"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 300
+                },
+                {
+                  "id": "custom.displayMode",
+                  "value": "color-text"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Plugin Interaction Flow",
+        "type": "nodeGraph",
+        "targets": [
+          {
+            "expr": "sum by (plugin_id, operation) (rate(mmf_fastapi_plugin_operations_total[5m]))",
+            "legendFormat": "",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 5,
+        "title": "Plugin Logs with Correlation",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=\"mmf-service\"} |= \"$correlation_id\" |= \"$plugin_id\"",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 10,
+          "w": 24,
+          "x": 0,
+          "y": 26
+        }
+      },
+      {
+        "id": 6,
+        "title": "Cross-Service Plugin Communication",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (plugin_id, operation) (rate(mmf_fastapi_plugin_operations_total{plugin_id=~\"$plugin_id\"}[5m]))",
+            "legendFormat": "FastAPI {{plugin_id}} - {{operation}}",
+            "refId": "A"
+          },
+          {
+            "expr": "sum by (plugin_id, operation) (rate(mmf_grpc_plugin_operations_total{plugin_id=~\"$plugin_id\"}[5m]))",
+            "legendFormat": "gRPC {{plugin_id}} - {{operation}}",
+            "refId": "B"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 36
+        }
+      }
+    ],
+    "time": {
+      "from": "now-30m",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "hide": 0,
+          "includeAll": true,
+          "multi": true,
+          "name": "plugin_id",
+          "options": [],
+          "query": "label_values(mmf_fastapi_plugin_operations_total, plugin_id)",
+          "refresh": 1,
+          "regex": "",
+          "sort": 0,
+          "type": "query"
+        },
+        {
+          "current": {
+            "selected": false,
+            "text": "",
+            "value": ""
+          },
+          "hide": 0,
+          "name": "correlation_id",
+          "options": [],
+          "query": "",
+          "type": "textbox"
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "refresh": "5s",
+    "schemaVersion": 27,
+    "version": 1,
+    "links": [
+      {
+        "icon": "external link",
+        "includeVars": true,
+        "keepTime": true,
+        "tags": [],
+        "targetBlank": true,
+        "title": "Jaeger Traces",
+        "tooltip": "View distributed traces in Jaeger",
+        "type": "link",
+        "url": "http://jaeger:16686/search?service={{service_name}}&tags={\"mmf.correlation.correlation_id\":\"$correlation_id\"}"
+      }
+    ]
+  }
+}

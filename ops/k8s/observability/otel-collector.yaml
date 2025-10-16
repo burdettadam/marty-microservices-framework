@@ -1,0 +1,334 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: observability
+data:
+  otel-collector-config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:14250
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+          thrift_compact:
+            endpoint: 0.0.0.0:6831
+          thrift_binary:
+            endpoint: 0.0.0.0:6832
+
+      zipkin:
+        endpoint: 0.0.0.0:9411
+
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector'
+              scrape_interval: 10s
+              static_configs:
+                - targets: ['0.0.0.0:8888']
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+
+      batch:
+        timeout: 10s
+        send_batch_size: 1024
+        send_batch_max_size: 2048
+
+      resource:
+        attributes:
+          - key: environment
+            value: "${ENV}"
+            action: upsert
+          - key: cluster.name
+            value: "${CLUSTER_NAME}"
+            action: upsert
+
+      # MMF-specific attribute enhancement
+      attributes:
+        actions:
+          - key: mmf.framework.version
+            value: "2.0.0"
+            action: upsert
+          - key: mmf.observability.collector
+            value: "opentelemetry"
+            action: upsert
+
+      # Enhanced sampling for MMF services
+      probabilistic_sampler:
+        hash_seed: 22
+        sampling_percentage: 10
+
+      # Tail sampling for better trace completion
+      tail_sampling:
+        decision_wait: 30s
+        num_traces: 50000
+        expected_new_traces_per_sec: 10
+        policies:
+          - name: mmf_errors
+            type: status_code
+            status_code: {status_codes: [ERROR]}
+          - name: mmf_slow
+            type: latency
+            latency: {threshold_ms: 1000}
+          - name: mmf_random
+            type: probabilistic
+            probabilistic: {sampling_percentage: 5}
+
+    exporters:
+      # Jaeger exporter
+      jaeger:
+        endpoint: jaeger:14250
+        tls:
+          insecure: true
+        sending_queue:
+          enabled: true
+          num_consumers: 4
+          queue_size: 100
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 120s
+
+      # Prometheus metrics exporter
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        const_labels:
+          environment: "${ENV}"
+          cluster: "${CLUSTER_NAME}"
+        send_timestamps: true
+        metric_expiration: 180m
+        enable_open_metrics: true
+
+      # Logging exporter for debugging
+      logging:
+        loglevel: info
+        sampling_initial: 5
+        sampling_thereafter: 200
+
+      # OTLP exporter for external platforms
+      otlp:
+        endpoint: "${EXTERNAL_OTLP_ENDPOINT}"
+        headers:
+          api-key: "${EXTERNAL_API_KEY}"
+        compression: gzip
+        tls:
+          insecure: false
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+
+      pprof:
+        endpoint: 0.0.0.0:1777
+
+      zpages:
+        endpoint: 0.0.0.0:55679
+
+      memory_ballast:
+        size_mib: 683
+
+    service:
+      extensions: [health_check, pprof, zpages, memory_ballast]
+
+      pipelines:
+        # Enhanced traces pipeline for MMF services
+        traces:
+          receivers: [otlp, jaeger, zipkin]
+          processors: [memory_limiter, resource, attributes, batch, probabilistic_sampler]
+          exporters: [jaeger, logging]
+
+        # Advanced traces pipeline with tail sampling
+        traces/advanced:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, attributes, tail_sampling, batch]
+          exporters: [jaeger, otlp]
+
+        # Metrics pipeline
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [memory_limiter, resource, attributes, batch]
+          exporters: [prometheus, logging]
+
+        # Logs pipeline
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, attributes, batch]
+          exporters: [logging]
+
+      telemetry:
+        logs:
+          level: info
+          development: false
+          sampling:
+            enabled: true
+            tick: 10s
+            initial: 5
+            thereafter: 200
+        metrics:
+          level: detailed
+          address: 0.0.0.0:8888
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: observability
+  labels:
+    app: otel-collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8888"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:0.91.0
+        command:
+          - "/otelcol-contrib"
+          - "--config=/etc/otel-collector-config.yaml"
+        env:
+        - name: ENV
+          value: "production"
+        - name: CLUSTER_NAME
+          value: "mmf-cluster"
+        - name: EXTERNAL_OTLP_ENDPOINT
+          value: ""
+        - name: EXTERNAL_API_KEY
+          value: ""
+        volumeMounts:
+        - name: otel-collector-config-vol
+          mountPath: /etc/otel-collector-config.yaml
+          subPath: otel-collector-config.yaml
+        ports:
+        - name: otlp-grpc
+          containerPort: 4317
+          protocol: TCP
+        - name: otlp-http
+          containerPort: 4318
+          protocol: TCP
+        - name: jaeger-grpc
+          containerPort: 14250
+          protocol: TCP
+        - name: jaeger-http
+          containerPort: 14268
+          protocol: TCP
+        - name: jaeger-compact
+          containerPort: 6831
+          protocol: UDP
+        - name: jaeger-binary
+          containerPort: 6832
+          protocol: UDP
+        - name: zipkin
+          containerPort: 9411
+          protocol: TCP
+        - name: metrics
+          containerPort: 8888
+          protocol: TCP
+        - name: prometheus
+          containerPort: 8889
+          protocol: TCP
+        - name: health-check
+          containerPort: 13133
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+          requests:
+            cpu: 200m
+            memory: 400Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: otel-collector-config-vol
+        configMap:
+          name: otel-collector-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: observability
+  labels:
+    app: otel-collector
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8888"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+    protocol: TCP
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+    protocol: TCP
+  - name: jaeger-grpc
+    port: 14250
+    targetPort: 14250
+    protocol: TCP
+  - name: jaeger-http
+    port: 14268
+    targetPort: 14268
+    protocol: TCP
+  - name: jaeger-compact
+    port: 6831
+    targetPort: 6831
+    protocol: UDP
+  - name: jaeger-binary
+    port: 6832
+    targetPort: 6832
+    protocol: UDP
+  - name: zipkin
+    port: 9411
+    targetPort: 9411
+    protocol: TCP
+  - name: metrics
+    port: 8888
+    targetPort: 8888
+    protocol: TCP
+  - name: prometheus
+    port: 8889
+    targetPort: 8889
+    protocol: TCP
+  - name: health-check
+    port: 13133
+    targetPort: 13133
+    protocol: TCP
+  selector:
+    app: otel-collector

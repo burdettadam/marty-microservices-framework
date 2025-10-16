@@ -2,9 +2,10 @@
 {{service_description}}
 
 This is a hybrid service generated from the Marty Enterprise Microservices Framework.
-It provides both FastAPI (HTTP/REST) and gRPC interfaces using enterprise patterns:
+It provides both FastAPI (HTTP/REST) and gRPC interfaces using enterprise patterns with unified observability:
 - Enterprise service configuration and dependency injection
-- Observability with distributed tracing and monitoring
+- Unified OpenTelemetry observability with distributed tracing and monitoring
+- Enhanced correlation ID tracking across both HTTP and gRPC interfaces
 - Event-driven architecture with transactional outbox pattern
 - Database management with repositories and Unit of Work
 - Service discovery and health checking
@@ -19,11 +20,24 @@ from typing import AsyncGenerator
 import uvicorn
 from fastapi import FastAPI
 
-from src.framework.grpc.service_factory import GRPCServiceFactory
+from src.framework.grpc.service_factory import GRPCServiceFactory, serve_auto_service
 from src.framework.database import DatabaseManager
 from src.framework.events import EventBus, InMemoryEventBus
-from src.framework.observability.tracing import init_tracing, traced_operation
 from src.framework.observability.monitoring import ServiceMonitor
+from src.framework.config import get_service_config, config_manager
+
+# Enhanced unified observability imports
+from marty_msf.observability.standard import create_standard_observability, set_global_observability
+from marty_msf.observability.standard_correlation import (
+    StandardCorrelationMiddleware,
+    StandardCorrelationInterceptor,
+    CorrelationContext
+)
+
+# Legacy observability imports - fail if not available
+from src.framework.observability.tracing import init_tracing, traced_operation
+
+
 from src.{{service_package}}.app.api.routes import router
 from src.{{service_package}}.app.core.middleware import setup_middleware
 from src.{{service_package}}.app.core.error_handlers import setup_error_handlers
@@ -31,18 +45,29 @@ from src.{{service_package}}.config import get_config
 
 logger = logging.getLogger(__name__)
 
+# Global observability instance
+observability = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Manage application lifespan with enterprise infrastructure."""
+    """Manage application lifespan with enterprise infrastructure and unified observability."""
+    global observability
+
     # Get configuration
     config = get_config()
 
-    # Initialize tracing
-    init_tracing(
+    logger.info("{{service_name}} starting with unified observability")
+
+    # Initialize enhanced unified observability
+    observability = create_standard_observability(
         service_name="{{service_name}}",
-        otlp_endpoint=config.get("OTLP_ENDPOINT"),
+        service_version="1.0.0",
+        service_type="hybrid"
     )
+    await observability.initialize()
+    set_global_observability(observability)
+    logger.info("Enhanced unified observability initialized")
 
     # Initialize database
     database = DatabaseManager(config["DATABASE_URL"])
@@ -67,12 +92,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await monitor.stop()
     await event_bus.stop()
     await database.cleanup()
+
+    # Cleanup observability
+    if observability:
+        await observability.shutdown()
+
     logger.info("{{service_name}} FastAPI application stopped")
 
 
 def create_fastapi_app() -> FastAPI:
     """
-    Create FastAPI application with enterprise patterns.
+    Create FastAPI application with enterprise patterns and unified observability.
 
     Returns:
         Configured FastAPI application with enterprise infrastructure
@@ -88,6 +118,9 @@ def create_fastapi_app() -> FastAPI:
         docs_url="/docs" if config.get("DOCS_ENABLED", True) else None,
         lifespan=lifespan,
     )
+
+    # Add unified observability middleware
+    app.add_middleware(StandardCorrelationMiddleware)
 
     # Setup enterprise patterns
     setup_middleware(app, config)
@@ -120,28 +153,35 @@ async def run_fastapi_server() -> None:
 
 
 async def run_grpc_server() -> None:
-    """Run the gRPC server using Ultra-DRY auto-service pattern."""
+    """Run the gRPC server using Ultra-DRY auto-service pattern with unified observability."""
     logger.info("Starting {{service_name}} gRPC server using Ultra-DRY pattern")
 
-    # Ultra-DRY gRPC service startup with auto-discovery
+    # Add gRPC interceptors for observability
+    interceptors = [StandardCorrelationInterceptor()]
+
+    # Ultra-DRY gRPC service startup with auto-discovery and observability
     await asyncio.create_task(
         serve_auto_service(
             service_name="{{service_name}}",
             service_module="src.{{service_package}}.app.services.{{service_package}}_grpc_service",
             config_manager=config_manager,
-            async_mode=True
+            async_mode=True,
+            interceptors=interceptors
         )
     )
 
 
 async def main() -> None:
     """
-    Run both FastAPI and gRPC servers concurrently using Ultra-DRY patterns.
+    Run both FastAPI and gRPC servers concurrently using Ultra-DRY patterns with unified observability.
 
     This provides both HTTP/REST and gRPC interfaces for the service,
-    sharing the same business logic and Ultra-DRY configuration.
+    sharing the same business logic, Ultra-DRY configuration, and observability infrastructure.
     """
     service_config = get_service_config("{{service_name}}", "hybrid")
+
+    logger.info("Starting {{service_name}} hybrid service")
+    logger.info("All observability features enabled")
 
     if service_config.get("concurrent_servers", True):
         # Run both servers concurrently
@@ -151,7 +191,7 @@ async def main() -> None:
         )
     else:
         # Run servers sequentially (for debugging)
-        await run_fastapi_server(config)
+        await run_fastapi_server()
 
 
 if __name__ == "__main__":

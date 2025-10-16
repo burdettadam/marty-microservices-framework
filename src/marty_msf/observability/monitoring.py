@@ -21,21 +21,15 @@ from enum import Enum
 from typing import Any
 
 import psutil
-
-try:
-    from prometheus_client import (
-        CONTENT_TYPE_LATEST,
-        CollectorRegistry,
-        Counter,
-        Gauge,
-        Histogram,
-        Info,
-        generate_latest,
-    )
-
-    PROMETHEUS_AVAILABLE = True
-except ImportError:
-    PROMETHEUS_AVAILABLE = False
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+    Info,
+    generate_latest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -112,50 +106,42 @@ class MetricsCollector:
 
     def __init__(self, service_name: str = "microservice", registry=None):
         self.service_name = service_name
+        self.registry = registry or CollectorRegistry()
 
-        if PROMETHEUS_AVAILABLE:
-            self.registry = registry or CollectorRegistry()
-        else:
-            self.registry = None
+        # Service info metric
+        self.service_info = Info(
+            "mmf_service_info", "Service information", registry=self.registry
+        )
+        self.service_info.info({"service": service_name, "version": "1.0.0"})
 
-        if PROMETHEUS_AVAILABLE:
-            # Service info metric
-            self.service_info = Info(
-                "mmf_service_info", "Service information", registry=self.registry
-            )
-            self.service_info.info({"service": service_name, "version": "1.0.0"})
+        # Request metrics
+        self.requests_total = Counter(
+            "mmf_requests_total",
+            "Total requests",
+            ["service", "method", "status"],
+            registry=self.registry,
+        )
 
-            # Request metrics
-            self.requests_total = Counter(
-                "mmf_requests_total",
-                "Total requests",
-                ["service", "method", "status"],
-                registry=self.registry,
-            )
+        self.request_duration = Histogram(
+            "mmf_request_duration_seconds",
+            "Request duration in seconds",
+            ["service", "method"],
+            buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
+            registry=self.registry,
+        )
 
-            self.request_duration = Histogram(
-                "mmf_request_duration_seconds",
-                "Request duration in seconds",
-                ["service", "method"],
-                buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0],
-                registry=self.registry,
-            )
+        # Error metrics
+        self.errors_total = Counter(
+            "mmf_errors_total",
+            "Total errors",
+            ["service", "method", "error_type"],
+            registry=self.registry,
+        )
 
-            # Error metrics
-            self.errors_total = Counter(
-                "mmf_errors_total",
-                "Total errors",
-                ["service", "method", "error_type"],
-                registry=self.registry,
-            )
-
-            # Custom metrics registry
-            self._custom_counters: dict[str, Counter] = {}
-            self._custom_gauges: dict[str, Gauge] = {}
-            self._custom_histograms: dict[str, Histogram] = {}
-        else:
-            logger.warning("Prometheus not available, metrics will not be collected")
-            self._fallback_metrics: dict[str, float] = defaultdict(float)
+        # Custom metrics registry
+        self._custom_counters: dict[str, Counter] = {}
+        self._custom_gauges: dict[str, Gauge] = {}
+        self._custom_histograms: dict[str, Histogram] = {}
 
     def counter(
         self,
@@ -170,11 +156,6 @@ class MetricsCollector:
             value: Value to add (default 1.0)
             labels: Optional labels
         """
-        if not PROMETHEUS_AVAILABLE:
-            key = f"{name}:{labels or {}}"
-            self._fallback_metrics[key] += value
-            return
-
         labels = labels or {}
         labels["service"] = self.service_name
 
@@ -198,11 +179,6 @@ class MetricsCollector:
             value: Current value
             labels: Optional labels
         """
-        if not PROMETHEUS_AVAILABLE:
-            key = f"{name}:{labels or {}}"
-            self._fallback_metrics[key] = value
-            return
-
         labels = labels or {}
         labels["service"] = self.service_name
 
@@ -226,12 +202,6 @@ class MetricsCollector:
             value: Value to add
             labels: Optional labels
         """
-        if not PROMETHEUS_AVAILABLE:
-            # Fallback: just store the value
-            key = f"{name}:{labels or {}}"
-            self._fallback_metrics[key] = value
-            return
-
         labels = labels or {}
         labels["service"] = self.service_name
 
@@ -255,9 +225,6 @@ class MetricsCollector:
             status: Response status
             duration: Request duration in seconds
         """
-        if not PROMETHEUS_AVAILABLE:
-            return
-
         self.requests_total.labels(service=self.service_name, method=method, status=status).inc()
 
         self.request_duration.labels(service=self.service_name, method=method).observe(duration)
@@ -269,9 +236,6 @@ class MetricsCollector:
             method: Request method/endpoint
             error_type: Type of error
         """
-        if not PROMETHEUS_AVAILABLE:
-            return
-
         self.errors_total.labels(
             service=self.service_name, method=method, error_type=error_type
         ).inc()
@@ -282,8 +246,8 @@ class MetricsCollector:
         Returns:
             Metrics in Prometheus format
         """
-        if not PROMETHEUS_AVAILABLE or self.registry is None:
-            return "# Prometheus not available\n"
+        if self.registry is None:
+            return "# Registry not available\n"
 
         return generate_latest(self.registry).decode("utf-8")
 
@@ -293,16 +257,8 @@ class MetricsCollector:
         Returns:
             Metrics summary dictionary
         """
-        if not PROMETHEUS_AVAILABLE:
-            return {
-                "service": self.service_name,
-                "prometheus_available": False,
-                "fallback_metrics_count": len(self._fallback_metrics),
-            }
-
         return {
             "service": self.service_name,
-            "prometheus_available": True,
             "registry": str(self.registry),
         }
 

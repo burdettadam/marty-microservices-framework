@@ -1,0 +1,372 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MMF Standard Service Overview",
+    "tags": ["mmf", "overview", "microservices"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "hideControls": false,
+    "graphTooltip": 1,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(mmf_fastapi_requests_total[5m])",
+            "legendFormat": "FastAPI {{service_name}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(mmf_grpc_requests_total[5m])",
+            "legendFormat": "gRPC {{service_name}}",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(mmf_hybrid_requests_total[5m])",
+            "legendFormat": "Hybrid {{service_name}}",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "displayMode": "list",
+              "orientation": "horizontal"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Error Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(mmf_fastapi_requests_total{status_code=~\"4..|5..\"}[5m]) / rate(mmf_fastapi_requests_total[5m]) * 100",
+            "legendFormat": "FastAPI Error Rate",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(mmf_grpc_requests_total{status_code=~\"4..|5..\"}[5m]) / rate(mmf_grpc_requests_total[5m]) * 100",
+            "legendFormat": "gRPC Error Rate",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(mmf_hybrid_requests_total{status_code=~\"4..|5..\"}[5m]) / rate(mmf_hybrid_requests_total[5m]) * 100",
+            "legendFormat": "Hybrid Error Rate",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 1
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Response Time P95",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(mmf_fastapi_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "FastAPI P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(mmf_grpc_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "gRPC P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(mmf_hybrid_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "Hybrid P95",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Active Requests",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "mmf_fastapi_active_requests",
+            "legendFormat": "FastAPI Active",
+            "refId": "A"
+          },
+          {
+            "expr": "mmf_grpc_active_requests",
+            "legendFormat": "gRPC Active",
+            "refId": "B"
+          },
+          {
+            "expr": "mmf_hybrid_active_requests",
+            "legendFormat": "Hybrid Active",
+            "refId": "C"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 5,
+        "title": "Plugin Operations",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(mmf_fastapi_plugin_operations_total[5m])",
+            "legendFormat": "FastAPI Plugin {{plugin_id}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(mmf_grpc_plugin_operations_total[5m])",
+            "legendFormat": "gRPC Plugin {{plugin_id}}",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(mmf_hybrid_plugin_operations_total[5m])",
+            "legendFormat": "Hybrid Plugin {{plugin_id}}",
+            "refId": "C"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "Correlation ID Coverage",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(mmf_fastapi_requests_total{correlation_id!=\"\"}[5m]) / rate(mmf_fastapi_requests_total[5m]) * 100",
+            "legendFormat": "FastAPI Correlation Coverage",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(mmf_grpc_requests_total{correlation_id!=\"\"}[5m]) / rate(mmf_grpc_requests_total[5m]) * 100",
+            "legendFormat": "gRPC Correlation Coverage",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 80
+                },
+                {
+                  "color": "green",
+                  "value": 95
+                }
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 7,
+        "title": "Error Breakdown",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (error_type) (rate(mmf_fastapi_errors_total[5m]))",
+            "legendFormat": "{{error_type}}",
+            "refId": "A"
+          },
+          {
+            "expr": "sum by (error_type) (rate(mmf_grpc_errors_total[5m]))",
+            "legendFormat": "{{error_type}}",
+            "refId": "B"
+          },
+          {
+            "expr": "sum by (error_type) (rate(mmf_hybrid_errors_total[5m]))",
+            "legendFormat": "{{error_type}}",
+            "refId": "C"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "hide": 0,
+          "includeAll": true,
+          "multi": false,
+          "name": "service_name",
+          "options": [],
+          "query": "label_values(mmf_fastapi_requests_total, service_name)",
+          "refresh": 1,
+          "regex": "",
+          "sort": 0,
+          "type": "query"
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": "-- Grafana --",
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "refresh": "5s",
+    "schemaVersion": 27,
+    "version": 1,
+    "links": []
+  }
+}

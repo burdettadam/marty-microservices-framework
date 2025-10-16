@@ -78,15 +78,15 @@ data:
       allowUiUpdates: true
       options:
         path: /var/lib/grafana/dashboards/linkerd
-    - name: 'microservices-dashboards'
-      orgId: 1
-      folder: 'Microservices'
-      type: file
-      disableDeletion: false
-      updateIntervalSeconds: 10
-      allowUiUpdates: true
-      options:
-        path: /var/lib/grafana/dashboards/microservices
+    - name: 'mmf-dashboards'
+        orgId: 1
+        folder: 'MMF Framework'
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        allowUiUpdates: true
+        options:
+          path: /var/lib/grafana/dashboards/mmf
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -138,6 +138,8 @@ spec:
           mountPath: /var/lib/grafana/dashboards/istio
         - name: linkerd-dashboards
           mountPath: /var/lib/grafana/dashboards/linkerd
+        - name: mmf-dashboards
+          mountPath: /var/lib/grafana/dashboards/mmf
       volumes:
       - name: grafana-config
         configMap:
@@ -156,6 +158,9 @@ spec:
       - name: linkerd-dashboards
         configMap:
           name: linkerd-dashboards
+      - name: mmf-dashboards
+        configMap:
+          name: mmf-dashboards
 ---
 apiVersion: v1
 kind: Service
@@ -173,10 +178,93 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: istio-dashboards
+  name: mmf-dashboards
   namespace: observability
 data:
-  istio-overview.json: |
+  mmf-service-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "MMF Service Overview",
+        "tags": ["mmf", "microservices", "overview"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "templating": {
+          "list": [
+            {
+              "name": "service",
+              "type": "query",
+              "query": "label_values(mmf_requests_total, service_name)",
+              "refresh": 1,
+              "includeAll": true,
+              "multi": true
+            }
+          ]
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(mmf_requests_total{service_name=~\"$service\"}[5m])",
+                "legendFormat": "{{service_name}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(mmf_requests_total{service_name=~\"$service\", status_code=~\"5..\"}[5m])",
+                "legendFormat": "{{service_name}} errors"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          }
+        ]
+      }
+    }
+  mmf-plugin-debugging.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "MMF Plugin Debugging",
+        "tags": ["mmf", "plugins", "debugging"],
+        "style": "dark",
+        "templating": {
+          "list": [
+            {
+              "name": "plugin",
+              "type": "query",
+              "query": "label_values(mmf_plugin_operations_total, plugin_id)",
+              "refresh": 1,
+              "includeAll": true,
+              "multi": true
+            }
+          ]
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Plugin Operations",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(mmf_plugin_operations_total{plugin_id=~\"$plugin\"}[5m])",
+                "legendFormat": "{{plugin_id}} - {{operation}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+          }
+        ]
+      }
+    }
     {
       "dashboard": {
         "id": null,

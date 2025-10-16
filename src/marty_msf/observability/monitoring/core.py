@@ -18,32 +18,22 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-# Optional dependencies
-try:
-    from prometheus_client import (
-        CollectorRegistry,
-        Counter,
-        Gauge,
-        Histogram,
-        Summary,
-        generate_latest,
-    )
+from opentelemetry import trace
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.grpc import GrpcInstrumentorServer
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-    PROMETHEUS_AVAILABLE = True
-except ImportError:
-    PROMETHEUS_AVAILABLE = False
-
-try:
-    from opentelemetry import trace
-    from opentelemetry.exporter.jaeger.thrift import JaegerExporter
-    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-    from opentelemetry.instrumentation.grpc import GrpcInstrumentorServer
-    from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-    OPENTELEMETRY_AVAILABLE = True
-except ImportError:
-    OPENTELEMETRY_AVAILABLE = False
+# Required dependencies
+from prometheus_client import (
+    CollectorRegistry,
+    Counter,
+    Gauge,
+    Histogram,
+    Summary,
+    generate_latest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -134,13 +124,16 @@ class PrometheusCollector(MetricsCollector):
     """Prometheus metrics collector."""
 
     def __init__(self, registry: CollectorRegistry | None = None):
-        if not PROMETHEUS_AVAILABLE:
-            raise ImportError("prometheus_client is required for PrometheusCollector")
+        """Initialize the Prometheus collector.
 
+        Args:
+            registry: Prometheus registry to use. If None, uses default registry.
+        """
         self.registry = registry or CollectorRegistry()
-        self.metrics: builtins.dict[str, Any] = {}
-        self._lock = threading.Lock()
-        logger.info("Prometheus metrics collector initialized")
+        self._counters: dict[str, Counter] = {}
+        self._gauges: dict[str, Gauge] = {}
+        self._histograms: dict[str, Histogram] = {}
+        self._summaries: dict[str, Summary] = {}
 
     def register_metric(self, definition: MetricDefinition) -> None:
         """Register a custom metric with Prometheus."""
@@ -471,11 +464,6 @@ class DistributedTracer:
     """Distributed tracing integration."""
 
     def __init__(self, service_name: str, jaeger_endpoint: str | None = None):
-        if not OPENTELEMETRY_AVAILABLE:
-            logger.warning("OpenTelemetry not available, distributed tracing disabled")
-            self.enabled = False
-            return
-
         self.service_name = service_name
         self.enabled = True
 
@@ -500,7 +488,7 @@ class DistributedTracer:
 
     @asynccontextmanager
     async def trace_operation(
-        self, operation_name: str, attributes: builtins.dict[str, Any] = None
+        self, operation_name: str, attributes: builtins.dict[str, Any] | None = None
     ):
         """Create a trace span for an operation."""
         if not self.enabled:
@@ -737,12 +725,10 @@ def initialize_monitoring(
     """Initialize monitoring for a service."""
 
     # Create collector
-    if use_prometheus and PROMETHEUS_AVAILABLE:
+    if use_prometheus:
         collector = PrometheusCollector()
     else:
         collector = InMemoryCollector()
-        if use_prometheus:
-            logger.warning("Prometheus requested but not available, using in-memory collector")
 
     # Create monitoring manager
     manager = MonitoringManager(service_name, collector)

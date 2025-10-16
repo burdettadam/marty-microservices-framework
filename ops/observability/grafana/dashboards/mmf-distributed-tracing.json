@@ -1,0 +1,148 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "MMF Distributed Tracing",
+    "tags": ["mmf", "tracing", "distributed"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "service",
+          "type": "query",
+          "query": "label_values(traces, service_name)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": ".*",
+          "multi": true
+        },
+        {
+          "name": "operation",
+          "type": "query",
+          "query": "label_values(traces{service_name=~\"$service\"}, operation_name)",
+          "refresh": 1,
+          "includeAll": true,
+          "allValue": ".*"
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Dependency Map",
+        "type": "nodeGraph",
+        "targets": [
+          {
+            "expr": "traces",
+            "format": "table"
+          }
+        ],
+        "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Trace Duration Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(trace_duration_seconds_bucket{service_name=~\"$service\"}[5m]))",
+            "legendFormat": "{{service_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+      },
+      {
+        "id": 3,
+        "title": "Error Traces",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(traces_total{service_name=~\"$service\", status=\"error\"}[5m])",
+            "legendFormat": "{{service_name}} - {{operation_name}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Error Traces/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+      },
+      {
+        "id": 4,
+        "title": "Correlation ID Flow",
+        "type": "logs",
+        "targets": [
+          {
+            "expr": "{job=~\"mmf-.*\"} |= \"correlation_id\" | json | service_name=~\"$service\"",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showTime": true,
+          "showLabels": false,
+          "showCommonLabels": false,
+          "wrapLogMessage": false,
+          "prettifyLogMessage": false,
+          "enableLogDetails": true,
+          "dedupStrategy": "none",
+          "sortOrder": "Descending"
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20}
+      },
+      {
+        "id": 5,
+        "title": "Span Count by Service",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (service_name) (rate(spans_total{service_name=~\"$service\"}[5m]))",
+            "legendFormat": "{{service_name}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28}
+      },
+      {
+        "id": 6,
+        "title": "Request Correlation Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(mmf_requests_total{service_name=~\"$service\"}[5m])) / sum(rate(spans_total{service_name=~\"$service\"}[5m]))",
+            "legendFormat": "Correlation Success Rate"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 0.8},
+                {"color": "green", "value": 0.95}
+              ]
+            },
+            "unit": "percentunit"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28}
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployment Events",
+          "datasource": "Prometheus",
+          "expr": "changes(up{job=~\"mmf-.*\"}[1h]) > 0",
+          "titleFormat": "Service {{job}} deployment",
+          "textFormat": "Service restart/deployment detected"
+        }
+      ]
+    }
+  }
+}
