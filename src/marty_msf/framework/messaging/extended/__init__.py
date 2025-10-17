@@ -8,6 +8,14 @@ This module provides the extended messaging capabilities including:
 - Pattern-specific abstractions
 """
 
+# Enhanced event bus integration - use this instead of the old unified event bus
+from marty_msf.framework.events.enhanced_event_bus import (
+    EnhancedEventBus as UnifiedEventBusImpl,
+)
+from marty_msf.framework.events.enhanced_event_bus import (
+    enhanced_event_bus_context as create_unified_event_bus,
+)
+
 from .aws_sns_backend import AWSSNSBackend, AWSSNSConfig
 
 # Core extended messaging architecture
@@ -27,9 +35,6 @@ from .saga_integration import (
     EnhancedSagaOrchestrator,
     create_distributed_saga_manager,
 )
-
-# Unified event bus implementation
-from .unified_event_bus import UnifiedEventBusImpl, create_unified_event_bus
 
 __all__ = [
     # Core types and interfaces

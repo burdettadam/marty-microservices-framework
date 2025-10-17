@@ -1,7 +1,7 @@
 """
 Global pytest configuration and fixtures for MMF testing.
 
-This module provides shared fixtures and utilities that can be used across
+This module provides shared fixtures that can be used across
 all test modules to ensure consistency and minimize code duplication.
 """
 
@@ -18,7 +18,7 @@ import pytest
 
 # Framework imports
 from marty_msf.framework.config import BaseServiceConfig
-from marty_msf.framework.events.event_bus import EventBus
+from marty_msf.framework.events.enhanced_event_bus import EnhancedEventBus
 from marty_msf.framework.logging import UnifiedServiceLogger as StructuredLogger
 from marty_msf.framework.messaging.manager import MessagingManager as MessageBus
 from marty_msf.framework.monitoring.core import MetricsCollector
@@ -105,13 +105,9 @@ def metrics_collector(test_service_name: str) -> MetricsCollector:
 @pytest.fixture
 async def event_bus(
     test_service_name: str, test_config: dict[str, Any]
-) -> AsyncGenerator[EventBus, None]:
-    """Provide an event bus for tests."""
-    event_bus = EventBus(
-        service_name=test_service_name,
-        bootstrap_servers=test_config["kafka_bootstrap_servers"],
-        consumer_group=f"{test_service_name}-test",
-    )
+) -> AsyncGenerator[EnhancedEventBus, None]:
+    """Provide an enhanced event bus for tests."""
+    event_bus = EnhancedEventBus()
 
     try:
         await event_bus.start()
