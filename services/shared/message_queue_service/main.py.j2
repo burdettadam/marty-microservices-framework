@@ -7,7 +7,7 @@ import signal
 import logging
 from typing import Optional
 
-from marty_common.grpc_service_factory import serve_auto_service
+from marty_msf.framework.grpc import UnifiedGrpcServer, ServiceDefinition, create_grpc_server
 from marty_common.base_service import BaseService
 
 from src.{{service_package}}.app.core.config import {{service_class}}ServiceConfig
@@ -181,11 +181,29 @@ async def main():
         # Start the gRPC server
         logger.info(f"Starting {{service_name}} Message Queue Service on port {config.port}")
 
-        await serve_auto_service(
-            service_class={{service_class}}Service,
-            service_instance=service_instance,
-            config=config
+        # Create and start gRPC server
+        grpc_server = create_grpc_server(
+            port=config_manager.get("grpc_port", 50051),
+            enable_health_service=True,
+            enable_reflection=True
         )
+
+        # Import and register the message queue service
+        from message_queue_service import MessageQueueService
+
+        service_definition = ServiceDefinition(
+            service_class=MessageQueueService,
+            service_name="{{service_name}}",
+            priority=1
+        )
+
+        await grpc_server.register_service(service_definition)
+        await grpc_server.start()
+
+        try:
+            await grpc_server.wait_for_termination()
+        finally:
+            await grpc_server.stop(grace=30)
 
     except KeyboardInterrupt:
         logger.info("Service interrupted by user")

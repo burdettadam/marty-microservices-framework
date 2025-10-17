@@ -31,9 +31,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_client import Counter, Gauge, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
-# Import service components
-from app.core.config import get_settings
-from marty_msf.observability.correlation_middleware import add_correlation_id_middleware
+# Import unified components
+from marty_msf.framework.config import UnifiedConfigurationManager
+from marty_msf.framework.secrets import UnifiedSecrets
+from marty_msf.observability.standard import create_standard_observability, set_global_observability
+from marty_msf.observability.standard_correlation import StandardCorrelationMiddleware
 from app.api.routes import router
 from app.services.{{service_package}}_service import {{service_class}}Service
 
@@ -71,20 +73,52 @@ except ValueError as e:
     else:
         raise
 
-# Global service instance
+# Global instances
+config_manager = None
+secrets_manager = None
+observability = None
 service_instance = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan management"""
-    global service_instance
+    """Application lifespan management with unified infrastructure"""
+    global config_manager, secrets_manager, observability, service_instance
+
+    # Initialize unified configuration
+    config_manager = UnifiedConfigurationManager()
+    await config_manager.initialize()
+
+    # Initialize unified secrets
+    secrets_manager = UnifiedSecrets()
+    await secrets_manager.initialize()
+
+    service_name = config_manager.get("service.name", "{{service_name}}")
 
     # Startup
-    logger.info("Starting {{service_class}} Service...")
+    logger.info(f"Starting {service_name} with unified infrastructure...")
+
+    # Initialize unified observability
+    observability = create_standard_observability(
+        service_name=service_name,
+        service_version=config_manager.get("service.version", "1.0.0"),
+        service_type="fastapi"
+    )
+    await observability.initialize()
+    set_global_observability(observability)
+
     try:
-        service_instance = {{service_class}}Service()
+        service_instance = {{service_class}}Service(
+            config_manager=config_manager,
+            secrets_manager=secrets_manager
+        )
         await service_instance.initialize()
         logger.info("Service initialized successfully")
+
+        # Store in app state
+        app.state.config_manager = config_manager
+        app.state.secrets_manager = secrets_manager
+        app.state.service = service_instance
+
     except Exception as e:
         logger.error(f"Failed to initialize service: {e}")
         raise
@@ -92,9 +126,15 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    logger.info("Shutting down {{service_class}} Service...")
+    logger.info("Shutting down {{service_name}}...")
     if service_instance:
         await service_instance.cleanup()
+    if observability:
+        await observability.shutdown()
+    if secrets_manager:
+        await secrets_manager.cleanup()
+    if config_manager:
+        await config_manager.cleanup()
     logger.info("Service shutdown complete")
 
 # Create FastAPI app
@@ -117,8 +157,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Add correlation ID middleware
-add_correlation_id_middleware(app)
+# Add unified correlation middleware
+app.add_middleware(StandardCorrelationMiddleware)
 
 # Metrics middleware
 @app.middleware("http")
@@ -258,19 +298,34 @@ def get_service() -> {{service_class}}Service:
         raise HTTPException(status_code=503, detail="Service not initialized")
     return service_instance
 
-if __name__ == "__main__":
-    settings = get_settings()
+async def main():
+    """Main application entry point with unified configuration"""
+    # Initialize config temporarily to get server settings
+    temp_config = UnifiedConfigurationManager()
+    await temp_config.initialize()
 
-    print(f"🚀 Starting {{service_class}} Service...")
-    print(f"📊 Metrics: http://localhost:{{http_port}}/metrics")
-    print(f"📋 API Docs: http://localhost:{{http_port}}/docs")
-    print(f"❤️  Health: http://localhost:{{http_port}}/health")
-    print(f"🔄 Ready: http://localhost:{{http_port}}/ready")
+    port = temp_config.get("server.port", {{http_port}})
+    host = temp_config.get("server.host", "0.0.0.0")
+    debug = temp_config.get("server.debug", False)
 
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port={{http_port}},
-        reload=getattr(settings, 'debug', False),
-        log_level="info"
+    print(f"🚀 Starting {{service_class}} Service with unified infrastructure...")
+    print(f"📊 Metrics: http://{host}:{port}/metrics")
+    print(f"📋 API Docs: http://{host}:{port}/docs")
+    print(f"❤️  Health: http://{host}:{port}/health")
+    print(f"🔄 Ready: http://{host}:{port}/ready")
+
+    uvicorn_config = uvicorn.Config(
+        app,
+        host=host,
+        port=port,
+        reload=debug,
+        log_level=temp_config.get("logging.level", "info").lower()
     )
+
+    await temp_config.cleanup()
+
+    server = uvicorn.Server(uvicorn_config)
+    await server.serve()
+
+if __name__ == "__main__":
+    asyncio.run(main())

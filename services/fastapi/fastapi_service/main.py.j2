@@ -13,11 +13,13 @@ import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from src.framework.config import BaseServiceConfig
-from src.framework.observability import init_tracing, auto_instrument, instrument_fastapi
+from marty_msf.framework.config import UnifiedConfigurationManager
+from marty_msf.framework.secrets import UnifiedSecrets
+from marty_msf.observability.standard import create_standard_observability, set_global_observability
+from marty_msf.observability.standard_correlation import StandardCorrelationMiddleware
 from src.framework.observability.monitoring import ServiceMonitor
 {% if use_database %}
-from src.framework.database import DatabaseManager
+from marty_msf.framework.database import DatabaseManager
 from src.framework.events import TransactionalOutboxEventBus
 {% endif %}
 
@@ -26,23 +28,10 @@ from .core.middleware import setup_middleware
 from .core.error_handlers import setup_error_handlers
 
 
-class {{service_class}}Config(BaseServiceConfig):
-    """Configuration for {{service_name}} service."""
-
-    service_name: str = "{{service_name}}"
-    host: str = "0.0.0.0"
-    port: int = {{http_port}}
-    debug: bool = False
-    docs_enabled: bool = True
-
-    {% if use_database %}
-    # Database configuration
-    database_url: str = "postgresql+asyncpg://user:password@localhost/{{service_name}}_db"
-    {% endif %}
-
-
 # Global references
-config = {{service_class}}Config()
+config_manager: UnifiedConfigurationManager = None
+secrets_manager: UnifiedSecrets = None
+observability = None
 monitor: ServiceMonitor = None
 {% if use_database %}
 db_manager: DatabaseManager = None
@@ -52,20 +41,36 @@ event_bus: TransactionalOutboxEventBus = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage application lifespan with proper startup and shutdown."""
-    global monitor{% if use_database %}, db_manager, event_bus{% endif %}
+    """Manage application lifespan with unified configuration and secrets."""
+    global config_manager, secrets_manager, observability, monitor{% if use_database %}, db_manager, event_bus{% endif %}
+
+    # Initialize unified configuration
+    config_manager = UnifiedConfigurationManager()
+    await config_manager.initialize()
+
+    # Initialize unified secrets
+    secrets_manager = UnifiedSecrets()
+    await secrets_manager.initialize()
+
+    service_name = config_manager.get("service.name", "{{service_name}}")
 
     # Startup
-    print(f"Starting {config.service_name} with enterprise infrastructure...")
+    print(f"Starting {service_name} with unified enterprise infrastructure...")
 
-    # Initialize observability
-    init_tracing(service_name=config.service_name)
-    auto_instrument()
-    instrument_fastapi()
+    # Initialize unified observability
+    observability = create_standard_observability(
+        service_name=service_name,
+        service_version=config_manager.get("service.version", "1.0.0"),
+        service_type="fastapi"
+    )
+    await observability.initialize()
+    set_global_observability(observability)
 
     {% if use_database %}
-    # Initialize database
-    db_manager = DatabaseManager(config.database_url)
+    # Initialize database with unified config
+    database_url = await secrets_manager.get_secret("database_url",
+                    config_manager.get("database.url", "postgresql+asyncpg://user:password@localhost/{{service_name}}_db"))
+    db_manager = DatabaseManager(database_url)
     await db_manager.create_tables()
 
     # Initialize event bus
@@ -79,16 +84,18 @@ async def lifespan(app: FastAPI):
     {% endif %}
 
     # Start monitoring
-    monitor = ServiceMonitor(config.service_name)
+    monitor = ServiceMonitor(service_name)
     monitor.start_monitoring()
     app.state.monitor = monitor
+    app.state.config_manager = config_manager
+    app.state.secrets_manager = secrets_manager
 
-    print(f"{config.service_name} started successfully")
+    print(f"{service_name} started successfully")
 
     yield
 
     # Shutdown
-    print(f"Shutting down {config.service_name}...")
+    print(f"Shutting down {service_name}...")
 
     if monitor:
         monitor.stop_monitoring()
@@ -101,59 +108,75 @@ async def lifespan(app: FastAPI):
         await db_manager.close()
     {% endif %}
 
-    print(f"{config.service_name} shutdown complete")
+    if observability:
+        await observability.shutdown()
+
+    if secrets_manager:
+        await secrets_manager.cleanup()
+
+    if config_manager:
+        await config_manager.cleanup()
+
+    print(f"{service_name} shutdown complete")
 
 
 def create_app() -> FastAPI:
     """
-    Create FastAPI application with enterprise infrastructure.
+    Create FastAPI application with unified enterprise infrastructure.
 
     This sets up:
-    - Distributed tracing and observability
+    - Unified configuration and secrets management
+    - Standard observability with OpenTelemetry
     - Health monitoring and metrics
     - Database access with repository pattern
     - Event-driven architecture
     - Comprehensive error handling
     """
 
-    # Initialize FastAPI with enterprise configuration
+    # Initialize FastAPI with unified configuration
     app = FastAPI(
-        title=config.service_name.replace("_", " ").title(),
+        title="{{service_name}}".replace("_", " ").title(),
         description="{{service_description}}",
         version="1.0.0",
-        debug=config.debug,
-        docs_url="/docs" if config.docs_enabled else None,
-        redoc_url="/redoc" if config.docs_enabled else None,
         lifespan=lifespan,
     )
 
+    # Add unified observability middleware
+    app.add_middleware(StandardCorrelationMiddleware)
+
     # Setup enterprise patterns
-    setup_middleware(app, service_config)
+    setup_middleware(app)
     setup_error_handlers(app)
 
     # Include API routes
     app.include_router(router, prefix="/api/v1")
 
-    # Setup logging using DRY patterns
-    config.setup_logging()
-
     return app
 
 
-def main() -> None:
-    """Run the FastAPI application."""
-    app = create_app()
-    config = create_{{service_package}}_config()
+async def main() -> None:
+    """Run the FastAPI application with unified configuration."""
+    # Initialize config temporarily to get server settings
+    temp_config = UnifiedConfigurationManager()
+    await temp_config.initialize()
 
-    # Run with uvicorn using DRY configuration
-    uvicorn.run(
+    app = create_app()
+
+    # Run with uvicorn using unified configuration
+    uvicorn_config = uvicorn.Config(
         app,
-        host=config.host,
-        port=config.http_port,
-        log_level=getattr(config, 'log_level', 'info').lower(),
-        reload=config.debug,
+        host=temp_config.get("server.host", "0.0.0.0"),
+        port=temp_config.get("server.port", {{http_port}}),
+        log_level=temp_config.get("logging.level", "info").lower(),
+        reload=temp_config.get("server.debug", False),
     )
+
+    await temp_config.cleanup()
+
+    server = uvicorn.Server(uvicorn_config)
+    await server.serve()
 
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())

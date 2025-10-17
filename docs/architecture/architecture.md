@@ -75,10 +75,59 @@ The Marty Microservices Framework follows a layered, plugin-based architecture d
 - Multi-database support (PostgreSQL, MySQL, MongoDB)
 
 #### Configuration Management (`src/framework/config/`)
-- Environment-based configuration
-- YAML/JSON configuration files
-- Secret management integration
-- Runtime configuration updates
+
+The MMF provides a comprehensive unified configuration management system that supports multiple deployment environments and plugin architectures:
+
+**Core Features:**
+- **Hierarchical Configuration Loading**: Base configurations with environment-specific overrides (base.yaml → development.yaml → environment variables)
+- **Secret Reference System**: Unified secret management with `${SECRET:key}` syntax across multiple backends (Vault, AWS Secrets Manager, Azure Key Vault, etc.)
+- **Cloud-Agnostic Design**: Automatic detection and configuration for AWS, GCP, Azure, Kubernetes, and self-hosted environments
+- **Plugin Configuration Loading**: Dedicated plugin configuration discovery and loading from plugin directories
+- **Hot Reload Support**: Runtime configuration updates without service restart
+- **Configuration Templates**: Reusable patterns for common service types (gRPC, FastAPI, hybrid)
+
+**Plugin Configuration Strategy:**
+The framework supports plugin-based configuration loading that enables modular architecture and business domain separation:
+
+1. **Plugin Discovery**: Automatic discovery of plugin configurations in designated plugin directories
+2. **Hierarchical Plugin Loading**: Plugin configs loaded with same hierarchy as main config (base → environment → overrides)
+3. **Plugin Dependency Resolution**: Automatic resolution of plugin dependencies and load order
+4. **Namespace Isolation**: Plugin configurations are namespaced to prevent conflicts
+5. **Runtime Plugin Management**: Dynamic plugin enabling/disabling without framework restart
+
+**Plugin Configuration Structure:**
+```yaml
+# plugins/my-plugin.yaml
+default:
+  enabled: true
+  version: "1.0.0"
+  dependencies: ["security", "database"]
+
+  # Plugin-specific configuration
+  settings:
+    timeout_seconds: 30
+    max_retries: 3
+
+  # Integration with framework components
+  database:
+    use_mmf_database: true
+    schema_prefix: "plugin_"
+```
+
+**Configuration Loading Process:**
+1. Load framework base configuration (`config/base.yaml`)
+2. Apply environment-specific overrides (`config/{environment}.yaml`)
+3. Discover and load plugin configurations (`plugins/*.yaml`)
+4. Resolve secret references using configured backends
+5. Apply environment variable overrides
+6. Validate final configuration against schemas
+
+**Benefits:**
+- **Framework Separation**: Business logic configs separated from framework patterns
+- **Plugin Modularity**: Plugins can be independently configured and managed
+- **Environment Consistency**: Same configuration patterns across all environments
+- **Secret Security**: Unified secret management with multiple backend support
+- **Developer Experience**: Clear configuration structure with validation and documentation
 
 #### Observability (`src/marty_msf/observability/`)
 - **Enhanced Unified OpenTelemetry System**: Complete observability orchestration with standardized defaults across all services

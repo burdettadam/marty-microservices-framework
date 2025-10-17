@@ -198,11 +198,14 @@ async def create_service_factory():
     # Add correlation interceptor
     interceptors = [CorrelationInterceptor()]
 
-    factory = GRPCServiceFactory({
-        "interceptors": interceptors
-    })
+    # Create gRPC server with observability
+    grpc_server = create_grpc_server(
+        port=50051,
+        interceptors=interceptors,
+        enable_health_service=True
+    )
 
-    return factory, {"observability": observability}
+    return grpc_server, {"observability": observability}
 ```
 
 ### Hybrid Services

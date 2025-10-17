@@ -17,15 +17,37 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional
 
+from pydantic import BaseModel, Field
+
 from marty_msf.framework.config import (
-    AppConfigManager,
-    CryptographicConfigSection,
-    DatabaseConfigSection,
-    SecurityConfigSection,
-    ServiceDiscoveryConfigSection,
-    TrustStoreConfigSection,
+    ConfigurationStrategy,
+    Environment,
+    UnifiedConfigurationManager,
+    create_unified_config_manager,
 )
-from marty_msf.framework.config_factory import create_service_config
+
+
+# Define service configuration model
+class {{SERVICE_NAME_PASCAL}}ServiceConfig(BaseModel):
+    """Configuration model for {{SERVICE_NAME}} service."""
+    service_name: str = Field(default="{{SERVICE_NAME}}-service")
+    host: str = Field(default="0.0.0.0")
+    port: int = Field(default=8080)
+    debug: bool = Field(default=False)
+
+    # Database configuration
+    database_url: str = Field(default="${SECRET:database_url}")
+    database_pool_size: int = Field(default=10)
+
+    # Security configuration
+    jwt_secret: str = Field(default="${SECRET:jwt_secret}")
+    api_key: str = Field(default="${SECRET:api_key}")
+
+    # Service-specific settings
+    max_concurrent_operations: int = Field(default=100)
+    operation_timeout: int = Field(default=30)
+    enable_metrics: bool = Field(default=True)
+    enable_tracing: bool = Field(default=True)
 
 
 class Modern{{SERVICE_NAME_PASCAL}}:
@@ -33,39 +55,35 @@ class Modern{{SERVICE_NAME_PASCAL}}:
     Modern {{SERVICE_NAME}} service using unified configuration management.
 
     This template demonstrates:
-    - Unified configuration loading
-    - Database per service pattern
-    - Security configuration
-    - Cryptographic settings (if needed)
-    - Trust store configuration (if needed)
-    - Service discovery
-    - Event publishing
+    - Unified configuration loading with cloud-agnostic secret management
+    - Automatic environment detection
+    - Type-safe configuration with Pydantic models
+    - Secret references with ${SECRET:key} syntax
+    - Configuration hot-reloading
     - Proper logging and monitoring setup
     """
 
-    def __init__(self, config_path: str = "config/services/{{SERVICE_NAME}}.yaml"):
+    def __init__(self, config_dir: str = "config", environment: str = "development"):
         """
         Initialize the {{SERVICE_NAME}} service with unified configuration.
 
         Args:
-            config_path: Path to the service-specific configuration file
+            config_dir: Directory containing configuration files
+            environment: Environment name (development, testing, staging, production)
         """
         self.logger = logging.getLogger(f"marty.{{SERVICE_NAME}}")
 
-        # Load unified configuration
-        self.config = create_service_config(config_path)
+        # Create unified configuration manager
+        self.config_manager = create_unified_config_manager(
+            service_name="{{SERVICE_NAME}}-service",
+            environment=Environment(environment),
+            config_class={{SERVICE_NAME_PASCAL}}ServiceConfig,
+            config_dir=config_dir,
+            strategy=ConfigurationStrategy.AUTO_DETECT
+        )
 
-        # Extract configuration sections
-        self.db_config = self.config.database.get_config("{{SERVICE_NAME}}")
-        self.security_config = self.config.security
-        self.service_discovery = self.config.service_discovery
-
-        # Optional configurations (only if enabled in config)
-        self.crypto_config = getattr(self.config, 'cryptographic', None)
-        self.trust_store_config = getattr(self.config, 'trust_store', None)
-
-        # Service-specific settings
-        self.service_settings = self.config.services.get("{{SERVICE_NAME}}", {})
+        # Configuration will be loaded in start() method
+        self.config: Optional[{{SERVICE_NAME_PASCAL}}ServiceConfig] = None
 
         # Initialize components
         self.db_pool = None

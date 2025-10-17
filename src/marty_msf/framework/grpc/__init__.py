@@ -2,26 +2,30 @@
 gRPC infrastructure components for enterprise microservices.
 
 This package provides:
-- Service factory patterns for DRY gRPC service creation
-- Service discovery and registration
+- Unified gRPC server with observability integration
+- Service definition patterns for structured service management
 - Health checking and monitoring
-- Interceptors for cross-cutting concerns
+- Production-ready server configuration
 """
 
-from .service_factory import (
-    GRPCServiceFactory,
+from .unified_grpc_server import (
+    ObservableGrpcServiceMixin,
     ServiceDefinition,
-    ServiceRegistry,
-    grpc_service,
-    run_grpc_service,
-    service_registry,
+    ServiceRegistrationProtocol,
+    ServicerFactoryProtocol,
+    UnifiedGrpcServer,
+    create_document_signer_server,
+    create_service_server,
+    create_trust_anchor_server,
 )
 
 __all__ = [
-    "GRPCServiceFactory",
+    "UnifiedGrpcServer",
+    "ObservableGrpcServiceMixin",
     "ServiceDefinition",
-    "ServiceRegistry",
-    "grpc_service",
-    "run_grpc_service",
-    "service_registry",
+    "ServicerFactoryProtocol",
+    "ServiceRegistrationProtocol",
+    "create_trust_anchor_server",
+    "create_document_signer_server",
+    "create_service_server",
 ]

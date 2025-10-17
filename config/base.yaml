@@ -1,22 +1,47 @@
 # Base configuration for microservices framework
 # This file contains common configuration patterns shared across all environments
+# Compatible with unified configuration management system
 
-# Default ports for common services
+# Service metadata for unified configuration
+service:
+  name: "microservice" # Override in service-specific configs
+  version: "1.0.0"      # Override with actual version
+  description: "Marty Microservice" # Override with service description
+  environment: "development" # Will be detected automatically
+
+# Unified configuration management settings
+unified_config:
+  enable_secrets: true
+  secret_backends: ["environment", "file"] # Add vault, aws, gcp, azure as needed
+  cache_ttl_minutes: 15
+  enable_hot_reload: false
+  strategy: "hierarchical"
+
+# Default ports for service types
 default_ports: &default_ports
-  user_service: 8001
-  order_service: 8002
-  payment_service: 8003
-  notification_service: 8004
+  grpc_service: 50051
+  fastapi_service: 8000
+  hybrid_service: 8080
+  auth_service: 8001
   api_gateway: 8000
+  health_check: 8080
+  metrics: 9090
 
 # Common database configuration patterns
 common_database: &common_database
+  host: "${SECRET:database_host}"
+  port: 5432
+  database: "${SECRET:database_name}"
+  username: "${SECRET:database_username}"
+  password: "${SECRET:database_password}"
   pool_size: 10
   max_overflow: 20
   pool_timeout: 30
   pool_recycle: 3600
   ssl_mode: prefer
   connection_timeout: 30
+  # Connection URL template (will be constructed automatically)
+  url_template: "postgresql://{username}:{password}@{host}:{port}/{database}"
 
 # Common security configuration (ENFORCED BY DEFAULT)
 common_security: &common_security
@@ -36,8 +61,12 @@ common_security: &common_security
     jwt:
       enabled: true
       algorithm: "HS256"
-      secret: ""  # Must be set via environment variable
+      secret: "${SECRET:jwt_secret}"  # Secret reference for unified system
     api_key_enabled: true
+    api_key_header: "X-API-Key"
+    api_keys:
+      - name: "service_api_key"
+        key: "${SECRET:service_api_key}"
     client_cert:
       enabled: true
       extract_subject: true
@@ -64,6 +93,18 @@ common_monitoring: &common_monitoring
   health_check_port: 8080
   prometheus_enabled: true
   tracing_enabled: true
+  jaeger_endpoint: "${SECRET:jaeger_endpoint}" # Optional: external tracing
+  service_type: "grpc" # Override per service: grpc, fastapi, hybrid
+
+# gRPC server configuration for unified gRPC server
+grpc: &common_grpc
+  port: 50051
+  max_workers: 10
+  reflection_enabled: true
+  health_service_enabled: true
+  keepalive_time_ms: 30000
+  keepalive_timeout_ms: 5000
+  keepalive_permit_without_calls: true
 
 # Common resilience patterns
 common_resilience: &common_resilience
@@ -148,64 +189,88 @@ logging: *common_logging
 monitoring: *common_monitoring
 resilience: *common_resilience
 
-# Database configurations per service (enforcing database per service pattern)
-database:
-  user_service:
+# Database configuration template patterns
+database_templates:
+  # Standard database configuration template
+  standard: &standard_database
     <<: *common_database
     host: "${DB_HOST:-localhost}"
     port: "${DB_PORT:-5432}"
-    database: "user_service_db"
-    username: "${USER_DB_USERNAME:-user_svc}"
-    password: "${USER_DB_PASSWORD:-}"
+    database: "${SERVICE_NAME}_db"
+    username: "${DB_USERNAME:-service_user}"
+    password: "${DB_PASSWORD:-}"
 
-  order_service:
+  # Read-only replica configuration template
+  readonly: &readonly_database
     <<: *common_database
-    host: "${DB_HOST:-localhost}"
-    port: "${DB_PORT:-5432}"
-    database: "order_service_db"
-    username: "${ORDER_DB_USERNAME:-order_svc}"
-    password: "${ORDER_DB_PASSWORD:-}"
+    host: "${DB_READONLY_HOST:-localhost}"
+    port: "${DB_READONLY_PORT:-5432}"
+    database: "${SERVICE_NAME}_db"
+    username: "${DB_READONLY_USERNAME:-readonly_user}"
+    password: "${DB_READONLY_PASSWORD:-}"
 
-  payment_service:
+  # Test database configuration template
+  test: &test_database
     <<: *common_database
-    host: "${DB_HOST:-localhost}"
-    port: "${DB_PORT:-5432}"
-    database: "payment_service_db"
-    username: "${PAYMENT_DB_USERNAME:-payment_svc}"
-    password: "${PAYMENT_DB_PASSWORD:-}"
+    host: "${TEST_DB_HOST:-localhost}"
+    port: "${TEST_DB_PORT:-5432}"
+    database: "${SERVICE_NAME}_test"
+    username: "${TEST_DB_USERNAME:-test_user}"
+    password: "${TEST_DB_PASSWORD:-}"
 
-  notification_service:
-    <<: *common_database
-    host: "${DB_HOST:-localhost}"
-    port: "${DB_PORT:-5432}"
-    database: "notification_service_db"
-    username: "${NOTIFICATION_DB_USERNAME:-notification_svc}"
-    password: "${NOTIFICATION_DB_PASSWORD:-}"
-
-# Common service configuration patterns
-services:
-  user_service:
+# Service configuration templates
+service_templates:
+  # gRPC service template
+  grpc_service:
     max_connections: 100
     request_timeout: 30
-    jwt_expiry_hours: 24
-    password_hash_rounds: 12
-    enable_email_verification: true
+    reflection_enabled: true
+    health_check_enabled: true
 
-  order_service:
-    max_concurrent_orders: 50
-    order_timeout_minutes: 15
-    inventory_check_enabled: true
-    payment_timeout_seconds: 300
+  # FastAPI service template
+  fastapi_service:
+    max_connections: 100
+    request_timeout: 30
+    cors_enabled: true
+    swagger_enabled: true
 
-  payment_service:
-    max_transaction_amount: 10000
-    fraud_check_enabled: true
-    pci_compliance_mode: true
-    encryption_key_rotation_days: 30
+  # Hybrid service template
+  hybrid_service:
+    max_connections: 100
+    request_timeout: 30
+    grpc_port: 50051
+    http_port: 8000
 
-  notification_service:
-    max_queue_size: 1000
-    retry_attempts: 3
+# Secrets configuration for unified secrets management
+# These define the secrets that services expect to be available
+secrets:
+  # Database secrets
+  database_host: "localhost" # Default for development
+  database_username: "postgres"
+  database_password: "postgres"
+  database_name: "microservice_db"
+
+  # Authentication secrets
+  jwt_secret: "development_jwt_secret_change_in_production"
+  service_api_key: "development_api_key_change_in_production"
+
+  # External service secrets (empty defaults - set per environment)
+  jaeger_endpoint: ""
+  vault_token: ""
+  external_api_key: ""
+
+  # TLS certificates (paths - actual certificates should be in secret backends)
+  tls_server_cert_path: "/etc/tls/server/tls.crt"
+  tls_server_key_path: "/etc/tls/server/tls.key"
+  tls_client_cert_path: "/etc/tls/client/tls.crt"
+  tls_client_key_path: "/etc/tls/client/tls.key"
+  tls_ca_cert_path: "/etc/tls/ca/ca.crt"
+
+# Environment-specific configuration overrides will be applied on top of this base
+
+# Additional service configuration
+additional_services:
+  batch_processing:
     batch_size: 100
     rate_limit_per_minute: 60
 
