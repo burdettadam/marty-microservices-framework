@@ -11,24 +11,16 @@ from typing import Any
 
 from app.core.config import PetstoreDomainConfig
 
-# Import Marty MSF security components with graceful fallback
-try:
-    from marty_msf.security.authorization import (
-        AuthorizationRequest,
-        PolicyEngineEnum,
-        PolicyManager,
-    )
-    from marty_msf.security.secrets import (
-        SecretManager,
-        VaultAuthMethod,
-        VaultClient,
-        VaultConfig,
-    )
-    SECURITY_AVAILABLE = True
-except ImportError:
-    # Graceful degradation when security components are not available
-    SECURITY_AVAILABLE = False
-    logging.warning("Marty MSF security components not available")
+# Import Marty MSF unified security framework
+from marty_msf.security.unified_framework import (
+    SecurityContext,
+    SecurityPolicyType,
+    SecurityPrincipal,
+    UnifiedSecurityFramework,
+    create_unified_security_framework,
+)
+
+SECURITY_AVAILABLE = True
 
 logger = logging.getLogger(__name__)
 
@@ -45,124 +37,53 @@ class PetStoreSecurityService:
 
     def __init__(self, config: PetstoreDomainConfig):
         self.config = config
-        self.vault_client = None
-        self.secret_manager = None
-        self.policy_manager = None
+        self.security_framework = None
         self._initialized = False
 
     async def initialize(self) -> None:
-        """Initialize all security components"""
+        """Initialize unified security framework"""
         if self._initialized:
             return
 
-        logger.info("Initializing PetStore security service...")
+        logger.info("Initializing PetStore security service with unified framework...")
 
         try:
-            # Initialize Vault client if enabled
-            if self.config.vault_enabled and SECURITY_AVAILABLE:
-                await self._initialize_vault()
+            # Configuration for unified security framework
+            security_config = {
+                "default_identity_provider": "local",
+                "policy_cache_ttl": 300,
+                "audit_enabled": True,
+                "service_mesh_enabled": False,
+                "compliance_scanning_enabled": False
+            }
 
-            # Initialize secret manager
-            await self._initialize_secret_manager()
+            # Initialize unified security framework
+            self.security_framework = await create_unified_security_framework(security_config)
 
-            # Initialize policy manager
-            await self._initialize_policy_manager()
+            if not self.security_framework:
+                raise Exception("Failed to initialize unified security framework")
 
             # Load default policies
             await self._load_default_policies()
 
             self._initialized = True
-            logger.info("Security service initialized successfully")
+            logger.info("Security service initialized successfully with unified framework")
 
         except Exception as e:
             logger.error(f"Failed to initialize security service: {e}")
-            # Continue with reduced functionality
-            logger.warning("Security service running with reduced functionality")
+            raise
 
     async def _initialize_vault(self) -> None:
-        """Initialize HashiCorp Vault client"""
-        if not SECURITY_AVAILABLE:
-            logger.warning("Vault integration not available")
-            return
-
-        try:
-            # Determine auth method
-            auth_method = VaultAuthMethod.TOKEN
-            if self.config.vault_auth_method == "kubernetes":
-                auth_method = VaultAuthMethod.KUBERNETES
-            elif self.config.vault_auth_method == "aws":
-                auth_method = VaultAuthMethod.AWS_IAM
-
-            # Create Vault configuration
-            vault_config = VaultConfig(
-                url=self.config.vault_url,
-                auth_method=auth_method,
-                token=self.config.vault_token,
-                role=self.config.vault_role,
-                namespace=self.config.vault_namespace
-            )
-
-            # Initialize client
-            self.vault_client = VaultClient(vault_config)
-            await self.vault_client.authenticate()
-
-            logger.info(f"Vault client initialized: {self.config.vault_url}")
-
-        except Exception as e:
-            logger.error(f"Failed to initialize Vault client: {e}")
-            self.vault_client = None
+        """Initialize HashiCorp Vault client - DEPRECATED, now handled by unified framework"""
+        logger.info("Vault integration now handled by unified security framework")
 
     async def _initialize_secret_manager(self) -> None:
-        """Initialize secret manager"""
-        if not SECURITY_AVAILABLE:
-            logger.warning("Secret manager not available")
-            return
-
-        try:
-            self.secret_manager = SecretManager(
-                service_name="petstore-domain",
-                vault_client=self.vault_client
-            )
-
-            # Set up default secrets if needed
-            await self._setup_default_secrets()
-
-            logger.info("Secret manager initialized")
-
-        except Exception as e:
-            logger.error(f"Failed to initialize secret manager: {e}")
-            self.secret_manager = None
+        """Initialize secret manager - DEPRECATED, now handled by unified framework"""
+        logger.info("Secret management now handled by unified security framework")
 
     async def _initialize_policy_manager(self) -> None:
-        """Initialize policy manager with configured engines"""
-        if not SECURITY_AVAILABLE:
-            logger.warning("Policy manager not available")
-            return
-
-        try:
-            # Determine primary engine
-            primary_engine = PolicyEngineEnum.BUILTIN
-            if self.config.default_policy_engine == "opa" and self.config.opa_enabled:
-                primary_engine = PolicyEngineEnum.OPA
-            elif self.config.default_policy_engine == "oso" and self.config.oso_enabled:
-                primary_engine = PolicyEngineEnum.OSO
-
-            # Initialize policy manager
-            self.policy_manager = PolicyManager(primary_engine=primary_engine)
-
-            # Configure OPA if enabled
-            if self.config.opa_enabled:
-                await self._configure_opa()
-
-            # Configure Oso if enabled
-            if self.config.oso_enabled:
-                await self._configure_oso()
-
-            logger.info(f"Policy manager initialized with {primary_engine} engine")
-
-        except Exception as e:
-            logger.error(f"Failed to initialize policy manager: {e}")
-            self.policy_manager = None
+        """Initialize policy manager - DEPRECATED, now handled by unified framework"""
+        logger.info("Policy management now handled by unified security framework")
 
     async def _configure_opa(self) -> None:
         """Configure Open Policy Agent"""

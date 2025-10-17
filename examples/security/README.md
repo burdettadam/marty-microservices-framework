@@ -1,13 +1,39 @@
-# Enhanced Security Examples and Sample Policies
+# Security Examples - Marty Microservices Framework
 
-This directory contains examples and sample policies for the enhanced security features of the Marty Microservices Framework.
+This directory contains examples demonstrating the **Unified Security Framework** and enhanced security capabilities.
 
-## Contents
+## 🚀 **Updated Examples (Current)**
 
-- **OPA Policies**: Open Policy Agent (OPA) Rego policies for RBAC and ABAC
-- **Oso Policies**: Oso Polar policies for fine-grained authorization
-- **Vault Configuration**: HashiCorp Vault setup and configuration examples
-- **Integration Examples**: Complete integration examples with API Gateway and gRPC
+### ✅ `test_unified_framework.py`
+Simple test showing the unified security framework initialization and basic authorization check.
+
+### ✅ `basic_security_example.py`
+FastAPI integration example using the unified security framework with RBAC policies.
+
+### ✅ `unified_security_demo.py`
+Comprehensive demonstration of unified security capabilities including RBAC, ABAC, service mesh security, and compliance scanning.
+
+### ✅ `enhanced_service_mesh_demo.py`
+Service mesh integration with real-time security policy enforcement and monitoring.
+
+## ⚠️ **Legacy Examples (Need Updates)**
+
+### `complete_integration_example.py`
+**Status:** Uses deprecated APIs - needs migration to Unified Security Framework
+
+## 🔄 **Migration Summary**
+
+The security framework has been **consolidated** into a unified architecture:
+
+**Before (Deprecated):**
+- Multiple competing implementations
+- Scattered security components
+- Complex integration patterns
+
+**After (Unified):**
+- Single `UnifiedSecurityFramework`
+- Consistent API across all security operations
+- Pluggable identity providers and policy engines
 - **Policy Templates**: Reusable policy templates for common scenarios
 
 ## Quick Start

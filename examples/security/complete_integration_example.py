@@ -2,7 +2,12 @@
 Complete integration example showing how to use the enhanced security features
 of the Marty Microservices Framework.
 
-This example demonstrates:
+⚠️  NOTE: This example needs to be updated to use the Unified Security Framework.
+    Many of the imports and APIs used here have been deprecated in favor of the
+    new unified approach. Please see basic_security_example.py and
+    unified_security_demo.py for updated examples.
+
+This example demonstrates (deprecated):
 1. HashiCorp Vault integration for secret management
 2. Policy-based authorization with multiple engines
 3. API Gateway security middleware
@@ -20,15 +25,6 @@ import grpc
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import HTTPBearer
 
-from marty_msf.security.authorization import (
-    AuthorizationRequest,
-    PolicyEngineEnum,
-    PolicyManager,
-)
-from marty_msf.security.gateway_integration import (
-    EnhancedSecurityMiddleware,
-    create_enhanced_security_middleware,
-)
 from marty_msf.security.grpc_interceptors import (
     create_authentication_interceptor,
     create_authorization_interceptor,
@@ -45,6 +41,13 @@ from marty_msf.security.secrets import (
     VaultAuthMethod,
     VaultClient,
     VaultConfig,
+)
+from marty_msf.security.unified_framework import (
+    SecurityContext,
+    SecurityPolicyType,
+    SecurityPrincipal,
+    UnifiedSecurityFramework,
+    create_unified_security_framework,
 )
 
 # Setup logging
