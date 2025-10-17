@@ -659,6 +659,55 @@ async def process_request(request: RequestModel):
 
         return self.generate_service("production", name, features=features_list)
 
+    def generate_service_mesh_deployment(
+        self,
+        project_name: str,
+        output_dir: str,
+        domain: str = "example.com",
+        mesh_type: str = "istio",
+        **options: Any
+    ) -> dict[str, str]:
+        """
+        Generate service mesh deployment scripts and configurations for a project.
+
+        Args:
+            project_name: Name of the project
+            output_dir: Output directory for generated files
+            domain: Domain name for the project
+            mesh_type: Service mesh type (istio/linkerd)
+            **options: Additional options like namespace, cluster_name, etc.
+
+        Returns:
+            Dictionary with paths to generated files
+        """
+        try:
+            # Import the service mesh manager
+            from ..framework.service_mesh import ServiceMeshManager
+
+            # Create manager and generate deployment files
+            manager = ServiceMeshManager()
+
+            generated_files = manager.generate_deployment_script(
+                project_name=project_name,
+                output_dir=output_dir,
+                domain=domain,
+                mesh_type=mesh_type
+            )
+
+            print(f"✅ Generated service mesh deployment for {project_name}")
+            print(f"   📄 Deployment script: {generated_files['deployment_script']}")
+            print(f"   🔧 Plugin template: {generated_files['plugin_template']}")
+            print(f"   📁 Manifests directory: {generated_files['manifests_dir']}")
+
+            return generated_files
+
+        except ImportError:
+            print("❌ ServiceMeshManager not available - service mesh framework not properly installed")
+            return {}
+        except Exception as e:
+            print(f"❌ Failed to generate service mesh deployment: {e}")
+            return {}
+
     def _update_main_py_with_service(self, plugin_path: Path, service_name: str) -> None:
         """Update main.py to include the new service routes."""
         main_py_path = plugin_path / "main.py"

@@ -2263,13 +2263,14 @@ scrape_configs:
 
 # Import and add migration commands
 try:
-    from marty_msf.cli.commands import migrate, plugin, service
+    from marty_msf.cli.commands import migrate, plugin, service, service_mesh
 
     cli.add_command(migrate)
     cli.add_command(plugin)
     cli.add_command(service)
+    cli.add_command(service_mesh)
 except ImportError:
-    # Migration, plugin, and service commands not available
+    # Migration, plugin, service, and service mesh commands not available
     pass
 
 # Add API documentation and contract testing commands

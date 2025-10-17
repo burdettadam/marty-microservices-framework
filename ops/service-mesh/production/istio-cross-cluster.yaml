@@ -1,0 +1,99 @@
+---
+# East-West Gateway for Cross-cluster Communication
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: eastwest
+  namespace: istio-system
+spec:
+  revision: ""
+  components:
+    ingressGateways:
+      - name: istio-eastwestgateway
+        label:
+          istio: eastwestgateway
+          app: istio-eastwestgateway
+        enabled: true
+        k8s:
+          env:
+            - name: ISTIO_META_ROUTER_MODE
+              value: "sni-dnat"
+            - name: ISTIO_META_REQUESTED_NETWORK_VIEW
+              value: marty-network
+          service:
+            type: LoadBalancer
+            annotations:
+              service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+              service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+            ports:
+              - port: 15021
+                targetPort: 15021
+                name: status-port
+              - port: 15443
+                targetPort: 15443
+                name: tls
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+
+---
+# Cross-cluster Gateway Configuration
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: cross-network-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: eastwestgateway
+  servers:
+    - port:
+        number: 15443
+        name: tls
+        protocol: TLS
+      tls:
+        mode: ISTIO_MUTUAL
+      hosts:
+        - "*.local"
+
+---
+# Expose Services for Cross-cluster Discovery
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: cross-cluster-services
+  namespace: istio-system
+spec:
+  hosts:
+  - marty-services.local
+  gateways:
+  - cross-network-gateway
+  tls:
+  - match:
+    - port: 15443
+      sniHosts:
+      - marty-services.local
+    route:
+    - destination:
+        host: istio-eastwestgateway.istio-system.svc.cluster.local
+        port:
+          number: 15443
+
+---
+# Destination Rule for Cross-cluster Communication
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: cross-cluster-destination
+  namespace: istio-system
+spec:
+  host: "*.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+  exportTo:
+  - "*"

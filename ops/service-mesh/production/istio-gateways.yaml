@@ -1,0 +1,299 @@
+---
+# Production Gateway Configuration
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: marty-msf-gateway
+  namespace: microservice-framework
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  # HTTPS with TLS termination
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: marty-msf-tls-secret
+    hosts:
+    - "api.marty-msf.local"
+    - "*.marty-msf.local"
+
+  # HTTP redirect to HTTPS
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "api.marty-msf.local"
+    - "*.marty-msf.local"
+    tls:
+      httpsRedirect: true
+
+---
+# API Gateway Virtual Service
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: api-gateway-vs
+  namespace: microservice-framework
+spec:
+  hosts:
+  - "api.marty-msf.local"
+  gateways:
+  - marty-msf-gateway
+  http:
+  # Health checks bypass authentication
+  - match:
+    - uri:
+        prefix: "/health"
+    - uri:
+        prefix: "/ready"
+    - uri:
+        prefix: "/metrics"
+    route:
+    - destination:
+        host: api-gateway.microservice-framework.svc.cluster.local
+        port:
+          number: 8080
+    corsPolicy:
+      allowOrigins:
+      - exact: "https://app.marty-msf.local"
+      allowMethods:
+      - GET
+      allowHeaders:
+      - x-request-id
+
+  # API v1 routes with authentication
+  - match:
+    - uri:
+        prefix: "/api/v1"
+    route:
+    - destination:
+        host: api-gateway.microservice-framework.svc.cluster.local
+        port:
+          number: 8080
+    headers:
+      request:
+        add:
+          x-forwarded-proto: https
+          x-forwarded-port: "443"
+    corsPolicy:
+      allowOrigins:
+      - regex: "https://.*\\.marty-msf\\.local"
+      allowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+      allowHeaders:
+      - authorization
+      - content-type
+      - x-request-id
+      - x-correlation-id
+      maxAge: 86400s
+
+  # gRPC-Web support
+  - match:
+    - uri:
+        prefix: "/grpc"
+    - headers:
+        content-type:
+          regex: "application/grpc.*"
+    route:
+    - destination:
+        host: api-gateway.microservice-framework.svc.cluster.local
+        port:
+          number: 9090
+
+---
+# Egress Gateway for External Services
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: egress-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: egressgateway
+  servers:
+  # External HTTPS services
+  - port:
+      number: 443
+      name: tls-egress
+      protocol: TLS
+    tls:
+      mode: PASSTHROUGH
+    hosts:
+    - "*.googleapis.com"
+    - "*.amazonaws.com"
+    - "*.azure.com"
+    - "auth0.com"
+    - "*.auth0.com"
+
+---
+# External Service Entries
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: external-apis
+  namespace: microservice-framework
+spec:
+  hosts:
+  - googleapis.com
+  - "*.googleapis.com"
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: external-auth
+  namespace: microservice-framework
+spec:
+  hosts:
+  - auth0.com
+  - "*.auth0.com"
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+
+---
+# Virtual Service for Egress Traffic
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: egress-external-apis
+  namespace: microservice-framework
+spec:
+  hosts:
+  - googleapis.com
+  - "*.googleapis.com"
+  gateways:
+  - mesh
+  - istio-system/egress-gateway
+  http:
+  # Direct from mesh
+  - match:
+    - gateways:
+      - mesh
+      port: 80
+    route:
+    - destination:
+        host: istio-egressgateway.istio-system.svc.cluster.local
+        port:
+          number: 443
+      weight: 100
+  # From egress gateway
+  - match:
+    - gateways:
+      - istio-system/egress-gateway
+      port: 443
+    route:
+    - destination:
+        host: googleapis.com
+        port:
+          number: 443
+      weight: 100
+
+---
+# TLS Configuration for External Services
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: external-tls
+  namespace: microservice-framework
+spec:
+  host: "*.googleapis.com"
+  trafficPolicy:
+    tls:
+      mode: SIMPLE
+      sni: "*.googleapis.com"
+
+---
+# Monitoring and Observability Gateway
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: observability-gateway
+  namespace: observability
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: observability-tls-secret
+    hosts:
+    - "monitoring.marty-msf.local"
+    - "tracing.marty-msf.local"
+    - "logging.marty-msf.local"
+
+---
+# Observability Virtual Service
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: observability-vs
+  namespace: observability
+spec:
+  hosts:
+  - "monitoring.marty-msf.local"
+  - "tracing.marty-msf.local"
+  - "logging.marty-msf.local"
+  gateways:
+  - observability-gateway
+  http:
+  # Prometheus/Grafana
+  - match:
+    - uri:
+        prefix: "/"
+      headers:
+        host:
+          exact: "monitoring.marty-msf.local"
+    route:
+    - destination:
+        host: grafana.observability.svc.cluster.local
+        port:
+          number: 3000
+
+  # Jaeger
+  - match:
+    - uri:
+        prefix: "/"
+      headers:
+        host:
+          exact: "tracing.marty-msf.local"
+    route:
+    - destination:
+        host: jaeger-query.observability.svc.cluster.local
+        port:
+          number: 16686
+
+  # Logs (ELK/Loki)
+  - match:
+    - uri:
+        prefix: "/"
+      headers:
+        host:
+          exact: "logging.marty-msf.local"
+    route:
+    - destination:
+        host: kibana.observability.svc.cluster.local
+        port:
+          number: 5601

@@ -1,0 +1,133 @@
+---
+# Production Kustomization for Istio Service Mesh
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: istio-system
+
+# Core Istio resources
+resources:
+  - istio-production.yaml
+  - istio-security.yaml
+  - istio-traffic-management.yaml
+  - istio-gateways.yaml
+
+# Include cross-cluster resources if multi-cluster is enabled
+# Uncomment the following line for multi-cluster deployments
+# - istio-cross-cluster.yaml
+
+# Configuration transformations
+commonLabels:
+  app.kubernetes.io/name: istio
+  app.kubernetes.io/instance: production
+  app.kubernetes.io/part-of: marty-service-mesh
+  app.kubernetes.io/managed-by: kustomize
+
+commonAnnotations:
+  marty.io/service-mesh: istio
+  marty.io/environment: production
+  marty.io/managed: "true"
+
+# Configuration generator for environment-specific settings
+configMapGenerator:
+  - name: istio-mesh-config
+    literals:
+      - CLUSTER_NAME=marty-production
+      - NETWORK_NAME=marty-prod-network
+      - MESH_TYPE=istio
+      - ENABLE_MTLS=true
+      - ENABLE_OBSERVABILITY=true
+
+# Secret generator for TLS certificates
+secretGenerator:
+  - name: marty-msf-tls-secret
+    type: kubernetes.io/tls
+    files:
+      - tls.crt=certs/api.marty-msf.local.crt
+      - tls.key=certs/api.marty-msf.local.key
+    options:
+      disableNameSuffixHash: true
+
+  - name: observability-tls-secret
+    type: kubernetes.io/tls
+    files:
+      - tls.crt=certs/monitoring.marty-msf.local.crt
+      - tls.key=certs/monitoring.marty-msf.local.key
+    options:
+      disableNameSuffixHash: true
+
+# Patches for environment-specific modifications
+patchesStrategicMerge:
+  - patches/resource-limits.yaml
+  - patches/cloud-provider.yaml
+
+# JSON patches for fine-grained modifications
+patchesJson6902:
+  - target:
+      group: install.istio.io
+      version: v1alpha1
+      kind: IstioOperator
+      name: marty-msf-production
+    path: patches/multicluster.yaml
+
+# Variable substitution
+replacements:
+  - source:
+      kind: ConfigMap
+      name: istio-mesh-config
+      fieldPath: data.CLUSTER_NAME
+    targets:
+      - select:
+          kind: IstioOperator
+        fieldPaths:
+          - spec.values.global.multiCluster.clusterName
+
+  - source:
+      kind: ConfigMap
+      name: istio-mesh-config
+      fieldPath: data.NETWORK_NAME
+    targets:
+      - select:
+          kind: IstioOperator
+        fieldPaths:
+          - spec.values.global.network
+
+# Helm chart generator for additional components
+helmCharts:
+  - name: istio-base
+    version: 1.20.0
+    repo: https://istio-release.storage.googleapis.com/charts
+    releaseName: istio-base
+    namespace: istio-system
+    valuesInline:
+      defaultRevision: default
+
+  - name: istiod
+    version: 1.20.0
+    repo: https://istio-release.storage.googleapis.com/charts
+    releaseName: istiod
+    namespace: istio-system
+    valuesInline:
+      revision: ""
+      pilot:
+        env:
+          PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
+          PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY: true
+
+  - name: istio-ingress
+    version: 1.20.0
+    repo: https://istio-release.storage.googleapis.com/charts
+    releaseName: istio-ingressgateway
+    namespace: istio-system
+    valuesInline:
+      service:
+        type: LoadBalancer
+        annotations:
+          service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+
+# Images to use (with specific versions for production)
+images:
+  - name: docker.io/istio/pilot
+    newTag: 1.20.0
+  - name: docker.io/istio/proxyv2
+    newTag: 1.20.0

@@ -1,0 +1,288 @@
+---
+# Linkerd Traffic Management with ServiceProfile
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: framework-http-services.microservice-framework.svc.cluster.local
+  namespace: microservice-framework
+spec:
+  routes:
+  # Health check routes - fast timeout
+  - name: health_check
+    condition:
+      method: GET
+      pathRegex: "/(health|ready|metrics)"
+    timeout: 5s
+    retryBudget:
+      retryRatio: 0.2
+      minRetriesPerSecond: 10
+      ttl: 10s
+    responseClasses:
+    - condition:
+        status:
+          min: 200
+          max: 299
+      isFailure: false
+
+  # API routes with retry logic
+  - name: api_routes
+    condition:
+      method: GET|POST|PUT|DELETE
+      pathRegex: "/api/v1/.*"
+    timeout: 30s
+    retryBudget:
+      retryRatio: 0.3
+      minRetriesPerSecond: 5
+      ttl: 30s
+    responseClasses:
+    - condition:
+        status:
+          min: 500
+          max: 599
+      isFailure: true
+    - condition:
+        status:
+          min: 200
+          max: 499
+      isFailure: false
+
+---
+# gRPC Service Profile
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: framework-grpc-services.microservice-framework.svc.cluster.local
+  namespace: microservice-framework
+spec:
+  routes:
+  # gRPC health check
+  - name: grpc_health
+    condition:
+      method: "*"
+      pathRegex: "/grpc.health.v1.Health/.*"
+    timeout: 10s
+    retryBudget:
+      retryRatio: 0.1
+      minRetriesPerSecond: 10
+      ttl: 10s
+
+  # gRPC service methods
+  - name: grpc_service_calls
+    condition:
+      method: "*"
+      pathRegex: "/.*"
+    timeout: 60s
+    retryBudget:
+      retryRatio: 0.2
+      minRetriesPerSecond: 3
+      ttl: 60s
+    responseClasses:
+    - condition:
+        status:
+          min: 0
+          max: 0  # gRPC OK
+      isFailure: false
+    - condition:
+        status:
+          min: 14
+          max: 14  # gRPC UNAVAILABLE
+      isFailure: true
+
+---
+# Traffic Split for Canary Deployments
+apiVersion: split.smi-spec.io/v1alpha1
+kind: TrafficSplit
+metadata:
+  name: framework-service-split
+  namespace: microservice-framework
+spec:
+  service: framework-service
+  backends:
+  - service: framework-service-stable
+    weight: 90
+  - service: framework-service-canary
+    weight: 10
+
+---
+# TrafficTarget for Service-to-Service Authorization
+apiVersion: access.smi-spec.io/v1alpha3
+kind: TrafficTarget
+metadata:
+  name: framework-services-access
+  namespace: microservice-framework
+spec:
+  destination:
+    kind: ServiceAccount
+    name: framework-service
+    namespace: microservice-framework
+  rules:
+  - kind: HTTPRouteGroup
+    name: framework-routes
+    matches:
+    - api_routes
+    - health_check
+  sources:
+  - kind: ServiceAccount
+    name: api-gateway
+    namespace: microservice-framework
+  - kind: ServiceAccount
+    name: framework-service
+    namespace: microservice-framework
+
+---
+# HTTP Route Group for SMI
+apiVersion: specs.smi-spec.io/v1alpha4
+kind: HTTPRouteGroup
+metadata:
+  name: framework-routes
+  namespace: microservice-framework
+spec:
+  matches:
+  - name: api_routes
+    pathRegex: "/api/v1/.*"
+    methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    headers:
+      content-type: "application/json"
+
+  - name: health_check
+    pathRegex: "/(health|ready|metrics)"
+    methods:
+    - GET
+
+---
+# Advanced Load Balancing with TrafficSplit
+apiVersion: split.smi-spec.io/v1alpha1
+kind: TrafficSplit
+metadata:
+  name: region-aware-split
+  namespace: microservice-framework
+  annotations:
+    linkerd.io/load-balancer: "region-aware"
+spec:
+  service: framework-service-lb
+  backends:
+  - service: framework-service-region1
+    weight: 70
+  - service: framework-service-region2
+    weight: 30
+
+---
+# Circuit Breaker via Service Profile
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: external-api.microservice-framework.svc.cluster.local
+  namespace: microservice-framework
+spec:
+  retryBudget:
+    retryRatio: 0.1
+    minRetriesPerSecond: 1
+    ttl: 60s
+  routes:
+  - name: external_call
+    condition:
+      method: "*"
+      pathRegex: ".*"
+    timeout: 10s
+    responseClasses:
+    - condition:
+        status:
+          min: 500
+          max: 599
+      isFailure: true
+    - condition:
+        status:
+          min: 408
+          max: 408
+      isFailure: true
+    - condition:
+        status:
+          min: 429
+          max: 429
+      isFailure: true
+
+---
+# Rate Limiting with External Controller
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rate-limit-config
+  namespace: microservice-framework
+data:
+  config.yaml: |
+    domain: marty-msf
+    descriptors:
+    - key: generic_key
+      value: default
+      rate_limit:
+        unit: minute
+        requests_per_unit: 100
+    - key: user_id
+      rate_limit:
+        unit: minute
+        requests_per_unit: 1000
+    - key: api_key
+      rate_limit:
+        unit: hour
+        requests_per_unit: 10000
+
+---
+# Cross-cluster Service Profile
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: remote-service-marty-remote.linkerd-multicluster.svc.cluster.local
+  namespace: microservice-framework
+spec:
+  routes:
+  - name: cross_cluster_call
+    condition:
+      method: "*"
+      pathRegex: ".*"
+    timeout: 30s
+    retryBudget:
+      retryRatio: 0.1
+      minRetriesPerSecond: 1
+      ttl: 30s
+    responseClasses:
+    - condition:
+        status:
+          min: 200
+          max: 299
+      isFailure: false
+    - condition:
+        status:
+          min: 500
+          max: 599
+      isFailure: true
+
+---
+# Fault Injection for Chaos Testing
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-config
+  namespace: microservice-framework
+  labels:
+    chaos.marty.io/enabled: "true"
+data:
+  fault-injection.yaml: |
+    faults:
+    - name: latency-injection
+      selector:
+        app: framework-service
+      fault:
+        delay:
+          percentage: 1.0  # 1% of requests
+          fixedDelay: 2s
+    - name: error-injection
+      selector:
+        app: framework-service
+      fault:
+        abort:
+          percentage: 0.5  # 0.5% of requests
+          httpStatus: 503

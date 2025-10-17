@@ -109,8 +109,7 @@ setup_istio() {
     istioctl install --set values.defaultRevision=default -y
 
     # Apply custom configuration
-    kubectl apply -f "$PROJECT_ROOT/k8s/service-mesh/istio-base.yaml"
-    kubectl apply -f "$PROJECT_ROOT/service-mesh/istio/"
+    kubectl apply -f "$PROJECT_ROOT/ops/service-mesh/production/istio-production.yaml"
 
     # Wait for Istio to be ready
     kubectl wait --for=condition=Available deployment/istiod -n istio-system --timeout=300s
@@ -139,7 +138,7 @@ setup_linkerd() {
     linkerd viz install | kubectl apply -f -
 
     # Apply custom configuration
-    kubectl apply -f "$PROJECT_ROOT/service-mesh/linkerd/"
+    kubectl apply -f "$PROJECT_ROOT/ops/service-mesh/production/linkerd-production.yaml"
 
     # Wait for Linkerd to be ready
     kubectl wait --for=condition=Available deployment/linkerd-controller -n linkerd --timeout=300s

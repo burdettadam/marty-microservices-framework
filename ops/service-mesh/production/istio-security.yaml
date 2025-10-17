@@ -1,0 +1,208 @@
+---
+# Comprehensive Security Policies for Production
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-strict-mtls
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Framework Services mTLS Policy
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: framework-services-mtls
+  namespace: microservice-framework
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Authorization Policy - Default Deny
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: default-deny
+  namespace: istio-system
+spec:
+  {}  # Empty policy means deny all
+
+---
+# Authorization Policy - Framework Services
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: framework-services-authz
+  namespace: microservice-framework
+spec:
+  rules:
+  # Allow internal service-to-service communication
+  - from:
+    - source:
+        namespaces: ["microservice-framework"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"]
+
+  # Allow ingress gateway access
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+
+  # Allow cross-cluster access
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+        principals: ["cluster.local/ns/istio-system/sa/istio-eastwestgateway-service-account"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+
+---
+# Authorization Policy - Observability Access
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: observability-access
+  namespace: microservice-framework
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: observability
+  rules:
+  # Allow Prometheus scraping
+  - from:
+    - source:
+        namespaces: ["observability", "istio-system"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics", "/health", "/ready"]
+
+  # Allow Jaeger tracing
+  - from:
+    - source:
+        namespaces: ["observability"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/api/traces"]
+
+---
+# JWT Authentication Policy
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: microservice-framework
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/requires-auth: "true"
+  jwtRules:
+  - issuer: "https://auth.marty-msf.local"
+    jwksUri: "https://auth.marty-msf.local/.well-known/jwks.json"
+    audiences:
+    - "marty-microservices"
+    forwardOriginalToken: true
+    fromHeaders:
+    - name: "Authorization"
+      prefix: "Bearer "
+    - name: "X-Auth-Token"
+
+---
+# Authorization Policy for JWT-protected Services
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: jwt-authz
+  namespace: microservice-framework
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/requires-auth: "true"
+  rules:
+  - from:
+    - source:
+        requestPrincipals: ["https://auth.marty-msf.local/*"]
+    when:
+    - key: request.auth.claims[role]
+      values: ["admin", "user", "service"]
+
+---
+# Network Policy for Additional Security Layer
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: framework-network-policy
+  namespace: microservice-framework
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from istio-system (gateways)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+  # Allow ingress from same namespace
+  - from:
+    - podSelector: {}
+  # Allow ingress from observability
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: observability
+    ports:
+    - protocol: TCP
+      port: 9000  # metrics port
+  egress:
+  # Allow egress to istio-system
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+  # Allow egress to same namespace
+  - to:
+    - podSelector: {}
+  # Allow egress to observability
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: observability
+  # Allow egress to DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow egress to external HTTPS (for JWKS, etc)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Security Policy for Cross-cluster mTLS
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: cross-cluster-mtls
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      istio: eastwestgateway
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    15443:
+      mode: STRICT
