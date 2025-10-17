@@ -508,7 +508,9 @@ async def real_redis_client(redis_container):
 @pytest.fixture
 async def real_event_bus(test_service_name: str):
     """Provide a real event bus for E2E tests."""
-    from marty_msf.framework.events.event_bus import InMemoryEventBus
+    from marty_msf.framework.events.enhanced_event_bus import (
+        EnhancedEventBus as InMemoryEventBus,
+    )
 
     # Create in-memory event bus for E2E tests
     event_bus = InMemoryEventBus()

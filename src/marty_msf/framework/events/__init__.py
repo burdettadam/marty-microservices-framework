@@ -9,54 +9,63 @@ This package provides:
 - Unified event publishing utilities for audit, notification, and domain events
 """
 
-# New unified event publishing components
+# Unified event publishing components
 from .config import EventConfig, EventPublisherConfig
 from .decorators import audit_event, domain_event, publish_on_error, publish_on_success
-from .event_bus import (
-    EVENT_REGISTRY,
+
+# Enhanced event bus - the primary event system
+from .enhanced_event_bus import (
     BaseEvent,
-    DomainEvent,
-    Event,
+    DeadLetterEvent,
+    DeliveryGuarantee,
+    EnhancedEventBus,
+    EventBackendType,
     EventBus,
+    EventFilter,
     EventHandler,
     EventMetadata,
-    EventRegistry,
+    EventPriority,
     EventStatus,
-    InMemoryEventBus,
+    KafkaConfig,
     OutboxEvent,
-    SystemEvent,
-    TransactionalOutboxEventBus,
-    event_transaction,
-    publish_domain_event,
-    publish_system_event,
-    register_event,
+    PluginEventHandler,
+    enhanced_event_bus_context,
 )
+
+# Enhanced event types
+from .enhanced_events import EVENT_REGISTRY, DomainEvent, EventRegistry
+from .enhanced_events import GenericEvent as Event
+from .enhanced_events import SystemEvent, register_event
 from .exceptions import EventPublishingError
 from .publisher import EventPublisher, get_event_publisher
-from .types import AuditEventType, EventPriority, NotificationEventType
+from .types import AuditEventType, NotificationEventType
 
 # Create aliases for commonly used types
 # Event class is now concrete and exported directly
 
 __all__ = [
-    # Existing event bus components
-    "EVENT_REGISTRY",
+    # Enhanced event bus components
     "BaseEvent",
-    "DomainEvent",
-    "Event",
     "EventBus",
+    "EnhancedEventBus",
     "EventHandler",
     "EventMetadata",
-    "EventRegistry",
     "EventStatus",
-    "InMemoryEventBus",
+    "EventPriority",
+    "DeliveryGuarantee",
+    "EventFilter",
+    "PluginEventHandler",
     "OutboxEvent",
+    "DeadLetterEvent",
+    "enhanced_event_bus_context",
+    "KafkaConfig",
+    "EventBackendType",
+    # Enhanced event types
+    "EVENT_REGISTRY",
+    "DomainEvent",
+    "Event",
+    "EventRegistry",
     "SystemEvent",
-    "TransactionalOutboxEventBus",
-    "event_transaction",
-    "publish_domain_event",
-    "publish_system_event",
-    "register_event",
     # New unified event publishing components
     "EventConfig",
     "EventPublisherConfig",

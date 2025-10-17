@@ -95,6 +95,52 @@ The framework supports plugin-based configuration loading that enables modular a
 4. **Namespace Isolation**: Plugin configurations are namespaced to prevent conflicts
 5. **Runtime Plugin Management**: Dynamic plugin enabling/disabling without framework restart
 
+#### Enhanced Event Bus & Messaging (`src/framework/events/`)
+
+The MMF provides a comprehensive event-driven architecture with enterprise-grade features:
+
+**Enhanced Event Bus System:**
+- **Event Persistence**: Transactional outbox pattern for guaranteed event delivery
+- **Dead Letter Queue**: Automatic handling of failed events with retry mechanisms
+- **Event Routing**: Intelligent event filtering and routing based on metadata
+- **Circuit Breaker**: Fault tolerance for event handlers with automatic recovery
+- **Event Replay**: Ability to replay events from persistence layer for recovery
+- **Multiple Backends**: Support for in-memory, database, and Kafka backends
+
+**Event Types:**
+- **Domain Events**: Business domain-specific events with aggregate context
+- **Integration Events**: Cross-service communication events
+- **System Events**: Infrastructure and operational events
+- **Plugin Events**: Plugin lifecycle and communication events
+- **Workflow Events**: Workflow orchestration and state management events
+
+**Plugin Event Subscription:**
+- **Fault-Tolerant Subscriptions**: Circuit breaker and retry mechanisms for plugin handlers
+- **Event Filtering**: Advanced filtering based on event types, sources, tags, and custom predicates
+- **Subscription Management**: Dynamic subscription/unsubscription with persistence
+- **Health Monitoring**: Plugin health checks and automatic subscription management
+- **Metrics Collection**: Comprehensive metrics for plugin event processing
+
+#### Workflow Engine & Saga Orchestration (`src/framework/workflow/`)
+
+The MMF includes a sophisticated workflow engine supporting long-running business processes:
+
+**Workflow Engine Features:**
+- **Declarative DSL**: Fluent interface for defining complex workflows
+- **Saga Orchestration**: Distributed transaction management with compensation
+- **Step Types**: Action, Decision, Parallel, Wait, and Compensation steps
+- **State Persistence**: Workflow state persistence for recovery and monitoring
+- **Event-Driven Execution**: Integration with event bus for workflow triggers
+- **Timeout Handling**: Configurable timeouts with automatic failure handling
+- **Retry Logic**: Built-in retry mechanisms with exponential backoff
+
+**Saga Pattern Support:**
+- **Compensating Transactions**: Automatic rollback with compensation logic
+- **Forward Recovery**: Failure handling with step-by-step recovery
+- **Parallel Execution**: Concurrent step execution with wait strategies
+- **Decision Points**: Conditional workflow branching based on context
+- **Long-Running Processes**: Support for workflows spanning hours or days
+
 **Plugin Configuration Structure:**
 ```yaml
 # plugins/my-plugin.yaml
