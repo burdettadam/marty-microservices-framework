@@ -849,6 +849,125 @@ def status(mesh_type: str, namespace: str):
         raise click.ClickException("Failed to check service mesh status")
 
 
+@service_mesh.command()
+@click.option(
+    "--project-name",
+    required=True,
+    help="Name of the project to generate service mesh deployment for",
+)
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
+    required=True,
+    help="Output directory for generated deployment files",
+)
+@click.option(
+    "--domain",
+    default="example.com",
+    help="Domain name for the project (default: example.com)",
+)
+@click.option(
+    "--mesh-type",
+    type=click.Choice(["istio", "linkerd"]),
+    default="istio",
+    help="Service mesh type to configure (default: istio)",
+)
+@click.option(
+    "--namespace",
+    help="Target namespace (defaults to project name)",
+)
+def generate(project_name: str, output_dir: Path, domain: str, mesh_type: str, namespace: str):
+    """Generate service mesh deployment scripts and manifests for a project."""
+    console.print(f"🚀 Generating service mesh deployment for project: {project_name}", style="bold blue")
+
+    # Import the service mesh manager
+    try:
+        from ..framework.service_mesh import ServiceMeshManager
+    except ImportError:
+        console.print("❌ ServiceMeshManager not available", style="bold red")
+        raise click.ClickException("Service mesh framework not properly installed")
+
+    # Use project name as namespace if not specified
+    if not namespace:
+        namespace = project_name.lower().replace('_', '-')
+
+    try:
+        # Create service mesh manager
+        manager = ServiceMeshManager()
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            # Generate deployment files
+            task = progress.add_task("Generating deployment scripts...", total=None)
+
+            generated_files = manager.generate_deployment_script(
+                project_name=project_name,
+                output_dir=str(output_dir),
+                domain=domain,
+                mesh_type=mesh_type
+            )
+
+            progress.update(task, completed=True)
+
+        # Display results
+        console.print("✅ Service mesh deployment generated successfully!", style="bold green")
+        console.print()
+
+        # Show generated files
+        table = Table(title="Generated Files")
+        table.add_column("Component", style="cyan")
+        table.add_column("Path", style="yellow")
+        table.add_column("Description", style="green")
+
+        table.add_row(
+            "Deployment Script",
+            generated_files["deployment_script"],
+            "Main service mesh deployment script"
+        )
+        table.add_row(
+            "Plugin Template",
+            generated_files["plugin_template"],
+            "Customizable plugin extensions"
+        )
+        table.add_row(
+            "Kubernetes Manifests",
+            generated_files["manifests_dir"],
+            "Production-ready service mesh configurations"
+        )
+
+        console.print(table)
+        console.print()
+
+        # Show configuration details
+        console.print(Panel.fit(
+            f"[bold]Project Configuration[/bold]\n\n"
+            f"• Project Name: [cyan]{project_name}[/cyan]\n"
+            f"• Domain: [cyan]{domain}[/cyan]\n"
+            f"• Mesh Type: [cyan]{mesh_type}[/cyan]\n"
+            f"• Namespace: [cyan]{namespace}[/cyan]\n"
+            f"• Output Directory: [cyan]{output_dir}[/cyan]",
+            title="📋 Configuration Summary"
+        ))
+
+        # Show next steps
+        console.print()
+        console.print("[bold blue]Next Steps:[/bold blue]")
+        console.print("1. Review and customize the plugin template:")
+        console.print(f"   [cyan]edit {generated_files['plugin_template']}[/cyan]")
+        console.print("2. Deploy the service mesh:")
+        console.print(f"   [cyan]cd {output_dir} && ./deploy-service-mesh.sh[/cyan]")
+        console.print("3. Customize for your domain-specific requirements in the plugin file")
+        console.print()
+        console.print("[bold green]🎯 Deployment script is ready for use![/bold green]")
+
+    except Exception as e:
+        console.print(f"❌ Generation failed: {e}", style="bold red")
+        raise click.ClickException(f"Failed to generate service mesh deployment: {e}")
+
+
 def _install_istio(namespace: str, enable_monitoring: bool):
     """Install Istio service mesh."""
     # Check if istioctl is available
@@ -872,15 +991,21 @@ def _install_istio(namespace: str, enable_monitoring: bool):
         check=True
     )
 
-    # Apply MMF-specific configurations
+    # Apply MMF-specific production configurations
     project_root = Path(__file__).parent.parent.parent.parent
-    istio_configs = project_root / "ops" / "service-mesh" / "istio"
+    istio_configs = project_root / "ops" / "service-mesh" / "production"
 
     if istio_configs.exists():
-        subprocess.run(
-            ["kubectl", "apply", "-f", str(istio_configs), "-n", namespace],
-            check=True
-        )
+        # Apply core Istio production manifests
+        for manifest in ["istio-production.yaml", "istio-security.yaml", "istio-traffic-management.yaml", "istio-gateways.yaml"]:
+            manifest_path = istio_configs / manifest
+            if manifest_path.exists():
+                subprocess.run(
+                    ["kubectl", "apply", "-f", str(manifest_path)],
+                    check=True
+                )
+
+    console.print("📋 For complete production setup, use: ops/service-mesh/deploy-production-mesh.sh", style="yellow")
 
 
 def _install_linkerd(namespace: str, enable_monitoring: bool):
@@ -908,15 +1033,21 @@ def _install_linkerd(namespace: str, enable_monitoring: bool):
         check=True
     )
 
-    # Apply MMF-specific configurations
+    # Apply MMF-specific production configurations
     project_root = Path(__file__).parent.parent.parent.parent
-    linkerd_configs = project_root / "ops" / "service-mesh" / "linkerd"
+    linkerd_configs = project_root / "ops" / "service-mesh" / "production"
 
     if linkerd_configs.exists():
-        subprocess.run(
-            ["kubectl", "apply", "-f", str(linkerd_configs), "-n", namespace],
-            check=True
-        )
+        # Apply core Linkerd production manifests
+        for manifest in ["linkerd-production.yaml", "linkerd-security.yaml", "linkerd-traffic-management.yaml"]:
+            manifest_path = linkerd_configs / manifest
+            if manifest_path.exists():
+                subprocess.run(
+                    ["kubectl", "apply", "-f", str(manifest_path)],
+                    check=True
+                )
+
+    console.print("📋 For complete production setup, use: ops/service-mesh/deploy-production-mesh.sh", style="yellow")
 
 
 # Plugin management functionality

@@ -1,0 +1,263 @@
+---
+# Production Linkerd Control Plane Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: linkerd-config
+  namespace: linkerd
+  labels:
+    linkerd.io/control-plane-component: controller
+    config.linkerd.io/global: ""
+data:
+  global: |
+    {
+      "linkerdNamespace": "linkerd",
+      "cniEnabled": true,
+      "version": "stable-2.14.5",
+      "identityContext": {
+        "trustDomain": "cluster.local",
+        "trustAnchorsPem": "",
+        "issuanceLifetime": "24h0m0s",
+        "clockSkewAllowance": "20s"
+      },
+      "autoInjectContext": null,
+      "omitWebhookSideEffects": false,
+      "clusterDomain": "cluster.local",
+      "clusterNetworks": "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+      "proxy": {
+        "proxyImage": {
+          "imageName": "cr.l5d.io/linkerd/proxy",
+          "pullPolicy": "IfNotPresent"
+        },
+        "proxyInitImage": {
+          "imageName": "cr.l5d.io/linkerd/proxy-init",
+          "pullPolicy": "IfNotPresent"
+        },
+        "controlPort": {
+          "port": 4190
+        },
+        "ignoreInboundPorts": [],
+        "ignoreOutboundPorts": [],
+        "inboundPort": {
+          "port": 4143
+        },
+        "adminPort": {
+          "port": 4191
+        },
+        "outboundPort": {
+          "port": 4140
+        },
+        "resource": {
+          "requestCpu": "100m",
+          "requestMemory": "20Mi",
+          "limitCpu": "1",
+          "limitMemory": "250Mi"
+        },
+        "proxyUid": 2102,
+        "logLevel": "warn,linkerd=info",
+        "disableExternalProfiles": false,
+        "proxyVersion": "stable-2.14.5",
+        "proxyInitImageVersion": "v2.2.0",
+        "await": true,
+        "enableExternalProfiles": true,
+        "logFormat": "plain",
+        "shutdownGracePeriod": "PT0S"
+      },
+      "proxyInit": {
+        "ignoreInboundPorts": [],
+        "ignoreOutboundPorts": [],
+        "resource": {
+          "requestCpu": "100m",
+          "requestMemory": "50Mi",
+          "limitCpu": "100m",
+          "limitMemory": "50Mi"
+        },
+        "closeWaitTimeoutSecs": 0,
+        "kubeAPIPort": 8443,
+        "logFormat": "plain",
+        "logLevel": "info",
+        "mode": "init",
+        "redirectMode": "iptables"
+      }
+    }
+
+---
+# Multi-cluster Configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cluster-credentials-marty-remote
+  namespace: linkerd-multicluster
+  labels:
+    linkerd.io/cluster-name: marty-remote
+    mirror.linkerd.io/cluster-name: marty-remote
+type: Opaque
+data:
+  kubeconfig: ${REMOTE_CLUSTER_KUBECONFIG_BASE64}
+
+---
+# Service Mirror for Cross-cluster Discovery
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linkerd-service-mirror-marty-remote
+  namespace: linkerd-multicluster
+  labels:
+    linkerd.io/control-plane-component: service-mirror
+    linkerd.io/control-plane-ns: linkerd
+    mirror.linkerd.io/cluster-name: marty-remote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      linkerd.io/control-plane-component: service-mirror
+      mirror.linkerd.io/cluster-name: marty-remote
+  template:
+    metadata:
+      labels:
+        linkerd.io/control-plane-component: service-mirror
+        linkerd.io/control-plane-ns: linkerd
+        linkerd.io/proxy-deployment: linkerd-service-mirror-marty-remote
+        mirror.linkerd.io/cluster-name: marty-remote
+      annotations:
+        linkerd.io/inject: enabled
+        config.linkerd.io/proxy-version: stable-2.14.5
+    spec:
+      serviceAccountName: linkerd-service-mirror-marty-remote
+      containers:
+      - name: service-mirror
+        image: cr.l5d.io/linkerd/controller:stable-2.14.5
+        args:
+        - service-mirror
+        - -log-level=info
+        - -log-format=plain
+        - -cluster-name=marty-remote
+        - -service-account-name=linkerd-service-mirror-access-default
+        - -namespace=linkerd-multicluster
+        env:
+        - name: LINKERD_DISABLED
+          value: "linkerd-await cannot block the proxy init container"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 50Mi
+          limits:
+            cpu: 1000m
+            memory: 250Mi
+        volumeMounts:
+        - name: config
+          mountPath: /var/lib/linkerd/config
+        - name: kubeconfig
+          mountPath: /var/lib/linkerd/kubeconfig
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: linkerd-config
+      - name: kubeconfig
+        secret:
+          secretName: cluster-credentials-marty-remote
+
+---
+# Gateway for Cross-cluster Communication
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linkerd-gateway
+  namespace: linkerd-multicluster
+  labels:
+    linkerd.io/control-plane-component: linkerd-gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      linkerd.io/control-plane-component: linkerd-gateway
+  template:
+    metadata:
+      labels:
+        linkerd.io/control-plane-component: linkerd-gateway
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      serviceAccountName: linkerd-gateway
+      containers:
+      - name: nginx
+        image: nginx:1.21-alpine
+        ports:
+        - name: mc-gateway
+          containerPort: 4143
+        - name: mc-probe
+          containerPort: 4191
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        resources:
+          requests:
+            cpu: 100m
+            memory: 50Mi
+          limits:
+            cpu: 1000m
+            memory: 250Mi
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: linkerd-gateway-config
+
+---
+# Gateway Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: linkerd-gateway
+  namespace: linkerd-multicluster
+  labels:
+    linkerd.io/control-plane-component: linkerd-gateway
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+spec:
+  type: LoadBalancer
+  selector:
+    linkerd.io/control-plane-component: linkerd-gateway
+  ports:
+  - name: mc-gateway
+    port: 4143
+    targetPort: 4143
+  - name: mc-probe
+    port: 4191
+    targetPort: 4191
+
+---
+# Production Namespaces with Linkerd Injection
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: microservice-framework
+  labels:
+    linkerd.io/inject: enabled
+    config.linkerd.io/admission-webhooks: enabled
+    name: microservice-framework
+  annotations:
+    linkerd.io/inject: enabled
+    config.linkerd.io/skip-inbound-ports: "9092,9093"  # Skip Kafka ports
+    config.linkerd.io/skip-outbound-ports: "443,53"     # Skip HTTPS and DNS
+    config.linkerd.io/proxy-cpu-limit: "1"
+    config.linkerd.io/proxy-memory-limit: "512Mi"
+    config.linkerd.io/proxy-cpu-request: "100m"
+    config.linkerd.io/proxy-memory-request: "128Mi"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+  labels:
+    linkerd.io/inject: enabled
+    config.linkerd.io/admission-webhooks: enabled
+    name: observability
+  annotations:
+    linkerd.io/inject: enabled
+    config.linkerd.io/skip-inbound-ports: "3000,9090,16686,5601"  # Grafana, Prometheus, Jaeger, Kibana
+    config.linkerd.io/proxy-cpu-limit: "500m"
+    config.linkerd.io/proxy-memory-limit: "256Mi"

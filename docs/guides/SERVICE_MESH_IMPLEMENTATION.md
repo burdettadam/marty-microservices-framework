@@ -11,12 +11,12 @@
 ### ✅ Infrastructure Enhancements
 
 #### New Manifest Files Created:
-1. **`ops/service-mesh/istio/circuit-breakers.yaml`** - Comprehensive circuit breaker policies
-2. **`ops/service-mesh/istio/fault-injection.yaml`** - Chaos engineering fault injection
-3. **`ops/service-mesh/istio/retry-policies.yaml`** - Advanced retry with exponential backoff
-4. **`ops/service-mesh/istio/rate-limiting.yaml`** - Request throttling and quota management
-5. **`ops/service-mesh/linkerd/circuit-breakers.yaml`** - Linkerd-specific circuit breaker patterns
-6. **`ops/service-mesh/linkerd/fault-injection.yaml`** - Linkerd fault injection via TrafficSplit
+1. **`ops/service-mesh/production/istio-traffic-management.yaml`** - Comprehensive circuit breaker policies
+2. **`ops/service-mesh/production/istio-traffic-management.yaml`** - Chaos engineering fault injection
+3. **`ops/service-mesh/production/istio-traffic-management.yaml`** - Advanced retry with exponential backoff
+4. **`ops/service-mesh/production/istio-traffic-management.yaml`** - Request throttling and quota management
+5. **`ops/service-mesh/production/linkerd-traffic-management.yaml`** - Linkerd-specific circuit breaker patterns
+6. **`ops/service-mesh/production/linkerd-traffic-management.yaml`** - Linkerd fault injection via TrafficSplit
 
 #### Enhanced CLI Commands:
 - **Service Mesh Install**: `marty service-mesh install --mesh-type [istio|linkerd]`

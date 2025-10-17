@@ -1,0 +1,269 @@
+---
+# Production Traffic Management Policies
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: framework-services-circuit-breaker
+  namespace: microservice-framework
+spec:
+  host: "*.microservice-framework.svc.cluster.local"
+  trafficPolicy:
+    # Connection Pool Settings
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        keepAlive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 64
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        idleTimeout: 90s
+        h2UpgradePolicy: UPGRADE
+        # Request headers size limit
+        headerToAdd:
+        - header:
+            key: x-request-id
+            value: "%REQ(x-request-id)%"
+
+    # Circuit Breaker Configuration
+    outlierDetection:
+      consecutiveGatewayErrors: 3
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+      splitExternalLocalOriginErrors: true
+
+---
+# Virtual Service for Advanced Routing
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: framework-services-routing
+  namespace: microservice-framework
+spec:
+  hosts:
+  - "*.microservice-framework.svc.cluster.local"
+  http:
+  # Health check bypass
+  - match:
+    - uri:
+        prefix: "/health"
+    - uri:
+        prefix: "/ready"
+    - uri:
+        prefix: "/metrics"
+    route:
+    - destination:
+        host: "*.microservice-framework.svc.cluster.local"
+    timeout: 5s
+
+  # API routing with retry policies
+  - match:
+    - uri:
+        prefix: "/api/v1"
+    route:
+    - destination:
+        host: "*.microservice-framework.svc.cluster.local"
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: "gateway-error,connect-failure,refused-stream"
+      retryRemoteLocalities: true
+    fault:
+      delay:
+        percentage:
+          value: 0.1  # 0.1% of requests
+        fixedDelay: 5s
+    timeout: 30s
+
+  # gRPC routing
+  - match:
+    - headers:
+        content-type:
+          regex: "application/grpc.*"
+    route:
+    - destination:
+        host: "*.microservice-framework.svc.cluster.local"
+    retries:
+      attempts: 3
+      perTryTimeout: 15s
+      retryOn: "reset,connect-failure,refused-stream"
+    timeout: 60s
+
+---
+# Rate Limiting with EnvoyFilter
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: rate-limiting
+  namespace: microservice-framework
+spec:
+  configPatches:
+  # HTTP filter configuration
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.filters.network.http_connection_manager"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.local_ratelimit
+        typed_config:
+          "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+          type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+          value:
+            stat_prefix: local_rate_limiter
+            token_bucket:
+              max_tokens: 1000
+              tokens_per_fill: 500
+              fill_interval: 60s
+            filter_enabled:
+              runtime_key: local_rate_limit_enabled
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
+            filter_enforced:
+              runtime_key: local_rate_limit_enforced
+              default_value:
+                numerator: 100
+                denominator: HUNDRED
+            response_headers_to_add:
+            - append_action: OVERWRITE_IF_EXISTS_OR_ADD
+              header:
+                key: x-local-rate-limit
+                value: 'true'
+
+---
+# Fault Injection for Chaos Engineering
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: chaos-engineering
+  namespace: microservice-framework
+  labels:
+    chaos.marty.io/enabled: "true"
+spec:
+  hosts:
+  - "*.microservice-framework.svc.cluster.local"
+  http:
+  - match:
+    - headers:
+        x-chaos-test:
+          exact: "delay"
+    fault:
+      delay:
+        percentage:
+          value: 100
+        fixedDelay: 2s
+    route:
+    - destination:
+        host: "*.microservice-framework.svc.cluster.local"
+
+  - match:
+    - headers:
+        x-chaos-test:
+          exact: "abort"
+    fault:
+      abort:
+        percentage:
+          value: 100
+        httpStatus: 503
+    route:
+    - destination:
+        host: "*.microservice-framework.svc.cluster.local"
+
+---
+# Load Balancing Configuration
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: framework-load-balancing
+  namespace: microservice-framework
+spec:
+  host: "*.microservice-framework.svc.cluster.local"
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+      localityLbSetting:
+        enabled: true
+        distribute:
+        - from: "region1/zone1/*"
+          to:
+            "region1/zone1/*": 80
+            "region1/zone2/*": 20
+        failover:
+        - from: region1
+          to: region2
+
+    # Health Check Configuration
+    healthCheck:
+      path: /health
+      port: 8080
+      intervalDuration: 10s
+      timeoutDuration: 3s
+      unhealthyThreshold: 3
+      healthyThreshold: 2
+
+---
+# Traffic Splitting for Canary Deployments
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: canary-deployment
+  namespace: microservice-framework
+  labels:
+    deployment.marty.io/strategy: "canary"
+spec:
+  hosts:
+  - "*.microservice-framework.svc.cluster.local"
+  http:
+  # Route 95% traffic to stable version
+  - match:
+    - headers:
+        x-canary:
+          exact: "false"
+    route:
+    - destination:
+        host: "*.microservice-framework.svc.cluster.local"
+        subset: stable
+      weight: 95
+    - destination:
+        host: "*.microservice-framework.svc.cluster.local"
+        subset: canary
+      weight: 5
+
+  # Route canary traffic to canary version
+  - match:
+    - headers:
+        x-canary:
+          exact: "true"
+    route:
+    - destination:
+        host: "*.microservice-framework.svc.cluster.local"
+        subset: canary
+
+---
+# Destination Rule for Canary Subsets
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: canary-subsets
+  namespace: microservice-framework
+spec:
+  host: "*.microservice-framework.svc.cluster.local"
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+  - name: canary
+    labels:
+      version: canary

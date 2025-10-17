@@ -1,0 +1,280 @@
+---
+# Production-grade Istio Operator with Multi-cluster Support
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: marty-msf-production
+  namespace: istio-system
+  labels:
+    marty.io/managed: "true"
+    marty.io/component: "service-mesh"
+spec:
+  revision: "stable"
+  values:
+    global:
+      meshID: marty-production-mesh
+      multiCluster:
+        clusterName: ${CLUSTER_NAME:-marty-primary}
+      network: ${NETWORK_NAME:-marty-network}
+
+      # Security Configuration
+      jwtPolicy: third-party-jwt
+
+      # Observability Integration
+      tracer:
+        zipkin:
+          address: jaeger-collector.observability:9411
+      proxy:
+        tracer: "zipkin"
+        # Enhanced proxy configuration
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 2000m
+            memory: 1Gi
+        # Global proxy settings
+        holdApplicationUntilProxyStarts: true
+        logLevel: warning
+        componentLogLevel: "misc:error"
+
+      # Networking Configuration
+      meshNetworks:
+        marty-network:
+          endpoints:
+          - fromRegistry: "marty-primary"
+          gateways:
+          - address: 0.0.0.0
+            port: 15443
+
+      # Locality and Load Balancing
+      localityLbSetting:
+        enabled: true
+        distribute:
+        - from: "region1/zone1/*"
+          to:
+            "region1/zone1/*": 80
+            "region1/zone2/*": 20
+        failover:
+        - from: region1
+          to: region2
+
+  components:
+    # Control Plane Configuration
+    pilot:
+      k8s:
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        env:
+          # Multi-cluster and Service Discovery
+          PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
+          PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY: true
+          PILOT_ENABLE_REMOTE_JWKS_CACHE: true
+
+          # Performance and Reliability
+          PILOT_PUSH_THROTTLE: 100
+          PILOT_MAX_REQUESTS_PER_SECOND: 25
+
+          # Security Features
+          PILOT_ENABLE_REQUEST_ID_VALIDATION: true
+          PILOT_JWT_ENABLE_REMOTE_JWKS: true
+
+          # Observability
+          PILOT_TRACE_SAMPLING: 1.0
+          PILOT_ENABLE_STATUS: true
+
+          # Feature Gates
+          PILOT_ENABLE_HBONE: true
+          PILOT_ENABLE_AMBIENT: false
+
+    # Ingress Gateway Configuration
+    ingressGateways:
+    - name: istio-ingressgateway
+      enabled: true
+      k8s:
+        service:
+          type: LoadBalancer
+          annotations:
+            # Cloud-specific annotations
+            service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+            service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+            service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+            # Azure annotations (commented for reference)
+            # service.beta.kubernetes.io/azure-load-balancer-internal: "false"
+            # GCP annotations (commented for reference)
+            # cloud.google.com/load-balancer-type: "External"
+          ports:
+          - port: 15021
+            targetPort: 15021
+            name: status-port
+            protocol: TCP
+          - port: 80
+            targetPort: 8080
+            name: http2
+            protocol: TCP
+          - port: 443
+            targetPort: 8443
+            name: https
+            protocol: TCP
+          - port: 15443
+            targetPort: 15443
+            name: tls
+            protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 2000m
+            memory: 1Gi
+        hpaSpec:
+          maxReplicas: 10
+          minReplicas: 2
+          metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 80
+
+    # Egress Gateway Configuration
+    egressGateways:
+    - name: istio-egressgateway
+      enabled: true
+      k8s:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 2000m
+            memory: 1Gi
+        hpaSpec:
+          maxReplicas: 5
+          minReplicas: 1
+          metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 80
+
+    # CNI Configuration for Advanced Networking
+    cni:
+      enabled: true
+
+  # Extensions
+  extensionProviders:
+  - name: otel
+    envoyOtelAls:
+      service: opentelemetry-collector.istio-system.svc.cluster.local
+      port: 4317
+  - name: prometheus
+    prometheus: {}
+  - name: jaeger
+    jaeger:
+      service: jaeger-collector.observability.svc.cluster.local
+      port: 14268
+
+---
+# Enhanced Telemetry Configuration
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: ALL_METRICS
+      tagOverrides:
+        destination_service_name:
+          operation: UPSERT
+          value: "destination_service_name | 'unknown'"
+  tracing:
+  - providers:
+    - name: jaeger
+  accessLogging:
+  - providers:
+    - name: otel
+
+---
+# Cross-cluster Service Discovery
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: cross-cluster-discovery
+  namespace: istio-system
+spec:
+  hosts:
+  - marty-remote.local
+  location: MESH_EXTERNAL
+  ports:
+  - number: 15443
+    name: tls
+    protocol: TLS
+  resolution: DNS
+  addresses:
+  - 240.0.0.1 # Virtual IP for remote cluster
+  endpoints:
+  - address: ${REMOTE_CLUSTER_ENDPOINT}
+    ports:
+      tls: 15443
+
+---
+# Workload Entry for Cross-cluster Services
+apiVersion: networking.istio.io/v1alpha3
+kind: WorkloadEntry
+metadata:
+  name: remote-service-entry
+  namespace: istio-system
+spec:
+  address: ${REMOTE_SERVICE_IP}
+  ports:
+    http: 8080
+    grpc: 9090
+  labels:
+    app: remote-service
+    version: v1
+    cluster: remote
+
+---
+# Production Security Policy
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Authorization Policy for Cross-cluster Access
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: cross-cluster-access
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: istio-proxy
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-eastwestgateway-service-account"]
+  - to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]

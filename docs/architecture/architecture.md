@@ -415,24 +415,193 @@ The framework adopts **Apache Kafka with KRaft mode** for production event strea
 - **High Availability**: Replication and persistence configured for durability
 
 #### Service Mesh Support
+
+The framework provides a **plugin-based service mesh architecture** that generates customized deployment scripts for each project:
+
+**Framework-Generated Architecture:**
+- **Core Library**: Reusable service mesh functions in `src/marty_msf/framework/service_mesh/`
+- **Project Generation**: Automatic deployment script generation with project-specific configuration
+- **Plugin Extensions**: Customizable hooks for domain-specific requirements
 - **Dual Mesh Strategy**: First-class support for both Istio and Linkerd
-- **Automatic Sidecar Injection**: Transparent proxy injection for all services
-- **Traffic Management**: Advanced routing, load balancing, and fault tolerance
-- **Security Policies**: Mutual TLS (mTLS) and fine-grained authorization
-- **Observability Integration**: Seamless metrics, tracing, and logging
+
+**Generated Deployment Structure:**
+```
+project/
+├── deploy-service-mesh.sh          # Generated deployment script
+├── k8s/service-mesh/              # Production manifests
+│   ├── istio-production.yaml
+│   ├── istio-security.yaml
+│   ├── istio-traffic-management.yaml
+│   ├── istio-gateways.yaml
+│   ├── istio-cross-cluster.yaml
+│   ├── linkerd-production.yaml
+│   ├── linkerd-security.yaml
+│   └── linkerd-traffic-management.yaml
+└── plugins/
+    └── service-mesh-extensions.sh  # Project-specific customizations
+```
+
+**Framework Library Functions:**
+- **Core Deployment**: `msf_deploy_service_mesh()` - Main deployment orchestration
+- **Mesh Management**: `msf_deploy_istio_production()`, `msf_deploy_linkerd_production()`
+- **Configuration**: `msf_apply_manifest()`, `msf_create_namespace()`, `msf_enable_mesh_injection()`
+- **Validation**: `msf_check_prerequisites()`, `msf_validate_config()`, `msf_verify_deployment()`
+- **Generation**: `msf_generate_deployment_script()`, `msf_generate_plugin_template()`
+
+**Plugin Hook System:**
+```bash
+# Override in plugins/service-mesh-extensions.sh
+plugin_pre_deploy_hook() {
+    # Project-specific pre-deployment setup
+    # Example: create custom certificates, secrets
+}
+
+plugin_custom_configuration() {
+    # Apply domain-specific policies and configurations
+    # Example: custom authorization, traffic rules
+}
+
+plugin_post_deploy_hook() {
+    # Post-deployment integrations
+    # Example: monitoring setup, external services
+}
+```
 
 **Service Mesh Features:**
-- **Circuit Breakers**: Automatic failure detection and service protection
-- **Retry Policies**: Intelligent retry mechanisms with exponential backoff
-- **Rate Limiting**: Request throttling and quota management
-- **Fault Injection**: Chaos engineering for resilience testing
-- **Traffic Splitting**: Blue-green and canary deployment support
+- **Production-Ready Manifests**: Enterprise-grade configurations with mTLS, authorization policies
+- **Circuit Breakers**: Automatic failure detection and service protection with configurable thresholds
+- **Advanced Traffic Management**: Retry policies, rate limiting, fault injection, canary deployments
+- **Cross-Cluster Support**: Multi-cluster communication with east-west gateways
+- **Security Policies**: Strict mTLS, JWT authentication, network policies, authorization rules
+- **Observability Integration**: Comprehensive metrics, distributed tracing, structured logging
 
 **Operational Benefits:**
-- **Zero-Code Implementation**: Infrastructure-level resilience patterns
-- **Consistent Policy Enforcement**: Uniform policies across all services
-- **Enhanced Security**: Network-level encryption and authentication
-- **Simplified Operations**: Centralized configuration and monitoring
+- **Project Isolation**: Each project gets customized deployment scripts and configurations
+- **Framework Dependency**: Projects depend on stable framework library for core functionality
+- **Extensibility**: Plugin system allows domain-specific customizations without framework changes
+- **Consistency**: Standardized deployment patterns across all projects with customization flexibility
+- **Maintainability**: Framework updates automatically benefit all projects, custom logic stays isolated
+
+**Deployment Workflow:**
+1. **Generation**: Framework generates deployment script and plugin template for project
+2. **Customization**: Developers implement project-specific logic in plugin extensions
+3. **Configuration**: Add production manifests to `k8s/service-mesh/` directory
+4. **Deployment**: Execute `./deploy-service-mesh.sh` with project-specific parameters
+5. **Management**: Framework library handles core deployment logic, plugins handle customizations
+
+**Example Usage:**
+```bash
+# Generate for new project
+python -c "
+from marty_msf.framework.service_mesh import ServiceMeshManager
+manager = ServiceMeshManager()
+manager.generate_deployment_script('petstore', './petstore-project', 'api.petstore.com')
+"
+
+# Deploy with customizations
+cd petstore-project
+./deploy-service-mesh.sh --mesh-type istio --domain api.petstore.com --enable-multicluster
+```
+
+**CLI Integration:**
+
+The framework provides comprehensive CLI commands for service mesh management through the `marty` command:
+
+```bash
+# Generate service mesh deployment for a new project
+uv run marty service-mesh generate \
+    --project-name petstore \
+    --output-dir ./petstore-project \
+    --domain api.petstore.com \
+    --mesh-type istio \
+    --namespace petstore
+
+# Check service mesh status
+uv run marty service-mesh status --mesh-type istio --namespace petstore
+
+# Install service mesh (development/testing)
+uv run marty service-mesh install --mesh-type istio --namespace petstore --enable-monitoring
+```
+
+**CLI Command Structure:**
+- **`marty service-mesh generate`**: Creates customized deployment scripts and manifests
+  - Generates project-specific deployment script with framework dependency
+  - Creates plugin template for domain-specific customizations
+  - Copies production-ready Kubernetes manifests to project
+  - Configures proper namespace, domain, and mesh type settings
+
+- **`marty service-mesh install`**: Development/testing mesh installation
+  - Installs mesh control plane with basic configuration
+  - Enables sidecar injection for specified namespace
+  - Applies MMF production manifests for enhanced security and policies
+  - Provides monitoring and observability setup options
+
+- **`marty service-mesh status`**: Health and status monitoring
+  - Checks control plane deployment status
+  - Verifies sidecar injection configuration
+  - Reports mesh connectivity and component health
+  - Validates production manifest applications
+
+**Integration with Development Workflow:**
+
+```bash
+# 1. Project initialization
+uv run marty service-mesh generate --project-name my-service --output-dir ./my-service
+
+# 2. Customize deployment (edit generated plugin template)
+cd my-service
+editor plugins/service-mesh-extensions.sh
+
+# 3. Deploy to development cluster
+./deploy-service-mesh.sh --dry-run  # Validate configuration
+./deploy-service-mesh.sh            # Deploy to cluster
+
+# 4. Verify deployment
+uv run marty service-mesh status --mesh-type istio --namespace my-service
+```
+
+**Production Deployment Workflow:**
+
+The generated deployment scripts are designed for production use with CI/CD pipelines:
+
+```bash
+# CI/CD Pipeline Integration
+- name: Deploy Service Mesh
+  run: |
+    cd ${{ github.workspace }}/my-service
+    ./deploy-service-mesh.sh \
+      --mesh-type istio \
+      --cluster-name production-cluster \
+      --domain api.mycompany.com \
+      --enable-multicluster \
+      --enable-observability
+```
+
+**Generated Project Structure:**
+```
+my-service/
+├── deploy-service-mesh.sh              # Main deployment script
+├── k8s/service-mesh/                   # Production manifests
+│   ├── istio-production.yaml           # Control plane configuration
+│   ├── istio-security.yaml             # mTLS and authorization policies
+│   ├── istio-traffic-management.yaml   # Circuit breakers, retries, rate limiting
+│   ├── istio-gateways.yaml             # Ingress/egress gateway configuration
+│   ├── istio-cross-cluster.yaml        # Multi-cluster communication
+│   ├── linkerd-production.yaml         # Alternative Linkerd configuration
+│   ├── linkerd-security.yaml           # Linkerd security policies
+│   └── linkerd-traffic-management.yaml # Linkerd traffic management
+└── plugins/
+    └── service-mesh-extensions.sh      # Project-specific customizations
+```
+
+**Framework Integration Benefits:**
+
+- **Zero-Configuration Start**: Generated scripts work out-of-the-box with sensible defaults
+- **Production-Ready**: Enterprise-grade security and policies included by default
+- **Customization Freedom**: Plugin system allows unlimited domain-specific extensions
+- **Framework Evolution**: Projects automatically benefit from framework improvements
+- **Consistent Patterns**: Standardized deployment approach across all services
+- **Development Efficiency**: Reduces service mesh setup from days to minutes
 
 #### Kustomize Integration
 - **Environment Management**: Streamlined configuration across dev/staging/prod

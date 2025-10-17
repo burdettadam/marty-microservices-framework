@@ -1,0 +1,260 @@
+---
+# Linkerd Security Policies - mTLS and Authorization
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: framework-http-server
+  namespace: microservice-framework
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: microservice-framework
+  port: 8080
+  proxyProtocol: "HTTP/2"
+
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: framework-grpc-server
+  namespace: microservice-framework
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: microservice-framework
+  port: 9090
+  proxyProtocol: "gRPC"
+
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: framework-metrics-server
+  namespace: microservice-framework
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: microservice-framework
+  port: 9000
+  proxyProtocol: "HTTP/1.1"
+
+---
+# Server Authorization for Framework Services
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: framework-services-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: framework-http-server
+  client:
+    # Allow same namespace access
+    meshTLS:
+      identities:
+      - "microservice-framework.*"
+      - "linkerd-viz.*"
+      - "linkerd-multicluster.*"
+
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: framework-grpc-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: framework-grpc-server
+  client:
+    meshTLS:
+      identities:
+      - "microservice-framework.*"
+      - "linkerd-multicluster.*"  # Cross-cluster access
+
+---
+# Observability Server Authorization
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: metrics-access-authz
+  namespace: microservice-framework
+spec:
+  server:
+    name: framework-metrics-server
+  client:
+    meshTLS:
+      identities:
+      - "observability.*"
+      - "linkerd-viz.*"
+
+---
+# Cross-cluster Authorization
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: cross-cluster-server
+  namespace: linkerd-multicluster
+spec:
+  podSelector:
+    matchLabels:
+      linkerd.io/control-plane-component: linkerd-gateway
+  port: 4143
+  proxyProtocol: "opaque"
+
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: cross-cluster-authz
+  namespace: linkerd-multicluster
+spec:
+  server:
+    name: cross-cluster-server
+  client:
+    meshTLS:
+      identities:
+      - "*"  # Allow cross-cluster mesh communication
+
+---
+# Authentication Policy with JWT Support
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthenticationPolicy
+metadata:
+  name: jwt-auth-policy
+  namespace: microservice-framework
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: framework-http-server
+  requiredAuthentication:
+    meshTLS:
+      identities:
+      - "microservice-framework.*"
+    # JWT validation (requires Linkerd extensions)
+    jwt:
+      issuers:
+      - issuer: "https://auth.marty-msf.local"
+        audiences:
+        - "marty-microservices"
+        jwks:
+          uri: "https://auth.marty-msf.local/.well-known/jwks.json"
+
+---
+# Network Policies for Additional Security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: linkerd-framework-netpol
+  namespace: microservice-framework
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow Linkerd control plane
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: linkerd
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: linkerd-viz
+  # Allow same namespace
+  - from:
+    - podSelector: {}
+  # Allow observability
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: observability
+    ports:
+    - protocol: TCP
+      port: 9000
+  egress:
+  # Allow to Linkerd control plane
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: linkerd
+  # Allow same namespace
+  - to:
+    - podSelector: {}
+  # Allow observability
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: observability
+  # Allow DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow HTTPS for external services
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Route-based Authorization with HTTPRoute
+apiVersion: policy.linkerd.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: api-routes
+  namespace: microservice-framework
+spec:
+  parentRefs:
+  - name: framework-http-server
+    kind: Server
+    group: policy.linkerd.io
+  rules:
+  # Health endpoints - no auth required
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/health"
+    - path:
+        type: PathPrefix
+        value: "/ready"
+    - path:
+        type: PathPrefix
+        value: "/metrics"
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: x-health-check
+          value: "true"
+
+  # API endpoints - require authentication
+  - matches:
+    - path:
+        type: PathPrefix
+        value: "/api/v1"
+    filters:
+    - type: RequestHeaderModifier
+      requestHeaderModifier:
+        add:
+        - name: x-authenticated
+          value: "true"
+
+---
+# Route Authorization Policy
+apiVersion: policy.linkerd.io/v1alpha1
+kind: RouteAuthorizationPolicy
+metadata:
+  name: api-route-authz
+  namespace: microservice-framework
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: HTTPRoute
+    name: api-routes
+  requiredAuthentication:
+    meshTLS:
+      identities:
+      - "microservice-framework.*"
+      - "linkerd-multicluster.*"
