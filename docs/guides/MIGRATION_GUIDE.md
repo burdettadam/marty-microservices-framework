@@ -1,53 +1,60 @@
-# Marty Service Migration Guide - COMPLETED
+# Migration Quick Reference
 
-This guide documented the migration from the legacy `marty_chassis` to the unified Marty Microservices Framework (MMF) in `src/framework`. **The migration has been completed successfully.**
+## Legacy to Framework Migration
 
-## Migration Summary
+### Import Updates
 
-The migration goals have been achieved:
-1. **✅ Eliminated marty_chassis dependencies** - All imports updated to `src/framework`
-2. **✅ Standardized configuration** - Framework configuration patterns adopted
-3. **✅ Adopted framework patterns** - Framework templates and components in use
-4. **✅ Removed duplication** - Legacy chassis code removed from repository
-
-## Final Status
-
-✅ **Migration Complete:**
-- All services migrated to `src/framework` imports
-- Legacy `marty_chassis` code removed from repository
-- Templates updated to use modern framework APIs
-- Documentation updated to reflect current architecture
-- All legacy files have been completely removed
-
-## Framework Architecture Reference
-
-For new development, use the modern framework patterns documented below:
-
-### Modern Import Patterns
-
-**Configuration:**
+**Before (Legacy):**
 ```python
-from framework.config_factory import create_service_config
+from marty_chassis.config import ConfigManager
+from marty_chassis.logging import Logger
+from marty_chassis.discovery import ServiceRegistry
 ```
 
-**Logging:**
+**After (Framework):**
 ```python
-from framework.logging import UnifiedServiceLogger
+from marty_msf.framework.config import create_service_config
+from marty_msf.framework.logging import UnifiedServiceLogger
+from marty_msf.framework.discovery import ServiceDiscoveryManager
 ```
 
-**Observability:**
+### Configuration Updates
+
+**Before:**
 ```python
-from observability.monitoring import MetricsCollector
-from observability import init_observability
+config = ConfigManager.load("service.yaml")
 ```
 
-**Service Discovery:**
+**After:**
 ```python
-from framework.discovery import (
-    ServiceDiscoveryManager,
-    InMemoryServiceRegistry,
-    ServiceInstance
-)
+config = create_service_config("your_service")
+```
+
+### Plugin Configuration
+
+**Before (Deprecated):**
+```python
+plugin_config = PluginContext.get_plugin_config_sync()
+```
+
+**After:**
+```python
+from marty_msf.framework.plugins import PluginConfigManager
+plugin_config = await PluginConfigManager.get_config()
+```
+
+### gRPC Server Updates
+
+**Before:**
+```python
+from framework.grpc.service_factory import GRPCServiceFactory
+server = GRPCServiceFactory.create_server()
+```
+
+**After:**
+```python
+from marty_msf.framework.grpc import UnifiedGrpcServer
+server = UnifiedGrpcServer(config)
 ```
 
 **Testing:**

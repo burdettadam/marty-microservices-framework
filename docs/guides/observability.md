@@ -1,33 +1,62 @@
-# Phase 2: Enhanced Observability - Complete Implementation Guide
+# Observability Guide
 
 ## Overview
 
-Phase 2 Enhanced Observability provides comprehensive monitoring, tracing, and observability capabilities for the Marty Microservices Framework. This system includes production-grade monitoring with Prometheus, distributed tracing with OpenTelemetry/Jaeger, centralized logging with ELK/EFK stack, business metrics collection, and automated SLO/SLI tracking.
+MMF provides comprehensive observability with monitoring, tracing, and logging capabilities using industry-standard tools and practices.
 
-## Architecture Components
+## Quick Setup
 
-### 1. Advanced Monitoring Stack
-- **Prometheus**: Enhanced configuration with Kubernetes service discovery
-- **Recording Rules**: Pre-computed metrics for efficient queries
-- **AlertManager**: Intelligent alert routing and escalation
-- **SLO Tracking**: Automated Service Level Objective monitoring
+### Deploy Infrastructure
+```bash
+# Deploy observability stack
+kubectl apply -f ops/k8s/observability/
 
-### 2. Distributed Tracing
-- **OpenTelemetry**: Industry-standard telemetry collection
-- **Jaeger**: Distributed tracing backend with Elasticsearch storage
-- **OTEL Collector**: Advanced telemetry processing and routing
-- **Automatic Instrumentation**: FastAPI and gRPC integration
+# Verify deployment
+kubectl get pods -n observability
 
-### 3. Centralized Logging
-- **Elasticsearch**: Scalable log storage and search
-- **Logstash**: Advanced log processing and enrichment
-- **Kibana**: Log visualization and analysis dashboards
-- **Filebeat/Fluent Bit**: Log collection and shipping
+# Port forward to access dashboards
+kubectl port-forward -n observability service/grafana 3000:3000
+kubectl port-forward -n observability service/jaeger 16686:16686
+```
 
-### 4. Business Intelligence
-- **Business Metrics**: Revenue, conversion, and engagement tracking
-- **Real-time KPIs**: Business health indicators
-- **Event Processing**: Business event analysis and alerting
+### Enable in Service
+```python
+from marty_msf.observability import init_observability
+from marty_msf.framework.logging import UnifiedServiceLogger
+
+# Initialize observability
+config = create_service_config("your_service")
+init_observability(config.observability)
+
+# Create logger with correlation support
+logger = UnifiedServiceLogger("your-service")
+```
+
+## Components
+
+### 1. Metrics (Prometheus)
+- **Application metrics**: Request rates, response times, error rates
+- **Business metrics**: Custom domain-specific metrics
+- **Infrastructure metrics**: CPU, memory, network usage
+- **SLI/SLO tracking**: Service level indicators and objectives
+
+### 2. Distributed Tracing (Jaeger)
+- **Automatic instrumentation**: FastAPI, gRPC, HTTP clients, databases
+- **Correlation tracking**: Multi-dimensional request context
+- **Dependency mapping**: Service interaction visualization
+- **Performance analysis**: Bottleneck identification
+
+### 3. Centralized Logging (ELK Stack)
+- **Structured logging**: JSON format with correlation IDs
+- **Log aggregation**: Centralized collection from all services
+- **Search and analysis**: Full-text search and filtering
+- **Alert integration**: Log-based alerting
+
+### 4. Dashboards (Grafana)
+- **Service overview**: High-level health and performance
+- **Plugin debugging**: Plugin-specific troubleshooting
+- **Infrastructure monitoring**: System resource usage
+- **Business intelligence**: Domain-specific KPIs
 
 ### 5. SLO/SLI Framework
 - **SLI Collection**: Automated Service Level Indicator measurement
