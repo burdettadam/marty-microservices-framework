@@ -11,13 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-try:
-    from prometheus_client import Counter, Gauge, Histogram, Info
-
-    PROMETHEUS_AVAILABLE = True
-except ImportError:
-    PROMETHEUS_AVAILABLE = False
-    logger.warning("prometheus_client not available, custom metrics disabled")
+from prometheus_client import Counter, Gauge, Histogram, Info
 
 
 class FrameworkMetrics:
@@ -63,11 +57,8 @@ class FrameworkMetrics:
             label_names: List of label names
 
         Returns:
-            Counter instance or None if Prometheus not available
+            Counter instance
         """
-        if not PROMETHEUS_AVAILABLE:
-            return None
-
         full_name = f"mmf_{name}"
         label_names = label_names or []
 
@@ -93,11 +84,8 @@ class FrameworkMetrics:
             label_names: List of label names
 
         Returns:
-            Gauge instance or None if Prometheus not available
+            Gauge instance
         """
-        if not PROMETHEUS_AVAILABLE:
-            return None
-
         full_name = f"mmf_{name}"
         label_names = label_names or []
 
@@ -128,11 +116,8 @@ class FrameworkMetrics:
             buckets: Histogram buckets
 
         Returns:
-            Histogram instance or None if Prometheus not available
+            Histogram instance
         """
-        if not PROMETHEUS_AVAILABLE:
-            return None
-
         full_name = f"mmf_{name}"
         label_names = label_names or []
         buckets = buckets or [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
@@ -157,11 +142,8 @@ class FrameworkMetrics:
             description: Metric description
 
         Returns:
-            Info instance or None if Prometheus not available
+            Info instance
         """
-        if not PROMETHEUS_AVAILABLE:
-            return None
-
         full_name = f"mmf_{name}"
 
         if full_name in self._infos:

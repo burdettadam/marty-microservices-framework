@@ -289,24 +289,15 @@ class AvroSerializer(MessageSerializer):
             self.config.format = SerializationFormat.AVRO
 
         self.schema = schema
-        self._avro_available = False
 
-        try:
-            import avro.io
-            import avro.schema
+        import avro.io
+        import avro.schema
 
-            self._avro_available = True
-            self._avro_schema = avro.schema
-            self._avro_io = avro.io
-        except ImportError:
-            logger.warning(
-                "Avro library not available. Install 'avro-python3' to use Avro serialization."
-            )
+        self._avro_schema = avro.schema
+        self._avro_io = avro.io
 
     def serialize(self, data: Any) -> bytes:
         """Serialize data to Avro bytes."""
-        if not self._avro_available:
-            raise SerializationError("Avro library not available", "avro")
 
         if not self.schema:
             raise SerializationError("Avro schema must be specified", "avro")
@@ -328,9 +319,6 @@ class AvroSerializer(MessageSerializer):
 
     def deserialize(self, data: bytes) -> Any:
         """Deserialize Avro bytes to data."""
-        if not self._avro_available:
-            raise SerializationError("Avro library not available", "avro")
-
         if not self.schema:
             raise SerializationError("Avro schema must be specified", "avro")
 
@@ -357,21 +345,11 @@ class MessagePackSerializer(MessageSerializer):
         if self.config.format != SerializationFormat.MSGPACK:
             self.config.format = SerializationFormat.MSGPACK
 
-        self._msgpack_available = False
-        try:
-            import msgpack
-
-            self._msgpack = msgpack
-            self._msgpack_available = True
-        except ImportError:
-            logger.warning(
-                "MessagePack library not available. Install 'msgpack' to use MessagePack serialization."
-            )
+        import msgpack
+        self._msgpack = msgpack
 
     def serialize(self, data: Any) -> bytes:
         """Serialize data to MessagePack bytes."""
-        if not self._msgpack_available:
-            raise SerializationError("MessagePack library not available", "msgpack")
 
         try:
             msgpack_bytes = self._msgpack.packb(data)
@@ -382,9 +360,6 @@ class MessagePackSerializer(MessageSerializer):
 
     def deserialize(self, data: bytes) -> Any:
         """Deserialize MessagePack bytes to data."""
-        if not self._msgpack_available:
-            raise SerializationError("MessagePack library not available", "msgpack")
-
         try:
             decompressed = self.decompress(data)
             return self._msgpack.unpackb(decompressed, raw=False)

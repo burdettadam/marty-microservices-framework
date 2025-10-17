@@ -31,12 +31,7 @@ from enum import Enum
 from typing import Any
 
 # HTTP client imports
-try:
-    import aiohttp
-
-    AIOHTTP_AVAILABLE = True
-except ImportError:
-    AIOHTTP_AVAILABLE = False
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -519,9 +514,6 @@ class ServiceRegistry:
     async def _check_instance_health(self, instance: ServiceInstance) -> None:
         """Check individual instance health."""
         try:
-            if not AIOHTTP_AVAILABLE:
-                return  # Skip health checks if aiohttp not available
-
             async with aiohttp.ClientSession() as session:
                 health_url = f"{instance.url}/health"
                 async with session.get(health_url, timeout=5.0) as response:
@@ -693,8 +685,7 @@ class APIGateway:
         request_data: builtins.dict[str, Any],
     ) -> builtins.dict[str, Any]:
         """Forward request to service instance."""
-        if not AIOHTTP_AVAILABLE:
-            return self._create_error_response(500, "HTTP client not available")
+        # aiohttp is required for HTTP client functionality
 
         # Transform request
         for transformer in route.request_transformers:
