@@ -9,19 +9,76 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from collections.abc import Callable
+from concurrent import futures
+from dataclasses import dataclass
+from typing import Any, Protocol
 
 import grpc
 from grpc import aio
+from grpc_health.v1 import health_pb2, health_pb2_grpc
+from grpc_health.v1.health import HealthServicer
 from grpc_reflection.v1alpha import reflection
 
 # MMF imports
-from marty_msf.framework.config_factory import create_service_config
-from marty_msf.framework.observability.unified_observability import (
-    create_observability_manager,
+from marty_msf.framework.config import (
+    ConfigurationStrategy,
+    Environment,
+    UnifiedConfigurationManager,
+    create_unified_config_manager,
+)
+from marty_msf.framework.config.unified import BaseSettings
+from marty_msf.observability.standard import (
+    create_standard_observability,
+    set_global_observability,
 )
 
 logger = logging.getLogger(__name__)
+
+
+class ServicerFactoryProtocol(Protocol):
+    """Protocol for servicer factory functions."""
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Create a servicer instance."""
+        ...
+
+
+class ServiceRegistrationProtocol(Protocol):
+    """Protocol for service registration functions (add_*Servicer_to_server)."""
+
+    def __call__(self, servicer: Any, server: grpc.aio.Server) -> None:
+        """Add servicer to gRPC server."""
+        ...
+
+
+@dataclass
+class ServiceDefinition:
+    """Definition of a gRPC service for factory creation."""
+
+    name: str
+    servicer_factory: ServicerFactoryProtocol
+    registration_func: ServiceRegistrationProtocol
+    health_service_name: str | None = None
+    dependencies: dict[str, Any] | None = None
+    priority: int = 100
+
+    def __post_init__(self):
+        """Post-initialization setup."""
+        if self.health_service_name is None:
+            self.health_service_name = self.name
+        if self.dependencies is None:
+            self.dependencies = {}
+
+    def create_servicer(self, **kwargs: Any) -> Any:
+        """Create servicer instance with merged dependencies and kwargs."""
+        dependencies = self.dependencies or {}
+        merged_kwargs = {**dependencies, **kwargs}
+        return self.servicer_factory(**merged_kwargs)
+
+    def register_servicer(self, servicer: Any, server: grpc.aio.Server) -> None:
+        """Register servicer with the gRPC server."""
+        self.registration_func(servicer, server)
 
 
 class ObservableGrpcServiceMixin:
@@ -39,22 +96,23 @@ class ObservableGrpcServiceMixin:
         self.observability = None
         self.service_metrics = {}
 
-    def _setup_observability(self, config):
+    def _setup_observability(self, observability):
         """Setup observability for the gRPC service."""
-        self.observability = create_observability_manager(config)
+        self.observability = observability
 
-        # Setup common gRPC metrics
-        self.service_metrics = {
-            "requests_total": self.observability.counter(
-                "grpc_requests_total", "Total gRPC requests", ["method", "status"]
-            ),
-            "request_duration": self.observability.histogram(
-                "grpc_request_duration_seconds", "gRPC request duration", ["method"]
-            ),
-            "active_connections": self.observability.gauge(
-                "grpc_active_connections", "Active gRPC connections"
-            ),
-        }
+        # Initialize observability components
+        if self.observability:
+            self.service_metrics = {
+                "requests_total": self.observability.counter(
+                    "grpc_requests_total", "Total gRPC requests"
+                ),
+                "request_duration": self.observability.histogram(
+                    "grpc_request_duration_seconds", "Request duration"
+                ),
+                "active_connections": self.observability.gauge(
+                    "grpc_active_connections", "Active connections"
+                ),
+            }
 
         # Register health checks
         self._register_grpc_health_checks()
@@ -69,14 +127,14 @@ class ObservableGrpcServiceMixin:
 
     async def _check_grpc_service_health(self):
         """Check gRPC service health."""
-        from marty_msf.framework.observability.monitoring import HealthStatus
+        # Health status tracking
 
         try:
             # Check if service is accepting connections
             # This is a placeholder - actual implementation would check server state
-            return HealthStatus.HEALTHY
+            return "HEALTHY"
         except Exception:
-            return HealthStatus.UNHEALTHY
+            return "UNHEALTHY"
 
     def trace_grpc_call(self, method_name: str):
         """Decorator factory for tracing gRPC method calls."""
@@ -141,37 +199,86 @@ class UnifiedGrpcServer:
 
     This server automatically configures metrics endpoints, health checks,
     and distributed tracing based on the service configuration.
+    Enhanced with service definition pattern for better service management.
     """
 
-    def __init__(self, config_path: str = None, service_name: str = None):
+    def __init__(self, port: int = 50051, service_name: str | None = None, **kwargs):
         """
         Initialize the gRPC server with unified configuration.
 
         Args:
-            config_path: Path to service configuration file
-            service_name: Name of the service (used for config file lookup)
+            port: Port to run the gRPC server on
+            service_name: Name of the service
+            **kwargs: Additional configuration options
         """
         self.logger = logging.getLogger("marty.grpc.server")
 
-        # Load configuration
-        if config_path:
-            self.config = create_service_config(config_path)
-        elif service_name:
-            self.config = create_service_config(f"config/services/{service_name}.yaml")
-        else:
-            raise ValueError("Either config_path or service_name must be provided")
+        # Store initialization parameters
+        self.service_name = service_name or "grpc-server"
+        self.port = port
+        self.config_kwargs = kwargs
 
-        # Setup observability
-        self.observability = create_observability_manager(self.config)
+        # These will be initialized during start()
+        self.config_manager: UnifiedConfigurationManager | None = None
+        self.config: BaseSettings | None = None
+        self.observability = None
 
         # gRPC server components
         self.server: aio.Server | None = None
+        self.health_servicer: HealthServicer | None = None
         self.servicer_instances: dict[str, Any] = {}
+        self.service_definitions: dict[str, ServiceDefinition] = {}
+        self._pending_servicers: list = []
         self._running = False
+        self._initialized = False
 
-        self.logger.info("Unified gRPC server initialized for %s", self.config.service_name)
+        self.logger.info("Unified gRPC server created for %s", self.service_name)
 
-    def add_servicer(self, servicer_class: type, add_servicer_func: callable, *args, **kwargs):
+    async def initialize(self) -> None:
+        """Initialize the unified configuration and observability systems."""
+        if self._initialized:
+            return
+
+        # Initialize unified configuration using factory
+        try:
+            self.config_manager = create_unified_config_manager(
+                service_name=self.service_name,
+                environment=Environment.DEVELOPMENT,  # Will be auto-detected
+                config_class=BaseSettings,
+                strategy=ConfigurationStrategy.AUTO_DETECT
+            )
+            await self.config_manager.initialize()
+            self.config = await self.config_manager.get_configuration()
+
+            self.logger.info("Configuration loaded for %s", self.service_name)
+        except Exception as e:
+            self.logger.warning("Failed to initialize unified configuration: %s", e)
+            # Use minimal default configuration
+            self.config = BaseSettings()
+
+        # Initialize observability
+        service_version = getattr(self.config, 'service_version', "1.0.0")
+        self.observability = create_standard_observability(
+            service_name=self.service_name,
+            service_version=service_version,
+            service_type="grpc"
+        )
+        await self.observability.initialize()
+        set_global_observability(self.observability)
+
+        self._initialized = True
+        self.logger.info("Unified gRPC server initialized for %s", self.service_name)
+
+    def register_service(self, service_def: ServiceDefinition) -> None:
+        """Register a service definition.
+
+        Args:
+            service_def: Service definition to register
+        """
+        self.service_definitions[service_def.name] = service_def
+        self.logger.info("Registered service definition: %s", service_def.name)
+
+    def add_servicer(self, servicer_class: type, add_servicer_func: Callable, *args, **kwargs):
         """
         Add a servicer to the gRPC server with observability integration.
 
@@ -183,7 +290,9 @@ class UnifiedGrpcServer:
         # Create servicer instance
         if issubclass(servicer_class, ObservableGrpcServiceMixin):
             servicer = servicer_class(*args, **kwargs)
-            servicer._setup_observability(self.config)
+            # Setup observability for service if it supports it
+            if hasattr(servicer, '_setup_observability') and self.observability:
+                servicer._setup_observability(self.observability)
         else:
             servicer = servicer_class(*args, **kwargs)
 
@@ -192,9 +301,6 @@ class UnifiedGrpcServer:
         self.servicer_instances[servicer_name] = servicer
 
         # Add to server (will be called when server is created)
-        if not hasattr(self, "_pending_servicers"):
-            self._pending_servicers = []
-
         self._pending_servicers.append((add_servicer_func, servicer))
 
         self.logger.info("Added servicer: %s", servicer_name)
@@ -202,27 +308,68 @@ class UnifiedGrpcServer:
     async def start(self):
         """Start the gRPC server with observability endpoints."""
         try:
-            # Create gRPC server
-            self.server = aio.server()
+            # Ensure initialization
+            await self.initialize()
 
-            # Add all pending servicers
+            if not self.config_manager:
+                raise RuntimeError("Configuration manager not initialized")
+
+            # Get server configuration
+            max_workers = getattr(self.config, 'grpc_max_workers', 10)
+
+            # Create gRPC server with production-ready options
+            default_options = [
+                ("grpc.keepalive_time_ms", 30000),
+                ("grpc.keepalive_timeout_ms", 5000),
+                ("grpc.keepalive_permit_without_calls", True),
+                ("grpc.http2.max_pings_without_data", 0),
+                ("grpc.http2.min_time_between_pings_ms", 10000),
+                ("grpc.http2.min_ping_interval_without_data_ms", 5000),
+            ]
+
+            self.server = aio.server(
+                futures.ThreadPoolExecutor(max_workers=max_workers),
+                options=default_options,
+            )
+
+            # Add health service
+            self.health_servicer = HealthServicer()
+            health_pb2_grpc.add_HealthServicer_to_server(self.health_servicer, self.server)
+
+            # Register all service definitions
+            self._register_service_definitions()
+
+            # Add all pending servicers (backward compatibility)
             if hasattr(self, "_pending_servicers"):
                 for add_func, servicer in self._pending_servicers:
                     add_func(servicer, self.server)
 
-            # Enable reflection
-            service_names = (
-                reflection.SERVICE_NAME,
-                *[desc.full_name for desc in self.server.get_services()],
-            )
-            reflection.enable_server_reflection(service_names, self.server)
+            # Enable reflection if configured
+            if getattr(self.config, 'grpc_reflection_enabled', True):
+                try:
+                    # Enable reflection for all registered services
+                    reflection.enable_server_reflection(
+                        [reflection.SERVICE_NAME],
+                        self.server
+                    )
+                except Exception as e:
+                    self.logger.warning("Failed to enable server reflection: %s", e)
 
-            # Configure TLS if enabled
+            # Configure server address
             listen_addr = self._configure_server_address()
 
             # Start server
             await self.server.start()
             self._running = True
+
+            # Set all services to serving in health check
+            if self.health_servicer:
+                for service_def in self.service_definitions.values():
+                    if service_def.health_service_name:
+                        self.health_servicer.set(
+                            service_def.health_service_name,
+                            health_pb2.HealthCheckResponse.ServingStatus.SERVING,
+                        )
 
             # Start observability endpoints
             await self._start_observability_endpoints()
@@ -233,80 +380,158 @@ class UnifiedGrpcServer:
             self.logger.error("Failed to start gRPC server: %s", e)
             raise
 
+    def _register_service_definitions(self) -> None:
+        """Register all service definitions with the server."""
+        # Sort by priority (lower numbers first)
+        sorted_services = sorted(
+            self.service_definitions.values(),
+            key=lambda s: s.priority
+        )
+
+        for service_def in sorted_services:
+            try:
+                # Create servicer instance
+                servicer = service_def.create_servicer()
+
+                # Register with server
+                if self.server is None:
+                    raise RuntimeError("Server not initialized")
+                service_def.register_servicer(servicer, self.server)
+
+                # Store servicer instance
+                self.servicer_instances[service_def.name] = servicer
+
+                self.logger.info("Registered service: %s", service_def.name)
+
+            except Exception as e:
+                self.logger.error("Failed to register service %s: %s", service_def.name, e)
+                raise
+
     def _configure_server_address(self) -> str:
         """Configure server listen address with TLS if enabled."""
-        service_discovery = self.config.service_discovery
-        service_name = self.config.service_name.replace("-", "_")
-        port = service_discovery.ports.get(service_name, 8080)
+        if not self.config:
+            raise RuntimeError("Configuration not initialized")
 
+        # Use configured port or default
+        port = getattr(self.config, 'grpc_port', self.port)
         listen_addr = f"[::]:{port}"
 
-        if self.config.security.grpc_tls and self.config.security.grpc_tls.enabled:
+        # Check for TLS configuration
+        tls_enabled = getattr(self.config, 'grpc_tls_enabled', False)
+
+        if tls_enabled:
             # Load TLS credentials
-            server_cert = self.config.security.grpc_tls.server_cert
-            server_key = self.config.security.grpc_tls.server_key
+            server_cert = getattr(self.config, 'grpc_tls_server_cert', None)
+            server_key = getattr(self.config, 'grpc_tls_server_key', None)
 
-            with open(server_cert, "rb") as f:
-                cert_data = f.read()
-            with open(server_key, "rb") as f:
-                key_data = f.read()
+            if server_cert and server_key:
+                with open(server_cert, "rb") as f:
+                    cert_data = f.read()
+                with open(server_key, "rb") as f:
+                    key_data = f.read()
 
-            credentials = grpc.ssl_server_credentials([(key_data, cert_data)])
-            self.server.add_secure_port(listen_addr, credentials)
+                credentials = grpc.ssl_server_credentials([(key_data, cert_data)])
+                if self.server is None:
+                    raise RuntimeError("Server not initialized")
+                self.server.add_secure_port(listen_addr, credentials)
 
-            self.logger.info("gRPC TLS enabled")
+                self.logger.info("gRPC TLS enabled")
+            else:
+                self.logger.warning("TLS enabled but cert/key not configured, using insecure")
+                if self.server is None:
+                    raise RuntimeError("Server not initialized")
+                self.server.add_insecure_port(listen_addr)
         else:
+            if self.server is None:
+                raise RuntimeError("Server not initialized")
             self.server.add_insecure_port(listen_addr)
 
         return listen_addr
 
     async def _start_observability_endpoints(self):
         """Start metrics and health check HTTP endpoints."""
-        if not self.observability.monitoring_config.enabled:
+        if not self.config or not self.observability:
+            self.logger.warning("Observability not configured, skipping endpoints")
             return
 
-        from aiohttp import web, web_runner
+        monitoring_enabled = getattr(self.config, 'monitoring_enabled', True)
+        if not monitoring_enabled:
+            return
 
-        # Create HTTP application for observability endpoints
-        app = web.Application()
+        try:
+            from aiohttp import web, web_runner
 
-        # Metrics endpoint
-        if self.observability.monitoring_config.prometheus:
-            app.router.add_get("/metrics", self._metrics_handler)
+            # Create HTTP application for observability endpoints
+            app = web.Application()
 
-        # Health check endpoints
-        app.router.add_get("/health", self._health_handler)
-        app.router.add_get("/readiness", self._readiness_handler)
-        app.router.add_get("/liveness", self._liveness_handler)
+            # Metrics endpoint
+            if getattr(self.config, 'prometheus_enabled', True):
+                app.router.add_get("/metrics", self._metrics_handler)
 
-        # Start HTTP server for observability
-        runner = web_runner.AppRunner(app)
-        await runner.setup()
+            # Health check endpoints
+            app.router.add_get("/health", self._health_handler)
+            app.router.add_get("/readiness", self._readiness_handler)
+            app.router.add_get("/liveness", self._liveness_handler)
 
-        health_port = self.observability.monitoring_config.health_check_port
-        site = web_runner.TCPSite(runner, "localhost", health_port)
-        await site.start()
+            # Start HTTP server for observability
+            runner = web_runner.AppRunner(app)
+            await runner.setup()
 
-        self.logger.info("Observability endpoints started on port %d", health_port)
+            health_port = getattr(self.config, 'health_check_port', 8080)
+            site = web_runner.TCPSite(runner, "localhost", health_port)
+            await site.start()
+
+            self.logger.info("Observability endpoints started on port %d", health_port)
+        except ImportError:
+            self.logger.warning("aiohttp not available, skipping HTTP observability endpoints")
+        except Exception as e:
+            self.logger.error("Failed to start observability endpoints: %s", e)
 
     async def _metrics_handler(self, request):
         """Handle Prometheus metrics requests."""
         from aiohttp import web
 
-        metrics_output = self.observability.get_metrics_output()
-        return web.Response(text=metrics_output, content_type="text/plain")
+        if not self.observability:
+            return web.Response(text="# No metrics available", content_type="text/plain")
+
+        try:
+            # Try to get metrics from observability system
+            if hasattr(self.observability, 'get_metrics'):
+                metrics_output = self.observability.get_metrics()
+            else:
+                metrics_output = "# Metrics not available from observability system"
+
+            # Ensure metrics_output is a string
+            if isinstance(metrics_output, bytes):
+                metrics_output = metrics_output.decode('utf-8')
+            elif metrics_output is None:
+                metrics_output = "# No metrics data"
+
+            return web.Response(text=str(metrics_output), content_type="text/plain")
+        except Exception as e:
+            self.logger.error("Error getting metrics: %s", e)
+            return web.Response(text=f"# Error: {e}", content_type="text/plain", status=500)
 
     async def _health_handler(self, request):
         """Handle general health check requests."""
         from aiohttp import web
 
-        health_status = await self.observability.get_health_status()
+        health_status = {
+            "service": self.service_name,
+            "status": "healthy" if self._running else "unhealthy",
+            "server_running": self._running,
+            "services_registered": len(self.service_definitions)
+        }
+
+        if self.observability:
+            try:
+                # Basic observability health check
+                health_status["observability"] = "initialized"
+            except Exception as e:
+                health_status["observability_error"] = str(e)
 
         # Determine overall health
-        is_healthy = all(
-            status.get("status") in ["healthy", "HEALTHY"] for status in health_status.values()
-        )
-
+        is_healthy = self._running and health_status.get("status") == "healthy"
         status_code = 200 if is_healthy else 503
         return web.json_response(health_status, status=status_code)
 
@@ -341,39 +566,93 @@ class UnifiedGrpcServer:
         finally:
             await self.stop()
 
-    async def stop(self):
-        """Stop the gRPC server."""
+    async def stop(self, grace_period: float = 30.0):
+        """Stop the gRPC server gracefully.
+
+        Args:
+            grace_period: Grace period for shutdown in seconds
+        """
         if self.server and self._running:
             self.logger.info("Stopping gRPC server...")
-            await self.server.stop(grace=30)
+
+            # Set all services to not serving
+            if self.health_servicer:
+                for service_def in self.service_definitions.values():
+                    if service_def.health_service_name:
+                        self.health_servicer.set(
+                            service_def.health_service_name,
+                            health_pb2.HealthCheckResponse.ServingStatus.NOT_SERVING,
+                        )
+
+            # Stop server with grace period
+            await self.server.stop(grace=grace_period)
             self._running = False
 
             # Shutdown observability
-            await self.observability.shutdown()
+            if self.observability:
+                await self.observability.shutdown()
+
+            # Reset configuration state
+            self.config_manager = None
+            self.config = None
+            self._initialized = False
 
             self.logger.info("gRPC server stopped")
+
+    async def wait_for_termination(self) -> None:
+        """Wait for server termination."""
+        if self.server:
+            await self.server.wait_for_termination()
 
 
 # Factory functions for common service patterns
 
 
-def create_trust_anchor_server(config_path: str = None) -> UnifiedGrpcServer:
+def create_grpc_server(
+    port: int = 50051,
+    service_name: str | None = None,
+    interceptors: list | None = None,
+    enable_health_service: bool = True,
+    max_workers: int = 10,
+    enable_reflection: bool = True,
+    **kwargs
+) -> UnifiedGrpcServer:
+    """Create a gRPC server with unified configuration.
+
+    Args:
+        port: Port to run the server on
+        service_name: Name of the service
+        interceptors: List of gRPC interceptors
+        enable_health_service: Whether to enable health service
+        max_workers: Maximum number of worker threads
+        enable_reflection: Whether to enable gRPC reflection
+        **kwargs: Additional configuration options
+
+    Returns:
+        Configured UnifiedGrpcServer instance
+    """
+    server = UnifiedGrpcServer(
+        port=port,
+        service_name=service_name,
+        interceptors=interceptors,
+        enable_health_service=enable_health_service,
+        max_workers=max_workers,
+        enable_reflection=enable_reflection,
+        **kwargs
+    )
+    return server
+
+
+def create_trust_anchor_server(port: int = 50051) -> UnifiedGrpcServer:
     """Create a gRPC server for trust anchor service."""
-    server = UnifiedGrpcServer(config_path=config_path or "config/services/trust_anchor.yaml")
-    return server
+    return create_grpc_server(port=port, service_name="trust_anchor")
 
 
-def create_document_signer_server(config_path: str = None) -> UnifiedGrpcServer:
+def create_document_signer_server(port: int = 50051) -> UnifiedGrpcServer:
     """Create a gRPC server for document signer service."""
-    server = UnifiedGrpcServer(config_path=config_path or "config/services/document_signer.yaml")
-    return server
+    return create_grpc_server(port=port, service_name="document_signer")
 
 
-def create_service_server(service_name: str, config_path: str = None) -> UnifiedGrpcServer:
+def create_service_server(service_name: str, port: int = 50051, **kwargs) -> UnifiedGrpcServer:
     """Create a gRPC server for any Marty service."""
-    if config_path:
-        server = UnifiedGrpcServer(config_path=config_path)
-    else:
-        server = UnifiedGrpcServer(service_name=service_name)
-
-    return server
+    return create_grpc_server(port=port, service_name=service_name, **kwargs)

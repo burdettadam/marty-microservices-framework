@@ -10,9 +10,38 @@ The Marty Microservices Framework is designed for a streamlined adoption process
 2. **Generate** a new service using the production service generator
 3. **Add** your specific business logic to the generated structure
 
-## Examples
+## Examples Structure
+
+### Framework Examples
+- **`demos/`**: Interactive demonstrations and walkthroughs
+- **`extended_messaging/`**: Advanced messaging patterns
+- **`security/`**: Security configuration examples
+
+### Business Domain Examples
+
+#### Petstore Domain (`petstore_domain/`)
+
+A complete business domain example demonstrating:
+
+- **Plugin Configuration**: Business-specific plugin configurations separated from framework
+- **Domain Architecture**: How to structure a complete business domain using MMF
+- **Plugin Integration**: Examples of Marty Trust PKI and payment service plugins
+- **Configuration Patterns**: Plugin-based configuration loading and management
+
+**Plugin Configuration Structure:**
+```
+petstore_domain/
+├── plugins/                    # Plugin configurations
+│   ├── marty.yaml             # Marty Trust PKI plugin
+│   └── production_payment_service.yaml  # Payment service plugin
+├── services/                   # Domain service implementations
+├── config/                     # Domain-specific configuration
+└── docs/                       # Domain documentation
+```
 
 ### Production Payment Service (`production-payment-service/`)
+
+A complete, production-ready payment processing service that demonstrates:
 
 A complete, production-ready payment processing service that demonstrates:
 

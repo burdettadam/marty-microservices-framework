@@ -17,7 +17,16 @@ import builtins
 import os
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, dict, list
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
+# Import unified configuration system
+from marty_msf.framework.config import (
+    ConfigurationStrategy,
+    Environment,
+    create_unified_config_manager,
+)
 
 
 class StorageBackend(Enum):
@@ -411,6 +420,60 @@ class SagaOrchestratorConfig:
         return self.monitoring.log_level.value
 
 
+# Pydantic model for unified configuration
+class UnifiedSagaOrchestratorConfig(BaseModel):
+    """Unified configuration for saga orchestrator using Pydantic."""
+
+    # Basic service settings
+    service_name: str = Field(default="saga-orchestrator")
+    host: str = Field(default="0.0.0.0")
+    port: int = Field(default=8080)
+    debug: bool = Field(default=False)
+    reload: bool = Field(default=False)
+    environment: str = Field(default="development")
+
+    # Database and storage
+    database_url: str = Field(default="${SECRET:database_url}")
+    storage_backend: str = Field(default="memory")
+
+    # Security
+    jwt_secret_key: str = Field(default="${SECRET:jwt_secret}")
+    api_key: str = Field(default="${SECRET:api_key}")
+
+    # Saga-specific settings
+    max_concurrent_sagas: int = Field(default=100)
+    default_saga_timeout: int = Field(default=300)  # 5 minutes
+    default_step_timeout: int = Field(default=30)   # 30 seconds
+
+    # Monitoring
+    metrics_enabled: bool = Field(default=True)
+    tracing_enabled: bool = Field(default=True)
+    log_level: str = Field(default="INFO")
+
+    # Resilience
+    circuit_breaker_enabled: bool = Field(default=True)
+    retry_max_attempts: int = Field(default=3)
+    rate_limiting_enabled: bool = Field(default=True)
+
+
+# Factory function for unified configuration
+async def create_unified_saga_config(
+    config_dir: str = "config",
+    environment: str = "development"
+) -> UnifiedSagaOrchestratorConfig:
+    """Create unified saga orchestrator configuration."""
+    config_manager = create_unified_config_manager(
+        service_name="saga-orchestrator",
+        environment=Environment(environment),
+        config_class=UnifiedSagaOrchestratorConfig,
+        config_dir=config_dir,
+        strategy=ConfigurationStrategy.AUTO_DETECT
+    )
+
+    await config_manager.initialize()
+    return await config_manager.get_configuration()
+
+
 def create_development_config() -> SagaOrchestratorConfig:
     """Create development environment configuration."""
     config = SagaOrchestratorConfig(
@@ -529,8 +592,26 @@ def create_kubernetes_config() -> SagaOrchestratorConfig:
     return config
 
 
+def get_unified_config() -> UnifiedSagaOrchestratorConfig:
+    """Get unified configuration (synchronous helper)."""
+    import asyncio
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If loop is already running, create task
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, create_unified_saga_config())
+                return future.result()
+        else:
+            return asyncio.run(create_unified_saga_config())
+    except Exception as e:
+        print(f"Failed to load unified config, falling back to env config: {e}")
+        return load_config_from_env()
+
+
 def load_config_from_env() -> SagaOrchestratorConfig:
-    """Load configuration from environment variables."""
+    """Load configuration from environment variables (legacy)."""
     environment = os.getenv("ENVIRONMENT", "development").lower()
 
     if environment == "production":
@@ -577,5 +658,5 @@ def load_config_from_env() -> SagaOrchestratorConfig:
     return config
 
 
-# Default configuration instance
+# Default configuration instance (for backward compatibility)
 config = load_config_from_env()

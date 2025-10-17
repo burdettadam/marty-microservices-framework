@@ -20,7 +20,7 @@ from typing import AsyncGenerator
 import uvicorn
 from fastapi import FastAPI
 
-from src.framework.grpc.service_factory import GRPCServiceFactory, serve_auto_service
+from marty_msf.framework.grpc import UnifiedGrpcServer, ServiceDefinition, create_grpc_server
 from src.framework.database import DatabaseManager
 from src.framework.events import EventBus, InMemoryEventBus
 from src.framework.observability.monitoring import ServiceMonitor
@@ -153,22 +153,38 @@ async def run_fastapi_server() -> None:
 
 
 async def run_grpc_server() -> None:
-    """Run the gRPC server using Ultra-DRY auto-service pattern with unified observability."""
-    logger.info("Starting {{service_name}} gRPC server using Ultra-DRY pattern")
+    """Run the gRPC server using UnifiedGrpcServer with unified observability."""
+    logger.info("Starting {{service_name}} gRPC server using UnifiedGrpcServer")
 
-    # Add gRPC interceptors for observability
-    interceptors = [StandardCorrelationInterceptor()]
+    service_config = get_service_config("{{service_name}}", "hybrid")
 
-    # Ultra-DRY gRPC service startup with auto-discovery and observability
-    await asyncio.create_task(
-        serve_auto_service(
-            service_name="{{service_name}}",
-            service_module="src.{{service_package}}.app.services.{{service_package}}_grpc_service",
-            config_manager=config_manager,
-            async_mode=True,
-            interceptors=interceptors
-        )
+    # Create the unified gRPC server
+    grpc_server = create_grpc_server(
+        port=service_config.get("grpc_port", 50051),
+        interceptors=[StandardCorrelationInterceptor()],
+        enable_health_service=True,
+        max_workers=service_config.get("grpc_max_workers", 10),
+        enable_reflection=service_config.get("grpc_reflection", True)
     )
+
+    # Import and register service
+    from src.{{service_package}}.app.services.{{service_package}}_grpc_service import {{service_name|title}}Service
+
+    service_definition = ServiceDefinition(
+        service_class={{service_name|title}}Service,
+        service_name="{{service_name}}",
+        priority=1
+    )
+
+    await grpc_server.register_service(service_definition)
+
+    # Start the server
+    await grpc_server.start()
+
+    try:
+        await grpc_server.wait_for_termination()
+    finally:
+        await grpc_server.stop(grace=30)
 
 
 async def main() -> None:

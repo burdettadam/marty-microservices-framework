@@ -49,6 +49,15 @@ from opentelemetry import trace
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 from pydantic import BaseModel, Field
 
+# Import unified configuration system
+from marty_msf.framework.config import (
+    ConfigurationStrategy,
+    Environment,
+    create_unified_config_manager,
+)
+
+from .config import APIVersioningSettings, get_settings
+
 # Configure structured logging
 structlog.configure(
     processors=[
@@ -1031,6 +1040,27 @@ def create_versioned_app(
     async def lifespan(app: FastAPI):
         """Application lifespan management."""
         logger.info("Starting API Versioning Service")
+
+        # Initialize unified configuration
+        try:
+            from os import getenv
+            env_name = getenv("ENVIRONMENT", "development")
+            config_manager = create_unified_config_manager(
+                service_name="api-versioning-service",
+                environment=Environment(env_name),
+                config_class=APIVersioningSettings,
+                strategy=ConfigurationStrategy.AUTO_DETECT
+            )
+
+            await config_manager.initialize()
+            app.state.config = await config_manager.get_configuration()
+            app.state.config_manager = config_manager
+
+            logger.info(f"Unified configuration loaded for {app.state.config.service_name}")
+        except Exception as e:
+            logger.warning(f"Failed to load unified configuration, using fallback: {e}")
+            app.state.config = get_settings()  # Fallback to existing config
+
         yield
         logger.info("Shutting down API Versioning Service")
 
@@ -1071,7 +1101,8 @@ def create_versioned_app(
 
 
 # Example usage and API routes
-app = create_versioned_app("user-service")
+# Create app with unified configuration support
+app = create_versioned_app("api-versioning-service")
 
 
 # Pydantic models
@@ -1218,4 +1249,12 @@ async def get_user_v2(user_id: int, request: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8060, reload=True)
+    # Load configuration for running the service
+    settings = get_settings()
+    uvicorn.run(
+        "main:app",
+        host=settings.host,
+        port=settings.port,
+        reload=settings.reload,
+        log_level="debug" if settings.debug else "info"
+    )

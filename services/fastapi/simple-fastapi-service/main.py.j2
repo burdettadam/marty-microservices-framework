@@ -18,27 +18,22 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-# MMF imports - fail if not available
+# Unified framework imports
+from marty_msf.framework.config import UnifiedConfigurationManager
+from marty_msf.framework.secrets import UnifiedSecrets
 from marty_msf.monitoring import ServiceMonitor
-
-# Enhanced unified observability imports
-from marty_msf.observability.standard import create_standard_observability, get_observability
+from marty_msf.observability.standard import create_standard_observability, set_global_observability
 from marty_msf.observability.standard_correlation import (
     StandardCorrelationMiddleware,
     CorrelationContext,
     correlation_context,
     inject_correlation_to_span
 )
-# Configuration
-class Config:
-    """Service configuration."""
-    service_name: str = "{{service_name}}"
-    version: str = "{{service_version | default('0.1.0')}}"
-    host: str = "0.0.0.0"
-    port: int = {{service_port | default(8000)}}
-    debug: bool = {{debug | default(false) | lower}}
 
-config = Config()
+# Global instances
+config_manager = None
+secrets_manager = None
+observability = None
 
 # Setup logging
 logging.basicConfig(
@@ -81,36 +76,62 @@ class {{service_name.replace('-', '_').title()}}Response(BaseModel):
 # Application lifespan management
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage application startup and shutdown."""
-    global monitor, observability
+    """Manage application startup and shutdown with unified infrastructure."""
+    global config_manager, secrets_manager, observability, monitor
+
+    # Initialize unified configuration
+    config_manager = UnifiedConfigurationManager()
+    await config_manager.initialize()
+
+    # Initialize unified secrets
+    secrets_manager = UnifiedSecrets()
+    await secrets_manager.initialize()
+
+    service_name = config_manager.get("service.name", "{{service_name}}")
+    service_version = config_manager.get("service.version", "{{service_version | default('0.1.0')}}")
 
     # Startup
-    logger.info(f"Starting {{service_name}} v{config.version}")
-    logger.info("All framework features enabled")
+    logger.info(f"Starting {service_name} v{service_version} with unified infrastructure")
 
-    # Initialize enhanced unified observability
+    # Initialize unified observability
+    observability = create_standard_observability(
+        service_name=service_name,
+        service_version=service_version,
+        service_type="fastapi"
+    )
     await observability.initialize()
-    # Instrument the FastAPI app
-    observability.instrument_fastapi(app)
-    logger.info("Enhanced unified observability initialized and instrumented")
+    set_global_observability(observability)
+    logger.info("Unified observability initialized")
 
     # Initialize framework monitoring
-    monitor = ServiceMonitor(config.service_name)
+    monitor = ServiceMonitor(service_name)
     await monitor.start()
     logger.info("Framework monitoring initialized")
+
+    # Store in app state
+    app.state.config_manager = config_manager
+    app.state.secrets_manager = secrets_manager
 
     yield
 
     # Shutdown
-    await monitor.stop()
+    if monitor:
+        await monitor.stop()
+    if observability:
+        await observability.shutdown()
+    if secrets_manager:
+        await secrets_manager.cleanup()
+    if config_manager:
+        await config_manager.cleanup()
+    logger.info("Service shutdown complete")
     await observability.shutdown()
     logger.info(f"{{service_name}} shutdown complete")
 
 # Create FastAPI application
 app = FastAPI(
     title="{{service_name.replace('-', ' ').title()}}",
-    description="{{service_description | default('MMF microservice with enhanced observability')}}",
-    version=config.version,
+    description="{{service_description | default('MMF microservice with unified infrastructure')}}",
+    version="{{service_version | default('0.1.0')}}",
     lifespan=lifespan
 )
 
@@ -142,12 +163,15 @@ async def track_requests(request: Request, call_next):
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     """Enhanced health check with framework and observability status."""
+    service_name = config_manager.get("service.name", "{{service_name}}") if config_manager else "{{service_name}}"
+    service_version = config_manager.get("service.version", "{{service_version | default('0.1.0')}}") if config_manager else "{{service_version | default('0.1.0')}}"
+
     return HealthResponse(
-        service=config.service_name,
-        version=config.version,
+        service=service_name,
+        version=service_version,
         status="healthy",
         timestamp=datetime.utcnow().isoformat(),
-        observability_enabled=True
+        observability_enabled=observability is not None
     )
 
 @app.get("/metrics")
@@ -336,13 +360,29 @@ async def root():
         "observability_enabled": True
     }
 
-if __name__ == "__main__":
-    # Run the service
-    logger.info(f"Starting {{service_name}} on {config.host}:{config.port}")
+async def main():
+    """Main application entry point with unified configuration"""
+    # Initialize config temporarily to get server settings
+    temp_config = UnifiedConfigurationManager()
+    await temp_config.initialize()
 
-    uvicorn.run(
+    host = temp_config.get("server.host", "0.0.0.0")
+    port = temp_config.get("server.port", {{service_port | default(8000)}})
+    debug = temp_config.get("server.debug", {{debug | default(false) | lower}})
+
+    logger.info(f"Starting {{service_name}} on {host}:{port} with unified infrastructure")
+
+    uvicorn_config = uvicorn.Config(
         app,
-        host=config.host,
-        port=config.port,
-        log_level="info" if not config.debug else "debug"
+        host=host,
+        port=port,
+        log_level=temp_config.get("logging.level", "info" if not debug else "debug").lower()
     )
+
+    await temp_config.cleanup()
+
+    server = uvicorn.Server(uvicorn_config)
+    await server.serve()
+
+if __name__ == "__main__":
+    asyncio.run(main())

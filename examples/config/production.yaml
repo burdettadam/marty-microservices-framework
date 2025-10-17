@@ -1,0 +1,49 @@
+# Production Environment Configuration
+# Overrides base configuration for production deployment
+
+service:
+  port: 8080
+
+# Production database (managed database service)
+database:
+  host: "${SECRET:database/host}"  # Get from secrets
+  port: 5432
+  username: "${SECRET:database/username}"
+  password: "${SECRET:database/password}"
+  database: "myapp_prod"
+  ssl_mode: "require"
+  pool_size: 20
+  max_connections: 200
+
+# Production Redis (managed Redis service)
+redis:
+  host: "${SECRET:redis/host}"
+  port: 6379
+  password: "${SECRET:redis/password}"
+  db: 0
+  timeout: 3000
+
+# Production logging
+logging:
+  level: "INFO"
+  format: "json"
+  enable_colors: false
+
+# Production security (strict)
+security:
+  session_timeout: 3600  # 1 hour
+  enable_cors: true
+  cors_origins: ["https://myapp.com", "https://admin.myapp.com"]
+
+# Feature flags for production
+features:
+  enable_metrics: true
+  enable_tracing: true
+  enable_profiling: false
+  enable_debug_endpoints: false
+
+# Production integrations (live credentials)
+integrations:
+  stripe_api_key: "${SECRET:stripe/live_api_key}"
+  sendgrid_api_key: "${SECRET:sendgrid/api_key}"
+  slack_webhook: "${SECRET:slack/webhook_url}"

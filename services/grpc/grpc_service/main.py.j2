@@ -23,7 +23,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 # Phase 1 Infrastructure - Enterprise Base
-from src.framework.grpc import GRPCServiceFactory, ServiceDefinition, run_grpc_service
+from src.framework.grpc import UnifiedGrpcServer, ServiceDefinition
 from src.framework.observability.monitoring import ServiceMonitor
 from src.framework.config import BaseServiceConfig
 {% if use_database %}
@@ -52,8 +52,8 @@ from .service import {{service_class}}Service, {{service_class}}ServiceConfig
 logger = logging.getLogger(__name__)
 
 
-async def create_service_factory() -> GRPCServiceFactory:
-    """Create and configure the gRPC service factory with Phase 2 infrastructure and unified observability."""
+async def create_grpc_server() -> UnifiedGrpcServer:
+    """Create and configure the unified gRPC server with Phase 2 infrastructure and unified observability."""
 
     # Phase 1: Load base configuration
     config = {{service_class}}ServiceConfig()
@@ -101,23 +101,36 @@ async def create_service_factory() -> GRPCServiceFactory:
     await event_bus.start()
 
     {% endif %}
-    # Create service factory with enterprise infrastructure
-    factory_config = service_config.model_dump()
+    # Create unified gRPC server with enterprise infrastructure
+    server = UnifiedGrpcServer(service_name="{{service_name}}")
 
-    # Add observability interceptors
-    interceptors = [StandardCorrelationInterceptor()]
-    factory_config["interceptors"] = interceptors
-
-    factory = GRPCServiceFactory(factory_config)
-
-    # Register service with all Phase 2 components
-    def create_service():
+    # Create service definition with all Phase 2 components
+    def create_servicer():
         return {{service_class}}Service(
             config=service_config,
             config_manager=config_manager,
             secret_manager=secret_manager,
             cache_manager=cache_manager,
             message_queue=message_queue,
+            event_stream_manager=event_stream_manager,
+            api_gateway=api_gateway,
+            {% if use_database %}
+            db_manager=db_manager,
+            event_bus=event_bus,
+            {% endif %}
+        )
+
+    # Register service with server
+    service_def = ServiceDefinition(
+        name="{{service_name}}",
+        servicer_factory=create_servicer,
+        registration_func=add_{{service_class}}Servicer_to_server,
+        health_service_name="{{service_name}}"
+    )
+
+    server.register_service(service_def)
+
+    return server
             event_stream_manager=event_stream_manager,
             api_gateway=api_gateway,
             {% if use_database %}
@@ -146,16 +159,7 @@ async def create_service_factory() -> GRPCServiceFactory:
         }
     )
 
-    factory.register_service(service_def)
-    return factory, {
-        "config_manager": config_manager,
-        "secret_manager": secret_manager,
-        "cache_manager": cache_manager,
-        "message_queue": message_queue,
-        "event_stream_manager": event_stream_manager,
-        "api_gateway": api_gateway,
-        "observability": observability,
-    }
+    return server
 
 
 async def main() -> None:
@@ -164,36 +168,23 @@ async def main() -> None:
     logger.info("Starting {{service_name}} service with Phase 2 enterprise infrastructure")
     logger.info("All observability features enabled")
 
-    # Create service factory with Phase 2 components
-    factory, infrastructure = await create_service_factory()
-
-    # Start monitoring
-    monitor = ServiceMonitor("{{service_name}}")
-    monitor.start_monitoring()
+    # Create unified gRPC server with Phase 2 components
+    server = await create_grpc_server()
 
     try:
-        # Run service
-        await run_grpc_service(
-            factory=factory,
-            port={{grpc_port}},
-            max_workers=10,
-        )
+        # Start the server
+        await server.start()
+        logger.info("{{service_name}} gRPC server started successfully")
+
+        # Wait for server termination
+        await server.wait_for_termination()
+    except KeyboardInterrupt:
+        logger.info("Received shutdown signal")
     finally:
-        # Phase 2: Cleanup infrastructure components
-        logger.info("Shutting down enterprise infrastructure")
-
-        # Stop monitoring
-        monitor.stop_monitoring()
-
-        # Cleanup observability
-        if infrastructure.get("observability"):
-            await infrastructure["observability"].shutdown()
-
-        # Cleanup Phase 2 components
-        await infrastructure["api_gateway"].stop()
-        await infrastructure["event_stream_manager"].stop()
-        await infrastructure["message_queue"].stop()
-        await infrastructure["cache_manager"].stop()
+        # Cleanup infrastructure components
+        logger.info("Shutting down gRPC server and infrastructure")
+        await server.stop()
+        logger.info("{{service_name}} service shut down complete")
 
         # Stop service factory
         await factory.stop()

@@ -50,12 +50,13 @@ monitoring:
   tracing_enabled: true
   jaeger_endpoint: "http://jaeger:14268/api/traces"
 
-# Testing database connections (using test databases)
+# Testing database patterns (using test databases)
 database:
-  user_service:
+  # Default test database configuration
+  test_db:
     host: "${TEST_DB_HOST:-postgres-test}"
     port: "${TEST_DB_PORT:-5432}"
-    database: "user_service_test"
+    database: "${SERVICE_NAME}_test"
     username: "test_user"
     password: "test_password"
     pool_size: 5
@@ -64,38 +65,22 @@ database:
     pool_recycle: 3600
     ssl_mode: "disable"  # Simplified for testing
 
-  order_service:
-    host: "${TEST_DB_HOST:-postgres-test}"
-    port: "${TEST_DB_PORT:-5432}"
-    database: "order_service_test"
-    username: "test_user"
-    password: "test_password"
-    pool_size: 5
-    max_overflow: 10
-    pool_timeout: 30
-    pool_recycle: 3600
-    ssl_mode: "disable"
+  # In-memory test database for unit tests
+  memory_db:
+    driver: "sqlite"
+    database: ":memory:"
+    pool_size: 1
+    max_overflow: 0
 
-  payment_service:
-    host: "${TEST_DB_HOST:-postgres-test}"
-    port: "${TEST_DB_PORT:-5432}"
-    database: "payment_service_test"
-    username: "test_user"
-    password: "test_password"
-    pool_size: 5
-    max_overflow: 10
-    pool_timeout: 30
-    pool_recycle: 3600
-    ssl_mode: "disable"
-
-  notification_service:
-    host: "${TEST_DB_HOST:-postgres-test}"
-    port: "${TEST_DB_PORT:-5432}"
-    database: "notification_service_test"
-    username: "test_user"
-    password: "test_password"
-    pool_size: 5
-    max_overflow: 10
+  # Integration test database
+  integration_test_db:
+    host: "${INTEGRATION_DB_HOST:-postgres-integration}"
+    port: "${INTEGRATION_DB_PORT:-5432}"
+    database: "${SERVICE_NAME}_integration"
+    username: "integration_user"
+    password: "integration_password"
+    pool_size: 10
+    max_overflow: 20
     pool_timeout: 30
     pool_recycle: 3600
     ssl_mode: "disable"

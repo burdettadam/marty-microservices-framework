@@ -1,0 +1,54 @@
+# Base Configuration
+# This file contains default settings that apply to all environments
+
+service:
+  name: "example-service"
+  version: "1.0.0"
+  port: 8080
+  host: "0.0.0.0"
+
+# Database configuration with secret references
+database:
+  host: "localhost"
+  port: 5432
+  username: "app_user"
+  password: "${SECRET:database/password}"
+  database: "myapp"
+  ssl_mode: "prefer"
+  pool_size: 10
+  max_connections: 100
+
+# Redis configuration
+redis:
+  host: "localhost"
+  port: 6379
+  password: "${SECRET:redis/password}"
+  db: 0
+  timeout: 5000
+
+# Logging configuration
+logging:
+  level: "INFO"
+  format: "json"
+  enable_colors: false
+
+# Security configuration
+security:
+  jwt_secret: "${SECRET:jwt/signing_key}"
+  api_key: "${SECRET:external_api/key}"
+  session_timeout: 3600
+  enable_cors: true
+  cors_origins: ["*"]
+
+# Feature flags
+features:
+  enable_metrics: true
+  enable_tracing: false
+  enable_profiling: false
+  enable_debug_endpoints: false
+
+# Third-party integrations
+integrations:
+  stripe_api_key: "${SECRET:stripe/api_key}"
+  sendgrid_api_key: "${SECRET:sendgrid/api_key}"
+  slack_webhook: "${SECRET:slack/webhook_url}"

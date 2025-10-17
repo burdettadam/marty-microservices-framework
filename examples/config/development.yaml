@@ -1,0 +1,41 @@
+# Development Environment Configuration
+# Overrides base configuration for local development
+
+service:
+  port: 8080
+
+# Development database (local PostgreSQL)
+database:
+  host: "localhost"
+  username: "dev_user"
+  database: "myapp_dev"
+  ssl_mode: "disable"
+  pool_size: 5
+
+# Development Redis
+redis:
+  host: "localhost"
+  db: 1  # Use different DB for dev
+
+# Development logging
+logging:
+  level: "DEBUG"
+  enable_colors: true
+  format: "text"
+
+# Development security (less strict)
+security:
+  session_timeout: 86400  # 24 hours for dev convenience
+  enable_cors: true
+  cors_origins: ["http://localhost:3000", "http://localhost:3001"]
+
+# Feature flags for development
+features:
+  enable_debug_endpoints: true
+  enable_profiling: true
+  enable_tracing: true
+
+# Mock integrations for development
+integrations:
+  # Use test/sandbox credentials in development
+  stripe_api_key: "${SECRET:stripe/test_api_key}"

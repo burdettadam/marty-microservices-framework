@@ -1,36 +1,17 @@
 """
-Configuration package initialization.
+Unified Configuration and Secret Management System.
 
-This package provides enterprise-grade configuration management including:
+This package provides cloud-agnostic configuration management including:
+- Multi-cloud secret backends (AWS, GCP, Azure, Vault, K8s)
 - Environment-specific configuration loading
 - Type-safe configuration with validation
-- Secrets management with secure storage
+- Automatic environment detection
+- Secret references with ${SECRET:key} syntax
 - Configuration hot-reloading
-- Integration with external config services
-- Multiple configuration sources (files, env vars, external services)
 - Plugin configuration management
 """
 
-from .manager import (  # Core classes; Enums; Providers; Utility functions; Data classes
-    BaseServiceConfig,
-    ConfigManager,
-    ConfigMetadata,
-    ConfigProvider,
-    ConfigSource,
-    Environment,
-    EnvVarConfigProvider,
-    FileConfigProvider,
-    FrameworkConfig,
-    SecretManager,
-    config_context,
-    create_config_manager,
-    create_secret_manager,
-    detect_environment,
-    get_config_manager,
-    get_secret_manager,
-    get_service_config,
-    load_config_schema,
-)
+from .manager import Environment  # Keep only Environment enum for compatibility
 from .plugin_config import (
     PluginConfig,
     PluginConfigManager,
@@ -38,36 +19,46 @@ from .plugin_config import (
     PluginConfigSection,
     create_plugin_config_manager,
 )
+from .unified import (
+    AWSSecretsManagerBackend,
+    AzureKeyVaultBackend,
+    ConfigurationStrategy,
+    EnvironmentDetector,
+    EnvironmentSecretBackend,
+    FileSecretBackend,
+    GCPSecretManagerBackend,
+    HostingEnvironment,
+    SecretBackend,
+    SecretBackendInterface,
+    UnifiedConfigurationManager,
+    VaultSecretBackend,
+    create_unified_config_manager,
+    get_unified_config,
+)
 
 __all__ = [
-    "BaseServiceConfig",
-    # Core classes
-    "ConfigManager",
-    # Data classes
-    "ConfigMetadata",
-    # Providers
-    "ConfigProvider",
-    "ConfigSource",
-    "EnvVarConfigProvider",
-    # Enums
+    # Core unified configuration system
+    "UnifiedConfigurationManager",
+    "create_unified_config_manager",
+    "get_unified_config",
+    # Enums and configuration
     "Environment",
-    "FileConfigProvider",
-    "SecretManager",
-    "config_context",
-    # Utility functions
-    "create_config_manager",
-    "create_secret_manager",
-    "detect_environment",
-    "get_config_manager",
-    "get_secret_manager",
-    "get_service_config",
-    "load_config_schema",
+    "SecretBackend",
+    "HostingEnvironment",
+    "ConfigurationStrategy",
+    # Backend implementations
+    "SecretBackendInterface",
+    "EnvironmentDetector",
+    "VaultSecretBackend",
+    "AWSSecretsManagerBackend",
+    "GCPSecretManagerBackend",
+    "AzureKeyVaultBackend",
+    "EnvironmentSecretBackend",
+    "FileSecretBackend",
     # Plugin configuration
     "PluginConfig",
     "PluginConfigSection",
     "PluginConfigProvider",
     "PluginConfigManager",
     "create_plugin_config_manager",
-    # Framework config
-    "FrameworkConfig",
 ]
