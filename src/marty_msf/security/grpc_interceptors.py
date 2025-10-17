@@ -9,6 +9,7 @@ Provides security interceptors for gRPC services with:
 - Request context propagation
 """
 
+import asyncio
 import builtins
 import json
 import logging
@@ -18,8 +19,22 @@ from typing import Any
 
 import grpc
 
-from marty_msf.security.authorization import DecisionType, PolicyContext, PolicyManager
 from marty_msf.security.secrets import SecretManager
+from marty_msf.security.unified_framework import (
+    SecurityContext,
+    SecurityDecision,
+    SecurityPrincipal,
+    UnifiedSecurityFramework,
+)
+
+
+# Simple PolicyContext for internal use
+class PolicyContext:
+    def __init__(self, principal: dict, resource: str, action: str, environment: dict):
+        self.principal = principal
+        self.resource = resource
+        self.action = action
+        self.environment = environment
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +45,13 @@ class SecurityInterceptor(grpc.ServerInterceptor):
     def __init__(
         self,
         secret_manager: SecretManager,
-        policy_manager: PolicyManager,
+        security_framework: UnifiedSecurityFramework,
         require_mtls: bool = True,
         audit_all_requests: bool = True
     ):
         """Initialize security interceptor."""
         self.secret_manager = secret_manager
-        self.policy_manager = policy_manager
+        self.security_framework = security_framework
         self.require_mtls = require_mtls
         self.audit_all_requests = audit_all_requests
 
@@ -71,9 +86,9 @@ class AuthenticationInterceptor(SecurityInterceptor):
                     context.abort(grpc.StatusCode.UNAUTHENTICATED, auth_result["reason"])
                     return
 
-                # Add authentication context
-                context.set_metadata("principal_id", auth_result["principal"]["id"])
-                context.set_metadata("auth_method", auth_result["method"])
+                # Add authentication context (store in custom attributes)
+                # Note: gRPC ServicerContext doesn't have set_metadata method
+                # We store in custom attributes for internal use
 
                 # Store in context for authorization interceptor
                 context._security_principal = auth_result["principal"]  # type: ignore
@@ -83,7 +98,7 @@ class AuthenticationInterceptor(SecurityInterceptor):
                 return continuation(request, context)
 
             except Exception as e:
-                logger.error(f"gRPC authentication error: {e}")
+                logger.error("gRPC authentication error: %s", e)
                 if self.audit_all_requests:
                     self._audit_grpc_request(
                         handler_call_details,
@@ -112,14 +127,19 @@ class AuthenticationInterceptor(SecurityInterceptor):
                     "principal": None
                 }
 
-            common_name = peer_identities[0].decode("utf-8")
+            # Handle peer identities which can be bytes or strings
+            if isinstance(peer_identities[0], bytes):
+                common_name = peer_identities[0].decode("utf-8")
+            else:
+                common_name = str(peer_identities[0])
 
             # Extract certificate details
             cert_fingerprint = None
             peer_cert = auth_context.get("x509_subject_alternative_name")
             if peer_cert:
                 # Simplified certificate processing
-                cert_fingerprint = "sha256:" + hash(str(peer_cert))[:16]
+                cert_hash = hash(str(peer_cert))
+                cert_fingerprint = f"sha256:{str(cert_hash)[:16]}"
 
             principal = {
                 "type": "service",
@@ -139,14 +159,42 @@ class AuthenticationInterceptor(SecurityInterceptor):
         metadata = dict(context.invocation_metadata())
         authorization = metadata.get("authorization")
 
-        if authorization and authorization.startswith("Bearer "):
-            token = authorization.split(" ", 1)[1]
-            return self._validate_jwt_token(token)
+        if authorization:
+            # Convert to string with robust handling
+            auth_str = ""
+            try:
+                if isinstance(authorization, str):
+                    auth_str = authorization
+                elif isinstance(authorization, bytes):
+                    auth_str = authorization.decode("utf-8")
+                else:
+                    # Handle memoryview, bytearray, etc.
+                    auth_str = bytes(authorization).decode("utf-8")
+            except Exception:
+                # Fallback to string conversion
+                auth_str = str(authorization)
+
+            if auth_str.startswith("Bearer "):
+                token = auth_str.split(" ", 1)[1]
+                return self._validate_jwt_token(token)
 
         # Check for API key
         api_key = metadata.get("x-api-key") or metadata.get("api-key")
         if api_key:
-            return self._validate_api_key(api_key)
+            # Convert to string with robust handling
+            api_key_str = ""
+            try:
+                if isinstance(api_key, str):
+                    api_key_str = api_key
+                elif isinstance(api_key, bytes):
+                    api_key_str = api_key.decode("utf-8")
+                else:
+                    # Handle memoryview, bytearray, etc.
+                    api_key_str = bytes(api_key).decode("utf-8")
+            except Exception:
+                # Fallback to string conversion
+                api_key_str = str(api_key)
+            return self._validate_api_key(api_key_str)
 
         return {
             "authenticated": False,
@@ -283,10 +331,24 @@ class AuthorizationInterceptor(SecurityInterceptor):
                     principal
                 )
 
-                # Evaluate authorization policy
-                policy_decision = asyncio.run(self.policy_manager.evaluate(policy_context))
+                # Evaluate authorization policy using unified framework
+                # Convert PolicyContext to SecurityContext
+                security_principal = SecurityPrincipal(
+                    id=principal.get("id", "unknown"),
+                    type=principal.get("type", "user"),
+                    roles=set(principal.get("roles", [])),
+                    permissions=set(principal.get("permissions", [])),
+                    attributes=principal.get("attributes", {})
+                )
 
-                if policy_decision.decision == DecisionType.DENY:
+                policy_decision = asyncio.run(self.security_framework.authorize(
+                    principal=security_principal,
+                    resource=policy_context.resource,
+                    action=policy_context.action,
+                    context=policy_context.environment
+                ))
+
+                if not policy_decision.allowed:
                     self.authz_failures += 1
                     if self.audit_all_requests:
                         self._audit_grpc_request(
@@ -300,8 +362,7 @@ class AuthorizationInterceptor(SecurityInterceptor):
                     context.abort(grpc.StatusCode.PERMISSION_DENIED, policy_decision.reason)
                     return
 
-                # Add authorization context
-                context.set_metadata("policy_decision", policy_decision.decision.value)
+                # Store authorization context
                 context._policy_decision = policy_decision  # type: ignore
 
                 # Audit successful authorization
@@ -318,7 +379,7 @@ class AuthorizationInterceptor(SecurityInterceptor):
                 return continuation(request, context)
 
             except Exception as e:
-                logger.error(f"gRPC authorization error: {e}")
+                logger.error("gRPC authorization error: %s", e)
                 if self.audit_all_requests:
                     self._audit_grpc_request(
                         handler_call_details,
@@ -391,15 +452,15 @@ class AuthorizationInterceptor(SecurityInterceptor):
             "metadata": metadata or {}
         }
 
-        logger.info(f"GRPC_AUTHZ_AUDIT: {audit_event}")
+        logger.info("GRPC_AUTHZ_AUDIT: %s", audit_event)
 
 
 class SecretInjectionInterceptor(SecurityInterceptor):
     """Interceptor to inject secrets into gRPC service context."""
 
-    def __init__(self, secret_manager: SecretManager, secrets_to_inject: list[str]):
+    def __init__(self, secret_manager: SecretManager, security_framework: UnifiedSecurityFramework, secrets_to_inject: list[str]):
         """Initialize secret injection interceptor."""
-        super().__init__(secret_manager, None, False, False)
+        super().__init__(secret_manager, security_framework, False, False)
         self.secrets_to_inject = secrets_to_inject
 
     def intercept_service(self, continuation: Callable, handler_call_details: grpc.HandlerCallDetails):
@@ -412,7 +473,7 @@ class SecretInjectionInterceptor(SecurityInterceptor):
                 if secret_value:
                     secrets[secret_key] = secret_value
                 else:
-                    logger.warning(f"Secret not found: {secret_key}")
+                    logger.warning("Secret not found: %s", secret_key)
 
             # Add secrets to context
             context._injected_secrets = secrets  # type: ignore
@@ -424,7 +485,7 @@ class SecretInjectionInterceptor(SecurityInterceptor):
 
 def create_security_interceptors(
     secret_manager: SecretManager,
-    policy_manager: PolicyManager,
+    security_framework: UnifiedSecurityFramework,
     require_mtls: bool = True,
     secrets_to_inject: list[str] | None = None
 ) -> list[grpc.ServerInterceptor]:
@@ -434,7 +495,7 @@ def create_security_interceptors(
     # Authentication interceptor (always first)
     auth_interceptor = AuthenticationInterceptor(
         secret_manager=secret_manager,
-        policy_manager=policy_manager,
+        security_framework=security_framework,
         require_mtls=require_mtls
     )
     interceptors.append(auth_interceptor)
@@ -442,7 +503,7 @@ def create_security_interceptors(
     # Authorization interceptor (after authentication)
     authz_interceptor = AuthorizationInterceptor(
         secret_manager=secret_manager,
-        policy_manager=policy_manager
+        security_framework=security_framework
     )
     interceptors.append(authz_interceptor)
 
@@ -450,6 +511,7 @@ def create_security_interceptors(
     if secrets_to_inject:
         secret_interceptor = SecretInjectionInterceptor(
             secret_manager=secret_manager,
+            security_framework=security_framework,
             secrets_to_inject=secrets_to_inject
         )
         interceptors.append(secret_interceptor)
@@ -474,7 +536,3 @@ def get_principal_from_context(context: grpc.ServicerContext) -> dict[str, Any] 
 def get_policy_decision_from_context(context: grpc.ServicerContext) -> Any:
     """Get policy decision from gRPC context."""
     return getattr(context, "_policy_decision", None)
-
-
-# Add necessary import for asyncio
-import asyncio
