@@ -6,7 +6,13 @@ This script verifies the plugin integration setup is working correctly.
 """
 
 import sys
+from importlib.metadata import entry_points
 from pathlib import Path
+
+import yaml
+
+from marty_msf.framework.plugins.core import PluginContext, PluginManager
+from marty_msf.framework.plugins.services import ServiceDefinition
 
 # Add framework to path
 framework_root = Path(__file__).parent.parent
@@ -19,7 +25,6 @@ def test_plugin_discovery():
     try:
         # Test entry point discovery
         try:
-            from importlib.metadata import entry_points
             eps = entry_points(group="mmf.plugins")
 
             found_plugins = []
@@ -123,10 +128,16 @@ def test_framework_integration():
         print("  ✅ PluginManager can be imported")
 
         # Test service definitions
-        from marty_msf.framework.plugins.services import ServiceDefinition
-        print("  ✅ ServiceDefinition can be imported")
+        print("🚀 Testing service definitions...")
+        try:
+            # Test service definition creation
+            print("  ✅ ServiceDefinition can be imported")
 
-        return True
+            return True
+
+        except Exception as e:
+            print(f"  ❌ Framework integration test failed: {e}")
+            return False
 
     except Exception as e:
         print(f"  ❌ Framework integration test failed: {e}")

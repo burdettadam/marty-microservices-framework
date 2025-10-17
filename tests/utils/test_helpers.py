@@ -7,6 +7,9 @@ across all test types while minimizing mocking.
 
 import asyncio
 import json
+import os
+import shutil
+import subprocess
 import tempfile
 import uuid
 from contextlib import contextmanager
@@ -16,6 +19,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 import redis
+import yaml
 from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
@@ -293,8 +297,6 @@ class ConfigTestHelper:
     @contextmanager
     def environment_variables(**env_vars):
         """Context manager for temporary environment variables."""
-        import os
-
         original_env = {}
 
         for key, value in env_vars.items():
@@ -313,10 +315,6 @@ class ConfigTestHelper:
     @staticmethod
     def create_temp_config_file(config_data: dict[str, Any], file_format: str = "yaml") -> Path:
         """Create a temporary configuration file."""
-        import tempfile
-
-        import yaml
-
         suffix = f".{file_format}"
         temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=suffix, delete=False)
 
@@ -466,7 +464,6 @@ async def create_test_service(
     service_name: str, service_type: str = "fastapi", temp_dir: Path = None
 ) -> Path:
     """Create a test service in a temporary directory."""
-    import subprocess
 
     if temp_dir is None:
         temp_dir = Path(tempfile.mkdtemp())
@@ -500,7 +497,6 @@ async def create_test_service(
 
 async def cleanup_test_service(service_path: Path):
     """Clean up a test service directory."""
-    import shutil
 
     if service_path.exists():
         shutil.rmtree(service_path)
@@ -559,7 +555,6 @@ def temp_service_dir():
     temp_dir = Path(tempfile.mkdtemp())
     yield temp_dir
 
-    import shutil
 
     if temp_dir.exists():
         shutil.rmtree(temp_dir)

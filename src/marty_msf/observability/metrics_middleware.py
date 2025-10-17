@@ -12,9 +12,14 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
+import grpc
+from grpc import aio as grpc_aio
 from prometheus_client import Counter, Histogram
+
+# Framework imports
+from marty_msf.framework.grpc import UnifiedGrpcServer
+
+logger = logging.getLogger(__name__)
 
 
 class MetricsMiddleware:
@@ -111,8 +116,6 @@ class FastAPIMetricsMiddleware(BaseHTTPMiddleware):
 
 
 # gRPC middleware
-import grpc
-from grpc import aio as grpc_aio
 
 
 class GRPCMetricsInterceptor(grpc.ServerInterceptor):

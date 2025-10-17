@@ -22,6 +22,7 @@ from typing import Any, Optional, dict, list
 
 # External dependencies - fail if not available
 import aioredis
+import redis.asyncio as redis_client
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 
@@ -491,8 +492,6 @@ class LogStreamProcessor:
         # Process logs from Redis stream
 
         self.running = True
-        import redis.asyncio as redis_client
-
         redis = redis_client.from_url(
             f"redis://{self.analyzer.redis_host}:{self.analyzer.redis_port}"
         )
