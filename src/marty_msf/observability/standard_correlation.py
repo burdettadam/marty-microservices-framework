@@ -175,6 +175,9 @@ class StandardCorrelationMiddleware(BaseHTTPMiddleware):
 import grpc
 from grpc import ServicerContext
 
+# Framework imports
+from marty_msf.framework.grpc import ServiceDefinition
+
 
 class StandardCorrelationInterceptor(grpc.ServerInterceptor):
     """Standard correlation interceptor for gRPC services."""

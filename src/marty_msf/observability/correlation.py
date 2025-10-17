@@ -14,14 +14,19 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager, contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
-# gRPC imports - fail if not available
+# Third-party imports
 import grpc
+import httpx
 
 # FastAPI/Starlette imports - fail if not available
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+
+# Framework imports
+from marty_msf.framework.grpc import ServiceRegistrationProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -442,8 +447,6 @@ class CorrelationHTTPClient:
         headers = self.prepare_headers(headers)
 
         # Use httpx
-        import httpx
-
         async with httpx.AsyncClient() as client:
             return await client.request(method, url, headers=headers, **kwargs)
 
@@ -514,8 +517,6 @@ def trace_plugin_interaction(
     **metadata
 ):
     """Trace interaction between plugins for debugging."""
-    from datetime import datetime
-
     correlation_id = get_correlation_id() or str(uuid.uuid4())
 
     logger.info(f"Plugin interaction: {from_plugin} -> {to_plugin}", extra={

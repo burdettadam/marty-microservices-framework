@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import sys
+import uuid
 from datetime import datetime
 from typing import Any
 
@@ -79,8 +80,6 @@ class CorrelationFilter(logging.Filter):
 
     def _generate_correlation_id(self) -> str:
         """Generate a new correlation ID."""
-        import uuid
-
         return str(uuid.uuid4())
 
     def filter(self, record: logging.LogRecord) -> bool:

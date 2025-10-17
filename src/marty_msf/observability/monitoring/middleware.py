@@ -5,7 +5,10 @@ This module provides middleware components that automatically collect metrics,
 perform health checks, and integrate with distributed tracing systems.
 """
 
+import asyncio
 import logging
+import random
+import re
 import time
 from datetime import datetime
 
@@ -14,10 +17,12 @@ import grpc
 
 # FastAPI imports
 from fastapi import FastAPI, Request, Response
-from fastapi.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse
 from grpc._server import _Context as GrpcContext
-from starlette.middleware.base import RequestResponseEndpoint
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+
+# Framework imports
+from marty_msf.framework.grpc import UnifiedGrpcServer
 
 from .core import HealthStatus, get_monitoring_manager
 
@@ -66,8 +71,6 @@ def should_monitor_request(
         return False
 
     # Apply sampling rate
-    import random
-
     if random.random() > config.sample_rate:
         return False
 
@@ -227,7 +230,6 @@ class FastAPIMonitoringMiddleware(BaseHTTPMiddleware):
         def _normalize_endpoint(self, path: str) -> str:
             """Normalize endpoint path for metrics (replace IDs with placeholders)."""
             # Simple normalization - replace numeric IDs with {id}
-            import re
 
             # Replace UUIDs
             path = re.sub(
@@ -293,7 +295,6 @@ class GRPCMonitoringInterceptor(grpc.ServerInterceptor):
                     # Record metrics (in real implementation, we'd use async)
                     # This is a simplified version for the example
                     try:
-                        import asyncio
 
                         if asyncio.get_event_loop().is_running():
                             asyncio.create_task(
@@ -314,7 +315,6 @@ class GRPCMonitoringInterceptor(grpc.ServerInterceptor):
 
                     # Record error metrics
                     try:
-                        import asyncio
 
                         if asyncio.get_event_loop().is_running():
                             asyncio.create_task(monitoring_manager.record_error(type(e).__name__))

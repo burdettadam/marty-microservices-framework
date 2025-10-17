@@ -8,6 +8,7 @@ centralized logging, and alerting for all microservices.
 from __future__ import annotations
 
 import builtins
+import concurrent.futures
 import logging
 import socket
 import threading
@@ -21,6 +22,7 @@ from enum import Enum
 from typing import Any
 
 import psutil
+import requests
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     CollectorRegistry,
@@ -412,8 +414,6 @@ class HealthChecker:
     @staticmethod
     def _run_with_timeout(func: Callable[[], bool], timeout: float) -> bool:
         """Run a function with timeout."""
-        import concurrent.futures
-
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(func)
             try:
@@ -662,8 +662,6 @@ def external_service_health_check(url: str, timeout: float = 5.0) -> Callable[[]
 
     def check() -> bool:
         try:
-            import requests
-
             response = requests.get(url, timeout=timeout)
             return response.status_code == 200
         except Exception as e:

@@ -5,10 +5,17 @@ Tests complete user workflows with real services and minimal mocking.
 """
 
 import asyncio
+import random
+import re
 import subprocess
+import time
 from pathlib import Path
 
+import httpx
 import pytest
+import yaml
+
+from marty_msf.framework.events import Event
 
 
 @pytest.mark.e2e
@@ -310,7 +317,6 @@ class TestEndToEnd:
         await real_event_bus.start()
 
         # Simulate user registration workflow
-        from marty_msf.framework.events import Event
 
         # Step 1: User registration
         user_created_event = Event(
@@ -609,7 +615,6 @@ class TestEndToEnd:
             assert config_path.exists(), f"Missing {config_file}"
 
             # Verify config content
-            import yaml
 
             with open(config_path) as f:
                 config_data = yaml.safe_load(f)
