@@ -9,8 +9,7 @@ This package provides:
 - Unified event publishing utilities for audit, notification, and domain events
 """
 
-# Unified event publishing components
-from .config import EventConfig, EventPublisherConfig
+# Decorators
 from .decorators import audit_event, domain_event, publish_on_error, publish_on_success
 
 # Enhanced event bus - the primary event system
@@ -27,9 +26,9 @@ from .enhanced_event_bus import (
     EventPriority,
     EventStatus,
     KafkaConfig,
+    OutboxConfig,
     OutboxEvent,
     PluginEventHandler,
-    enhanced_event_bus_context,
 )
 
 # Enhanced event types
@@ -37,7 +36,6 @@ from .enhanced_events import EVENT_REGISTRY, DomainEvent, EventRegistry
 from .enhanced_events import GenericEvent as Event
 from .enhanced_events import SystemEvent, register_event
 from .exceptions import EventPublishingError
-from .publisher import EventPublisher, get_event_publisher
 from .types import AuditEventType, NotificationEventType
 
 # Create aliases for commonly used types
@@ -57,8 +55,8 @@ __all__ = [
     "PluginEventHandler",
     "OutboxEvent",
     "DeadLetterEvent",
-    "enhanced_event_bus_context",
     "KafkaConfig",
+    "OutboxConfig",
     "EventBackendType",
     # Enhanced event types
     "EVENT_REGISTRY",
@@ -66,17 +64,14 @@ __all__ = [
     "Event",
     "EventRegistry",
     "SystemEvent",
-    # New unified event publishing components
-    "EventConfig",
-    "EventPublisherConfig",
-    "EventPublisher",
-    "get_event_publisher",
+    "register_event",
+    # Decorators
     "audit_event",
     "domain_event",
     "publish_on_success",
     "publish_on_error",
+    # Types and exceptions
     "AuditEventType",
     "NotificationEventType",
-    "EventPriority",
     "EventPublishingError",
 ]
