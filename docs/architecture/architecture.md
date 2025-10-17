@@ -143,7 +143,7 @@ default:
 
 #### Resilience Patterns (`src/framework/resilience/`)
 
-The framework provides enterprise-grade resilience patterns for building fault-tolerant microservices:
+The framework provides enterprise-grade resilience patterns for building fault-tolerant microservices with comprehensive performance and resilience hardening:
 
 **Core Patterns:**
 - **Circuit Breakers**: Automatic fault tolerance with configurable failure thresholds and recovery timeouts
@@ -151,6 +151,25 @@ The framework provides enterprise-grade resilience patterns for building fault-t
 - **Bulkhead Isolation**: Resource isolation using thread pools and semaphores to prevent cascade failures
 - **Timeout Management**: Comprehensive timeout handling with dependency-specific configurations
 - **Fallback Strategies**: Graceful degradation with cached responses, default values, and alternative flows
+
+**Connection Pooling Layer (2024 Enhancement):**
+- **HTTP Connection Pools**: Standardized HTTP client pooling with health monitoring and automatic recovery
+- **Redis Connection Pools**: Redis cluster and sentinel support with background health checking
+- **Database Connection Pools**: Integration with existing SQLAlchemy pools and enhanced monitoring
+- **Unified Pool Management**: Centralized ConnectionPoolManager with metrics collection and lifecycle management
+- **Health Monitoring**: Background health checks with configurable intervals and automatic bad connection replacement
+
+**Middleware Integration:**
+- **ResilienceMiddleware**: FastAPI middleware for automatic resilience pattern application
+- **Zero-Configuration Setup**: Default resilience protection for all endpoints without code changes
+- **Request-Level Isolation**: Automatic timeout, rate limiting, and bulkhead application
+- **Circuit Breaker Integration**: Middleware-level circuit breaker protection with graceful error handling
+
+**Load Testing Framework:**
+- **Comprehensive Load Testing**: Multiple test types (load, spike, endurance, chaos)
+- **Resilience Validation**: Validates circuit breakers, bulkheads, and connection pools under load
+- **Realistic Traffic Simulation**: User session simulation with think times and realistic patterns
+- **Performance Metrics**: Response time percentiles, throughput, error rates, and resilience pattern effectiveness
 
 **External Dependency Management:**
 - **Bulkhead Isolation per Dependency**: Separate resource pools for different external services (database, APIs, cache)
@@ -161,13 +180,25 @@ The framework provides enterprise-grade resilience patterns for building fault-t
 **Implementation Features:**
 - **Thread-Pool Bulkheads**: For CPU-intensive operations with configurable worker limits
 - **Semaphore Bulkheads**: For I/O operations with high concurrency support
-- **External Dependency Registration**: Simple API for registering and configuring dependencies
-- **Comprehensive Metrics**: Real-time monitoring of bulkhead utilization, circuit breaker states, and timeout rates
+- **Connection Pool Health Checks**: Real-time monitoring of pool health and automatic recovery
+- **Comprehensive Metrics**: Prometheus-compatible metrics for all resilience patterns
 - **Health Checks**: Integrated health monitoring with resilience pattern statistics
 
 **Configuration Example:**
 ```yaml
 resilience:
+  connection_pools:
+    http:
+      external_api:
+        base_url: "https://api.example.com"
+        max_connections: 50
+        health_check_interval: 60
+    redis:
+      main_cache:
+        host: "localhost"
+        port: 6379
+        max_connections: 20
+
   bulkheads:
     database:
       max_concurrent: 10
@@ -177,15 +208,35 @@ resilience:
       max_concurrent: 15
       timeout_seconds: 15.0
       circuit_breaker_failure_threshold: 3
+
+  middleware:
+    timeout: 30.0
+    rate_limit_requests: 100
+    rate_limit_window: 60
 ```
 
 **Usage Patterns:**
 ```python
-# Register external dependencies
-register_database_dependency("user_db", max_concurrent=10)
-register_api_dependency("payment_gateway", max_concurrent=5)
+# Initialize connection pools and middleware
+from marty_msf.framework.resilience import (
+    ConnectionPoolManager, ResilienceMiddleware
+)
 
-# Use decorators for automatic resilience
+# Set up FastAPI app with automatic resilience
+app = FastAPI()
+app.add_middleware(ResilienceMiddleware)
+
+# Use connection pools in services
+pool_manager = ConnectionPoolManager()
+await pool_manager.create_http_pool("api", base_url="https://api.example.com")
+
+@app.get("/data")
+async def get_data():
+    async with pool_manager.get_http_pool("api") as client:
+        response = await client.get("/data")
+        return response.json()
+
+# Direct resilience decorators for specific functions
 @database_call(dependency_name="user_db", operation_name="get_user")
 async def get_user(user_id: str) -> dict:
     # Database call automatically protected by bulkhead and timeout
