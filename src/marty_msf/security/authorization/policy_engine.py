@@ -22,21 +22,10 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Optional dependencies - graceful degradation if not available
-try:
-    import aiohttp
-    import opa
-    OPA_AVAILABLE = True
-except ImportError:
-    OPA_AVAILABLE = False
-    logger.debug("OPA client not available")
-
-try:
-    import oso
-    OSO_AVAILABLE = True
-except ImportError:
-    OSO_AVAILABLE = False
-    logger.debug("Oso policy engine not available")
+# Required dependencies
+import aiohttp
+import opa
+import oso
 
 
 class PolicyEngine(Enum):
@@ -123,7 +112,7 @@ class OPAPolicyEngine(BasePolicyEngine):
         self.opa_url = opa_url.rstrip('/')
         self.timeout = timeout
         self._session = None
-        self.available = OPA_AVAILABLE
+        self.available = True
 
         if not self.available:
             logger.warning("OPA client not available - using mock evaluation")
@@ -272,7 +261,7 @@ class OsoPolicyEngine(BasePolicyEngine):
 
     def __init__(self):
         """Initialize Oso engine."""
-        self.available = OSO_AVAILABLE
+        self.available = True
         self.oso_instance = None
         self.policies: dict[str, str] = {}
 
@@ -513,12 +502,9 @@ class PolicyManager:
         # Always available
         self.engines[PolicyEngine.BUILTIN] = BuiltinPolicyEngine()
 
-        # Optional engines
-        if OPA_AVAILABLE:
-            self.engines[PolicyEngine.OPA] = OPAPolicyEngine()
-
-        if OSO_AVAILABLE:
-            self.engines[PolicyEngine.OSO] = OsoPolicyEngine()
+        # Required policy engines
+        self.engines[PolicyEngine.OPA] = OPAPolicyEngine()
+        self.engines[PolicyEngine.OSO] = OsoPolicyEngine()
 
         logger.info(f"Initialized policy engines: {list(self.engines.keys())}")
 

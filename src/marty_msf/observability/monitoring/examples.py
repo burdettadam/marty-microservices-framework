@@ -10,12 +10,7 @@ import logging
 from typing import Any
 
 # FastAPI example
-try:
-    from fastapi import FastAPI, HTTPException
-
-    FASTAPI_AVAILABLE = True
-except ImportError:
-    FASTAPI_AVAILABLE = False
+from fastapi import FastAPI, HTTPException
 
 # Database example
 try:
@@ -26,15 +21,10 @@ try:
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
 
-# Redis example
-try:
-    import aioredis
-
-    REDIS_AVAILABLE = True
-except ImportError:
-    REDIS_AVAILABLE = False
-
 import builtins
+
+# Redis example
+import aioredis
 
 # Framework imports
 from marty_msf.framework.monitoring import (
@@ -193,9 +183,7 @@ async def business_metrics_example():
 
 
 # Example 3: FastAPI Integration
-if FASTAPI_AVAILABLE:
-
-    def create_fastapi_monitoring_example():
+def create_fastapi_monitoring_example():
         """Create FastAPI application with comprehensive monitoring."""
 
         print("\n=== FastAPI Monitoring Integration Example ===")
@@ -301,8 +289,9 @@ if FASTAPI_AVAILABLE:
 
         return app
 
-    # Create the FastAPI app
-    app = create_fastapi_monitoring_example()
+
+# Create the FastAPI app
+app = create_fastapi_monitoring_example()
 
 
 # Example 4: Advanced Health Checks
@@ -523,13 +512,12 @@ async def run_all_monitoring_examples():
         print("\n" + "=" * 60)
         print("All monitoring examples completed successfully!")
 
-        if FASTAPI_AVAILABLE:
-            print("\nTo test FastAPI monitoring integration:")
-            print("1. pip install 'fastapi[all]' prometheus_client aioredis")
-            print("2. uvicorn framework.monitoring.examples:app --reload")
-            print("3. Visit http://localhost:8000/docs")
-            print("4. Check metrics at http://localhost:8000/metrics")
-            print("5. Check health at http://localhost:8000/health")
+        print("\nTo test FastAPI monitoring integration:")
+        print("1. pip install 'fastapi[all]' prometheus_client aioredis")
+        print("2. uvicorn framework.monitoring.examples:app --reload")
+        print("3. Visit http://localhost:8000/docs")
+        print("4. Check metrics at http://localhost:8000/metrics")
+        print("5. Check health at http://localhost:8000/health")
 
         print("\nMonitoring Features Demonstrated:")
         print("✅ Prometheus metrics collection")

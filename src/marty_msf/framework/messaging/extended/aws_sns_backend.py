@@ -15,12 +15,8 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any
 
-try:
-    import boto3
-    from botocore.exceptions import ClientError, NoCredentialsError
-    AWS_AVAILABLE = True
-except ImportError:
-    AWS_AVAILABLE = False
+import boto3
+from botocore.exceptions import ClientError, NoCredentialsError
 
 from .extended_architecture import (
     AWSSNSConfig,
@@ -67,9 +63,6 @@ class AWSSNSBackend(EnhancedMessageBackend):
     """AWS SNS backend implementation."""
 
     def __init__(self, config: AWSSNSConfig):
-        if not AWS_AVAILABLE:
-            raise ImportError("AWS SDK is not installed. Install with: pip install boto3")
-
         self.config = config
         self.sns_client = None
         self._topics: dict[str, str] = {}  # topic_name -> topic_arn

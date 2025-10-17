@@ -25,7 +25,29 @@ from typing import Any
 
 # Core OpenTelemetry imports
 from opentelemetry import metrics, trace
+
+# OpenTelemetry components
+from opentelemetry.baggage.propagation import W3CBaggagePropagator
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
+# Prometheus integration
+from opentelemetry.exporter.prometheus import PrometheusMetricReader
+
+# Instrumentation libraries
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.grpc import (
+    GrpcInstrumentorClient,
+    GrpcInstrumentorServer,
+)
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
+from opentelemetry.instrumentation.redis import RedisInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
+from opentelemetry.instrumentation.urllib3 import URLLib3Instrumentor
 from opentelemetry.propagate import extract, inject, set_global_textmap
+from opentelemetry.propagators.b3 import B3MultiFormat
 from opentelemetry.propagators.composite import CompositePropagator
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
@@ -33,89 +55,7 @@ from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
-
-# Optional OpenTelemetry components
-try:
-    from opentelemetry.baggage.propagation import W3CBaggagePropagator
-    W3C_BAGGAGE_AVAILABLE = True
-except ImportError:
-    W3C_BAGGAGE_AVAILABLE = False
-
-try:
-    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
-        OTLPMetricExporter,
-    )
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-    OTLP_AVAILABLE = True
-except ImportError:
-    OTLP_AVAILABLE = False
-
-try:
-    from opentelemetry.propagators.b3 import B3MultiFormat
-    B3_AVAILABLE = True
-except ImportError:
-    B3_AVAILABLE = False
-
-# Instrumentation libraries (optional)
-try:
-    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-    FASTAPI_INSTRUMENTATION_AVAILABLE = True
-except ImportError:
-    FASTAPI_INSTRUMENTATION_AVAILABLE = False
-
-try:
-    from opentelemetry.instrumentation.grpc import (
-        GrpcInstrumentorClient,
-        GrpcInstrumentorServer,
-    )
-    GRPC_INSTRUMENTATION_AVAILABLE = True
-except ImportError:
-    GRPC_INSTRUMENTATION_AVAILABLE = False
-
-try:
-    from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
-    HTTPX_INSTRUMENTATION_AVAILABLE = True
-except ImportError:
-    HTTPX_INSTRUMENTATION_AVAILABLE = False
-
-try:
-    from opentelemetry.instrumentation.psycopg2 import Psycopg2Instrumentor
-    PSYCOPG2_INSTRUMENTATION_AVAILABLE = True
-except ImportError:
-    PSYCOPG2_INSTRUMENTATION_AVAILABLE = False
-
-try:
-    from opentelemetry.instrumentation.redis import RedisInstrumentor
-    REDIS_INSTRUMENTATION_AVAILABLE = True
-except ImportError:
-    REDIS_INSTRUMENTATION_AVAILABLE = False
-
-try:
-    from opentelemetry.instrumentation.requests import RequestsInstrumentor
-    REQUESTS_INSTRUMENTATION_AVAILABLE = True
-except ImportError:
-    REQUESTS_INSTRUMENTATION_AVAILABLE = False
-
-try:
-    from opentelemetry.instrumentation.sqlalchemy import SQLAlchemyInstrumentor
-    SQLALCHEMY_INSTRUMENTATION_AVAILABLE = True
-except ImportError:
-    SQLALCHEMY_INSTRUMENTATION_AVAILABLE = False
-
-try:
-    from opentelemetry.instrumentation.urllib3 import URLLib3Instrumentor
-    URLLIB3_INSTRUMENTATION_AVAILABLE = True
-except ImportError:
-    URLLIB3_INSTRUMENTATION_AVAILABLE = False
-
-# Prometheus integration
-try:
-    from opentelemetry.exporter.prometheus import PrometheusMetricReader
-    from prometheus_client import Counter, Gauge, Histogram, start_http_server
-
-    PROMETHEUS_AVAILABLE = True
-except ImportError:
-    PROMETHEUS_AVAILABLE = False
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 # Framework imports
 from marty_msf.observability.logging import (
@@ -226,7 +166,7 @@ class UnifiedObservability:
             self._setup_auto_instrumentation()
 
             # Start Prometheus metrics server if enabled
-            if self.config.prometheus_enabled and PROMETHEUS_AVAILABLE:
+            if self.config.prometheus_enabled:
                 self._start_prometheus_server()
 
             logger.info(
@@ -312,7 +252,7 @@ class UnifiedObservability:
         tracer_provider = TracerProvider(resource=resource)
 
         # Setup OTLP exporter
-        if self.config.otlp_trace_endpoint and OTLP_AVAILABLE:
+        if self.config.otlp_trace_endpoint:
             otlp_exporter = OTLPSpanExporter(
                 endpoint=self.config.otlp_trace_endpoint,
                 insecure=True,  # Use insecure for internal cluster communication
@@ -335,11 +275,9 @@ class UnifiedObservability:
         # Setup propagators for trace context
         propagators: list[Any] = [TraceContextTextMapPropagator()]
 
-        if B3_AVAILABLE:
-            propagators.append(B3MultiFormat())
+        propagators.append(B3MultiFormat())
 
-        if W3C_BAGGAGE_AVAILABLE:
-            propagators.append(W3CBaggagePropagator())
+        propagators.append(W3CBaggagePropagator())
 
         composite_propagator = CompositePropagator(propagators)
         set_global_textmap(composite_propagator)
@@ -351,12 +289,12 @@ class UnifiedObservability:
         readers = []
 
         # Add Prometheus reader if enabled
-        if self.config.prometheus_enabled and PROMETHEUS_AVAILABLE:
+        if self.config.prometheus_enabled:
             prometheus_reader = PrometheusMetricReader()
             readers.append(prometheus_reader)
 
         # Add OTLP metrics reader
-        if self.config.otlp_metrics_endpoint and OTLP_AVAILABLE:
+        if self.config.otlp_metrics_endpoint:
             otlp_metrics_exporter = OTLPMetricExporter(
                 endpoint=self.config.otlp_metrics_endpoint,
                 insecure=True,
@@ -395,36 +333,31 @@ class UnifiedObservability:
         try:
             # HTTP clients
             if self.config.auto_instrument_http_clients:
-                if REQUESTS_INSTRUMENTATION_AVAILABLE:
-                    RequestsInstrumentor().instrument()
-                    logger.debug("Requests instrumentation applied")
+                RequestsInstrumentor().instrument()
+                logger.debug("Requests instrumentation applied")
 
-                if HTTPX_INSTRUMENTATION_AVAILABLE:
-                    HTTPXClientInstrumentor().instrument()
-                    logger.debug("HTTPX instrumentation applied")
+                HTTPXClientInstrumentor().instrument()
+                logger.debug("HTTPX instrumentation applied")
 
-                if URLLIB3_INSTRUMENTATION_AVAILABLE:
-                    URLLib3Instrumentor().instrument()
-                    logger.debug("URLLib3 instrumentation applied")
+                URLLib3Instrumentor().instrument()
+                logger.debug("URLLib3 instrumentation applied")
 
             # Databases
             if self.config.auto_instrument_databases:
-                if SQLALCHEMY_INSTRUMENTATION_AVAILABLE:
-                    try:
-                        SQLAlchemyInstrumentor().instrument()
-                        logger.debug("SQLAlchemy instrumentation applied")
-                    except Exception as e:
-                        logger.debug("SQLAlchemy instrumentation failed: %s", e)
+                try:
+                    SQLAlchemyInstrumentor().instrument()
+                    logger.debug("SQLAlchemy instrumentation applied")
+                except Exception as e:
+                    logger.debug("SQLAlchemy instrumentation failed: %s", e)
 
-                if PSYCOPG2_INSTRUMENTATION_AVAILABLE:
-                    try:
-                        Psycopg2Instrumentor().instrument()
-                        logger.debug("Psycopg2 instrumentation applied")
-                    except Exception as e:
-                        logger.debug("Psycopg2 instrumentation failed: %s", e)
+                try:
+                    Psycopg2Instrumentor().instrument()
+                    logger.debug("Psycopg2 instrumentation applied")
+                except Exception as e:
+                    logger.debug("Psycopg2 instrumentation failed: %s", e)
 
             # Redis
-            if self.config.auto_instrument_redis and REDIS_INSTRUMENTATION_AVAILABLE:
+            if self.config.auto_instrument_redis:
                 try:
                     RedisInstrumentor().instrument()
                     logger.debug("Redis instrumentation applied")
@@ -442,9 +375,7 @@ class UnifiedObservability:
         if not self.config.auto_instrument_fastapi or not self.config.tracing_enabled:
             return
 
-        if not FASTAPI_INSTRUMENTATION_AVAILABLE:
-            logger.warning("FastAPI instrumentation not available")
-            return
+        # FastAPI instrumentation is required
 
         try:
             FastAPIInstrumentor.instrument_app(
@@ -461,9 +392,7 @@ class UnifiedObservability:
         if not self.config.auto_instrument_grpc or not self.config.tracing_enabled:
             return
 
-        if not GRPC_INSTRUMENTATION_AVAILABLE:
-            logger.warning("gRPC instrumentation not available")
-            return
+        # gRPC instrumentation is required
 
         try:
             GrpcInstrumentorServer().instrument()
@@ -476,9 +405,7 @@ class UnifiedObservability:
         if not self.config.auto_instrument_grpc or not self.config.tracing_enabled:
             return
 
-        if not GRPC_INSTRUMENTATION_AVAILABLE:
-            logger.warning("gRPC client instrumentation not available")
-            return
+        # gRPC instrumentation is required
 
         try:
             GrpcInstrumentorClient().instrument()
@@ -488,7 +415,7 @@ class UnifiedObservability:
 
     def _start_prometheus_server(self) -> None:
         """Start Prometheus metrics HTTP server."""
-        if self._metrics_server_started or not PROMETHEUS_AVAILABLE:
+        if self._metrics_server_started:
             return
 
         try:
