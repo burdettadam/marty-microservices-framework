@@ -1,0 +1,16 @@
+services:
+  opa:
+    url: http://localhost:8181
+
+decision_logs:
+  console: true
+
+status:
+  console: true
+
+bundles:
+  authz:
+    persist: true
+    polling:
+      min_delay_seconds: 10
+      max_delay_seconds: 20

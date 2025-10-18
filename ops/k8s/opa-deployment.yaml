@@ -1,0 +1,171 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa-policy-engine
+  namespace: marty-services
+  labels:
+    app: opa-policy-engine
+    component: security
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: opa-policy-engine
+  template:
+    metadata:
+      labels:
+        app: opa-policy-engine
+        component: security
+    spec:
+      containers:
+      - name: opa
+        image: openpolicyagent/opa:0.67.1-envoy
+        args:
+          - "run"
+          - "--server"
+          - "--addr=0.0.0.0:8181"
+          - "--config-file=/config/config.yaml"
+          - "/policies"
+        ports:
+        - containerPort: 8181
+          name: http
+        volumeMounts:
+        - name: opa-config
+          mountPath: /config
+        - name: opa-policies
+          mountPath: /policies
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8181
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health?bundle=true
+            port: 8181
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: opa-config
+        configMap:
+          name: opa-config
+      - name: opa-policies
+        configMap:
+          name: opa-policies
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa-policy-engine
+  namespace: marty-services
+  labels:
+    app: opa-policy-engine
+    component: security
+spec:
+  selector:
+    app: opa-policy-engine
+  ports:
+  - name: http
+    port: 8181
+    targetPort: 8181
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-config
+  namespace: marty-services
+data:
+  config.yaml: |
+    services:
+      authz:
+        url: http://localhost:8181
+
+    bundles:
+      authz:
+        persist: true
+        polling:
+          min_delay_seconds: 10
+          max_delay_seconds: 20
+
+    decision_logs:
+      console: true
+
+    status:
+      console: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-policies
+  namespace: marty-services
+data:
+  authz.rego: |
+    package authz
+
+    import rego.v1
+
+    # Default deny
+    default allow := false
+
+    # Allow admin users to do anything
+    allow if {
+        input.principal.roles[_] == "admin"
+    }
+
+    # Allow users to access their own resources
+    allow if {
+        input.principal.id == input.resource_owner
+        input.action in ["read", "update"]
+    }
+
+    # Allow read access to public resources
+    allow if {
+        input.resource_type == "public"
+        input.action == "read"
+    }
+
+    # Service-to-service communication
+    allow if {
+        input.principal.type == "service"
+        input.principal.service_name
+        input.action in ["read", "write"]
+        valid_service_access
+    }
+
+    valid_service_access if {
+        # Define service access rules here
+        input.principal.service_name in ["user-service", "order-service", "payment-service"]
+    }
+
+    # Role-based access for specific resources
+    allow if {
+        some role in input.principal.roles
+        role_permissions[role][input.resource_type][_] == input.action
+    }
+
+    role_permissions := {
+        "user": {
+            "profile": ["read", "update"],
+            "orders": ["read", "create"]
+        },
+        "moderator": {
+            "profile": ["read", "update"],
+            "orders": ["read", "create", "update"],
+            "reports": ["read", "create"]
+        },
+        "admin": {
+            "profile": ["read", "update", "delete"],
+            "orders": ["read", "create", "update", "delete"],
+            "reports": ["read", "create", "update", "delete"],
+            "users": ["read", "create", "update", "delete"]
+        }
+    }
