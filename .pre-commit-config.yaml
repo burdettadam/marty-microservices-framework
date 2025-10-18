@@ -135,6 +135,17 @@ repos:
         require_serial: true
         pass_filenames: false
 
+      # Global variables check - prevents new global variables from being committed
+      - id: check-global-variables
+        name: Check for Global Variables
+        entry: python3 scripts/pre_commit_check_globals.py
+        language: system
+        files: \.py$
+        exclude: ^(tests/.*_test\.py|examples/.*\.py|scripts/detect_globals\.py|.*migration.*\.py|.*legacy.*\.py|src/marty_msf/core/di_container\.py)$
+        require_serial: true
+        pass_filenames: false
+        stages: [pre-commit]
+
       # Documentation consistency
       - id: docs-consistency
         name: Check Documentation Consistency

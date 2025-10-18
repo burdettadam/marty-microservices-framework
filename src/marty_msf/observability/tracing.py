@@ -104,25 +104,29 @@ class TracingService(ObservabilityService):
         return self._instrumented
 
 
-# Service instance for compatibility
-_tracing_service: TracingService | None = None
-
-
 def get_tracing_service() -> TracingService:
-    """Get the tracing service instance."""
-    global _tracing_service
-    if _tracing_service is None:
-        _tracing_service = TracingService()
-    return _tracing_service
+    """
+    Get the tracing service instance using dependency injection.
 
+    Returns:
+        TracingService instance
 
-# Global tracer reference - keeping for backward compatibility
-_tracer = None
-_instrumented = False
+    Raises:
+        ValueError: If service is not registered in the DI container
+    """
+    from ..core.di_container import get_service
+
+    try:
+        return get_service(TracingService)
+    except ValueError:
+        # Auto-register if not found (for backward compatibility)
+        from .factories import register_observability_services
+        register_observability_services()
+        return get_service(TracingService)
 
 
 def get_tracer():
-    """Get the configured tracer instance - compatibility function."""
+    """Get the configured tracer instance using dependency injection."""
     service = get_tracing_service()
     return service.get_tracer()
 
@@ -342,18 +346,15 @@ def shutdown_tracing() -> None:
     if not OPENTELEMETRY_AVAILABLE:
         return
 
-    global _instrumented
-
-    if not _instrumented or not OTEL_ENABLED:
+    service = get_tracing_service()
+    if not service.is_instrumented() or not OTEL_ENABLED:
         return
 
     try:
-        # Simply mark as not instrumented - actual cleanup will happen at process exit
+        service.cleanup()
         logger.info("OpenTelemetry tracing shutdown completed")
     except (AttributeError, RuntimeError) as e:
         logger.error("Error during tracing shutdown: %s", e)
-    finally:
-        _instrumented = False
 
 
 # Context manager for manual span creation

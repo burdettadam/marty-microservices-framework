@@ -701,19 +701,21 @@ class MonitoringManager:
         return None
 
 
-# Global monitoring manager instance
-_monitoring_manager: MonitoringManager | None = None
-
-
 def get_monitoring_manager() -> MonitoringManager | None:
-    """Get the global monitoring manager instance."""
-    return _monitoring_manager
+    """
+    Get the monitoring manager instance using dependency injection.
+
+    Returns:
+        MonitoringManager instance or None if not registered
+    """
+    from ...core.di_container import get_service_optional
+    return get_service_optional(MonitoringManager)
 
 
 def set_monitoring_manager(manager: MonitoringManager) -> None:
-    """Set the global monitoring manager instance."""
-    global _monitoring_manager
-    _monitoring_manager = manager
+    """Set the monitoring manager instance using dependency injection."""
+    from ...core.di_container import register_instance
+    register_instance(MonitoringManager, manager)
 
 
 def initialize_monitoring(

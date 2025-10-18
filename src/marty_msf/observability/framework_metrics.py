@@ -219,12 +219,9 @@ class FrameworkMetrics:
             self.service_info.info(info_dict)
 
 
-# Global instance for easy access
-_default_metrics: FrameworkMetrics | None = None
-
-
 def get_framework_metrics(service_name: str) -> FrameworkMetrics:
-    """Get the global framework metrics instance.
+    """
+    Get the framework metrics instance using dependency injection.
 
     Args:
         service_name: Name of the service
@@ -232,7 +229,19 @@ def get_framework_metrics(service_name: str) -> FrameworkMetrics:
     Returns:
         FrameworkMetrics instance
     """
-    global _default_metrics
-    if _default_metrics is None or _default_metrics.service_name != service_name:
-        _default_metrics = FrameworkMetrics(service_name)
-    return _default_metrics
+    from ..core.di_container import configure_service, get_service_optional
+
+    # Try to get existing metrics
+    metrics = get_service_optional(FrameworkMetrics)
+    if metrics is not None and metrics.service_name == service_name:
+        return metrics
+
+    # Auto-register if not found or service name changed
+    from .factories import register_observability_services
+    register_observability_services(service_name)
+
+    # Configure with service name
+    configure_service(FrameworkMetrics, {"service_name": service_name})
+
+    from ..core.di_container import get_service
+    return get_service(FrameworkMetrics)
