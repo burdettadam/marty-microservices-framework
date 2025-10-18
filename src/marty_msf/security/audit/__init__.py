@@ -529,24 +529,42 @@ class SecurityAuditor:
         }
 
 
-# Global auditor instance
-_auditor: SecurityAuditor | None = None
-
-
 def get_security_auditor(service_name: str | None = None) -> SecurityAuditor:
-    """Get global security auditor instance."""
-    global _auditor  # noqa: PLW0603
-    if _auditor is None:
-        if not service_name:
-            service_name = "unknown"
-        _auditor = SecurityAuditor(service_name)
-    return _auditor
+    """
+    Get security auditor instance using dependency injection.
+
+    Args:
+        service_name: Optional service name for the auditor
+
+    Returns:
+        SecurityAuditor instance
+    """
+    from ...core.di_container import configure_service, get_service_optional
+
+    # Try to get existing auditor
+    auditor = get_service_optional(SecurityAuditor)
+    if auditor is not None:
+        return auditor
+
+    # Auto-register if not found (for backward compatibility)
+    if not service_name:
+        service_name = "unknown"
+
+    from ..factories import register_security_services
+    register_security_services(service_name)
+
+    # Configure with service name if provided
+    if service_name != "unknown":
+        configure_service(SecurityAuditor, {"service_name": service_name})
+
+    from ...core.di_container import get_service
+    return get_service(SecurityAuditor)
 
 
-def reset_security_auditor():
-    """Reset global auditor (for testing)."""
-    global _auditor  # noqa: PLW0603
-    _auditor = None
+def reset_security_auditor() -> None:
+    """Reset security auditor (for testing)."""
+    from ...core.di_container import get_container
+    get_container().remove(SecurityAuditor)
 
 
 # Convenience audit functions

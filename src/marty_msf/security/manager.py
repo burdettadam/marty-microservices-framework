@@ -28,6 +28,7 @@ import jwt
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from ..core.di_container import get_service, get_service_optional
 from ..core.services import SecurityService
 from .audit import (
     AuditLevel,
@@ -549,27 +550,60 @@ class ConsolidatedSecurityManagerService(SecurityService):
         return self._security_manager
 
 
-# Service instance for compatibility
-_security_manager_service: ConsolidatedSecurityManagerService | None = None
-
-
 def get_security_manager_service() -> ConsolidatedSecurityManagerService:
-    """Get the security manager service instance."""
-    global _security_manager_service
-    if _security_manager_service is None:
-        _security_manager_service = ConsolidatedSecurityManagerService()
-    return _security_manager_service
+    """
+    Get the security manager service instance using dependency injection.
 
+    Returns:
+        ConsolidatedSecurityManagerService instance
 
-# Global instance - keeping for backward compatibility
-_security_manager: ConsolidatedSecurityManager | None = None
+    Raises:
+        ValueError: If service is not registered in the DI container
+    """
+    try:
+        return get_service(ConsolidatedSecurityManagerService)
+    except ValueError:
+        # Auto-register if not found (for backward compatibility)
+        from .factories import register_security_services
+        register_security_services()
+        return get_service(ConsolidatedSecurityManagerService)
+
 
 def get_security_manager() -> ConsolidatedSecurityManager:
-    """Get the security manager instance - compatibility function."""
-    return get_security_manager_service().get_security_manager()
+    """
+    Get the security manager instance using dependency injection.
+
+    Returns:
+        ConsolidatedSecurityManager instance
+    """
+    try:
+        return get_service(ConsolidatedSecurityManager)
+    except ValueError:
+        # Auto-register if not found (for backward compatibility)
+        from .factories import register_security_services
+        register_security_services()
+        return get_service(ConsolidatedSecurityManager)
+
 
 def configure_security_manager(config: dict[str, Any]) -> ConsolidatedSecurityManager:
-    """Configure and get the security manager instance - compatibility function."""
-    service = get_security_manager_service()
-    service.configure(config)
-    return service.get_security_manager()
+    """
+    Configure and get the security manager instance using dependency injection.
+
+    Args:
+        config: Configuration dictionary for the security manager
+
+    Returns:
+        ConsolidatedSecurityManager instance
+    """
+    from ..core.di_container import configure_service
+
+    # Ensure services are registered
+    try:
+        get_service(ConsolidatedSecurityManagerService)
+    except ValueError:
+        from .factories import register_security_services
+        register_security_services()
+
+    # Configure the service
+    configure_service(ConsolidatedSecurityManagerService, config)
+    return get_service(ConsolidatedSecurityManager)

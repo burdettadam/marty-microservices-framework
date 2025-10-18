@@ -458,16 +458,25 @@ class StandardObservabilityService(ObservabilityService):
         return self._observability
 
 
-# Service instance for compatibility
-_observability_service: StandardObservabilityService | None = None
-
-
 def get_observability_service() -> StandardObservabilityService:
-    """Get the observability service instance."""
-    global _observability_service
-    if _observability_service is None:
-        _observability_service = StandardObservabilityService()
-    return _observability_service
+    """
+    Get the observability service instance using dependency injection.
+
+    Returns:
+        StandardObservabilityService instance
+
+    Raises:
+        ValueError: If service is not registered in the DI container
+    """
+    from ..core.di_container import get_service
+
+    try:
+        return get_service(StandardObservabilityService)
+    except ValueError:
+        # Auto-register if not found (for backward compatibility)
+        from .factories import register_observability_services
+        register_observability_services()
+        return get_service(StandardObservabilityService)
 
 
 def get_observability() -> StandardObservability | None:

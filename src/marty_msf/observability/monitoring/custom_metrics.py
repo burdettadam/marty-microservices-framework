@@ -537,20 +537,26 @@ class CustomMetricsManager:
         return summary
 
 
-# Global custom metrics manager
-_custom_metrics_manager: CustomMetricsManager | None = None
-
-
 def get_custom_metrics_manager() -> CustomMetricsManager | None:
-    """Get the global custom metrics manager."""
-    return _custom_metrics_manager
+    """
+    Get the custom metrics manager using dependency injection.
+
+    Returns:
+        CustomMetricsManager instance or None if not registered
+    """
+    from ...core.di_container import get_service_optional
+    return get_service_optional(CustomMetricsManager)
 
 
 def initialize_custom_metrics() -> CustomMetricsManager:
-    """Initialize the custom metrics manager."""
-    global _custom_metrics_manager
-    _custom_metrics_manager = CustomMetricsManager()
-    return _custom_metrics_manager
+    """Initialize the custom metrics manager using dependency injection."""
+    from ...core.di_container import get_service_optional, register_instance
+
+    manager = get_service_optional(CustomMetricsManager)
+    if manager is None:
+        manager = CustomMetricsManager()
+        register_instance(CustomMetricsManager, manager)
+    return manager
 
 
 # Convenience functions for common business metrics

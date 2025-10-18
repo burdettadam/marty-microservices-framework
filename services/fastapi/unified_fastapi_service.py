@@ -137,16 +137,10 @@ class ItemResponse(BaseModel):
     service: str
 
 
-# Global configuration manager
-config_manager = None
-service_config = None
-
-
 # Application lifespan
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan management with proper configuration initialization."""
-    global config_manager, service_config
 
     logger.info("Starting FastAPI service with unified configuration...")
 
@@ -170,6 +164,19 @@ async def lifespan(app: FastAPI):
         app.state.config = service_config
         app.state.config_manager = config_manager
 
+        # Configure CORS and GZip middleware based on configuration
+        if service_config.enable_cors:
+            app.add_middleware(
+                CORSMiddleware,
+                allow_origins=service_config.cors_origins,
+                allow_credentials=True,
+                allow_methods=["*"],
+                allow_headers=["*"],
+            )
+
+        if service_config.enable_gzip:
+            app.add_middleware(GZipMiddleware, minimum_size=1000)
+
         logger.info(f"Configuration loaded successfully for {service_config.service_name}")
         logger.info(f"Service will run on {service_config.host}:{service_config.port}")
 
@@ -184,6 +191,7 @@ async def lifespan(app: FastAPI):
 
     # Cleanup
     logger.info("Shutting down FastAPI service...")
+    config_manager = getattr(app.state, 'config_manager', None)
     if config_manager and hasattr(config_manager, 'cleanup'):
         try:
             await config_manager.cleanup()
@@ -231,26 +239,13 @@ async def configure_middleware(request: Request, call_next):
         active_connections.dec()
 
 
-# Add CORS and GZip middleware after configuration is loaded
-@app.on_event("startup")
-async def configure_cors_and_gzip():
-    """Configure CORS and GZip middleware based on configuration."""
-    if service_config and service_config.enable_cors:
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=service_config.cors_origins,
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-
-    if service_config and service_config.enable_gzip:
-        app.add_middleware(GZipMiddleware, minimum_size=1000)
+# CORS and GZip middleware will be configured in lifespan after configuration is loaded
 
 
 # Dependency to get current configuration
-async def get_config() -> FastAPIServiceConfig:
+async def get_config(request: Request) -> FastAPIServiceConfig:
     """Dependency to get current service configuration."""
+    service_config = getattr(request.app.state, 'config', None)
     if not service_config:
         raise HTTPException(status_code=500, detail="Configuration not loaded")
     return service_config
@@ -267,9 +262,9 @@ async def health_check(config: FastAPIServiceConfig = Depends(get_config)):
 
 
 @app.get("/metrics")
-async def metrics():
+async def metrics(config: FastAPIServiceConfig = Depends(get_config)):
     """Prometheus metrics endpoint."""
-    if not service_config or not service_config.enable_metrics:
+    if not config.enable_metrics:
         raise HTTPException(status_code=404, detail="Metrics disabled")
 
     return Response(
@@ -279,16 +274,15 @@ async def metrics():
 
 
 @app.get("/config/reload")
-async def reload_config(config: FastAPIServiceConfig = Depends(get_config)):
+async def reload_config(request: Request, config: FastAPIServiceConfig = Depends(get_config)):
     """Reload configuration endpoint."""
-    global service_config
-
     try:
+        config_manager = getattr(request.app.state, 'config_manager', None)
         if not config_manager:
             raise HTTPException(status_code=500, detail="Configuration manager not available")
 
         service_config = await config_manager.get_configuration(reload=True)
-        app.state.config = service_config
+        request.app.state.config = service_config
 
         logger.info("Configuration reloaded successfully")
         return {"status": "success", "message": "Configuration reloaded"}
