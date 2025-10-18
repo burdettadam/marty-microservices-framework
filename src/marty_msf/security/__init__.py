@@ -80,6 +80,8 @@ from .policy_engines import (
     PolicyEvaluationRequest,
     PolicyEvaluationResponse,
     configure_opa_service,
+    configure_policy_service,
+    create_policy_service_from_service_config,
     evaluate_policy,
     get_policy_service,
 )
@@ -126,6 +128,8 @@ __all__ = [
 
     # Policy Engine (OPA)
     "get_policy_service",
+    "create_policy_service_from_service_config",
+    "configure_policy_service",
     "configure_opa_service",
     "evaluate_policy",
     "PolicyEvaluationRequest",

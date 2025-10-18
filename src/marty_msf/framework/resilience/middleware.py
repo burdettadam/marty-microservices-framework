@@ -311,45 +311,47 @@ def resilient(
     _retries: int = 0,
     _retry_delay: float = 1.0
 ):
-    """Decorator to apply resilience patterns to functions"""
+    """
+    Decorator to apply resilience patterns to functions.
+
+    DEPRECATED: Use ConsolidatedResilienceManager.resilient_call() instead.
+    This decorator is being phased out in favor of the unified resilience manager.
+    """
 
     def decorator(func: Callable):
-        # Initialize resilience components
-        bulkhead = None
+        logger.warning(
+            "The resilient decorator is deprecated. "
+            "Use ConsolidatedResilienceManager.resilient_call() instead."
+        )
 
-        if circuit_breaker_config:
-            # Circuit breaker would be created here if needed
-            pass
+        # Import here to avoid circular imports
+        from .consolidated_manager import ResilienceStrategy, get_resilience_manager
 
-        if bulkhead_config:
-            bulkhead = SemaphoreBulkhead("decorator_bulkhead", bulkhead_config)
+        manager = get_resilience_manager()
 
-        @wraps(func)
-        async def async_wrapper(*args, **kwargs):
-            async def execute():
-                if timeout:
-                    return await asyncio.wait_for(func(*args, **kwargs), timeout=timeout)
-                else:
-                    return await func(*args, **kwargs)
-
-            # Apply bulkhead if configured
-            if bulkhead:
-                return await bulkhead.execute_async(execute)
-            else:
-                return await execute()
-
-        @wraps(func)
-        def sync_wrapper(*args, **kwargs):
-            # For sync functions, we need to handle differently
-            if timeout:
-                # Could implement sync timeout using threading
-                pass
-
-            return func(*args, **kwargs)
+        # Convert legacy configs to new format
+        name = f"{func.__module__}.{func.__name__}"
+        strategy = ResilienceStrategy.CUSTOM
 
         if asyncio.iscoroutinefunction(func):
+            @wraps(func)
+            async def async_wrapper(*args, **kwargs):
+                return await manager.execute_resilient(
+                    func, *args,
+                    name=name,
+                    strategy=strategy,
+                    **kwargs
+                )
             return async_wrapper
         else:
+            @wraps(func)
+            def sync_wrapper(*args, **kwargs):
+                return manager.execute_resilient_sync(
+                    func, *args,
+                    name=name,
+                    strategy=strategy,
+                    **kwargs
+                )
             return sync_wrapper
 
     return decorator

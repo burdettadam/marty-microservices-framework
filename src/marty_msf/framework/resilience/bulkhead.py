@@ -164,6 +164,17 @@ class BulkheadPool(ABC):
                 "rejection_rate": (self._rejected_requests / max(1, self._total_requests)),
             }
 
+    def reset_stats(self):
+        """Reset all bulkhead statistics."""
+        with self._lock:
+            self._total_requests = 0
+            self._active_requests = 0
+            self._successful_requests = 0
+            self._failed_requests = 0
+            self._rejected_requests = 0
+            self._max_concurrent_reached = 0
+            self._total_wait_time = 0.0
+
 
 class SemaphoreBulkhead(BulkheadPool):
     """Semaphore-based bulkhead for controlling concurrent access."""

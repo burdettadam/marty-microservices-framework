@@ -170,8 +170,13 @@ class OPAPolicyEngine:
 class OPAPolicyService:
     """Service wrapper for OPA policy engine with configuration management."""
 
-    def __init__(self, config: dict[str, Any] | None = None):
+    def __init__(self, config: dict[str, Any] | None = None, service_config: dict[str, Any] | None = None):
+        # Load from service configuration if provided
+        if service_config and not config:
+            config = self._load_from_service_config(service_config)
+
         self.config = config or self._default_config()
+        self.service_config = service_config
         self.engine = OPAPolicyEngine(self.config)
         self._initialized = False
 
@@ -182,6 +187,17 @@ class OPAPolicyService:
             "policy_path": "v1/data/authz/allow",
             "timeout": 5.0,
             "health_check_interval": 30.0
+        }
+
+    def _load_from_service_config(self, service_config: dict[str, Any]) -> dict[str, Any]:
+        """Load OPA configuration from service configuration."""
+        opa_config = service_config.get("security", {}).get("opa", {})
+
+        return {
+            "url": opa_config.get("url", "http://localhost:8181"),
+            "policy_path": opa_config.get("policy_path", "v1/data/authz/allow"),
+            "timeout": opa_config.get("timeout", 5.0),
+            "health_check_interval": opa_config.get("health_check_interval", 30.0)
         }
 
     async def initialize(self):
@@ -245,11 +261,12 @@ class OPAPolicyService:
 _opa_policy_service: OPAPolicyService | None = None
 
 
-def get_policy_service() -> OPAPolicyService:
+def get_policy_service(service_config: dict[str, Any] | None = None) -> OPAPolicyService:
     """Get global OPA policy service."""
     global _opa_policy_service  # noqa: PLW0603
+
     if _opa_policy_service is None:
-        _opa_policy_service = OPAPolicyService()
+        _opa_policy_service = OPAPolicyService(service_config=service_config)
     return _opa_policy_service
 
 
@@ -268,6 +285,22 @@ def configure_opa_service(
     }
 
     _opa_policy_service = OPAPolicyService(config)
+    logger.info("Configured OPA Policy Service: %s", url)
+    return _opa_policy_service
+
+
+def create_policy_service_from_service_config(service_config: dict[str, Any]) -> OPAPolicyService:
+    """Create a policy service from service configuration."""
+    return OPAPolicyService(service_config=service_config)
+
+
+def configure_policy_service(service_config: dict[str, Any]) -> OPAPolicyService:
+    """Configure the global policy service with service configuration."""
+    global _opa_policy_service
+    _opa_policy_service = OPAPolicyService(service_config=service_config)
+
+    opa_config = service_config.get("security", {}).get("opa", {})
+    url = opa_config.get("url", "http://localhost:8181")
     logger.info("Configured OPA Policy Service: %s", url)
     return _opa_policy_service
 
