@@ -64,6 +64,9 @@ from prometheus_client import (
     generate_latest,
 )
 
+# Import the typed service base
+from ..core.services import ObservabilityService
+
 
 @dataclass
 class StandardObservabilityConfig:
@@ -412,16 +415,71 @@ def create_standard_observability(
     return StandardObservability(config)
 
 
-# Global instance for easy access
-_global_observability: StandardObservability | None = None
+class StandardObservabilityService(ObservabilityService):
+    """
+    Typed service for standard observability.
+
+    Replaces global observability variables with proper dependency injection.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._observability: StandardObservability | None = None
+
+    def initialize(self, service_name: str, config: dict[str, Any] | None = None) -> None:
+        """Initialize the observability service."""
+        if config is None:
+            config = {}
+
+        # Create configuration from parameters
+        observability_config = StandardObservabilityConfig(
+            service_name=service_name,
+            **config
+        )
+
+        # Create observability instance
+        self._observability = StandardObservability(observability_config)
+        # Note: StandardObservability.initialize() is async, so we'll mark as initialized here
+        # and let the caller handle the async initialization
+        self._mark_initialized()
+
+    def cleanup(self) -> None:
+        """Cleanup resources."""
+        if self._observability:
+            # StandardObservability doesn't have cleanup method, so we just reset
+            pass
+        self._observability = None
+        self._initialized = False
+
+    def get_observability(self) -> StandardObservability:
+        """Get the observability instance."""
+        if self._observability is None:
+            raise RuntimeError("Observability service not initialized")
+        return self._observability
+
+
+# Service instance for compatibility
+_observability_service: StandardObservabilityService | None = None
+
+
+def get_observability_service() -> StandardObservabilityService:
+    """Get the observability service instance."""
+    global _observability_service
+    if _observability_service is None:
+        _observability_service = StandardObservabilityService()
+    return _observability_service
 
 
 def get_observability() -> StandardObservability | None:
-    """Get the global observability instance."""
-    return _global_observability
+    """Get the observability instance - compatibility function."""
+    service = get_observability_service()
+    if not service.is_initialized():
+        return None
+    return service.get_observability()
 
 
 def set_global_observability(observability: StandardObservability) -> None:
-    """Set the global observability instance."""
-    global _global_observability
-    _global_observability = observability
+    """Set the observability instance - compatibility function."""
+    service = get_observability_service()
+    service._observability = observability
+    service._mark_initialized()

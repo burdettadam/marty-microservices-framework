@@ -1,14 +1,17 @@
 """
-OpenTelemetry integration for enterprise microservices.
+Observability Tracing for Marty Microservices Framework
 
-This module provides centralized OpenTelemetry setup with OTLP export capabilities
-and environment-based configuration for distributed tracing.
+This module provides comprehensive distributed tracing capabilities
+with OpenTelemetry integration.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+from typing import Any, Optional
+
+from ..core.services import ObservabilityService
 
 logger = logging.getLogger(__name__)
 
@@ -47,24 +50,81 @@ OTEL_CONSOLE_EXPORT = os.getenv("OTEL_CONSOLE_EXPORT", "false").lower() in (
     "yes",
 )
 
-# Global tracer reference
+class TracingService(ObservabilityService):
+    """
+    Typed service for OpenTelemetry tracing.
+
+    Replaces global tracer variables with proper dependency injection.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._tracer = None
+        self._instrumented = False
+
+    def initialize(self, service_name: str, config: dict[str, Any] | None = None) -> None:
+        """Initialize the tracing service."""
+        if not OPENTELEMETRY_AVAILABLE:
+            logger.warning("OpenTelemetry not available, tracing disabled")
+            return
+
+        if self._instrumented:
+            logger.debug("OpenTelemetry already initialized")
+            return
+
+        if not OTEL_ENABLED:
+            logger.info("OpenTelemetry tracing is disabled")
+            return
+
+        try:
+            # Initialize tracing with the provided service name
+            init_tracing(service_name)
+            self._instrumented = True
+            self._mark_initialized()
+        except Exception as e:
+            logger.error("Failed to initialize tracing: %s", e)
+
+    def cleanup(self) -> None:
+        """Cleanup resources."""
+        self._tracer = None
+        self._instrumented = False
+        self._initialized = False
+
+    def get_tracer(self):
+        """Get the configured tracer instance."""
+        if not OPENTELEMETRY_AVAILABLE:
+            return None
+
+        if self._tracer is None:
+            self._tracer = trace.get_tracer(__name__)
+        return self._tracer
+
+    def is_instrumented(self) -> bool:
+        """Check if instrumentation is active."""
+        return self._instrumented
+
+
+# Service instance for compatibility
+_tracing_service: TracingService | None = None
+
+
+def get_tracing_service() -> TracingService:
+    """Get the tracing service instance."""
+    global _tracing_service
+    if _tracing_service is None:
+        _tracing_service = TracingService()
+    return _tracing_service
+
+
+# Global tracer reference - keeping for backward compatibility
 _tracer = None
 _instrumented = False
 
 
 def get_tracer():
-    """Get the configured tracer instance.
-
-    Returns:
-        Configured OpenTelemetry tracer instance or None if not available.
-    """
-    if not OPENTELEMETRY_AVAILABLE:
-        return None
-
-    global _tracer
-    if _tracer is None:
-        _tracer = trace.get_tracer(__name__)
-    return _tracer
+    """Get the configured tracer instance - compatibility function."""
+    service = get_tracing_service()
+    return service.get_tracer()
 
 
 def init_tracing(service_name: str | None = None) -> None:
@@ -77,9 +137,8 @@ def init_tracing(service_name: str | None = None) -> None:
         logger.warning("OpenTelemetry not available, tracing disabled")
         return
 
-    global _instrumented
-
-    if _instrumented:
+    service = get_tracing_service()
+    if service.is_instrumented():
         logger.debug("OpenTelemetry already initialized")
         return
 

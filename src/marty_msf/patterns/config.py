@@ -14,8 +14,9 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
+from ..core.services import ConfigService
 from .cqrs.enhanced_cqrs import QueryExecutionMode
 from .outbox.enhanced_outbox import (
     BatchConfig,
@@ -537,25 +538,68 @@ def create_testing_config() -> DataConsistencyConfig:
 
 
 # Global configuration instance
-_config_instance: DataConsistencyConfig | None = None
+class DataConsistencyConfigService(ConfigService):
+    """
+    Typed configuration service for data consistency patterns.
+
+    Replaces global configuration variables with proper dependency injection.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._data_config: DataConsistencyConfig | None = None
+
+    def load_from_env(self) -> None:
+        """Load configuration from environment variables."""
+        self._data_config = DataConsistencyConfig.from_env()
+        self._mark_loaded()
+
+    def load_from_file(self, config_path: str | Path) -> None:
+        """Load configuration from file."""
+        self._data_config = DataConsistencyConfig.from_file(config_path)
+        self._mark_loaded()
+
+    def validate(self) -> bool:
+        """Validate the current configuration."""
+        return self._data_config is not None
+
+    def get_data_config(self) -> DataConsistencyConfig:
+        """Get the data consistency configuration."""
+        if self._data_config is None:
+            self.load_from_env()
+        assert self._data_config is not None, "Configuration not loaded"
+        return self._data_config
+
+    def set_data_config(self, config: DataConsistencyConfig) -> None:
+        """Set the data consistency configuration."""
+        self._data_config = config
+        self._mark_loaded()
+
+
+# Service instance - registered in the dependency injection container
+_config_service: DataConsistencyConfigService | None = None
+
+
+def get_config_service() -> DataConsistencyConfigService:
+    """Get the configuration service instance."""
+    global _config_service
+    if _config_service is None:
+        _config_service = DataConsistencyConfigService()
+    return _config_service
 
 
 def get_config() -> DataConsistencyConfig:
-    """Get the global configuration instance."""
-    global _config_instance
-    if _config_instance is None:
-        _config_instance = DataConsistencyConfig.from_env()
-    return _config_instance
+    """Get the data consistency configuration - compatibility function."""
+    return get_config_service().get_data_config()
 
 
 def set_config(config: DataConsistencyConfig) -> None:
-    """Set the global configuration instance."""
-    global _config_instance
-    _config_instance = config
+    """Set the data consistency configuration - compatibility function."""
+    get_config_service().set_data_config(config)
 
 
 def load_config_from_file(config_path: str | Path) -> DataConsistencyConfig:
-    """Load and set global configuration from file."""
-    config = DataConsistencyConfig.from_file(config_path)
-    set_config(config)
-    return config
+    """Load and set configuration from file - compatibility function."""
+    service = get_config_service()
+    service.load_from_file(config_path)
+    return service.get_data_config()

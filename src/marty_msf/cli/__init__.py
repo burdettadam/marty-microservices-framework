@@ -1804,8 +1804,9 @@ async def health():
     }}
 
 # Basic CRUD endpoints with in-memory storage
+from marty_msf.core.registry import AtomicCounter
 store = {{}}
-next_id = 1
+id_counter = AtomicCounter(1)
 
 @app.get("/users")
 async def get_users():
@@ -1813,10 +1814,9 @@ async def get_users():
 
 @app.post("/users", status_code=201)
 async def create_user(user: dict):
-    global next_id
-    user_data = {{"id": next_id, "type": "user", **user}}
-    store[next_id] = user_data
-    next_id += 1
+    user_id = id_counter.increment()
+    user_data = {{"id": user_id, "type": "user", **user}}
+    store[user_id] = user_data
     return user_data
 
 @app.get("/users/{{user_id}}")
@@ -1832,10 +1832,9 @@ async def get_orders():
 
 @app.post("/orders", status_code=201)
 async def create_order(order: dict):
-    global next_id
-    order_data = {{"id": next_id, "type": "order", **order}}
-    store[next_id] = order_data
-    next_id += 1
+    order_id = id_counter.increment()
+    order_data = {{"id": order_id, "type": "order", **order}}
+    store[order_id] = order_data
     return order_data
 
 @app.get("/orders/{{order_id}}")
@@ -1850,7 +1849,7 @@ async def get_order(order_id: int):
             content += """
 # In-memory storage for demo purposes
 items_store = {}
-next_item_id = 1
+item_counter = AtomicCounter(1)
 
 @app.get("/items")
 async def get_items():
@@ -1858,10 +1857,9 @@ async def get_items():
 
 @app.post("/items", status_code=201)
 async def create_item(item: dict):
-    global next_item_id
-    new_item = {"id": next_item_id, **item}
-    items_store[next_item_id] = new_item
-    next_item_id += 1
+    item_id = item_counter.increment()
+    new_item = {"id": item_id, **item}
+    items_store[item_id] = new_item
     return new_item
 
 @app.get("/items/{item_id}")
