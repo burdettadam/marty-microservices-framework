@@ -4,6 +4,56 @@
 
 This document provides detailed implementation notes and design decisions for the enhanced resilience framework, including comprehensive performance and resilience hardening with standardized connection pools, circuit breakers, bulkhead isolation, and load testing infrastructure.
 
+## 2025 Consolidated Resilience Manager Update
+
+### Major Enhancement: Unified Resilience Management
+
+**BREAKING CHANGE**: The fragmented resilience implementations have been consolidated into a single, comprehensive `ConsolidatedResilienceManager` that automatically applies circuit breakers, retries, and timeouts to internal client calls.
+
+#### Key Improvements
+
+1. **Eliminated Stubbed Implementations**: Fixed incomplete circuit breaker handling and synchronous timeout handling in the `resilient` decorator
+2. **Unified API**: Single manager replaces multiple fragmented resilience patterns across modules
+3. **Strategy-Based Configuration**: Pre-configured strategies for different call types (internal, external, database, cache)
+4. **No Legacy Support**: Old implementations are deprecated in favor of the new unified approach
+
+#### Migration Path
+
+**Old Approach (Deprecated)**:
+```python
+# Multiple managers and stubbed implementations
+from marty_msf.framework.resilience import (
+    ResilienceManager,  # patterns.py - one of many
+    ResilienceService,  # middleware.py - another approach
+    resilient  # middleware.py - had stubbed circuit breaker handling
+)
+
+@resilient(circuit_breaker_config=..., timeout=30.0)  # Had pass statements
+async def service_call():
+    pass
+```
+
+**New Approach (Consolidated)**:
+```python
+# Single unified manager
+from marty_msf.framework.resilience import (
+    ConsolidatedResilienceManager,
+    ResilienceStrategy,
+    resilient_internal_call,
+    resilient_external_call,
+    resilient_database_call
+)
+
+# Strategy-based convenience functions
+result = await resilient_internal_call(service_call, name="user_service")
+
+# Or direct manager usage
+manager = ConsolidatedResilienceManager()
+@manager.resilient_call(name="payment_service", strategy=ResilienceStrategy.EXTERNAL_SERVICE)
+async def payment_call():
+    pass
+```
+
 ## 2024 Performance & Resilience Hardening Update
 
 ### Major Enhancements Added
@@ -13,6 +63,7 @@ This document provides detailed implementation notes and design decisions for th
 3. **Resilience Middleware**: FastAPI and service framework integration
 4. **Enhanced Load Testing**: Comprehensive load testing framework for resilience validation
 5. **Health Checking Framework**: Pool-specific health monitoring with alerting
+6. **Consolidated Resilience Manager**: Unified resilience patterns replacing fragmented implementations (2025)
 
 ## Implementation Decisions
 
@@ -236,17 +287,143 @@ await redis_pool.set("key", "value", ex=3600)
 value = await redis_pool.get("key")
 ```
 
-### Running Load Tests
+## Consolidated Resilience Manager Architecture
+
+### Design Decision: Unified Resilience Management
+
+**Problem Addressed**: The previous implementation had multiple fragmented resilience managers and incomplete implementations:
+- `ResilienceManager` in `patterns.py`
+- `ResilienceService` in `middleware.py`
+- `resilient` decorator with stubbed circuit breaker handling (`pass` statements)
+- Missing synchronous timeout handling
+- No unified API for applying resilience to internal client calls
+
+**Solution**: Single `ConsolidatedResilienceManager` that provides:
+- Complete circuit breaker implementation for function calls
+- Full synchronous and asynchronous timeout handling
+- Integrated retry mechanisms with advanced backoff strategies
+- Strategy-based configuration for different call types
+- Unified API for all resilience patterns
+
+### Implementation Architecture
 
 ```python
-from marty_msf.framework.resilience.load_testing import (
-    LoadTestScenario,
-    LoadTestType,
-    LoadTester,
-    create_resilience_test_scenarios
-)
+@dataclass
+class ConsolidatedResilienceConfig:
+    # Circuit breaker settings
+    circuit_breaker_enabled: bool = True
+    circuit_breaker_failure_threshold: int = 5
+    circuit_breaker_recovery_timeout: float = 60.0
 
-# Create custom test scenario
+    # Retry settings
+    retry_enabled: bool = True
+    retry_max_attempts: int = 3
+    retry_base_delay: float = 1.0
+    retry_exponential_base: float = 2.0
+
+    # Timeout settings
+    timeout_enabled: bool = True
+    timeout_seconds: float = 30.0
+
+    # Bulkhead settings
+    bulkhead_enabled: bool = False
+    bulkhead_max_concurrent: int = 100
+
+    # Strategy-specific overrides
+    strategy_overrides: dict[ResilienceStrategy, dict[str, Any]] = field(default_factory=dict)
+```
+
+### Resilience Strategies
+
+The manager provides pre-configured strategies for different use cases:
+
+**Internal Service Calls**:
+- Conservative timeouts (10s)
+- Moderate circuit breaker thresholds (3 failures)
+- Fast retries with low delays
+- Bulkhead isolation enabled
+
+**External Service Calls**:
+- Longer timeouts (30s)
+- Higher circuit breaker thresholds (5 failures)
+- More retry attempts
+- Stricter bulkhead limits
+
+**Database Calls**:
+- Very tight timeouts (5s)
+- Low circuit breaker thresholds (3 failures)
+- Minimal retries
+- High bulkhead concurrency
+
+**Cache Operations**:
+- Minimal timeouts (2s)
+- High circuit breaker tolerance
+- Single retry attempt
+- No bulkhead (fail-fast)
+
+### Usage Patterns
+
+**1. Strategy-Based Convenience Functions**:
+```python
+# Automatic strategy application
+result = await resilient_internal_call(fetch_user, user_id, name="user_service")
+result = await resilient_external_call(call_payment_api, payment_data, name="payments")
+result = await resilient_database_call(query_orders, user_id, name="orders_db")
+```
+
+**2. Direct Manager Usage**:
+```python
+manager = ConsolidatedResilienceManager(custom_config)
+result = await manager.execute_resilient(
+    service_call,
+    name="custom_service",
+    strategy=ResilienceStrategy.EXTERNAL_SERVICE,
+    config_override=override_config
+)
+```
+
+**3. Decorator Pattern**:
+```python
+@manager.resilient_call(name="payment_processor", strategy=ResilienceStrategy.EXTERNAL_SERVICE)
+async def process_payment(amount: float) -> dict:
+    # Automatically gets circuit breaker, retry, timeout, and bulkhead protection
+    return await payment_gateway.charge(amount)
+```
+
+### Migration from Legacy Implementations
+
+**Phase 1: Deprecation Warnings**
+- Old `resilient` decorator now shows deprecation warnings
+- Existing calls redirect to ConsolidatedResilienceManager
+- Legacy `ResilienceManager` and `ResilienceService` marked as deprecated
+
+**Phase 2: Direct Migration**
+```python
+# OLD (stubbed implementations)
+@resilient(circuit_breaker_config=cb_config, timeout=30.0)
+async def old_call():
+    pass  # Circuit breaker handling was stubbed
+
+# NEW (complete implementation)
+@get_resilience_manager().resilient_call(name="service", strategy=ResilienceStrategy.INTERNAL_SERVICE)
+async def new_call():
+    pass  # Full resilience pattern implementation
+```
+
+**Phase 3: Legacy Removal**
+- Remove old resilience managers
+- Clean up stubbed implementations
+- Update all framework code to use consolidated manager
+
+### Decision Rationale
+
+1. **Eliminates Fragmentation**: Single source of truth for resilience patterns
+2. **Completes Implementation**: No more stubbed or incomplete features
+3. **Strategy-Based**: Sensible defaults for different use cases
+4. **Simplified API**: Consistent interface across all resilience patterns
+5. **Better Testability**: Unified configuration and metrics
+6. **Performance**: Optimized execution chain without redundant pattern applications
+
 scenario = LoadTestScenario(
     name="api_stress_test",
     test_type=LoadTestType.STRESS,

@@ -11,6 +11,7 @@ Provides enterprise-grade resilience patterns for microservices including:
 - Chaos Engineering: Fault injection and resilience testing
 - Enhanced Monitoring: Comprehensive metrics and health checks
 - Middleware Integration: FastAPI and other framework integration
+- Consolidated Resilience Manager: Unified resilience patterns (NEW)
 """
 
 # Import basic resilience patterns
@@ -31,6 +32,7 @@ from .circuit_breaker import (
 )
 
 # Import connection pools and middleware
+# Import connection pools and middleware
 from .connection_pools import (
     ConnectionPoolManager,
     HealthCheckConfig,
@@ -48,9 +50,25 @@ from .connection_pools.manager import (
     initialize_pools,
 )
 
+# Import consolidated resilience manager (NEW)
+from .consolidated_manager import (
+    ConsolidatedResilienceConfig,
+    ConsolidatedResilienceManager,
+    ResilienceStrategy,
+    configure_resilience_manager,
+    create_resilience_manager_from_service_config,
+    create_resilience_manager_with_defaults,
+    get_resilience_manager,
+    resilient_database_call,
+    resilient_external_call,
+    resilient_internal_call,
+    set_resilience_manager,
+)
+
 # Enhanced resilience patterns will be imported when available
 # from .enhanced import (...) - Module not yet implemented
 # from .external_dependencies import (...) - Module not yet implemented
+# Enhanced resilience patterns
 from .fallback import (
     CacheFallback,
     FallbackConfig,
@@ -130,7 +148,8 @@ __all__ = [
     "timeout_async",
     "with_fallback",
     "with_timeout",
-    # Connection pools and middleware (new)
+
+    # Connection pools and middleware
     "HTTPConnectionPool",
     "HTTPPoolConfig",
     "RedisConnectionPool",
@@ -141,7 +160,6 @@ __all__ = [
     "HealthCheckConfig",
     "ResilienceMiddleware",
     "ResilienceService",
-    "ResilienceConfig",
     "resilient",
     "get_pool_manager",
     "initialize_pools",
@@ -149,4 +167,17 @@ __all__ = [
     "close_all_pools",
     "get_resilience_service",
     "close_resilience_service",
+
+    # Consolidated Resilience Manager (NEW)
+    "ConsolidatedResilienceConfig",
+    "ConsolidatedResilienceManager",
+    "ResilienceStrategy",
+    "create_resilience_manager_with_defaults",
+    "create_resilience_manager_from_service_config",
+    "configure_resilience_manager",
+    "get_resilience_manager",
+    "resilient_database_call",
+    "resilient_external_call",
+    "resilient_internal_call",
+    "set_resilience_manager",
 ]
