@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  opa:
+    image: openpolicyagent/opa:0.67.1-envoy
+    container_name: marty-opa
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "--config-file=/config/config.yaml"
+      - "/policies"
+    ports:
+      - "8181:8181"
+    volumes:
+      - ./config/opa-config.yaml:/config/config.yaml:ro
+      - ./policies:/policies:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8181/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - marty-network
+
+networks:
+  marty-network:
+    driver: bridge
