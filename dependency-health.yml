@@ -6,7 +6,7 @@ dependencies:
     upstream: https://github.com/aio-libs/aiohttp
     current: "3.14.3"
     target: current-patched-release
-    status: resolved
+    status: maintained
     decision: upgrade
     advisories:
       - GHSA-cq5v-8q36-5273
@@ -21,7 +21,7 @@ dependencies:
     upstream: https://github.com/microsoft/TypeScript
     current: "6.0.3"
     target: "7.x"
-    status: retained-temporarily
+    status: watch
     decision: retain
     advisories: []
     tracking-issue: https://github.com/ElevenID/marty-microservices-framework/issues/66
