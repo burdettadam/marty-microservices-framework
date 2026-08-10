@@ -19,6 +19,22 @@ updates:
     groups:
       pip-dependencies:
         patterns: ["*"]
+  - package-ecosystem: pip
+    directory: /mmf/examples/service_templates/fastapi_example
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /mmf/examples/service_templates/grpc_example
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /mmf/examples/service_templates/hybrid_example
+    schedule:
+      interval: weekly
+  - package-ecosystem: pip
+    directory: /examples/production-payment-service
+    schedule:
+      interval: weekly
   - package-ecosystem: github-actions
     directory: /
     schedule:
