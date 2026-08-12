@@ -22,6 +22,10 @@ on:
       - "scripts/check_license_metadata.py"
       - ".github/workflows/license-compliance.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   metadata-consistency:
     name: Metadata Consistency
