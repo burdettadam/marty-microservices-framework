@@ -103,7 +103,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=mmf-${{ inputs.service-name }}
-          cache-to: ${{ github.event_name == 'pull_request' && format('type=gha,mode=min,scope=mmf-{0}', inputs.service-name) || format('type=gha,mode=max,scope=mmf-{0}', inputs.service-name) }}
+          cache-to: ${{ github.event_name == 'pull_request' && format('type=gha,mode=min,scope=mmf-{0}', inputs.service-name) || github.event_name == 'push' && format('type=gha,mode=max,scope=mmf-{0}', inputs.service-name) || '' }}
           outputs: type=image,name=target,annotation-index.org.opencontainers.image.description=${{ inputs.service-name }}
 
       - name: Install Cosign
