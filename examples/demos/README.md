@@ -172,8 +172,10 @@ docker run -d --name redis \
 # For Kind cluster:
 kind create cluster --name mmf-demo
 
-# Install Istio
-curl -L https://istio.io/downloadIstio | sh -
+# Install the exact demo Istio CLI on Linux x86_64. The binary is downloaded
+# on demand instead of adding roughly 97 MiB to every repository clone.
+./fetch-istioctl.sh
+export PATH="$PWD/istio-1.27.2/bin:$PATH"
 istioctl install --set values.defaultRevision=default
 ```
 

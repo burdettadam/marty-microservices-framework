@@ -199,6 +199,9 @@ generated_services/
 .dockerignore
 docker-compose.override.yml
 
+# Downloaded demo tooling
+examples/demos/istio-*/bin/istioctl
+
 # Kubernetes
 k8s-local/
 k8s-dev/
