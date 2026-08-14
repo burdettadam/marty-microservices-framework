@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "marty-msf"
-version = "1.0.1"
+version = "1.0.2"
 description = "Marty Microservices Framework - Enterprise-grade microservices platform"
 authors = [
     {name = "Marty Framework Team", email = "team@marty-msf.com"}
