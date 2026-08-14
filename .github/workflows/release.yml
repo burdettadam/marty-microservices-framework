@@ -48,8 +48,18 @@ jobs:
           source_marker="$(printf '%s\n' "$message" | sed -n 's/^Source-SHA: //p')"
           test "$source_marker" = "$commit"
 
-          gh api -H 'X-GitHub-Api-Version: 2026-03-10' \
-            "repos/$GITHUB_REPOSITORY/actions/runs/$preparation_run" > preparation-run.json
+          for attempt in $(seq 1 12); do
+            gh api -H 'X-GitHub-Api-Version: 2026-03-10' \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$preparation_run" > preparation-run.json
+            if jq -e '.status == "completed"' preparation-run.json >/dev/null; then
+              break
+            fi
+            if [ "$attempt" = 12 ]; then
+              echo "::error::Stable-tag preparation did not reach a terminal state"
+              exit 1
+            fi
+            sleep 5
+          done
           jq -e --arg commit "$commit" '
             .path == ".github/workflows/prepare-stable-tag.yml"
             and .event == "workflow_dispatch"

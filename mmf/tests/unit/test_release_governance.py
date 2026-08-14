@@ -15,6 +15,7 @@ def test_stable_tag_is_an_exact_main_one_time_handoff() -> None:
     assert "git tag -a" in PREPARE
     assert "Stable-Tag-Gate: elevenid.stable-tag-preparation/v1" in PREPARE
     assert "git push origin \"refs/tags/$TAG:refs/tags/$TAG\"" in PREPARE
+    assert "Stable-tag preparation did not reach a terminal state" in RELEASE
     for workflow in (
         ".github/workflows/ci.yml:push",
         ".github/workflows/open-source-policy.yml:push",
