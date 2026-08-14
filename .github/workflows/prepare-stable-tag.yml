@@ -25,7 +25,7 @@ jobs:
     name: Validate exact main and create annotated tag
     runs-on: ubuntu-latest
     permissions:
-      actions: read
+      actions: write
       contents: write
     steps:
       - name: Require exact protected-main dispatch
@@ -118,3 +118,31 @@ jobs:
           test "$(git cat-file -t "refs/tags/$TAG")" = tag
           test "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$COMMIT"
           git push origin "refs/tags/$TAG:refs/tags/$TAG"
+
+      - name: Dispatch the exact tagged release
+        shell: bash
+        env:
+          COMMIT: ${{ inputs.source_sha }}
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 5); do
+            if gh workflow run release.yml --ref "$TAG" -f "tag=$TAG"; then
+              exit 0
+            fi
+            echo "Release dispatch attempt $attempt failed" >&2
+            sleep 2
+            gh api -H 'X-GitHub-Api-Version: 2026-03-10' \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/release.yml/runs?branch=$TAG&event=workflow_dispatch" \
+              > release-dispatch-runs.json
+            if jq -e --arg commit "$COMMIT" \
+              '[.workflow_runs[] | select(.head_sha == $commit)] | length > 0' \
+              release-dispatch-runs.json >/dev/null; then
+              echo "The release dispatch was accepted despite the client error"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "::error::The immutable tag exists but release dispatch failed; quarantine it"
+          exit 1

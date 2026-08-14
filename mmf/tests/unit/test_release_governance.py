@@ -15,6 +15,9 @@ def test_stable_tag_is_an_exact_main_one_time_handoff() -> None:
     assert "git tag -a" in PREPARE
     assert "Stable-Tag-Gate: elevenid.stable-tag-preparation/v1" in PREPARE
     assert "git push origin \"refs/tags/$TAG:refs/tags/$TAG\"" in PREPARE
+    assert "actions: write" in PREPARE
+    assert 'gh workflow run release.yml --ref "$TAG" -f "tag=$TAG"' in PREPARE
+    assert "event=workflow_dispatch" in PREPARE
     assert "Stable-tag preparation did not reach a terminal state" in RELEASE
     for workflow in (
         ".github/workflows/ci.yml:push",
@@ -49,8 +52,14 @@ def test_public_registry_waits_for_verified_immutable_release() -> None:
 def test_package_and_release_versions_match() -> None:
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     package = (ROOT / "mmf" / "__init__.py").read_text(encoding="utf-8")
-    assert 'version = "1.0.1"' in pyproject
-    assert '__version__ = "1.0.1"' in package
+    assert 'version = "1.0.2"' in pyproject
+    assert '__version__ = "1.0.2"' in package
+
+
+def test_release_dispatch_runs_from_the_exact_tag() -> None:
+    assert "workflow_dispatch:" in RELEASE
+    assert "TAG: ${{ inputs.tag || github.ref_name }}" in RELEASE
+    assert 'test "$RUN_REF" = "refs/tags/$TAG"' in RELEASE
 
 
 def test_exact_main_gates_run_on_main_push() -> None:
