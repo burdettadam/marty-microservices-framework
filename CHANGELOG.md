@@ -1,5 +1,13 @@
 # Marty Microservices Framework - Changelog
 
+## [Unreleased]
+
+### Security
+
+- Make stable tags one-time, exact-main handoffs with recorded preparation evidence.
+- Publish GitHub releases once with signed assets, checksums, provenance, and an immutable-release verification gate.
+- Prevent SBOM tooling and release actions from silently replacing assets on an existing release.
+
 ## October 2025 - Framework Modernization Complete
 
 ### Major Achievements

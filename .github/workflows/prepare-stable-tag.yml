@@ -1,0 +1,120 @@
+name: Prepare stable tag
+
+run-name: Prepare ${{ inputs.tag }} at ${{ inputs.source_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Previously unused stable tag (for example, v1.0.1)
+        required: true
+        type: string
+      source_sha:
+        description: Exact protected-main commit to validate and tag
+        required: true
+        type: string
+
+concurrency:
+  group: marty-msf-prepare-stable-${{ inputs.tag }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  prepare-stable-tag:
+    name: Validate exact main and create annotated tag
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Require exact protected-main dispatch
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.source_sha }}
+          RUN_SHA: ${{ github.sha }}
+          RUN_REF: ${{ github.ref }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          test "$RUN_REF" = refs/heads/main
+          test "$RUN_SHA" = "$EXPECTED_SHA"
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+      - name: Require unused tag and exact main version
+        shell: bash
+        env:
+          COMMIT: ${{ inputs.source_sha }}
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+          test "$(git rev-parse 'HEAD^{commit}')" = "$COMMIT"
+          test "$(git rev-parse 'refs/remotes/origin/main^{commit}')" = "$COMMIT"
+          if git ls-remote --tags origin "refs/tags/$TAG" "refs/tags/$TAG^{}" | grep -q .; then
+            echo "::error::Immutable tag $TAG already exists; it will not be moved or reused"
+            exit 1
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists; it will not be replaced"
+            exit 1
+          fi
+          expected="${TAG#v}"
+          actual="$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")"
+          test "$actual" = "$expected"
+
+      - name: Require every exact-main workflow gate
+        shell: bash
+        env:
+          COMMIT: ${{ inputs.source_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --paginate --slurp -H 'X-GitHub-Api-Version: 2026-03-10' \
+            "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$COMMIT&per_page=100" > workflow-runs.json
+          requirements=(
+            '.github/workflows/ci.yml:push'
+            '.github/workflows/open-source-policy.yml:push'
+            '.github/workflows/organization-quality.yml:push'
+            '.github/workflows/license-compliance.yml:push'
+            '.github/workflows/codeql.yml:push'
+          )
+          for requirement in "${requirements[@]}"; do
+            path="${requirement%:*}"
+            event="${requirement##*:}"
+            jq -e --arg path "$path" --arg event "$event" --arg commit "$COMMIT" '
+              [.[] | .workflow_runs[] |
+                select(.path == $path and .event == $event and .head_sha == $commit)] |
+              sort_by(.id) | last |
+              .status == "completed" and .conclusion == "success"
+            ' workflow-runs.json >/dev/null || {
+              echo "::error::Exact-main gate is missing, pending, or failed: $path ($event)"
+              exit 1
+            }
+          done
+
+      - name: Create and publish the exact annotated tag once
+        shell: bash
+        env:
+          COMMIT: ${{ inputs.source_sha }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          {
+            printf 'Release %s\n\n' "${TAG#v}"
+            printf 'Stable-Tag-Gate: elevenid.stable-tag-preparation/v1\n'
+            printf 'Preparation-Run: %s\n' "$GITHUB_RUN_ID"
+            printf 'Source-SHA: %s\n' "$COMMIT"
+          } > tag-message.txt
+          git tag -a "$TAG" "$COMMIT" -F tag-message.txt
+          test "$(git cat-file -t "refs/tags/$TAG")" = tag
+          test "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$COMMIT"
+          git push origin "refs/tags/$TAG:refs/tags/$TAG"
