@@ -55,8 +55,8 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-          test "$(git rev-parse HEAD^{commit})" = "$COMMIT"
-          test "$(git rev-parse refs/remotes/origin/main^{commit})" = "$COMMIT"
+          test "$(git rev-parse 'HEAD^{commit}')" = "$COMMIT"
+          test "$(git rev-parse 'refs/remotes/origin/main^{commit}')" = "$COMMIT"
           if git ls-remote --tags origin "refs/tags/$TAG" "refs/tags/$TAG^{}" | grep -q .; then
             echo "::error::Immutable tag $TAG already exists; it will not be moved or reused"
             exit 1
