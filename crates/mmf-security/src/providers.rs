@@ -2,7 +2,6 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::{
     AuthenticationResult, AuthorizationDecision, RateLimitQuota, RateLimitResult, RateLimitRule,
@@ -149,35 +148,6 @@ pub trait DistributedRateLimiter: Send + Sync {
         quota: &RateLimitQuota,
         now_ms: u64,
     ) -> Result<RateLimitResult, SecurityError>;
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MfaMethod {
-    Totp,
-    Sms,
-    Email,
-    WebAuthn,
-    RecoveryCode,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct MfaChallenge {
-    pub challenge_id: String,
-    pub user_id: String,
-    pub method: MfaMethod,
-    pub expires_at_ms: u64,
-    pub attempts_remaining: u32,
-    #[serde(default)]
-    pub metadata: BTreeMap<String, String>,
-}
-
-#[async_trait]
-pub trait MfaProvider: Send + Sync {
-    async fn begin(&self, user_id: &str, method: MfaMethod) -> Result<MfaChallenge, SecurityError>;
-    async fn verify(&self, challenge_id: &str, response: &str) -> Result<bool, SecurityError>;
-    async fn enroll(&self, user_id: &str, method: MfaMethod) -> Result<Value, SecurityError>;
-    async fn disable(&self, user_id: &str, method: MfaMethod) -> Result<(), SecurityError>;
 }
 
 #[async_trait]

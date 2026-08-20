@@ -1,13 +1,14 @@
 //! Canonical MMF security models, policy engines, state machines, and ports.
 //!
-//! JWT/SD-JWT/mDoc parsing, key generation, signatures, TOTP, and other
-//! cryptographic kernels remain owned by `marty-core`. This crate defines the
-//! fail-closed service contracts and composes provider implementations.
+//! Credential-protocol parsing, key generation, signatures, and certificate
+//! kernels remain owned by `marty-core`. This crate owns reusable framework
+//! security behavior, including RFC 6238 TOTP and fail-closed MFA composition.
 
 #![forbid(unsafe_code)]
 
 mod authorization;
 mod identity;
+pub mod mfa;
 mod policy;
 mod providers;
 mod rate_limit;
@@ -18,6 +19,7 @@ use std::sync::Arc;
 
 pub use authorization::*;
 pub use identity::*;
+pub use mfa::*;
 use mmf_core::{ErrorCode, MmfError};
 pub use policy::*;
 pub use providers::*;
@@ -160,6 +162,16 @@ impl SecurityProviders {
 
 #[derive(Debug, Error)]
 pub enum SecurityError {
+    #[error("invalid security configuration: {0}")]
+    InvalidConfiguration(String),
+    #[error("required native security provider is unavailable: {0}")]
+    ProviderUnavailable(String),
+    #[error("security operation is unauthorized: {0}")]
+    Unauthorized(String),
+    #[error("security state conflict: {0}")]
+    Conflict(String),
+    #[error("security record was not found: {0}")]
+    NotFound(String),
     #[error("invalid identity: {0}")]
     InvalidIdentity(String),
     #[error("invalid authentication result")]
@@ -207,13 +219,14 @@ pub enum SecurityError {
 impl From<SecurityError> for MmfError {
     fn from(error: SecurityError) -> Self {
         let code = match error {
-            SecurityError::Authentication(_) | SecurityError::InvalidAuthenticationResult => {
-                ErrorCode::Unauthorized
-            }
+            SecurityError::Authentication(_)
+            | SecurityError::Unauthorized(_)
+            | SecurityError::InvalidAuthenticationResult => ErrorCode::Unauthorized,
             SecurityError::Authorization(_) => ErrorCode::Forbidden,
-            SecurityError::RequiredProvidersUnavailable(_) => ErrorCode::DependencyUnavailable,
-            SecurityError::RateLimitExceeded => ErrorCode::Conflict,
-            SecurityError::SessionNotFound => ErrorCode::NotFound,
+            SecurityError::RequiredProvidersUnavailable(_)
+            | SecurityError::ProviderUnavailable(_) => ErrorCode::DependencyUnavailable,
+            SecurityError::RateLimitExceeded | SecurityError::Conflict(_) => ErrorCode::Conflict,
+            SecurityError::SessionNotFound | SecurityError::NotFound(_) => ErrorCode::NotFound,
             _ => ErrorCode::InvalidInput,
         };
         MmfError::new(code, error.to_string())

@@ -1,9 +1,9 @@
 //! Canonical orchestration for MMF's built-in services.
 //!
 //! Domain security primitives are reused from `mmf-security`; event delivery
-//! is reused from `mmf-messaging`. JWT, TOTP, certificate, password-hashing,
-//! and other cryptographic kernels must be supplied by native crypto providers
-//! (normally `marty-core`) and are never reimplemented here.
+//! is reused from `mmf-messaging`; reusable MFA/TOTP is reused from
+//! `mmf-security`. Credential signatures, certificates, password hashing, and
+//! other product cryptographic kernels are supplied by native providers.
 
 #![forbid(unsafe_code)]
 

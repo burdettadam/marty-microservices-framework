@@ -13,6 +13,8 @@ use uuid::Uuid;
 
 use crate::ServiceError;
 
+pub use mmf_security::mfa;
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthenticationStatus {
