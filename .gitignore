@@ -195,6 +195,10 @@ generated_services/
 # Pre-commit
 .pre-commit-config.yaml.backup
 
+# Local test/oracle scratch directories
+pytest-cache-files-*/
+.tmp-doc-oracle-*/
+
 # Docker
 .dockerignore
 docker-compose.override.yml

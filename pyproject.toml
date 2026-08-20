@@ -183,9 +183,8 @@ Repository = "https://github.com/marty-framework/marty-microservices-framework"
 Issues = "https://github.com/marty-framework/marty-microservices-framework/issues"
 
 [project.scripts]
-# CLI has been moved to boneyard - console scripts disabled
-# marty = "marty_msf.cli:cli"
-# marty-msf = "marty_msf.cli:cli"
+# The `marty` executable is built and packaged by the Rust `mmf-cli` crate.
+# Python console entry points remain intentionally absent.
 
 [project.entry-points."mmf.plugins"]
 # Production plugins will be registered here when they exist

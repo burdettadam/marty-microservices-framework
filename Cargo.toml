@@ -3,6 +3,7 @@ members = [
     "crates/mmf",
     "crates/mmf-config",
     "crates/mmf-core",
+    "crates/mmf-cli",
     "crates/mmf-data",
     "crates/mmf-messaging",
     "crates/mmf-ml",
@@ -31,22 +32,23 @@ version = "0.1.0"
 axum = "0.8"
 async-trait = "0.1"
 http-body-util = "0.1"
-mmf-config = { path = "crates/mmf-config" }
-mmf-core = { path = "crates/mmf-core" }
-mmf-data = { path = "crates/mmf-data" }
-mmf-messaging = { path = "crates/mmf-messaging" }
-mmf-ml = { path = "crates/mmf-ml" }
-mmf-observability = { path = "crates/mmf-observability" }
-mmf-platform = { path = "crates/mmf-platform" }
-mmf-plugins = { path = "crates/mmf-plugins" }
-mmf-push = { path = "crates/mmf-push" }
-mmf-patterns = { path = "crates/mmf-patterns" }
-mmf-resilience = { path = "crates/mmf-resilience" }
-mmf-runtime = { path = "crates/mmf-runtime" }
-mmf-security = { path = "crates/mmf-security" }
-mmf-services = { path = "crates/mmf-services" }
-mmf-testkit = { path = "crates/mmf-testkit" }
-mmf-workflow = { path = "crates/mmf-workflow" }
+mmf-config = { version = "0.1.0", path = "crates/mmf-config" }
+mmf-cli = { version = "0.1.0", path = "crates/mmf-cli" }
+mmf-core = { version = "0.1.0", path = "crates/mmf-core" }
+mmf-data = { version = "0.1.0", path = "crates/mmf-data" }
+mmf-messaging = { version = "0.1.0", path = "crates/mmf-messaging" }
+mmf-ml = { version = "0.1.0", path = "crates/mmf-ml" }
+mmf-observability = { version = "0.1.0", path = "crates/mmf-observability" }
+mmf-platform = { version = "0.1.0", path = "crates/mmf-platform" }
+mmf-plugins = { version = "0.1.0", path = "crates/mmf-plugins" }
+mmf-push = { version = "0.1.0", path = "crates/mmf-push" }
+mmf-patterns = { version = "0.1.0", path = "crates/mmf-patterns" }
+mmf-resilience = { version = "0.1.0", path = "crates/mmf-resilience" }
+mmf-runtime = { version = "0.1.0", path = "crates/mmf-runtime" }
+mmf-security = { version = "0.1.0", path = "crates/mmf-security" }
+mmf-services = { version = "0.1.0", path = "crates/mmf-services" }
+mmf-testkit = { version = "0.1.0", path = "crates/mmf-testkit" }
+mmf-workflow = { version = "0.1.0", path = "crates/mmf-workflow" }
 rand = "0.9"
 regex = "1"
 serde = { version = "1", features = ["derive"] }

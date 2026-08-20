@@ -2,6 +2,7 @@
 
 #![forbid(unsafe_code)]
 
+pub use mmf_cli as cli;
 pub use mmf_config as config;
 pub use mmf_core as core;
 pub use mmf_data as data;

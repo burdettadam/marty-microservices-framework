@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "fastapi_source": "from fastapi import FastAPI\napp = FastAPI(title=\"Accounts\", version=\"2.1.0\", description=\"Account API\")\n@app.get(\"/accounts\", summary=\"List accounts\", tags=[\"accounts\"])\nasync def list_accounts(): pass\n@app.post(\"/accounts\", summary=\"Create account\", deprecated=True)\nasync def create_account(): pass\n",
+  "proto_source": "syntax = \"proto3\"; package accounts.v1; service Accounts { rpc GetAccount (GetAccountRequest) returns (Account); rpc WatchAccounts (WatchRequest) returns (stream Account); rpc UploadAccounts (stream Account) returns (UploadResult); rpc SyncAccounts (stream Account) returns (stream Account); }",
+  "service": {
+    "name": "Accounts",
+    "version": "2.1.0",
+    "description": "Account API",
+    "base_url": "https://accounts.example.test",
+    "endpoints": [
+      {
+        "path": "/accounts",
+        "method": "GET",
+        "summary": "List accounts",
+        "description": "Returns accounts",
+        "parameters": [],
+        "response_schemas": {"200": {"description": "OK"}},
+        "tags": ["accounts"],
+        "deprecated": false,
+        "version": "2.1.0"
+      },
+      {
+        "path": "/accounts",
+        "method": "POST",
+        "summary": "Create account",
+        "description": "Creates an account",
+        "parameters": [],
+        "request_schema": {"type": "object"},
+        "response_schemas": {"201": {"description": "Created"}},
+        "tags": ["accounts"],
+        "deprecated": true,
+        "deprecation_date": "2027-01-01",
+        "migration_guide": "Use /v3/accounts",
+        "version": "2.1.0"
+      }
+    ],
+    "grpc_methods": [
+      {
+        "name": "GetAccount",
+        "full_name": "accounts.v1.Accounts.GetAccount",
+        "input_type": "GetAccountRequest",
+        "output_type": "Account",
+        "description": "Get an account",
+        "streaming": "unary",
+        "deprecated": false,
+        "version": "2.1.0"
+      }
+    ],
+    "schemas": {"Account": {"type": "object"}},
+    "servers": [{"url": "https://accounts.example.test"}],
+    "deprecated_versions": []
+  },
+  "expected_openapi": {
+    "openapi": "3.0.3",
+    "title": "Accounts",
+    "version": "2.1.0",
+    "get_summary": "List accounts",
+    "post_deprecated": true,
+    "post_deprecation_date": "2027-01-01",
+    "schema_count": 1
+  },
+  "expected_artifacts": [
+    "accounts-openapi.json",
+    "accounts-docs.html",
+    "accounts-postman.json",
+    "accounts-grpc-docs.html",
+    "accounts-grpc-clients.md",
+    "accounts-unified-docs.html",
+    "accounts-gateway.yaml",
+    "index.html"
+  ],
+  "streaming_modes": ["unary", "server_streaming", "client_streaming", "bidirectional"],
+  "builtin_templates": [
+    "fastapi-service",
+    "api-gateway-service",
+    "config-service",
+    "saga-orchestrator",
+    "service-discovery",
+    "api-versioning",
+    "grpc-service",
+    "hybrid-service",
+    "production-service",
+    "minimal-service"
+  ],
+  "commands": [
+    "new",
+    "templates",
+    "build",
+    "test",
+    "run",
+    "deploy",
+    "info",
+    "config",
+    "api",
+    "migrate",
+    "service-mesh",
+    "plugin",
+    "service",
+    "security",
+    "db"
+  ],
+  "template_source": "{% macro badge(value) %}[{{value}}]{% endmacro %}{% include \"header\" %}{% if enabled %}{{ badge(\"active\") }}:{{project_name|kebab}}:{% for item in items %}{{item|upper}},{% endfor %}{% endif %}",
+  "template_header": "{{project_name|pascal}}\n",
+  "template_expected": "RiskService\n[active]:risk-service:ONE,TWO,",
+  "version_service": "accounts",
+  "active_version": "2.1.0",
+  "deprecated_version": "1.0.0"
+}

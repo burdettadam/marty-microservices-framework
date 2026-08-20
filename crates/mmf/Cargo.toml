@@ -8,6 +8,7 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
+mmf-cli.workspace = true
 mmf-config.workspace = true
 mmf-core.workspace = true
 mmf-data.workspace = true

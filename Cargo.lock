@@ -395,6 +395,7 @@ dependencies = [
 name = "mmf"
 version = "0.1.0"
 dependencies = [
+ "mmf-cli",
  "mmf-config",
  "mmf-core",
  "mmf-data",
@@ -411,6 +412,22 @@ dependencies = [
  "mmf-services",
  "mmf-testkit",
  "mmf-workflow",
+]
+
+[[package]]
+name = "mmf-cli"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "mmf-platform",
+ "mmf-plugins",
+ "mmf-testkit",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "toml",
 ]
 
 [[package]]
