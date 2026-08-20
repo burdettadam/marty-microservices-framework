@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "timeout": {
+    "created_at_ms": 1000,
+    "idle_timeout_ms": 1800000,
+    "absolute_timeout_ms": 28800000,
+    "first_expiry_ms": 1801000,
+    "accessed_at_ms": 600000,
+    "extended_expiry_ms": 2400000,
+    "absolute_expiry_ms": 28801000,
+    "expired_at_ms": 28801000
+  },
+  "security_context": {
+    "ip_address": "192.0.2.10",
+    "other_ip_address": "192.0.2.11",
+    "user_agent": "Marty Fixture/1.0",
+    "other_user_agent": "Marty Fixture/2.0",
+    "strict_same": true,
+    "strict_other_agent": false,
+    "lenient_other_agent": true,
+    "other_ip": false
+  },
+  "session": {
+    "session_id": "session-123",
+    "user_id": "user-123",
+    "auth_method": "oidc",
+    "role": "issuer",
+    "permission": "credential:issue",
+    "attribute": "tenant",
+    "attribute_value": "example",
+    "invalidation_reason": "manual_invalidation",
+    "termination_reason": "security_termination"
+  },
+  "configuration": {
+    "development_idle_timeout_ms": 28800000,
+    "production_idle_timeout_ms": 1800000,
+    "high_security_idle_timeout_ms": 900000,
+    "redis_url": "redis://session.example.test/0",
+    "database_url": "postgresql://session.example.test/marty",
+    "key_prefix": "session:",
+    "minimum_cleanup_interval_ms": 60000,
+    "strict_max_concurrent_sessions": 1,
+    "standard_max_concurrent_sessions": 3,
+    "lenient_max_concurrent_sessions": 10
+  },
+  "events": {
+    "created": "session_created",
+    "accessed": "session_accessed",
+    "expired": "session_expired",
+    "violation": "security_violation",
+    "authentication_failure": "authentication_failure",
+    "high_severity": "high",
+    "batch_id_prefix": "batch_",
+    "correlation_id_prefix": "corr_",
+    "security_event_count": 2,
+    "unique_session_count": 2,
+    "unique_user_count": 2
+  },
+  "failures": {
+    "empty_session_id": "session ID cannot be empty",
+    "invalid_timeout_order": "idle timeout must be less than absolute timeout",
+    "insecure_production": "insecure session settings are development-only",
+    "missing_storage_connection": "external session storage requires a connection string",
+    "missing_provider": "required session provider is unavailable"
+  }
+}

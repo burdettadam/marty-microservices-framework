@@ -12,10 +12,15 @@ use tokio::sync::RwLock;
 
 use crate::ServiceError;
 
+pub use mmf_security::managed_session::*;
 pub use mmf_security::mtls::*;
 pub use mmf_security::oauth::*;
 pub use mmf_security::oidc::*;
-pub use mmf_security::{mfa, mtls, oauth, oidc};
+pub use mmf_security::session_configuration::*;
+pub use mmf_security::session_events::*;
+pub use mmf_security::{
+    managed_session, mfa, mtls, oauth, oidc, session, session_configuration, session_events,
+};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]

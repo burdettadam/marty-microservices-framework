@@ -8,6 +8,7 @@
 
 mod authorization;
 mod identity;
+pub mod managed_session;
 pub mod mfa;
 pub mod mtls;
 pub mod oauth;
@@ -16,13 +17,16 @@ mod policy;
 mod providers;
 mod rate_limit;
 mod security_models;
-mod session;
+pub mod session;
+pub mod session_configuration;
+pub mod session_events;
 mod uri;
 
 use std::sync::Arc;
 
 pub use authorization::*;
 pub use identity::*;
+pub use managed_session::*;
 pub use mfa::*;
 use mmf_core::{ErrorCode, MmfError};
 pub use mtls::*;
@@ -34,6 +38,8 @@ pub use rate_limit::*;
 pub use security_models::*;
 use serde::{Deserialize, Serialize};
 pub use session::*;
+pub use session_configuration::*;
+pub use session_events::*;
 use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
