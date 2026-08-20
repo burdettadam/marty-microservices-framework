@@ -1,0 +1,25 @@
+{
+  "valid_transitions": [
+    ["created", "initialized"],
+    ["initialized", "starting"],
+    ["starting", "active"],
+    ["active", "draining"],
+    ["draining", "stopped"],
+    ["stopped", "starting"],
+    ["failed", "stopped"]
+  ],
+  "invalid_transitions": [
+    ["created", "active"],
+    ["initialized", "active"],
+    ["active", "starting"],
+    ["stopped", "active"],
+    ["failed", "active"]
+  ],
+  "aggregate_health": [
+    {"components": [], "expected": "unknown"},
+    {"components": ["healthy", "healthy"], "expected": "healthy"},
+    {"components": ["healthy", "degraded"], "expected": "degraded"},
+    {"components": ["healthy", "unhealthy"], "expected": "unhealthy"},
+    {"components": ["unknown", "healthy"], "expected": "unknown"}
+  ]
+}
