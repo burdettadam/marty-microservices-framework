@@ -8,6 +8,7 @@ members = [
     "crates/mmf-ml",
     "crates/mmf-observability",
     "crates/mmf-platform",
+    "crates/mmf-plugins",
     "crates/mmf-push",
     "crates/mmf-patterns",
     "crates/mmf-resilience",
@@ -37,6 +38,7 @@ mmf-messaging = { path = "crates/mmf-messaging" }
 mmf-ml = { path = "crates/mmf-ml" }
 mmf-observability = { path = "crates/mmf-observability" }
 mmf-platform = { path = "crates/mmf-platform" }
+mmf-plugins = { path = "crates/mmf-plugins" }
 mmf-push = { path = "crates/mmf-push" }
 mmf-patterns = { path = "crates/mmf-patterns" }
 mmf-resilience = { path = "crates/mmf-resilience" }

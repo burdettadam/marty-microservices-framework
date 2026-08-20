@@ -10,6 +10,7 @@ pub use mmf_ml as ml;
 pub use mmf_observability as observability;
 pub use mmf_patterns as patterns;
 pub use mmf_platform as platform;
+pub use mmf_plugins as plugins;
 pub use mmf_push as push;
 pub use mmf_resilience as resilience;
 pub use mmf_runtime as runtime;

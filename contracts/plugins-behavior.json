@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "plugin_statuses": ["unloaded", "loading", "loaded", "initializing", "active", "error", "stopping", "stopped"],
+  "service_statuses": ["inactive", "starting", "active", "stopping", "failed"],
+  "route_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+  "default_metadata": {"api_version": "1.0", "min_mmf_version": "1.0.0"},
+  "dependency_order": ["database", "identity", "wallet"],
+  "reverse_stop_order": ["wallet", "identity", "database"],
+  "config": {
+    "defaults": {"enabled": true, "timeout": 30},
+    "valid": {"enabled": false, "timeout": 10},
+    "missing_required_error": "missing required plugin config field: enabled"
+  },
+  "failure_codes": ["missing_dependency", "dependency_cycle", "invalid_transition", "missing_provider"]
+}

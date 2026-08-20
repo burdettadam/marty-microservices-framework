@@ -403,6 +403,7 @@ dependencies = [
  "mmf-observability",
  "mmf-patterns",
  "mmf-platform",
+ "mmf-plugins",
  "mmf-push",
  "mmf-resilience",
  "mmf-runtime",
@@ -517,6 +518,19 @@ dependencies = [
  "thiserror",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "mmf-plugins"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "mmf-core",
+ "mmf-messaging",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]

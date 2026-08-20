@@ -15,6 +15,7 @@ mmf-messaging.workspace = true
 mmf-ml.workspace = true
 mmf-observability.workspace = true
 mmf-platform.workspace = true
+mmf-plugins.workspace = true
 mmf-push.workspace = true
 mmf-patterns.workspace = true
 mmf-resilience.workspace = true
