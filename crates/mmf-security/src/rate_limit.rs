@@ -1,9 +1,10 @@
 use std::collections::{BTreeMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::SecurityError;
+use crate::{DistributedRateLimiter, SecurityError};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -139,6 +140,18 @@ impl InMemoryRateLimiter {
                 updated_at_ms,
             } => check_leaky(rule, now_ms, level, updated_at_ms),
         })
+    }
+}
+
+#[async_trait]
+impl DistributedRateLimiter for InMemoryRateLimiter {
+    async fn check(
+        &self,
+        rule: &RateLimitRule,
+        quota: &RateLimitQuota,
+        now_ms: u64,
+    ) -> Result<RateLimitResult, SecurityError> {
+        InMemoryRateLimiter::check(self, rule, quota, now_ms)
     }
 }
 
