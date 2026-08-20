@@ -59,6 +59,18 @@
     "secret": "contract-secret",
     "expected": "sha256=29511d841efeb0444af670b839b043dcf8ab26a037efd905617e5d6690154a57"
   },
+  "webhook_destination_registry": {
+    "configuration": "org-a|https://callbacks.example/fixed;org-a|https://callbacks.example/items/__MARTY_TOKEN__;org-b|https://other.example/hook",
+    "accepted": [
+      ["org-a", "https://callbacks.example/fixed"],
+      ["org-a", "https://callbacks.example/items/abcdefghijklmnop"]
+    ],
+    "rejected": [
+      ["org-b", "https://callbacks.example/fixed"],
+      ["org-a", "https://callbacks.example/items/short"],
+      ["org-a", "https://callbacks.example/fixed#fragment"]
+    ]
+  },
   "failure_contracts": {
     "missing_adapter": "NO_ADAPTER",
     "expired": "MESSAGE_EXPIRED",

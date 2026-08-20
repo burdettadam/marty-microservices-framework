@@ -18,6 +18,7 @@ struct Fixture {
     sse: SseFixture,
     lifecycle_error_mappings: LifecycleFixture,
     webhook_signature: SignatureFixture,
+    webhook_destination_registry: DestinationRegistryFixture,
     failure_contracts: FailureFixture,
 }
 
@@ -72,6 +73,13 @@ struct SignatureFixture {
     body: String,
     secret: String,
     expected: String,
+}
+
+#[derive(Deserialize)]
+struct DestinationRegistryFixture {
+    configuration: String,
+    accepted: Vec<[String; 2]>,
+    rejected: Vec<[String; 2]>,
 }
 
 #[derive(Deserialize)]
@@ -271,6 +279,24 @@ fn language_neutral_webhook_signature_contract() {
         &fixture.secret,
         &signature
     ));
+}
+
+#[test]
+fn webhook_destinations_are_tenant_bound_and_template_safe() {
+    let case = fixture().webhook_destination_registry;
+    let registry = WebhookDestinationRegistry::parse(&case.configuration).unwrap();
+    for [tenant, destination] in case.accepted {
+        registry.require(&tenant, &destination).unwrap();
+    }
+    for [tenant, destination] in case.rejected {
+        assert!(registry.require(&tenant, &destination).is_err());
+    }
+    assert_eq!(registry.templates("org-a").len(), 2);
+    assert!(
+        WebhookDestinationRegistry::parse("org-a|https://x.test/__MARTY_TOKEN__/__MARTY_TOKEN__")
+            .is_err()
+    );
+    assert!(WebhookDestinationRegistry::parse("org-a|https://user:pass@x.test/hook").is_err());
 }
 
 #[tokio::test]

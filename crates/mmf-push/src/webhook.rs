@@ -18,6 +18,71 @@ use crate::{
 };
 
 type HmacSha256 = Hmac<Sha256>;
+const TOKEN_MARKER: &str = "__MARTY_TOKEN__";
+
+/// Tenant-scoped allowlist for callback destinations.
+///
+/// Registrations use `tenant|URL` entries separated by semicolons. A URL may
+/// contain one `__MARTY_TOKEN__` slot matching 16-512 URL-safe characters.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct WebhookDestinationRegistry {
+    registrations: BTreeMap<String, Vec<String>>,
+}
+
+impl WebhookDestinationRegistry {
+    pub fn parse(configuration: &str) -> Result<Self, PushError> {
+        let mut registrations = BTreeMap::<String, Vec<String>>::new();
+        for raw_entry in configuration.split(';') {
+            let entry = raw_entry.trim();
+            if entry.is_empty() {
+                continue;
+            }
+            let (tenant, template) = entry.split_once('|').ok_or_else(|| {
+                PushError::InvalidConfiguration(
+                    "webhook destinations must use tenant|URL entries".into(),
+                )
+            })?;
+            let tenant = tenant.trim();
+            let template = template.trim();
+            if tenant.is_empty() || template.is_empty() {
+                return Err(PushError::InvalidConfiguration(
+                    "webhook destination tenant and URL must not be empty".into(),
+                ));
+            }
+            if template.match_indices(TOKEN_MARKER).count() > 1 {
+                return Err(PushError::InvalidConfiguration(
+                    "webhook destination allows at most one token slot".into(),
+                ));
+            }
+            validate_destination_shape(template)?;
+            registrations
+                .entry(tenant.to_owned())
+                .or_default()
+                .push(template.to_owned());
+        }
+        Ok(Self { registrations })
+    }
+
+    pub fn require(&self, tenant: &str, destination: &str) -> Result<(), PushError> {
+        validate_destination_shape(destination)?;
+        if self.registrations.get(tenant).is_some_and(|templates| {
+            templates
+                .iter()
+                .any(|template| destination_matches(destination, template))
+        }) {
+            Ok(())
+        } else {
+            Err(PushError::InvalidOperation(
+                "webhook destination is not registered for the tenant".into(),
+            ))
+        }
+    }
+
+    #[must_use]
+    pub fn templates(&self, tenant: &str) -> &[String] {
+        self.registrations.get(tenant).map_or(&[], Vec::as_slice)
+    }
+}
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct WebhookEndpointConfig {
@@ -498,13 +563,41 @@ impl PushAdapter for WebhookAdapter {
 }
 
 fn validate_endpoint(endpoint: &WebhookEndpointConfig) -> Result<(), PushError> {
-    if !endpoint.url.starts_with("https://") && !endpoint.url.starts_with("http://") {
-        return Err(PushError::InvalidConfiguration(format!(
-            "webhook endpoint must use HTTP(S): {}",
-            endpoint.url
-        )));
+    validate_destination_shape(&endpoint.url)
+}
+
+fn validate_destination_shape(value: &str) -> Result<(), PushError> {
+    let parse_value = value.replace(TOKEN_MARKER, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    let parsed = url::Url::parse(&parse_value).map_err(|_| {
+        PushError::InvalidConfiguration("webhook endpoint must be an absolute URL".into())
+    })?;
+    if !matches!(parsed.scheme(), "http" | "https")
+        || parsed.host_str().is_none()
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+        || parsed.fragment().is_some()
+    {
+        return Err(PushError::InvalidConfiguration(
+            "webhook endpoint must be HTTP(S) without userinfo or fragments".into(),
+        ));
     }
     Ok(())
+}
+
+fn destination_matches(destination: &str, template: &str) -> bool {
+    let Some((prefix, suffix)) = template.split_once(TOKEN_MARKER) else {
+        return destination == template;
+    };
+    let Some(token_with_suffix) = destination.strip_prefix(prefix) else {
+        return false;
+    };
+    let Some(token) = token_with_suffix.strip_suffix(suffix) else {
+        return false;
+    };
+    (16..=512).contains(&token.len())
+        && token
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
 }
 
 fn decode_hex(value: &str) -> Option<Vec<u8>> {
