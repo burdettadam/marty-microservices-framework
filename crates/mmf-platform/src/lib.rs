@@ -9,6 +9,7 @@
 mod deployment;
 mod discovery;
 mod gateway;
+mod grpc;
 mod http;
 mod ports;
 mod proxy;
@@ -16,6 +17,7 @@ mod proxy;
 pub use deployment::*;
 pub use discovery::*;
 pub use gateway::*;
+pub use grpc::*;
 pub use http::*;
 pub use mmf_security::{MeshType, ServiceMeshManager, ServiceMeshPolicy};
 pub use ports::*;

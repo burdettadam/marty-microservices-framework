@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "accepted": [
+    {
+      "name": "plaintext-development",
+      "config": {"target": "http://organization:50051", "security": "plaintext", "trust": "native_roots"},
+      "material": []
+    },
+    {
+      "name": "server-tls-native-roots",
+      "config": {"target": "https://organization.example:443", "security": "server_tls", "trust": "native_roots"},
+      "material": []
+    },
+    {
+      "name": "server-tls-private-ca",
+      "config": {"target": "https://organization.internal:50051", "security": "server_tls", "trust": "custom_ca", "server_name": "organization.internal"},
+      "material": ["ca_certificate"]
+    },
+    {
+      "name": "mutual-tls-private-ca",
+      "config": {"target": "https://organization.internal:50051", "security": "mutual_tls", "trust": "custom_ca"},
+      "material": ["ca_certificate", "client_certificate", "client_private_key"]
+    },
+    {
+      "name": "mutual-tls-native-roots",
+      "config": {"target": "https://organization.example:443", "security": "mutual_tls", "trust": "native_roots"},
+      "material": ["client_certificate", "client_private_key"]
+    }
+  ],
+  "rejected": [
+    {
+      "name": "plaintext-over-https",
+      "config": {"target": "https://organization:50051", "security": "plaintext", "trust": "native_roots"},
+      "material": []
+    },
+    {
+      "name": "tls-over-http",
+      "config": {"target": "http://organization:50051", "security": "server_tls", "trust": "native_roots"},
+      "material": []
+    },
+    {
+      "name": "credentialed-target",
+      "config": {"target": "https://user:secret@organization:50051", "security": "server_tls", "trust": "native_roots"},
+      "material": []
+    },
+    {
+      "name": "target-with-path",
+      "config": {"target": "https://organization:50051/grpc", "security": "server_tls", "trust": "native_roots"},
+      "material": []
+    },
+    {
+      "name": "zero-timeout",
+      "config": {"target": "http://organization:50051", "security": "plaintext", "trust": "native_roots", "connect_timeout_ms": 0},
+      "material": []
+    },
+    {
+      "name": "plaintext-with-ca",
+      "config": {"target": "http://organization:50051", "security": "plaintext", "trust": "native_roots"},
+      "material": ["ca_certificate"]
+    },
+    {
+      "name": "custom-trust-without-ca",
+      "config": {"target": "https://organization:50051", "security": "server_tls", "trust": "custom_ca"},
+      "material": []
+    },
+    {
+      "name": "native-trust-with-custom-ca",
+      "config": {"target": "https://organization:50051", "security": "server_tls", "trust": "native_roots"},
+      "material": ["ca_certificate"]
+    },
+    {
+      "name": "server-tls-with-client-identity",
+      "config": {"target": "https://organization:50051", "security": "server_tls", "trust": "native_roots"},
+      "material": ["client_certificate", "client_private_key"]
+    },
+    {
+      "name": "mutual-tls-missing-key",
+      "config": {"target": "https://organization:50051", "security": "mutual_tls", "trust": "native_roots"},
+      "material": ["client_certificate"]
+    },
+    {
+      "name": "server-name-with-port",
+      "config": {"target": "https://organization:50051", "security": "server_tls", "trust": "native_roots", "server_name": "organization:443"},
+      "material": []
+    }
+  ],
+  "requirements": {
+    "redirects": "not_applicable",
+    "credentials_in_target": "reject",
+    "tls_downgrade": "reject",
+    "partial_client_identity": "reject",
+    "connect_mode": ["lazy", "eager"],
+    "timeouts": ["connect", "request", "tcp_keepalive", "http2_keepalive"]
+  }
+}
