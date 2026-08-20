@@ -170,6 +170,11 @@ impl WebhookDestinationRegistry {
     }
 
     #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.registrations.is_empty()
+    }
+
+    #[must_use]
     pub fn templates(&self, tenant: &str) -> &[String] {
         self.registrations.get(tenant).map_or(&[], Vec::as_slice)
     }

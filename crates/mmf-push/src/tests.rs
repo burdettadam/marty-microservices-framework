@@ -312,6 +312,17 @@ fn webhook_destinations_are_tenant_bound_and_template_safe() {
 }
 
 #[test]
+fn webhook_destination_registry_reports_when_no_destinations_are_registered() {
+    assert!(WebhookDestinationRegistry::default().is_empty());
+    assert!(WebhookDestinationRegistry::parse(" ; ").unwrap().is_empty());
+    assert!(
+        !WebhookDestinationRegistry::parse("org-a|https://x.test/hook")
+            .unwrap()
+            .is_empty()
+    );
+}
+
+#[test]
 fn webhook_event_signature_binds_headers_and_canonical_payload() {
     let case = fixture().webhook_event_signature;
     let signature = sign_event(
