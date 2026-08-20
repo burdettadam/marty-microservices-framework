@@ -91,6 +91,10 @@ pub struct TrustedIdentityContext {
 pub struct ProxyOverrides {
     #[serde(default)]
     pub query: BTreeMap<String, Vec<String>>,
+    /// Gateway-established query values that replace any client-controlled
+    /// value with the same key after authorization.
+    #[serde(default)]
+    pub trusted_query: BTreeMap<String, Vec<String>>,
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
     pub body: Option<Vec<u8>>,
@@ -233,7 +237,10 @@ pub fn prepare_upstream_request(
             config.maximum_request_bytes
         )));
     }
-    request.query = merge_query(request.query, &overrides.query);
+    request.query = trusted_query(
+        merge_query(request.query, &overrides.query),
+        &overrides.trusted_query,
+    );
     request.headers = trusted_headers(request.headers, identity, overrides.body.is_some());
     for (name, value) in &overrides.headers {
         insert_header(&mut request.headers, name, value.clone());
@@ -253,6 +260,17 @@ pub fn merge_query(
         incoming
             .entry(key.clone())
             .or_insert_with(|| values.clone());
+    }
+    incoming
+}
+
+#[must_use]
+pub fn trusted_query(
+    mut incoming: BTreeMap<String, Vec<String>>,
+    trusted: &BTreeMap<String, Vec<String>>,
+) -> BTreeMap<String, Vec<String>> {
+    for (key, values) in trusted {
+        incoming.insert(key.clone(), values.clone());
     }
     incoming
 }
@@ -553,6 +571,7 @@ mod tests {
         retryable_methods: Vec<HttpMethod>,
         non_retryable_methods: Vec<HttpMethod>,
         query_merge: QueryFixture,
+        trusted_query: QueryFixture,
         trusted_headers: HeaderFixture,
         errors: Vec<ErrorFixture>,
         limits: LimitsFixture,
@@ -632,6 +651,13 @@ mod tests {
         assert_eq!(
             merge_query(fixture.query_merge.incoming, &fixture.query_merge.injected),
             fixture.query_merge.expected
+        );
+        assert_eq!(
+            trusted_query(
+                fixture.trusted_query.incoming,
+                &fixture.trusted_query.injected
+            ),
+            fixture.trusted_query.expected
         );
         let headers = trusted_headers(
             fixture.trusted_headers.incoming,

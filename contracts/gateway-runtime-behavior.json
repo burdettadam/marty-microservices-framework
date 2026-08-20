@@ -11,6 +11,11 @@
       "organization_id": ["org-1"]
     }
   },
+  "trusted_query": {
+    "incoming": {"organization_id": ["attacker-org"], "limit": ["25"]},
+    "injected": {"organization_id": ["org-1"]},
+    "expected": {"organization_id": ["org-1"], "limit": ["25"]}
+  },
   "trusted_headers": {
     "incoming": {
       "Authorization": "Bearer public-token",

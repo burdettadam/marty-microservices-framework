@@ -251,7 +251,7 @@ impl AbacEngine {
                 }
             }
         }
-        policies.sort_by(|left, right| right.priority.cmp(&left.priority));
+        policies.sort_by_key(|policy| std::cmp::Reverse(policy.priority));
         self.policies = policies;
         Ok(())
     }
