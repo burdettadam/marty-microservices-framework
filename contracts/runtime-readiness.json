@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "required_initial_status": "unknown",
+  "activation_requirement": "all_required_healthy",
+  "live_readiness_requirement": "all_required_healthy",
+  "required_degraded_is_ready": false,
+  "optional_degraded_is_ready": true,
+  "component_name_bytes": [1, 128],
+  "failure_code": "dependency_unavailable",
+  "failure_detail": "components",
+  "failure_order": "lexicographic"
+}
