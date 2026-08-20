@@ -10,6 +10,7 @@
     {"match_type": "prefix", "pattern": "/api/v1", "path": "/api/v1/users/123", "matched": true, "params": {"*": "users/123"}},
     {"match_type": "wildcard", "pattern": "/users/*/profile", "path": "/users/123/profile", "matched": true, "params": {"wildcard": "/users/123/profile"}},
     {"match_type": "template", "pattern": "/users/{user_id}/credentials/{credential_id}", "path": "/users/123/credentials/abc", "matched": true, "params": {"user_id": "123", "credential_id": "abc"}},
+    {"match_type": "template", "pattern": "/v1/auth/{path:path}", "path": "/v1/auth/session/validate", "matched": true, "params": {"path": "session/validate"}},
     {"match_type": "regex", "pattern": "^/users/(?P<id>\\d+)$", "path": "/users/123", "matched": true, "params": {"id": "123"}},
     {"match_type": "exact", "pattern": "/users", "path": "/organizations", "matched": false, "params": {}}
   ],

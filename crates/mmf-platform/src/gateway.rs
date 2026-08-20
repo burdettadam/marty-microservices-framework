@@ -273,24 +273,45 @@ fn template_match(
 ) -> Result<Option<BTreeMap<String, String>>, PlatformError> {
     let pattern_parts: Vec<_> = pattern.trim_matches('/').split('/').collect();
     let path_parts: Vec<_> = path.trim_matches('/').split('/').collect();
-    if pattern_parts.len() != path_parts.len() {
-        return Ok(None);
-    }
     let mut params = BTreeMap::new();
-    for (expected, actual) in pattern_parts.into_iter().zip(path_parts) {
+    for (index, expected) in pattern_parts.iter().enumerate() {
         if expected.starts_with('{') && expected.ends_with('}') {
-            let name = &expected[1..expected.len() - 1];
+            let parameter = &expected[1..expected.len() - 1];
+            if let Some(name) = parameter.strip_suffix(":path") {
+                if name.is_empty() || index + 1 != pattern_parts.len() {
+                    return Err(PlatformError::InvalidConfiguration(
+                        "catch-all template parameters must be named and terminal".into(),
+                    ));
+                }
+                params.insert(
+                    name.into(),
+                    path_parts.get(index..).unwrap_or_default().join("/"),
+                );
+                return Ok(Some(params));
+            }
+            let name = parameter;
             if name.is_empty() {
                 return Err(PlatformError::InvalidConfiguration(
                     "template parameter name must not be empty".into(),
                 ));
             }
-            params.insert(name.into(), actual.into());
-        } else if expected != actual {
+            if name.contains(':') {
+                return Err(PlatformError::InvalidConfiguration(
+                    "unsupported template parameter converter".into(),
+                ));
+            }
+            let Some(actual) = path_parts.get(index) else {
+                return Ok(None);
+            };
+            params.insert(name.into(), (*actual).into());
+        } else if path_parts
+            .get(index)
+            .is_none_or(|actual| expected != actual)
+        {
             return Ok(None);
         }
     }
-    Ok(Some(params))
+    Ok((pattern_parts.len() == path_parts.len()).then_some(params))
 }
 
 #[must_use]
