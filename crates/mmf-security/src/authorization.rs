@@ -8,6 +8,76 @@ use serde_json::Value;
 
 use crate::{AuthorizationDecision, PolicyEffect, SecurityContext, SecurityError};
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct TenantMembership {
+    pub principal_id: String,
+    pub tenant_id: String,
+    pub status: String,
+    #[serde(default)]
+    pub role_names: BTreeSet<String>,
+    #[serde(default)]
+    pub permissions: BTreeSet<String>,
+    #[serde(default)]
+    pub is_owner: bool,
+}
+
+impl TenantMembership {
+    #[must_use]
+    pub fn is_active(&self) -> bool {
+        self.status == "active"
+    }
+
+    #[must_use]
+    pub fn allows(&self, permission: &str, owner_only: bool) -> bool {
+        if owner_only {
+            self.is_owner
+        } else {
+            self.permissions.contains(permission)
+        }
+    }
+}
+
+#[async_trait]
+pub trait TenantMembershipProvider: Send + Sync {
+    async fn membership(
+        &self,
+        principal_id: &str,
+        tenant_id: &str,
+    ) -> Result<Option<TenantMembership>, SecurityError>;
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TenantAuthorizationFailure {
+    AuthenticationRequired,
+    MembershipMissing,
+    MembershipInactive,
+    ActionNotAuthorized,
+}
+
+pub fn authorize_tenant_membership(
+    required_permission: &str,
+    principal_id: &str,
+    tenant_id: &str,
+    membership: Option<&TenantMembership>,
+    owner_only: bool,
+) -> Result<(), TenantAuthorizationFailure> {
+    if principal_id.trim().is_empty() {
+        return Err(TenantAuthorizationFailure::AuthenticationRequired);
+    }
+    let membership = membership.ok_or(TenantAuthorizationFailure::MembershipMissing)?;
+    if membership.principal_id != principal_id || membership.tenant_id != tenant_id {
+        return Err(TenantAuthorizationFailure::MembershipMissing);
+    }
+    if !membership.is_active() {
+        return Err(TenantAuthorizationFailure::MembershipInactive);
+    }
+    if !membership.allows(required_permission, owner_only) {
+        return Err(TenantAuthorizationFailure::ActionNotAuthorized);
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct StructuredPermission {
     pub resource_type: String,
