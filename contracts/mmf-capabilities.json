@@ -11,7 +11,7 @@
     {"id": "security-identity-policy", "owner": "mmf-security", "status": "active"},
     {"id": "observability-slo", "owner": "mmf-observability", "status": "active"},
     {"id": "resilience-performance", "owner": "mmf-resilience", "status": "active"},
-    {"id": "discovery-gateway-mesh-deployment", "owner": "mmf-platform", "status": "planned"},
+    {"id": "discovery-gateway-mesh-deployment", "owner": "mmf-platform", "status": "active"},
     {"id": "plugin-platform", "owner": "mmf-plugins", "status": "planned"},
     {"id": "push-delivery", "owner": "mmf-push", "status": "planned"},
     {"id": "documentation-contracts", "owner": "mmf-cli", "status": "planned"},
