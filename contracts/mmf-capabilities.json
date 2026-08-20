@@ -5,7 +5,7 @@
     {"id": "configuration-secrets", "owner": "mmf-config", "status": "foundation-active"},
     {"id": "service-runtime", "owner": "mmf-runtime", "status": "foundation-active"},
     {"id": "data-cache-migrations", "owner": "mmf-data", "status": "planned"},
-    {"id": "messaging-events-outbox", "owner": "mmf-messaging", "status": "planned"},
+    {"id": "messaging-events-outbox", "owner": "mmf-messaging", "status": "active"},
     {"id": "durable-workflow-saga", "owner": "mmf-workflow", "status": "planned"},
     {"id": "cqrs-event-sourcing", "owner": "mmf-patterns", "status": "planned"},
     {"id": "security-identity-policy", "owner": "mmf-security", "status": "active"},

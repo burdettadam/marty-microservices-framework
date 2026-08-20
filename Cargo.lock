@@ -330,6 +330,7 @@ version = "0.1.0"
 dependencies = [
  "mmf-config",
  "mmf-core",
+ "mmf-messaging",
  "mmf-observability",
  "mmf-resilience",
  "mmf-runtime",
@@ -353,6 +354,21 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "mmf-messaging"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "mmf-core",
+ "mmf-observability",
+ "mmf-resilience",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
  "uuid",
 ]
 

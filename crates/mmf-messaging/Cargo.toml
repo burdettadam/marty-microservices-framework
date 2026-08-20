@@ -1,6 +1,6 @@
 [package]
-name = "mmf"
-description = "Facade crate for the Rust Marty Microservices Framework"
+name = "mmf-messaging"
+description = "Canonical events, messaging, inbox, outbox, routing, and transport ports for MMF"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -8,13 +8,15 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
-mmf-config.workspace = true
+async-trait.workspace = true
 mmf-core.workspace = true
-mmf-messaging.workspace = true
 mmf-observability.workspace = true
 mmf-resilience.workspace = true
-mmf-runtime.workspace = true
-mmf-security.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true
