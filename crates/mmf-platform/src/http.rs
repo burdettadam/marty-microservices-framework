@@ -6,8 +6,10 @@ use std::{
 };
 
 use async_trait::async_trait;
+use redis::aio::MultiplexedConnection;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
 
 use crate::PlatformError;
@@ -404,6 +406,264 @@ impl IdempotencyStore for InMemoryIdempotencyStore {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+struct RedisCachedResponse {
+    fingerprint: String,
+    response: IdempotencyResponse,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+struct RedisLeaseState {
+    fingerprint: String,
+    token: String,
+}
+
+/// Atomic Redis idempotency storage for multi-instance gateways and services.
+pub struct RedisIdempotencyStore {
+    connection: AsyncMutex<MultiplexedConnection>,
+    key_prefix: String,
+    response_ttl_ms: u64,
+    lock_ttl_ms: u64,
+}
+
+impl std::fmt::Debug for RedisIdempotencyStore {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RedisIdempotencyStore")
+            .field("key_prefix", &self.key_prefix)
+            .field("response_ttl_ms", &self.response_ttl_ms)
+            .field("lock_ttl_ms", &self.lock_ttl_ms)
+            .finish_non_exhaustive()
+    }
+}
+
+impl RedisIdempotencyStore {
+    pub async fn connect(
+        redis_url: &str,
+        key_prefix: impl Into<String>,
+        response_ttl_ms: u64,
+        lock_ttl_ms: u64,
+    ) -> Result<Self, PlatformError> {
+        if redis_url.trim().is_empty() {
+            return Err(PlatformError::InvalidConfiguration(
+                "Redis idempotency URL is required".into(),
+            ));
+        }
+        let client = redis::Client::open(redis_url).map_err(|_| {
+            PlatformError::ProviderUnavailable("Redis idempotency URL is invalid".into())
+        })?;
+        let connection = client
+            .get_multiplexed_async_connection()
+            .await
+            .map_err(|_| {
+                PlatformError::ProviderUnavailable("Redis idempotency connection failed".into())
+            })?;
+        Self::from_connection(connection, key_prefix, response_ttl_ms, lock_ttl_ms)
+    }
+
+    pub fn from_connection(
+        connection: MultiplexedConnection,
+        key_prefix: impl Into<String>,
+        response_ttl_ms: u64,
+        lock_ttl_ms: u64,
+    ) -> Result<Self, PlatformError> {
+        let key_prefix = key_prefix.into();
+        if key_prefix.trim().is_empty() || response_ttl_ms == 0 || lock_ttl_ms == 0 {
+            return Err(PlatformError::InvalidConfiguration(
+                "Redis idempotency prefix and positive TTLs are required".into(),
+            ));
+        }
+        Ok(Self {
+            connection: AsyncMutex::new(connection),
+            key_prefix,
+            response_ttl_ms,
+            lock_ttl_ms,
+        })
+    }
+
+    pub async fn health_check(&self) -> Result<(), PlatformError> {
+        let mut connection = self.connection.lock().await;
+        let response: String = redis::cmd("PING")
+            .query_async(&mut *connection)
+            .await
+            .map_err(|_| {
+                PlatformError::ProviderUnavailable("Redis idempotency health check failed".into())
+            })?;
+        if response == "PONG" {
+            Ok(())
+        } else {
+            Err(PlatformError::ProviderUnavailable(
+                "Redis idempotency health check returned an invalid response".into(),
+            ))
+        }
+    }
+
+    fn keys(&self, namespace: &str) -> (String, String) {
+        redis_idempotency_keys(&self.key_prefix, namespace)
+    }
+}
+
+fn redis_idempotency_keys(prefix: &str, namespace: &str) -> (String, String) {
+    let digest = hex_digest(namespace.as_bytes());
+    let data = format!("{prefix}:{digest}");
+    let lock = format!("{data}:lock");
+    (data, lock)
+}
+
+const REDIS_IDEMPOTENCY_BEGIN_SCRIPT: &str = r"
+local cached = redis.call('GET', KEYS[1])
+if cached then
+  local ok, value = pcall(cjson.decode, cached)
+  if not ok or not value['fingerprint'] then
+    return redis.error_reply('invalid idempotency response record')
+  end
+  if value['fingerprint'] ~= ARGV[1] then return {'conflict', ''} end
+  return {'replay', cached}
+end
+
+local active = redis.call('GET', KEYS[2])
+if active then
+  local ok, value = pcall(cjson.decode, active)
+  if not ok or not value['fingerprint'] then
+    return redis.error_reply('invalid idempotency lease record')
+  end
+  if value['fingerprint'] ~= ARGV[1] then return {'conflict', ''} end
+  return {'in_progress', ''}
+end
+
+redis.call('SET', KEYS[2], ARGV[3], 'PX', ARGV[4])
+return {'started', ARGV[2]}
+";
+
+const REDIS_IDEMPOTENCY_COMPLETE_SCRIPT: &str = r"
+local active = redis.call('GET', KEYS[2])
+if not active then return 0 end
+local ok, value = pcall(cjson.decode, active)
+if not ok or value['fingerprint'] ~= ARGV[1] or value['token'] ~= ARGV[2] then return 0 end
+redis.call('SET', KEYS[1], ARGV[3], 'PX', ARGV[4])
+redis.call('DEL', KEYS[2])
+return 1
+";
+
+const REDIS_IDEMPOTENCY_ABORT_SCRIPT: &str = r"
+local active = redis.call('GET', KEYS[1])
+if not active then return 0 end
+local ok, value = pcall(cjson.decode, active)
+if not ok or value['fingerprint'] ~= ARGV[1] or value['token'] ~= ARGV[2] then return 0 end
+return redis.call('DEL', KEYS[1])
+";
+
+#[async_trait]
+impl IdempotencyStore for RedisIdempotencyStore {
+    async fn begin(
+        &self,
+        request: &IdempotencyRequest,
+        _now_ms: u64,
+    ) -> Result<IdempotencyBegin, PlatformError> {
+        request.validate()?;
+        let namespace = request.namespace();
+        let fingerprint = request.fingerprint();
+        let token = Uuid::new_v4().simple().to_string();
+        let lease_state = serde_json::to_string(&RedisLeaseState {
+            fingerprint: fingerprint.clone(),
+            token: token.clone(),
+        })
+        .map_err(|_| PlatformError::Operation("idempotency lease serialization failed".into()))?;
+        let (data_key, lock_key) = self.keys(&namespace);
+        let mut connection = self.connection.lock().await;
+        let (state, payload): (String, String) = redis::cmd("EVAL")
+            .arg(REDIS_IDEMPOTENCY_BEGIN_SCRIPT)
+            .arg(2)
+            .arg(data_key)
+            .arg(lock_key)
+            .arg(&fingerprint)
+            .arg(&token)
+            .arg(lease_state)
+            .arg(self.lock_ttl_ms)
+            .query_async(&mut *connection)
+            .await
+            .map_err(|_| {
+                PlatformError::ProviderUnavailable("Redis idempotency begin failed".into())
+            })?;
+        match state.as_str() {
+            "started" => Ok(IdempotencyBegin::Started(IdempotencyLease {
+                namespace,
+                fingerprint,
+                token: payload,
+            })),
+            "replay" => {
+                let cached: RedisCachedResponse = serde_json::from_str(&payload).map_err(|_| {
+                    PlatformError::Operation("invalid Redis idempotency response record".into())
+                })?;
+                if cached.fingerprint != fingerprint {
+                    return Ok(IdempotencyBegin::Conflict);
+                }
+                Ok(IdempotencyBegin::Replay(cached.response))
+            }
+            "conflict" => Ok(IdempotencyBegin::Conflict),
+            "in_progress" => Ok(IdempotencyBegin::InProgress),
+            _ => Err(PlatformError::Operation(
+                "Redis idempotency begin returned an invalid state".into(),
+            )),
+        }
+    }
+
+    async fn complete(
+        &self,
+        lease: &IdempotencyLease,
+        response: IdempotencyResponse,
+        _now_ms: u64,
+    ) -> Result<(), PlatformError> {
+        let payload = serde_json::to_string(&RedisCachedResponse {
+            fingerprint: lease.fingerprint.clone(),
+            response,
+        })
+        .map_err(|_| {
+            PlatformError::Operation("idempotency response serialization failed".into())
+        })?;
+        let (data_key, lock_key) = self.keys(&lease.namespace);
+        let mut connection = self.connection.lock().await;
+        let stored: i64 = redis::cmd("EVAL")
+            .arg(REDIS_IDEMPOTENCY_COMPLETE_SCRIPT)
+            .arg(2)
+            .arg(data_key)
+            .arg(lock_key)
+            .arg(&lease.fingerprint)
+            .arg(&lease.token)
+            .arg(payload)
+            .arg(self.response_ttl_ms)
+            .query_async(&mut *connection)
+            .await
+            .map_err(|_| {
+                PlatformError::ProviderUnavailable("Redis idempotency completion failed".into())
+            })?;
+        if stored == 1 {
+            Ok(())
+        } else {
+            Err(PlatformError::Conflict(
+                "idempotency lease is missing, expired, or owned by another operation".into(),
+            ))
+        }
+    }
+
+    async fn abort(&self, lease: &IdempotencyLease) -> Result<(), PlatformError> {
+        let (_, lock_key) = self.keys(&lease.namespace);
+        let mut connection = self.connection.lock().await;
+        let _: i64 = redis::cmd("EVAL")
+            .arg(REDIS_IDEMPOTENCY_ABORT_SCRIPT)
+            .arg(1)
+            .arg(lock_key)
+            .arg(&lease.fingerprint)
+            .arg(&lease.token)
+            .query_async(&mut *connection)
+            .await
+            .map_err(|_| {
+                PlatformError::ProviderUnavailable("Redis idempotency abort failed".into())
+            })?;
+        Ok(())
+    }
+}
+
 fn hex_digest(value: &[u8]) -> String {
     let digest = Sha256::digest(value);
     hex_prefix(&digest, digest.len())
@@ -479,11 +739,34 @@ mod tests {
         fingerprint: String,
     }
 
+    #[derive(Deserialize)]
+    struct RedisFixture {
+        schema_version: u32,
+        idempotency: RedisIdempotencyFixture,
+    }
+
+    #[derive(Deserialize)]
+    struct RedisIdempotencyFixture {
+        prefix: String,
+        namespace: String,
+        expected_data_key: String,
+        expected_lock_key: String,
+        response_ttl_ms: u64,
+        lock_ttl_ms: u64,
+    }
+
     fn fixture() -> Fixture {
         serde_json::from_str(include_str!(
             "../../../contracts/http-runtime-behavior.json"
         ))
         .expect("valid HTTP runtime fixture")
+    }
+
+    fn redis_fixture() -> RedisFixture {
+        serde_json::from_str(include_str!(
+            "../../../contracts/redis-runtime-behavior.json"
+        ))
+        .expect("valid Redis runtime fixture")
     }
 
     #[tokio::test]
@@ -581,5 +864,24 @@ mod tests {
             store.begin(&request, 1_006).await.expect("restart"),
             IdempotencyBegin::Started(_)
         ));
+    }
+
+    #[tokio::test]
+    async fn language_neutral_redis_idempotency_contract() {
+        let fixture = redis_fixture();
+        assert_eq!(fixture.schema_version, 1);
+        let (data, lock) =
+            redis_idempotency_keys(&fixture.idempotency.prefix, &fixture.idempotency.namespace);
+        assert_eq!(data, fixture.idempotency.expected_data_key);
+        assert_eq!(lock, fixture.idempotency.expected_lock_key);
+        assert_eq!(fixture.idempotency.response_ttl_ms, 86_400_000);
+        assert_eq!(fixture.idempotency.lock_ttl_ms, 300_000);
+        assert!(REDIS_IDEMPOTENCY_BEGIN_SCRIPT.contains("in_progress"));
+        assert!(REDIS_IDEMPOTENCY_COMPLETE_SCRIPT.contains("value['token']"));
+        assert!(
+            RedisIdempotencyStore::connect("", "idempotency", 1, 1)
+                .await
+                .is_err()
+        );
     }
 }

@@ -1433,6 +1433,7 @@ dependencies = [
  "mmf-resilience",
  "mmf-security",
  "rand",
+ "redis",
  "regex",
  "serde",
  "serde_json",
