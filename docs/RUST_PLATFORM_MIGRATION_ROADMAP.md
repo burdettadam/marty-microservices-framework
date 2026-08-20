@@ -4,6 +4,16 @@
 
 **Last updated:** 2026-08-20
 
+## Implementation ledger
+
+| Slice | State | Evidence and next deletion gate |
+|---|---|---|
+| Workspace foundation | Merge queued | `mmf-core`, `mmf-config`, `mmf-runtime`, the `mmf` facade, capability ownership inventory, fail-closed lifecycle/readiness contracts, Rust CI, and the existing 1,633-test Python baseline are green in PR #88 |
+| Resilience | Active | `mmf-resilience` now owns validated deadlines, configurable/custom retry backoff, jitter, count/rate circuit breaking, async bulkheads, ordered static/function/cache fallbacks, canonical metrics/errors, and the unified composition order; Rust and Python execute `contracts/resilience-behavior.json` for parity |
+| Observability and security | Next | Capture shared propagation/redaction/metrics and authorization/session/rate-limit contracts before extracting service implementations |
+| Data and messaging | Planned | Capture SQL/Redis/migration and event/outbox/idempotency/DLQ contracts required by the gateway, flow, and organization ports |
+| Python resilience deletion | Waiting on consumers | Delete the Python resilience package immediately after production consumers use the published Rust crate and the shared contract plus packaging guards pass |
+
 ## Objective
 
 Replace the Python Marty Microservices Framework with a complete Rust platform

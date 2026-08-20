@@ -3,6 +3,7 @@ members = [
     "crates/mmf",
     "crates/mmf-config",
     "crates/mmf-core",
+    "crates/mmf-resilience",
     "crates/mmf-runtime",
 ]
 resolver = "2"
@@ -16,14 +17,17 @@ version = "0.1.0"
 
 [workspace.dependencies]
 axum = "0.8"
+async-trait = "0.1"
 http-body-util = "0.1"
 mmf-config = { path = "crates/mmf-config" }
 mmf-core = { path = "crates/mmf-core" }
+mmf-resilience = { path = "crates/mmf-resilience" }
 mmf-runtime = { path = "crates/mmf-runtime" }
+rand = "0.9"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
 toml = "0.9"
 tower = { version = "0.5", features = ["util"] }
 tracing = "0.1"

@@ -10,6 +10,7 @@ version.workspace = true
 [dependencies]
 mmf-config.workspace = true
 mmf-core.workspace = true
+mmf-resilience.workspace = true
 mmf-runtime.workspace = true
 
 [lints]

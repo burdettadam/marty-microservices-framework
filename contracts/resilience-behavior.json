@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "backoff_cases": [
+    {"strategy": "constant", "base_ms": 100, "max_ms": 1000, "multiplier": 2.0, "attempt": 1, "expected_ms": 100},
+    {"strategy": "constant", "base_ms": 100, "max_ms": 1000, "multiplier": 2.0, "attempt": 4, "expected_ms": 100},
+    {"strategy": "linear", "base_ms": 100, "max_ms": 1000, "multiplier": 2.0, "attempt": 3, "expected_ms": 300},
+    {"strategy": "exponential", "base_ms": 100, "max_ms": 1000, "multiplier": 2.0, "attempt": 4, "expected_ms": 800},
+    {"strategy": "exponential", "base_ms": 100, "max_ms": 1000, "multiplier": 2.0, "attempt": 8, "expected_ms": 1000}
+  ],
+  "circuit_breaker": {
+    "failure_threshold": 3,
+    "success_threshold": 2,
+    "open_after_failures": 3,
+    "half_open_after_timeout": true,
+    "close_after_half_open_successes": 2,
+    "reject_while_open": true
+  },
+  "retry": {
+    "max_attempts": 3,
+    "failures_before_success": 2,
+    "expected_attempts": 3,
+    "non_retryable_expected_attempts": 1
+  },
+  "bulkhead": {
+    "max_concurrent": 1,
+    "reject_on_full": true,
+    "expected_rejections": 1
+  },
+  "fallback_order": ["cache", "function", "static"]
+}
