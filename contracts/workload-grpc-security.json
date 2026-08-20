@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "identity_source": "mutual_tls_certificate_uri_san",
+  "bearer_identity_allowed": false,
+  "unlisted_method_decision": "forbidden",
+  "missing_identity_decision": "unauthenticated",
+  "cases": [
+    {
+      "method": "/marty.test.v1.Verifier/Evaluate",
+      "peer_identities": ["spiffe://marty.internal/service/flow"],
+      "decision": "allow"
+    },
+    {
+      "method": "/marty.test.v1.Verifier/Evaluate",
+      "peer_identities": [],
+      "decision": "unauthenticated"
+    },
+    {
+      "method": "/marty.test.v1.Verifier/Evaluate",
+      "peer_identities": ["spiffe://marty.internal/service/notification"],
+      "decision": "forbidden"
+    },
+    {
+      "method": "/marty.test.v1.Verifier/Other",
+      "peer_identities": ["spiffe://marty.internal/service/flow"],
+      "decision": "forbidden"
+    }
+  ],
+  "server_tls": {
+    "client_certificate_required": true,
+    "required_material": ["ca_certificate", "server_certificate", "server_private_key"],
+    "partial_material_behavior": "fail_closed"
+  },
+  "service_secret_comparison": "constant_time"
+}

@@ -1,7 +1,9 @@
 use std::{fs, path::Path, time::Duration};
 
 use serde::{Deserialize, Serialize};
-use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity};
+use tonic::transport::{
+    Certificate, Channel, ClientTlsConfig, Endpoint, Identity, ServerTlsConfig,
+};
 use url::Url;
 
 use crate::PlatformError;
@@ -111,6 +113,52 @@ pub struct GrpcTlsMaterial {
     pub ca_certificate_pem: Option<Vec<u8>>,
     pub client_certificate_pem: Option<Vec<u8>>,
     pub client_private_key_pem: Option<Vec<u8>>,
+}
+
+#[derive(Clone)]
+pub struct GrpcServerTlsMaterial {
+    pub ca_certificate_pem: Vec<u8>,
+    pub server_certificate_pem: Vec<u8>,
+    pub server_private_key_pem: Vec<u8>,
+}
+
+impl GrpcServerTlsMaterial {
+    pub fn from_pem_files(
+        ca_certificate: &Path,
+        server_certificate: &Path,
+        server_private_key: &Path,
+    ) -> Result<Self, PlatformError> {
+        Self::new(
+            read_required_secret(ca_certificate, "workload CA certificate")?,
+            read_required_secret(server_certificate, "workload server certificate")?,
+            read_required_secret(server_private_key, "workload server private key")?,
+        )
+    }
+
+    pub fn new(
+        ca_certificate_pem: Vec<u8>,
+        server_certificate_pem: Vec<u8>,
+        server_private_key_pem: Vec<u8>,
+    ) -> Result<Self, PlatformError> {
+        validate_certificate(Some(&ca_certificate_pem), "workload CA certificate")?;
+        validate_certificate(Some(&server_certificate_pem), "workload server certificate")?;
+        validate_private_key(Some(&server_private_key_pem))?;
+        Ok(Self {
+            ca_certificate_pem,
+            server_certificate_pem,
+            server_private_key_pem,
+        })
+    }
+
+    #[must_use]
+    pub fn server_tls_config(&self) -> ServerTlsConfig {
+        ServerTlsConfig::new()
+            .identity(Identity::from_pem(
+                self.server_certificate_pem.clone(),
+                self.server_private_key_pem.clone(),
+            ))
+            .client_ca_root(Certificate::from_pem(self.ca_certificate_pem.clone()))
+    }
 }
 
 impl GrpcTlsMaterial {
@@ -305,6 +353,11 @@ fn read_secret(path: Option<&Path>) -> Result<Option<Vec<u8>>, PlatformError> {
     .transpose()
 }
 
+fn read_required_secret(path: &Path, name: &str) -> Result<Vec<u8>, PlatformError> {
+    fs::read(path)
+        .map_err(|_| PlatformError::InvalidConfiguration(format!("{name} could not be read")))
+}
+
 fn bounded_milliseconds(value: u64, name: &str) -> Result<(), PlatformError> {
     if (1..=300_000).contains(&value) {
         Ok(())
@@ -335,4 +388,36 @@ const fn default_http2_keepalive_interval_ms() -> u64 {
 
 const fn default_http2_keepalive_timeout_ms() -> u64 {
     10_000
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GrpcServerTlsMaterial;
+
+    const CERTIFICATE: &[u8] = b"-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----\n";
+    const PRIVATE_KEY: &[u8] = b"-----BEGIN PRIVATE KEY-----\nfixture\n-----END PRIVATE KEY-----\n";
+
+    #[test]
+    fn workload_server_tls_requires_complete_pem_material() {
+        let material = GrpcServerTlsMaterial::new(
+            CERTIFICATE.to_vec(),
+            CERTIFICATE.to_vec(),
+            PRIVATE_KEY.to_vec(),
+        )
+        .expect("complete material");
+        let _configuration = material.server_tls_config();
+
+        assert!(
+            GrpcServerTlsMaterial::new(Vec::new(), CERTIFICATE.to_vec(), PRIVATE_KEY.to_vec())
+                .is_err()
+        );
+        assert!(
+            GrpcServerTlsMaterial::new(CERTIFICATE.to_vec(), Vec::new(), PRIVATE_KEY.to_vec())
+                .is_err()
+        );
+        assert!(
+            GrpcServerTlsMaterial::new(CERTIFICATE.to_vec(), CERTIFICATE.to_vec(), Vec::new())
+                .is_err()
+        );
+    }
 }

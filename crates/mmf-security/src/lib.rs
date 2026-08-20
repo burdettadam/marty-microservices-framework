@@ -26,6 +26,7 @@ pub mod session_events;
 pub mod session_keys;
 pub mod session_manager;
 mod uri;
+mod workload_identity;
 
 use std::sync::Arc;
 
@@ -49,6 +50,7 @@ pub use session_events::*;
 pub use session_keys::*;
 pub use session_manager::*;
 use thiserror::Error;
+pub use workload_identity::*;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
