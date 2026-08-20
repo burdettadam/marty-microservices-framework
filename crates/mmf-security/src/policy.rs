@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -150,6 +151,7 @@ pub enum ConditionOperator {
     Contains,
     StartsWith,
     EndsWith,
+    Regex,
     GreaterThan,
     GreaterThanOrEqual,
     LessThan,
@@ -170,12 +172,13 @@ pub struct AttributeCondition {
 impl AttributeCondition {
     #[must_use]
     pub fn matches(&self, context: &SecurityContext) -> bool {
-        let actual = match self.source {
-            AttributeSource::Subject => context.principal.attributes.get(&self.attribute),
-            AttributeSource::Resource => context.resource_attributes.get(&self.attribute),
-            AttributeSource::Environment => context.environment.get(&self.attribute),
-            AttributeSource::Request => context.request_metadata.get(&self.attribute),
+        let (attributes, prefix) = match self.source {
+            AttributeSource::Subject => (&context.principal.attributes, "principal"),
+            AttributeSource::Resource => (&context.resource_attributes, "resource"),
+            AttributeSource::Environment => (&context.environment, "environment"),
+            AttributeSource::Request => (&context.request_metadata, "request"),
         };
+        let actual = nested_attribute(attributes, &self.attribute, prefix);
         evaluate_condition(actual, self.operator, &self.value)
     }
 }
@@ -233,6 +236,19 @@ impl AbacEngine {
                 return Err(SecurityError::InvalidPolicy(
                     "policy IDs must be non-empty and unique".to_owned(),
                 ));
+            }
+            for condition in &policy.conditions {
+                if condition.operator == ConditionOperator::Regex
+                    && condition
+                        .value
+                        .as_str()
+                        .is_none_or(|pattern| Regex::new(pattern).is_err())
+                {
+                    return Err(SecurityError::InvalidPolicy(format!(
+                        "policy '{}' contains an invalid regular expression",
+                        policy.id
+                    )));
+                }
             }
         }
         policies.sort_by(|left, right| right.priority.cmp(&left.priority));
@@ -325,6 +341,11 @@ fn evaluate_condition(
         ConditionOperator::EndsWith => {
             string_pair(actual, expected).is_some_and(|(value, suffix)| value.ends_with(suffix))
         }
+        ConditionOperator::Regex => string_pair(actual, expected)
+            .and_then(|(value, pattern)| {
+                Regex::new(pattern).ok().map(|regex| regex.is_match(value))
+            })
+            .unwrap_or(false),
         ConditionOperator::GreaterThan => {
             compare_numbers(actual, expected) == Some(Ordering::Greater)
         }
@@ -354,13 +375,35 @@ fn compare_numbers(actual: Option<&Value>, expected: &Value) -> Option<Ordering>
     actual?.as_f64()?.partial_cmp(&expected.as_f64()?)
 }
 
+fn nested_attribute<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    path: &str,
+    source_prefix: &str,
+) -> Option<&'a Value> {
+    if let Some(value) = attributes.get(path) {
+        return Some(value);
+    }
+    let path = path
+        .strip_prefix(source_prefix)
+        .and_then(|rest| rest.strip_prefix('.'))
+        .unwrap_or(path);
+    let mut segments = path.split('.');
+    let mut value = attributes.get(segments.next()?)?;
+    for segment in segments {
+        value = value.as_object()?.get(segment)?;
+    }
+    Some(value)
+}
+
 fn wildcard_matches(pattern: &str, value: &str) -> bool {
-    if pattern == "*" {
-        return true;
+    let mut expression = String::from("^");
+    for character in pattern.chars() {
+        match character {
+            '*' => expression.push_str(".*"),
+            '?' => expression.push('.'),
+            other => expression.push_str(&regex::escape(&other.to_string())),
+        }
     }
-    match (pattern.strip_prefix('*'), pattern.strip_suffix('*')) {
-        (Some(suffix), _) => value.ends_with(suffix),
-        (_, Some(prefix)) => value.starts_with(prefix),
-        _ => pattern == value,
-    }
+    expression.push('$');
+    Regex::new(&expression).is_ok_and(|regex| regex.is_match(value))
 }

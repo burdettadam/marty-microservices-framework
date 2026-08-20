@@ -462,6 +462,7 @@ dependencies = [
  "async-trait",
  "mmf-core",
  "mmf-observability",
+ "regex",
  "serde",
  "serde_json",
  "thiserror",

@@ -6,6 +6,7 @@
 
 #![forbid(unsafe_code)]
 
+mod authorization;
 mod identity;
 mod policy;
 mod providers;
@@ -15,6 +16,7 @@ mod session;
 
 use std::sync::Arc;
 
+pub use authorization::*;
 pub use identity::*;
 use mmf_core::{ErrorCode, MmfError};
 pub use policy::*;
