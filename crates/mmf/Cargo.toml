@@ -10,6 +10,7 @@ version.workspace = true
 [dependencies]
 mmf-config.workspace = true
 mmf-core.workspace = true
+mmf-data.workspace = true
 mmf-messaging.workspace = true
 mmf-observability.workspace = true
 mmf-platform.workspace = true

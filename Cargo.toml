@@ -3,6 +3,7 @@ members = [
     "crates/mmf",
     "crates/mmf-config",
     "crates/mmf-core",
+    "crates/mmf-data",
     "crates/mmf-messaging",
     "crates/mmf-observability",
     "crates/mmf-platform",
@@ -26,6 +27,7 @@ async-trait = "0.1"
 http-body-util = "0.1"
 mmf-config = { path = "crates/mmf-config" }
 mmf-core = { path = "crates/mmf-core" }
+mmf-data = { path = "crates/mmf-data" }
 mmf-messaging = { path = "crates/mmf-messaging" }
 mmf-observability = { path = "crates/mmf-observability" }
 mmf-platform = { path = "crates/mmf-platform" }

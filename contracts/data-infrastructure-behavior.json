@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "cache": {
+    "json_value": {"name": "Marty", "active": true, "count": 3},
+    "hits": 3,
+    "misses": 1,
+    "hit_rate": 0.75,
+    "ttl_ms": 1000
+  },
+  "read_models": [
+    {"id": "a", "name": "Alex", "age": 30, "role": "admin"},
+    {"id": "b", "name": "Blair", "age": 20, "role": "user"},
+    {"id": "c", "name": "Casey", "age": 40, "role": "admin"}
+  ],
+  "query": {
+    "field": "age",
+    "operator": "gt",
+    "value": 20,
+    "sort_by": "name",
+    "sort_order": "descending",
+    "expected_ids": ["c", "a"]
+  },
+  "sql": {
+    "identifier": "public.audit_events",
+    "quoted_identifier": "\"public\".\"audit_events\"",
+    "string": "Marty's",
+    "string_literal": "'Marty''s'",
+    "json": {"enabled": true},
+    "json_literal": "'{\"enabled\":true}'::jsonb"
+  }
+}
