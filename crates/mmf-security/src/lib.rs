@@ -18,9 +18,12 @@ mod policy;
 mod providers;
 mod rate_limit;
 mod security_models;
+pub mod security_pipeline;
 pub mod session;
 pub mod session_configuration;
 pub mod session_events;
+pub mod session_keys;
+pub mod session_manager;
 mod uri;
 
 use std::sync::Arc;
@@ -41,6 +44,8 @@ use serde::{Deserialize, Serialize};
 pub use session::*;
 pub use session_configuration::*;
 pub use session_events::*;
+pub use session_keys::*;
+pub use session_manager::*;
 use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -67,8 +72,7 @@ pub struct SecurityConfig {
     pub kms_required: bool,
     pub mfa_required: bool,
     pub allowed_clock_skew_ms: u64,
-    pub session_lifecycle: SessionLifecycle,
-    pub session_policy: SessionSecurityPolicy,
+    pub session: SessionConfiguration,
 }
 
 impl Default for SecurityConfig {
@@ -85,35 +89,14 @@ impl Default for SecurityConfig {
             kms_required: false,
             mfa_required: false,
             allowed_clock_skew_ms: 30_000,
-            session_lifecycle: SessionLifecycle {
-                default_timeout_ms: 30 * 60 * 1_000,
-                max_timeout_ms: 8 * 60 * 60 * 1_000,
-                idle_timeout_ms: 15 * 60 * 1_000,
-                absolute_timeout_ms: 12 * 60 * 60 * 1_000,
-                extend_on_activity: true,
-                require_ip_consistency: false,
-                require_user_agent_consistency: false,
-            },
-            session_policy: SessionSecurityPolicy {
-                require_secure_transport: true,
-                enforce_same_origin: true,
-                detect_session_hijacking: true,
-                max_sessions_per_user: 5,
-                lock_on_security_violation: true,
-                notification_on_new_session: false,
-                log_all_session_events: true,
-            },
+            session: SessionConfiguration::default(),
         }
     }
 }
 
 impl SecurityConfig {
     pub fn validate(&self) -> Result<(), SecurityError> {
-        self.session_lifecycle.validate()?;
-        if self.session_policy.max_sessions_per_user == 0 {
-            return Err(SecurityError::InvalidSessionConfiguration);
-        }
-        Ok(())
+        self.session.validate()
     }
 }
 
@@ -124,7 +107,7 @@ pub struct SecurityProviders {
     pub authenticator: Option<Arc<dyn Authenticator>>,
     pub identity_provider: Option<Arc<dyn IdentityProvider>>,
     pub policy_provider: Option<Arc<dyn PolicyProvider>>,
-    pub session_store: Option<Arc<dyn SessionStore>>,
+    pub session_store: Option<Arc<dyn ManagedSessionStore>>,
     pub rate_limiter: Option<Arc<dyn DistributedRateLimiter>>,
     pub auditor: Option<Arc<dyn Auditor>>,
     pub threat_detector: Option<Arc<dyn ThreatDetector>>,
@@ -394,40 +377,39 @@ mod tests {
     #[test]
     fn language_neutral_session_contract() {
         let case = fixture().session;
-        let lifecycle = SessionLifecycle {
-            default_timeout_ms: case.default_timeout_ms,
-            max_timeout_ms: case.max_timeout_ms,
+        let timeout = SessionTimeout {
             idle_timeout_ms: case.idle_timeout_ms,
             absolute_timeout_ms: case.absolute_timeout_ms,
             extend_on_activity: true,
-            require_ip_consistency: false,
-            require_user_agent_consistency: false,
         };
         assert_eq!(
-            lifecycle
-                .expiration_at(
-                    case.created_at_ms,
-                    case.last_accessed_ms,
-                    case.now_ms,
-                    Some(case.requested_timeout_ms),
-                )
-                .expect("expiration"),
+            session_expiration_at(
+                timeout,
+                case.created_at_ms,
+                case.last_accessed_ms,
+                case.now_ms,
+                Some(case.requested_timeout_ms),
+                case.default_timeout_ms,
+                case.max_timeout_ms,
+            )
+            .expect("expiration"),
             case.expected_expiration_ms
         );
-        let mut session = SessionData::create_at("user", 0, 10_000);
-        session.ip_address = Some("192.0.2.1".to_owned());
-        session.user_agent = Some("agent-a".to_owned());
-        let policy = SessionSecurityPolicy {
-            require_secure_transport: true,
-            enforce_same_origin: true,
-            detect_session_hijacking: true,
-            max_sessions_per_user: 5,
-            lock_on_security_violation: true,
-            notification_on_new_session: false,
-            log_all_session_events: true,
+        let expected = SessionSecurityContext {
+            ip_address: "192.0.2.1".into(),
+            user_agent: Some("agent-a".into()),
+            secure_connection: true,
+            client_fingerprint: None,
+            location_info: BTreeMap::new(),
+            created_at_ms: 1,
+        };
+        let current = SessionSecurityContext {
+            ip_address: "192.0.2.2".into(),
+            user_agent: Some("agent-b".into()),
+            ..expected.clone()
         };
         assert_eq!(
-            policy.violations(&session, Some("192.0.2.2"), Some("agent-b")),
+            session_security_violations(&expected, &current, true),
             vec![case.ip_violation, case.user_agent_violation]
         );
     }

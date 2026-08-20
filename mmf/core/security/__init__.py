@@ -7,35 +7,11 @@ It follows hexagonal architecture with clear separation of domain, ports, and ad
 Key components:
 - ports/: Interface definitions (IKMSProvider, IAuthKeyStore, etc.)
 - domain/: Security domain models and logic
-- session_keys: ECDH-based session key establishment
+
+Session management, request security coordination, and ECDH session-key
+establishment are implemented by the canonical ``mmf-security`` Rust crate.
 
 Key ID Namespacing:
 - auth:* - Authentication keys (MMF infrastructure)
 - cred:* - Credential keys (application layer)
 """
-
-from .session_keys import (
-    ECDHSessionEstablishment,
-    EllipticCurve,
-    EphemeralKeyPair,
-    ISessionKeyEstablishment,
-    KeyAgreementError,
-    SessionExpiredError,
-    SessionKeyError,
-    SessionKeyMaterial,
-    SessionKeyPrefix,
-)
-
-__all__ = [
-    # Session key establishment
-    "ISessionKeyEstablishment",
-    "ECDHSessionEstablishment",
-    "EllipticCurve",
-    "EphemeralKeyPair",
-    "SessionKeyMaterial",
-    "SessionKeyPrefix",
-    # Exceptions
-    "SessionKeyError",
-    "KeyAgreementError",
-    "SessionExpiredError",
-]

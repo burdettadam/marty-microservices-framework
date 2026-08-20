@@ -74,6 +74,57 @@ impl SessionSecurityContext {
     }
 }
 
+#[must_use]
+pub fn session_security_violations(
+    expected: &SessionSecurityContext,
+    current: &SessionSecurityContext,
+    detect_hijacking: bool,
+) -> Vec<String> {
+    if !detect_hijacking {
+        return Vec::new();
+    }
+    let mut violations = Vec::new();
+    if expected.ip_address != current.ip_address {
+        violations.push("IP address mismatch detected".into());
+    }
+    if expected.user_agent.is_some()
+        && current.user_agent.is_some()
+        && expected.user_agent != current.user_agent
+    {
+        violations.push("User agent mismatch detected".into());
+    }
+    violations
+}
+
+pub fn session_expiration_at(
+    timeout: SessionTimeout,
+    created_at_ms: u64,
+    last_accessed_ms: u64,
+    now_ms: u64,
+    requested_timeout_ms: Option<u64>,
+    default_timeout_ms: u64,
+    max_timeout_ms: u64,
+) -> Result<u64, SecurityError> {
+    timeout.validate()?;
+    if default_timeout_ms == 0 || max_timeout_ms == 0 || default_timeout_ms > max_timeout_ms {
+        return Err(SecurityError::InvalidConfiguration(
+            "default and maximum session timeouts are invalid".into(),
+        ));
+    }
+    let requested = requested_timeout_ms
+        .unwrap_or(default_timeout_ms)
+        .min(max_timeout_ms);
+    if requested == 0 {
+        return Err(SecurityError::InvalidConfiguration(
+            "session timeout must be positive".into(),
+        ));
+    }
+    Ok(last_accessed_ms
+        .saturating_add(timeout.idle_timeout_ms)
+        .min(created_at_ms.saturating_add(timeout.absolute_timeout_ms))
+        .min(now_ms.saturating_add(requested)))
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct SessionActivity {
     pub action: String,

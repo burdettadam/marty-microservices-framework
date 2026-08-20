@@ -13,11 +13,6 @@ from mmf.core.security.domain.models.rate_limit import (
     RateLimitStrategy,
     RateLimitWindow,
 )
-from mmf.core.security.domain.models.session import (
-    SessionData,
-    SessionLifecycle,
-    SessionSecurityPolicy,
-)
 from mmf.core.security.domain.models.user import AuthenticatedUser
 from mmf.core.security.domain.services.rate_limiting import RateLimitEngine
 from mmf.framework.authorization.domain.models import Permission
@@ -85,30 +80,6 @@ def test_fixed_window_contract() -> None:
         results.append(engine.check_limit(rule, quota, window))
     assert [result.allowed for result in results] == case["allowed"]
     assert [result.remaining for result in results] == case["remaining"]
-
-
-def test_session_contract() -> None:
-    case = CONTRACT["session"]
-    lifecycle = SessionLifecycle(
-        default_timeout_minutes=case["default_timeout_ms"] // 60_000,
-        max_timeout_minutes=case["max_timeout_ms"] // 60_000,
-        idle_timeout_minutes=case["idle_timeout_ms"] // 60_000,
-        absolute_timeout_minutes=case["absolute_timeout_ms"] // 60_000,
-    )
-    epoch = datetime(1970, 1, 1)
-    expiration = lifecycle.calculate_expiration(
-        epoch + timedelta(milliseconds=case["created_at_ms"]),
-        epoch + timedelta(milliseconds=case["last_accessed_ms"]),
-        requested_timeout=case["requested_timeout_ms"] // 60_000,
-    )
-    assert expiration == epoch + timedelta(milliseconds=case["expected_expiration_ms"])
-
-    session = SessionData.create("user", ip_address="192.0.2.1", user_agent="agent-a")
-    policy = SessionSecurityPolicy(detect_session_hijacking=True)
-    assert policy.validate_session_request(session, "192.0.2.2", "agent-b") == [
-        case["ip_violation"],
-        case["user_agent_violation"],
-    ]
 
 
 def test_authorization_wildcard_contract() -> None:

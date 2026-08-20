@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     AuthenticationResult, AuthorizationDecision, RateLimitQuota, RateLimitResult, RateLimitRule,
-    SecurityContext, SecurityError, SessionData,
+    SecurityContext, SecurityError,
 };
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -130,15 +130,6 @@ pub trait PolicyProvider: Send + Sync {
         &self,
         context: &SecurityContext,
     ) -> Result<AuthorizationDecision, SecurityError>;
-}
-
-#[async_trait]
-pub trait SessionStore: Send + Sync {
-    async fn create(&self, session: SessionData) -> Result<(), SecurityError>;
-    async fn get(&self, session_id: &str) -> Result<Option<SessionData>, SecurityError>;
-    async fn replace(&self, session: SessionData) -> Result<(), SecurityError>;
-    async fn delete(&self, session_id: &str) -> Result<(), SecurityError>;
-    async fn list_for_user(&self, user_id: &str) -> Result<Vec<SessionData>, SecurityError>;
 }
 
 #[async_trait]

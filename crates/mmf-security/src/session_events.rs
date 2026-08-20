@@ -435,6 +435,10 @@ pub trait ManagedSessionStore: Send + Sync {
         before_ms: u64,
         limit: usize,
     ) -> Result<Vec<ManagedSession>, SecurityError>;
+
+    async fn health_check(&self) -> Result<(), SecurityError> {
+        Ok(())
+    }
 }
 
 #[async_trait]

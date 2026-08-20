@@ -130,50 +130,6 @@ class ICacheManager(Protocol):
 
 
 @runtime_checkable
-class ISessionManager(Protocol):
-    """Interface for session management."""
-
-    def create_session(
-        self, principal: SecurityPrincipal, metadata: dict[str, Any] | None = None
-    ) -> str:
-        """
-        Create a new session for a principal.
-
-        Args:
-            principal: Security principal
-            metadata: Optional session metadata
-
-        Returns:
-            Session ID
-        """
-        ...
-
-    def get_session(self, session_id: str) -> SecurityPrincipal | None:
-        """
-        Retrieve a session by ID.
-
-        Args:
-            session_id: Session identifier
-
-        Returns:
-            SecurityPrincipal or None if not found
-        """
-        ...
-
-    def invalidate_session(self, session_id: str) -> bool:
-        """
-        Invalidate a session.
-
-        Args:
-            session_id: Session identifier
-
-        Returns:
-            True if successfully invalidated
-        """
-        ...
-
-
-@runtime_checkable
 class IComplianceScanner(Protocol):
     """Interface for compliance scanners."""
 

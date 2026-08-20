@@ -42,6 +42,8 @@ pub enum SessionSerializationFormat {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SessionTimeoutPolicy {
+    pub default_timeout_ms: u64,
+    pub max_timeout_ms: u64,
     pub idle_timeout_ms: u64,
     pub absolute_timeout_ms: u64,
     pub extend_on_activity: bool,
@@ -54,6 +56,8 @@ pub struct SessionTimeoutPolicy {
 impl Default for SessionTimeoutPolicy {
     fn default() -> Self {
         Self {
+            default_timeout_ms: 1_800_000,
+            max_timeout_ms: 28_800_000,
             idle_timeout_ms: 1_800_000,
             absolute_timeout_ms: 28_800_000,
             extend_on_activity: true,
@@ -67,6 +71,15 @@ impl Default for SessionTimeoutPolicy {
 
 impl SessionTimeoutPolicy {
     pub fn validate(&self) -> Result<(), SecurityError> {
+        if self.default_timeout_ms == 0
+            || self.max_timeout_ms == 0
+            || self.default_timeout_ms > self.max_timeout_ms
+        {
+            return Err(SecurityError::InvalidConfiguration(
+                "default session timeout must be positive and no greater than maximum timeout"
+                    .into(),
+            ));
+        }
         if self.idle_timeout_ms == 0
             || self.absolute_timeout_ms == 0
             || self.idle_timeout_ms >= self.absolute_timeout_ms
@@ -325,6 +338,31 @@ pub struct SessionConfiguration {
     pub custom_session_attributes: BTreeMap<String, Value>,
     #[serde(default)]
     pub extensions: BTreeMap<String, Value>,
+}
+
+impl Default for SessionConfiguration {
+    fn default() -> Self {
+        Self {
+            timeout_policy: SessionTimeoutPolicy::default(),
+            protection_policy: SessionProtectionPolicy::default(),
+            storage: SessionStorageConfiguration::default(),
+            cleanup: SessionCleanupConfiguration::default(),
+            enable_session_management: true,
+            enable_session_analytics: false,
+            enable_session_debugging: false,
+            integrate_with_authentication: true,
+            sync_with_user_roles: true,
+            propagate_session_events: false,
+            enable_session_monitoring: true,
+            alert_on_suspicious_activity: true,
+            session_metrics_enabled: true,
+            development_mode: false,
+            allow_insecure_cookies: false,
+            disable_csrf_protection: false,
+            custom_session_attributes: BTreeMap::new(),
+            extensions: BTreeMap::new(),
+        }
+    }
 }
 
 impl SessionConfiguration {

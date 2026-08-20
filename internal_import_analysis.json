@@ -1,9 +1,9 @@
 {
   "summary": {
-    "total_modules": 390,
-    "total_internal_imports": 964,
+    "total_modules": 374,
+    "total_internal_imports": 912,
     "circular_dependencies_count": 0,
-    "highly_coupled_modules_count": 23
+    "highly_coupled_modules_count": 20
   },
   "circular_dependencies": [],
   "highly_coupled_modules": [
@@ -17,12 +17,6 @@
       "module": "mmf\\services\\audit\\tests\\conftest.py",
       "coupling_score": 11,
       "imports": 11,
-      "imported_by": 0
-    },
-    {
-      "module": "mmf\\core\\security\\domain\\services\\middleware_coordinator.py",
-      "coupling_score": 9,
-      "imports": 9,
       "imported_by": 0
     },
     {
@@ -66,6 +60,12 @@
       "coupling_score": 7,
       "imports": 7,
       "imported_by": 0
+    },
+    {
+      "module": "mmf\\framework\\patterns\\event_streaming\\__init__.py",
+      "coupling_score": 7,
+      "imports": 7,
+      "imported_by": 0
     }
   ],
   "module_statistics": {
@@ -101,30 +101,13 @@
       ],
       "imported_by": []
     },
-    "mmf\\adapters\\session\\redis_adapter.py": {
-      "imports_count": 2,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.ports.session",
-        "mmf.core.security.domain.models.session"
-      ],
-      "imported_by": []
-    },
-    "mmf\\adapters\\session\\__init__.py": {
-      "imports_count": 1,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf\\adapters\\session\\__init__.redis_adapter"
-      ],
-      "imported_by": []
-    },
     "mmf\\application\\services\\mesh_manager.py": {
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.service_mesh",
         "mmf.core.security.domain.models.service_mesh",
-        "mmf.framework.mesh.ports.lifecycle"
+        "mmf.framework.mesh.ports.lifecycle",
+        "mmf.core.security.ports.service_mesh"
       ],
       "imported_by": []
     },
@@ -148,11 +131,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\core\\__init__.application.handlers",
+        "mmf\\core\\__init__.cache",
         "mmf\\core\\__init__.application.base",
         "mmf\\core\\__init__.domain.entity",
-        "mmf\\core\\__init__.cache",
-        "mmf\\core\\__init__.domain.ports.repository"
+        "mmf\\core\\__init__.domain.ports.repository",
+        "mmf\\core\\__init__.application.handlers"
       ],
       "imported_by": []
     },
@@ -192,10 +175,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\core\\domain\\__init__.audit_types",
-        "mmf\\core\\domain\\__init__.ports.repository",
         "mmf\\core\\domain\\__init__.audit_models",
-        "mmf\\core\\domain\\__init__.entity"
+        "mmf\\core\\domain\\__init__.audit_types",
+        "mmf\\core\\domain\\__init__.entity",
+        "mmf\\core\\domain\\__init__.ports.repository"
       ],
       "imported_by": []
     },
@@ -211,16 +194,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\core\\platform\\__init__.base_services",
-        "mmf\\core\\platform\\__init__.contracts"
-      ],
-      "imported_by": []
-    },
-    "mmf\\core\\security\\__init__.py": {
-      "imports_count": 1,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf\\core\\security\\__init__.session_keys"
+        "mmf\\core\\platform\\__init__.contracts",
+        "mmf\\core\\platform\\__init__.base_services"
       ],
       "imported_by": []
     },
@@ -272,59 +247,12 @@
       ],
       "imported_by": []
     },
-    "mmf\\core\\security\\domain\\services\\middleware_coordinator.py": {
-      "imports_count": 9,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.domain.services.middleware.authentication",
-        "mmf.core.security.ports.middleware",
-        "mmf.core.security.ports.session",
-        "mmf.core.security.domain.config",
-        "mmf.core.security.domain.services.middleware.rate_limit",
-        "mmf.core.security.domain.services.middleware.session",
-        "mmf.core.security.ports.rate_limiting",
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.models.session"
-      ],
-      "imported_by": []
-    },
     "mmf\\core\\security\\domain\\services\\threat_detection.py": {
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
         "mmf.core.security.domain.models.threat",
         "mmf.core.security.ports.threat_detection"
-      ],
-      "imported_by": []
-    },
-    "mmf\\core\\security\\domain\\services\\middleware\\authentication.py": {
-      "imports_count": 2,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.domain.config",
-        "mmf.core.security.domain.services.middleware.base"
-      ],
-      "imported_by": []
-    },
-    "mmf\\core\\security\\domain\\services\\middleware\\rate_limit.py": {
-      "imports_count": 4,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.ports.rate_limiting",
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.config",
-        "mmf.core.security.domain.services.middleware.base"
-      ],
-      "imported_by": []
-    },
-    "mmf\\core\\security\\domain\\services\\middleware\\session.py": {
-      "imports_count": 4,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.ports.session",
-        "mmf.core.security.domain.config",
-        "mmf.core.security.domain.models.session",
-        "mmf.core.security.domain.services.middleware.base"
       ],
       "imported_by": []
     },
@@ -435,8 +363,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.discovery.domain.models",
-        "mmf.discovery.ports.load_balancer",
-        "mmf.discovery.ports.registry"
+        "mmf.discovery.ports.registry",
+        "mmf.discovery.ports.load_balancer"
       ],
       "imported_by": []
     },
@@ -470,10 +398,10 @@
       "imported_by_count": 0,
       "imports": [
         "mmf\\examples\\messaging_extended_examples.extended_architecture",
+        "mmf\\examples\\messaging_extended_examples.aws_sns_backend",
         "mmf\\examples\\messaging_extended_examples.saga_integration",
         "mmf\\examples\\messaging_extended_examples.nats_backend",
-        "mmf\\examples\\messaging_extended_examples.unified_event_bus",
-        "mmf\\examples\\messaging_extended_examples.aws_sns_backend"
+        "mmf\\examples\\messaging_extended_examples.unified_event_bus"
       ],
       "imported_by": []
     },
@@ -489,11 +417,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.examples.service_templates.fastapi_example.domain.models",
-        "mmf.framework.integration.domain.models",
         "mmf.framework.integration.adapters.rest_adapter",
+        "mmf.examples.service_templates.fastapi_example.domain.models",
         "mmf.examples.service_templates.fastapi_example.application.service",
-        "mmf.examples.service_templates.fastapi_example.infrastructure.adapters"
+        "mmf.examples.service_templates.fastapi_example.infrastructure.adapters",
+        "mmf.framework.integration.domain.models"
       ],
       "imported_by": []
     },
@@ -519,9 +447,9 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.integration.domain.models",
+        "mmf.framework.integration.adapters.rest_adapter",
         "mmf.examples.service_templates.fastapi_example.domain.ports",
-        "mmf.examples.service_templates.fastapi_example.domain.models",
-        "mmf.framework.integration.adapters.rest_adapter"
+        "mmf.examples.service_templates.fastapi_example.domain.models"
       ],
       "imported_by": []
     },
@@ -529,13 +457,13 @@
       "imports_count": 7,
       "imported_by_count": 0,
       "imports": [
-        "mmf.examples.service_templates.grpc_example.application.service",
-        "mmf.framework.integration.domain.models",
         "mmf.framework.grpc",
         "mmf.examples.service_templates.grpc_example.domain.models",
         "mmf.framework.integration.adapters.rest_adapter",
-        "mmf.examples.service_templates.grpc_example.infrastructure.adapters",
-        "mmf.examples.service_templates.grpc_example.proto"
+        "mmf.examples.service_templates.grpc_example.application.service",
+        "mmf.examples.service_templates.grpc_example.proto",
+        "mmf.framework.integration.domain.models",
+        "mmf.examples.service_templates.grpc_example.infrastructure.adapters"
       ],
       "imported_by": []
     },
@@ -561,8 +489,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.integration.domain.models",
-        "mmf.examples.service_templates.grpc_example.domain.models",
         "mmf.framework.integration.adapters.rest_adapter",
+        "mmf.examples.service_templates.grpc_example.domain.models",
         "mmf.examples.service_templates.grpc_example.domain.ports"
       ],
       "imported_by": []
@@ -571,13 +499,13 @@
       "imports_count": 7,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.integration.domain.models",
-        "mmf.examples.service_templates.hybrid_example.infrastructure.adapters",
         "mmf.framework.grpc",
-        "mmf.framework.integration.adapters.rest_adapter",
         "mmf.examples.service_templates.hybrid_example.application.service",
+        "mmf.framework.integration.adapters.rest_adapter",
         "mmf.examples.service_templates.hybrid_example.proto",
-        "mmf.examples.service_templates.hybrid_example.domain.models"
+        "mmf.examples.service_templates.hybrid_example.infrastructure.adapters",
+        "mmf.examples.service_templates.hybrid_example.domain.models",
+        "mmf.framework.integration.domain.models"
       ],
       "imported_by": []
     },
@@ -585,8 +513,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.examples.service_templates.hybrid_example.domain.ports",
-        "mmf.examples.service_templates.hybrid_example.domain.models"
+        "mmf.examples.service_templates.hybrid_example.domain.models",
+        "mmf.examples.service_templates.hybrid_example.domain.ports"
       ],
       "imported_by": []
     },
@@ -603,9 +531,9 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.integration.domain.models",
-        "mmf.examples.service_templates.hybrid_example.domain.ports",
         "mmf.examples.service_templates.hybrid_example.domain.models",
-        "mmf.framework.integration.adapters.rest_adapter"
+        "mmf.framework.integration.adapters.rest_adapter",
+        "mmf.examples.service_templates.hybrid_example.domain.ports"
       ],
       "imported_by": []
     },
@@ -613,10 +541,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.user",
+        "mmf.core.security.domain.models.context",
         "mmf.core.security.ports.authorization",
-        "mmf.core.security.domain.models.result",
-        "mmf.core.security.domain.models.context"
+        "mmf.core.security.domain.models.user",
+        "mmf.core.security.domain.models.result"
       ],
       "imported_by": []
     },
@@ -624,9 +552,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\authorization\\bootstrap.api",
+        "mmf\\framework\\authorization\\bootstrap.adapters.rbac_engine",
         "mmf\\framework\\authorization\\bootstrap.adapters.abac_engine",
-        "mmf\\framework\\authorization\\bootstrap.adapters.rbac_engine"
+        "mmf\\framework\\authorization\\bootstrap.api"
       ],
       "imported_by": []
     },
@@ -642,10 +570,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.authorization.adapters.abac_engine",
-        "mmf.framework.authorization.adapters.rbac_engine",
         "mmf.framework.authorization.adapters.enforcement",
-        "mmf.framework.authorization.domain.models"
+        "mmf.framework.authorization.domain.models",
+        "mmf.framework.authorization.adapters.rbac_engine",
+        "mmf.framework.authorization.adapters.abac_engine"
       ],
       "imported_by": []
     },
@@ -653,10 +581,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.authorization.api",
+        "mmf.core.security.domain.exceptions",
         "mmf.framework.infrastructure.dependency_injection",
         "mmf.framework.authorization.ports.abac",
-        "mmf.core.security.domain.exceptions"
+        "mmf.framework.authorization.api"
       ],
       "imported_by": []
     },
@@ -664,12 +592,12 @@
       "imports_count": 6,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.authorization",
-        "mmf.framework.infrastructure.dependency_injection",
-        "mmf.core.security.ports.authentication",
-        "mmf.core.security.domain.models.user",
         "mmf.core.security.domain.models.context",
-        "mmf.core.security.domain.exceptions"
+        "mmf.core.security.domain.exceptions",
+        "mmf.framework.infrastructure.dependency_injection",
+        "mmf.core.security.ports.authorization",
+        "mmf.core.security.domain.models.user",
+        "mmf.core.security.ports.authentication"
       ],
       "imported_by": []
     },
@@ -677,9 +605,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.infrastructure.dependency_injection",
         "mmf.framework.authorization.domain.models",
-        "mmf.core.security.domain.exceptions"
+        "mmf.core.security.domain.exceptions",
+        "mmf.framework.infrastructure.dependency_injection"
       ],
       "imported_by": []
     },
@@ -687,9 +615,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.authorization.adapters.abac_engine",
+        "mmf.framework.authorization.adapters.enforcement",
         "mmf.framework.authorization.adapters.rbac_engine",
-        "mmf.framework.authorization.adapters.enforcement"
+        "mmf.framework.authorization.adapters.abac_engine"
       ],
       "imported_by": []
     },
@@ -737,9 +665,9 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\authorization\\engines\\__init__.oso",
-        "mmf\\framework\\authorization\\engines\\__init__.opa",
         "mmf\\framework\\authorization\\engines\\__init__.builtin",
+        "mmf\\framework\\authorization\\engines\\__init__.opa",
+        "mmf\\framework\\authorization\\engines\\__init__.oso",
         "mmf\\framework\\authorization\\engines\\__init__.acl",
         "mmf\\framework\\authorization\\engines\\__init__.base"
       ],
@@ -794,8 +722,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.deployment.domain.models",
-        "mmf.framework.deployment.domain.enums",
-        "mmf.framework.deployment.ports.infrastructure_port"
+        "mmf.framework.deployment.ports.infrastructure_port",
+        "mmf.framework.deployment.domain.enums"
       ],
       "imported_by": []
     },
@@ -821,8 +749,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\deployment\\domain\\__init__.models",
-        "mmf\\framework\\deployment\\domain\\__init__.enums"
+        "mmf\\framework\\deployment\\domain\\__init__.enums",
+        "mmf\\framework\\deployment\\domain\\__init__.models"
       ],
       "imported_by": []
     },
@@ -854,8 +782,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\deployment\\ports\\__init__.pipeline_port",
         "mmf\\framework\\deployment\\ports\\__init__.infrastructure_port",
+        "mmf\\framework\\deployment\\ports\\__init__.pipeline_port",
         "mmf\\framework\\deployment\\ports\\__init__.deployment_port"
       ],
       "imported_by": []
@@ -864,10 +792,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\events\\decorators.enhanced_event_bus",
+        "mmf\\framework\\events\\decorators.types",
         "mmf.framework.infrastructure.dependency_injection",
-        "mmf\\framework\\events\\decorators.event_bus_service",
-        "mmf\\framework\\events\\decorators.types"
+        "mmf\\framework\\events\\decorators.enhanced_event_bus",
+        "mmf\\framework\\events\\decorators.event_bus_service"
       ],
       "imported_by": []
     },
@@ -893,8 +821,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.core.platform.base_services",
-        "mmf\\framework\\events\\event_bus_service.enhanced_event_bus",
-        "mmf.framework.infrastructure.dependency_injection"
+        "mmf.framework.infrastructure.dependency_injection",
+        "mmf\\framework\\events\\event_bus_service.enhanced_event_bus"
       ],
       "imported_by": []
     },
@@ -902,11 +830,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\events\\__init__.types",
-        "mmf\\framework\\events\\__init__.enhanced_event_bus",
         "mmf\\framework\\events\\__init__.enhanced_events",
-        "mmf\\framework\\events\\__init__.exceptions",
-        "mmf\\framework\\events\\__init__.decorators"
+        "mmf\\framework\\events\\__init__.decorators",
+        "mmf\\framework\\events\\__init__.enhanced_event_bus",
+        "mmf\\framework\\events\\__init__.types",
+        "mmf\\framework\\events\\__init__.exceptions"
       ],
       "imported_by": []
     },
@@ -972,9 +900,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
+        "mmf.framework.infrastructure.unified_config",
         "mmf.framework.infrastructure.config_manager",
-        "mmf.framework.observability.standard",
-        "mmf.framework.infrastructure.unified_config"
+        "mmf.framework.observability.standard"
       ],
       "imported_by": []
     },
@@ -1009,8 +937,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.platform.contracts",
-        "mmf\\framework\\infrastructure\\dependency_injection.cache"
+        "mmf\\framework\\infrastructure\\dependency_injection.cache",
+        "mmf.core.platform.contracts"
       ],
       "imported_by": []
     },
@@ -1044,13 +972,13 @@
       "imports_count": 7,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.security.adapters.secrets.kubernetes_adapter",
         "mmf\\framework\\infrastructure\\unified_config.cache",
-        "mmf.framework.security.adapters.secrets.memory_adapter",
-        "mmf.framework.security.adapters.secrets.file_adapter",
+        "mmf\\framework\\infrastructure\\unified_config.config_manager",
         "mmf.framework.security.adapters.secrets.environment_adapter",
+        "mmf.framework.security.adapters.secrets.file_adapter",
+        "mmf.framework.security.adapters.secrets.kubernetes_adapter",
         "mmf.framework.security.adapters.secrets.vault_adapter",
-        "mmf\\framework\\infrastructure\\unified_config.config_manager"
+        "mmf.framework.security.adapters.secrets.memory_adapter"
       ],
       "imported_by": []
     },
@@ -1058,10 +986,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\infrastructure\\__init__.config",
+        "mmf\\framework\\infrastructure\\__init__.config_manager",
         "mmf\\framework\\infrastructure\\__init__.dependency_injection",
         "mmf\\framework\\infrastructure\\__init__.cache",
-        "mmf\\framework\\infrastructure\\__init__.config_manager"
+        "mmf\\framework\\infrastructure\\__init__.config"
       ],
       "imported_by": []
     },
@@ -1069,10 +997,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\infrastructure\\cache\\manager.memory_cache",
-        "mmf\\framework\\infrastructure\\cache\\manager.types",
         "mmf.core.domain.ports.cache",
-        "mmf\\framework\\infrastructure\\cache\\manager.redis_cache"
+        "mmf\\framework\\infrastructure\\cache\\manager.memory_cache",
+        "mmf\\framework\\infrastructure\\cache\\manager.redis_cache",
+        "mmf\\framework\\infrastructure\\cache\\manager.types"
       ],
       "imported_by": []
     },
@@ -1096,10 +1024,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\infrastructure\\cache\\__init__.memory_cache",
+        "mmf\\framework\\infrastructure\\cache\\__init__.redis_cache",
         "mmf\\framework\\infrastructure\\cache\\__init__.types",
-        "mmf\\framework\\infrastructure\\cache\\__init__.manager",
-        "mmf\\framework\\infrastructure\\cache\\__init__.redis_cache"
+        "mmf\\framework\\infrastructure\\cache\\__init__.memory_cache",
+        "mmf\\framework\\infrastructure\\cache\\__init__.manager"
       ],
       "imported_by": []
     },
@@ -1107,9 +1035,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.service_mesh",
         "mmf.core.security.domain.models.service_mesh",
-        "mmf.framework.mesh.ports.lifecycle"
+        "mmf.framework.mesh.ports.lifecycle",
+        "mmf.core.security.ports.service_mesh"
       ],
       "imported_by": []
     },
@@ -1125,8 +1053,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\infrastructure\\migration\\__init__.adapters",
-        "mmf\\framework\\infrastructure\\migration\\__init__.ports"
+        "mmf\\framework\\infrastructure\\migration\\__init__.ports",
+        "mmf\\framework\\infrastructure\\migration\\__init__.adapters"
       ],
       "imported_by": []
     },
@@ -1151,8 +1079,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.integration.domain.models",
-        "mmf.framework.integration.ports.connector",
-        "mmf.framework.integration.domain.exceptions"
+        "mmf.framework.integration.domain.exceptions",
+        "mmf.framework.integration.ports.connector"
       ],
       "imported_by": []
     },
@@ -1161,8 +1089,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.integration.domain.models",
-        "mmf.framework.integration.ports.connector",
-        "mmf.framework.integration.domain.exceptions"
+        "mmf.framework.integration.domain.exceptions",
+        "mmf.framework.integration.ports.connector"
       ],
       "imported_by": []
     },
@@ -1171,8 +1099,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.integration.domain.models",
-        "mmf.framework.integration.ports.connector",
-        "mmf.framework.integration.domain.exceptions"
+        "mmf.framework.integration.domain.exceptions",
+        "mmf.framework.integration.ports.connector"
       ],
       "imported_by": []
     },
@@ -1181,8 +1109,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.integration.domain.models",
-        "mmf.framework.integration.ports.connector",
-        "mmf.framework.integration.domain.exceptions"
+        "mmf.framework.integration.domain.exceptions",
+        "mmf.framework.integration.ports.connector"
       ],
       "imported_by": []
     },
@@ -1190,10 +1118,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
+        "mmf\\framework\\integration\\adapters\\__init__.grpc_adapter",
         "mmf\\framework\\integration\\adapters\\__init__.database_adapter",
-        "mmf\\framework\\integration\\adapters\\__init__.filesystem_adapter",
         "mmf\\framework\\integration\\adapters\\__init__.rest_adapter",
-        "mmf\\framework\\integration\\adapters\\__init__.grpc_adapter"
+        "mmf\\framework\\integration\\adapters\\__init__.filesystem_adapter"
       ],
       "imported_by": []
     },
@@ -1201,14 +1129,14 @@
       "imports_count": 8,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.integration.ports.management",
-        "mmf.framework.integration.domain.models",
-        "mmf.framework.integration.domain.services",
         "mmf.framework.integration.adapters.database_adapter",
+        "mmf.framework.integration.domain.services",
+        "mmf.framework.integration.ports.management",
         "mmf.framework.integration.adapters.rest_adapter",
-        "mmf.framework.integration.ports.connector",
         "mmf.framework.integration.domain.exceptions",
-        "mmf.framework.integration.adapters.filesystem_adapter"
+        "mmf.framework.integration.adapters.filesystem_adapter",
+        "mmf.framework.integration.ports.connector",
+        "mmf.framework.integration.domain.models"
       ],
       "imported_by": []
     },
@@ -1226,8 +1154,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\integration\\application\\services\\__init__.transformation_service",
-        "mmf\\framework\\integration\\application\\services\\__init__.manager_service"
+        "mmf\\framework\\integration\\application\\services\\__init__.manager_service",
+        "mmf\\framework\\integration\\application\\services\\__init__.transformation_service"
       ],
       "imported_by": []
     },
@@ -1276,10 +1204,10 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.mesh.ports.lifecycle",
-        "mmf.discovery.domain.load_balancing",
         "mmf.framework.mesh.ports.traffic_manager",
         "mmf.discovery.domain.models",
+        "mmf.discovery.domain.load_balancing",
+        "mmf.framework.mesh.ports.lifecycle",
         "mmf.framework.mesh.domain.models"
       ],
       "imported_by": []
@@ -1297,19 +1225,19 @@
       "imports_count": 13,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.messaging.application.dlq",
-        "mmf.framework.messaging.infrastructure.adapters.memory",
-        "mmf.framework.messaging.application.manager",
-        "mmf.framework.messaging.infrastructure.adapters.serializer",
-        "mmf.framework.messaging.application.consumer",
-        "mmf.framework.messaging.application.broker",
-        "mmf.core.messaging",
-        "mmf.framework.messaging.application.compatibility",
         "mmf.framework.messaging.infrastructure.factories",
-        "mmf.core.registry",
         "mmf.framework.messaging.application.middleware",
+        "mmf.core.messaging",
+        "mmf.framework.messaging.application.dlq",
+        "mmf.core.registry",
+        "mmf.framework.messaging.application.consumer",
+        "mmf.framework.messaging.application.manager",
         "mmf.framework.messaging.application.router",
-        "mmf.framework.messaging.application.producer"
+        "mmf.framework.messaging.infrastructure.adapters.serializer",
+        "mmf.framework.messaging.application.compatibility",
+        "mmf.framework.messaging.application.broker",
+        "mmf.framework.messaging.application.producer",
+        "mmf.framework.messaging.infrastructure.adapters.memory"
       ],
       "imported_by": []
     },
@@ -1334,9 +1262,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
+        "mmf.framework.messaging.application.manager",
         "mmf.core.messaging",
-        "mmf.framework.messaging.application.dlq",
-        "mmf.framework.messaging.application.manager"
+        "mmf.framework.messaging.application.dlq"
       ],
       "imported_by": []
     },
@@ -1361,11 +1289,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.messaging.application.dlq",
-        "mmf.framework.messaging.application.broker",
-        "mmf.core.messaging",
         "mmf.framework.messaging.application.middleware",
-        "mmf.framework.messaging.application.router"
+        "mmf.core.messaging",
+        "mmf.framework.messaging.application.dlq",
+        "mmf.framework.messaging.application.router",
+        "mmf.framework.messaging.application.broker"
       ],
       "imported_by": []
     },
@@ -1398,8 +1326,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.patterns.event_streaming.saga",
-        "mmf.framework.messaging.domain.extended"
+        "mmf.framework.messaging.domain.extended",
+        "mmf.framework.patterns.event_streaming.saga"
       ],
       "imported_by": []
     },
@@ -1426,8 +1354,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.core.messaging",
-        "mmf.framework.messaging.application.consumer",
-        "mmf.framework.messaging.application.producer"
+        "mmf.framework.messaging.application.producer",
+        "mmf.framework.messaging.application.consumer"
       ],
       "imported_by": []
     },
@@ -1493,8 +1421,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf\\framework\\observability\\standard.factories",
-        "mmf.core.services",
-        "mmf.framework.infrastructure.dependency_injection"
+        "mmf.framework.infrastructure.dependency_injection",
+        "mmf.core.services"
       ],
       "imported_by": []
     },
@@ -1518,9 +1446,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.infrastructure.config_manager",
         "mmf.framework.observability.adapters.monitoring",
-        "mmf.framework.observability.domain.protocols"
+        "mmf.framework.observability.domain.protocols",
+        "mmf.framework.infrastructure.config_manager"
       ],
       "imported_by": []
     },
@@ -1528,12 +1456,12 @@
       "imports_count": 7,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\observability\\__init__.cache_metrics",
         "mmf.framework.observability.adapters.monitoring",
-        "mmf\\framework\\observability\\__init__.correlation",
-        "mmf.framework.observability.adapters.tracing",
+        "mmf\\framework\\observability\\__init__.cache_metrics",
         "mmf\\framework\\observability\\__init__.correlation_middleware",
+        "mmf\\framework\\observability\\__init__.correlation",
         "mmf.framework.observability.unified",
+        "mmf.framework.observability.adapters.tracing",
         "mmf.framework.observability.domain.protocols"
       ],
       "imported_by": []
@@ -1550,9 +1478,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.services",
+        "mmf.framework.observability.factories",
         "mmf.framework.infrastructure.dependency_injection",
-        "mmf.framework.observability.factories"
+        "mmf.core.services"
       ],
       "imported_by": []
     },
@@ -1609,8 +1537,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\observability\\monitoring\\middleware.core",
-        "mmf.framework.grpc"
+        "mmf.framework.grpc",
+        "mmf\\framework\\observability\\monitoring\\middleware.core"
       ],
       "imported_by": []
     },
@@ -1618,9 +1546,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\observability\\monitoring\\__init__.middleware",
         "mmf\\framework\\observability\\monitoring\\__init__.custom_metrics",
-        "mmf\\framework\\observability\\monitoring\\__init__.core"
+        "mmf\\framework\\observability\\monitoring\\__init__.core",
+        "mmf\\framework\\observability\\monitoring\\__init__.middleware"
       ],
       "imported_by": []
     },
@@ -1636,8 +1564,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\framework\\patterns\\config.cqrs.enhanced_cqrs",
-        "mmf\\framework\\patterns\\config.outbox.enhanced_outbox"
+        "mmf\\framework\\patterns\\config.outbox.enhanced_outbox",
+        "mmf\\framework\\patterns\\config.cqrs.enhanced_cqrs"
       ],
       "imported_by": []
     },
@@ -1664,8 +1592,8 @@
       "imports": [
         "mmf.core.domain.entity",
         "mmf.framework.events.enhanced_event_bus",
-        "mmf.core.application.base",
-        "mmf.framework.infrastructure.messaging"
+        "mmf.framework.infrastructure.messaging",
+        "mmf.core.application.base"
       ],
       "imported_by": []
     },
@@ -1673,13 +1601,13 @@
       "imports_count": 7,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.events.enhanced_event_bus",
-        "mmf.core.application.base",
         "mmf.core.domain.entity",
+        "mmf.framework.events.enhanced_event_bus",
         "mmf\\framework\\patterns\\event_streaming\\__init__.event_sourcing",
         "mmf.framework.infrastructure.messaging",
-        "mmf\\framework\\patterns\\event_streaming\\__init__.saga",
-        "mmf.core.application.handlers"
+        "mmf.core.application.base",
+        "mmf.core.application.handlers",
+        "mmf\\framework\\patterns\\event_streaming\\__init__.saga"
       ],
       "imported_by": []
     },
@@ -1696,8 +1624,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.performance.application.services",
-        "mmf.framework.performance.domain.ports",
-        "mmf.framework.performance.domain.entities"
+        "mmf.framework.performance.domain.entities",
+        "mmf.framework.performance.domain.ports"
       ],
       "imported_by": []
     },
@@ -1705,10 +1633,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.performance.infrastructure.adapters.profiling",
         "mmf.framework.performance.infrastructure.adapters.metrics",
-        "mmf.framework.performance.domain.ports",
-        "mmf.framework.performance.domain.entities"
+        "mmf.framework.performance.infrastructure.adapters.profiling",
+        "mmf.framework.performance.domain.entities",
+        "mmf.framework.performance.domain.ports"
       ],
       "imported_by": []
     },
@@ -1724,8 +1652,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.performance.domain.ports",
-        "mmf.framework.performance.domain.entities"
+        "mmf.framework.performance.domain.entities",
+        "mmf.framework.performance.domain.ports"
       ],
       "imported_by": []
     },
@@ -1733,8 +1661,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.performance.domain.ports",
-        "mmf.framework.performance.domain.entities"
+        "mmf.framework.performance.domain.entities",
+        "mmf.framework.performance.domain.ports"
       ],
       "imported_by": []
     },
@@ -1743,8 +1671,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf\\framework\\platform\\bootstrap.utilities",
-        "mmf\\framework\\platform\\bootstrap.implementations",
-        "mmf.framework.infrastructure.dependency_injection"
+        "mmf.framework.infrastructure.dependency_injection",
+        "mmf\\framework\\platform\\bootstrap.implementations"
       ],
       "imported_by": []
     },
@@ -1752,15 +1680,15 @@
       "imports_count": 9,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.security.adapters.threat_detection.pattern_detector",
+        "mmf\\framework\\platform\\implementations.utilities",
+        "mmf.core.platform.contracts",
         "mmf.framework.security.adapters.threat_detection.ml_analyzer",
         "mmf.framework.security.adapters.threat_detection.event_processor",
+        "mmf.framework.infrastructure.dependency_injection",
         "mmf.framework.security.adapters.threat_detection.scanner",
         "mmf.core.platform.base_services",
-        "mmf.framework.infrastructure.dependency_injection",
-        "mmf\\framework\\platform\\implementations.utilities",
-        "mmf.core.security.domain.config",
-        "mmf.core.platform.contracts"
+        "mmf.framework.security.adapters.threat_detection.pattern_detector",
+        "mmf.core.security.domain.config"
       ],
       "imported_by": []
     },
@@ -1768,9 +1696,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.platform.contracts",
         "mmf.core.platform.base_services",
-        "mmf.framework.infrastructure.dependency_injection"
+        "mmf.framework.infrastructure.dependency_injection",
+        "mmf.core.platform.contracts"
       ],
       "imported_by": []
     },
@@ -1778,12 +1706,12 @@
       "imports_count": 6,
       "imported_by_count": 0,
       "imports": [
+        "mmf.framework.resilience.infrastructure.adapters.retry",
         "mmf.framework.resilience.domain.ports",
-        "mmf.framework.resilience.infrastructure.adapters.bulkhead",
         "mmf.framework.resilience.domain.exceptions",
-        "mmf.framework.resilience.domain.config",
+        "mmf.framework.resilience.infrastructure.adapters.bulkhead",
         "mmf.framework.resilience.infrastructure.adapters.circuit_breaker",
-        "mmf.framework.resilience.infrastructure.adapters.retry"
+        "mmf.framework.resilience.domain.config"
       ],
       "imported_by": []
     },
@@ -1792,8 +1720,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.resilience.domain.config",
-        "mmf.core.registry",
-        "mmf.framework.resilience.domain.exceptions"
+        "mmf.framework.resilience.domain.exceptions",
+        "mmf.core.registry"
       ],
       "imported_by": []
     },
@@ -1802,8 +1730,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.resilience.domain.config",
-        "mmf.core.registry",
-        "mmf.framework.resilience.domain.exceptions"
+        "mmf.framework.resilience.domain.exceptions",
+        "mmf.core.registry"
       ],
       "imported_by": []
     },
@@ -1821,8 +1749,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.common",
         "mmf.services.audit_compliance.service_factory",
+        "mmf.core.security.ports.common",
         "mmf.core.domain.audit_types"
       ],
       "imported_by": []
@@ -1831,10 +1759,10 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.common",
         "mmf.framework.security.adapters.audit.adapter",
         "mmf.services.audit_compliance.di_config",
         "mmf.framework.infrastructure.dependency_injection",
+        "mmf.core.security.ports.common",
         "mmf.services.audit_compliance.service_factory"
       ],
       "imported_by": []
@@ -1843,10 +1771,10 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.authorization",
-        "mmf.core.security.domain.models.result",
-        "mmf.core.security.domain.models.user",
         "mmf.core.security.domain.models.context",
+        "mmf.core.security.domain.models.result",
+        "mmf.core.security.ports.authorization",
+        "mmf.core.security.domain.models.user",
         "mmf.framework.authorization.api"
       ],
       "imported_by": []
@@ -1855,17 +1783,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
+        "mmf.framework.authorization.bootstrap",
         "mmf.framework.security.adapters.authorization.adapter",
-        "mmf.core.security.ports.authorization",
-        "mmf.framework.authorization.bootstrap"
-      ],
-      "imported_by": []
-    },
-    "mmf\\framework\\security\\adapters\\middleware\\fastapi_middleware.py": {
-      "imports_count": 1,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.ports.middleware"
+        "mmf.core.security.ports.authorization"
       ],
       "imported_by": []
     },
@@ -1874,8 +1794,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.core.security.ports.rate_limiting",
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.services.rate_limiting"
+        "mmf.core.security.domain.services.rate_limiting",
+        "mmf.core.security.domain.models.rate_limit"
       ],
       "imported_by": []
     },
@@ -1883,10 +1803,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.rate_limit",
         "mmf.core.security.ports.rate_limiting",
-        "mmf.framework.infrastructure.cache",
-        "mmf.core.security.domain.services.rate_limiting"
+        "mmf.core.security.domain.services.rate_limiting",
+        "mmf.core.security.domain.models.rate_limit",
+        "mmf.framework.infrastructure.cache"
       ],
       "imported_by": []
     },
@@ -1894,9 +1814,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.service_mesh",
+        "mmf.core.security.domain.config",
         "mmf.framework.security.adapters.service_mesh.istio_mesh_manager",
-        "mmf.core.security.domain.config"
+        "mmf.core.security.ports.service_mesh"
       ],
       "imported_by": []
     },
@@ -1904,9 +1824,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.service_mesh",
         "mmf.core.security.domain.models.service_mesh",
-        "mmf.core.security.domain.config"
+        "mmf.core.security.domain.config",
+        "mmf.core.security.ports.service_mesh"
       ],
       "imported_by": []
     },
@@ -1914,18 +1834,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.services.rate_limiting"
-      ],
-      "imported_by": []
-    },
-    "mmf\\framework\\security\\adapters\\session\\memory_session_manager.py": {
-      "imports_count": 3,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.ports.session",
-        "mmf.core.security.domain.models.session",
-        "mmf.core.security.domain.config"
+        "mmf.core.security.domain.services.rate_limiting",
+        "mmf.core.security.domain.models.rate_limit"
       ],
       "imported_by": []
     },
@@ -1943,9 +1853,9 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.threat_detection",
-        "mmf.core.security.domain.models.threat",
         "mmf.core.domain.audit_types",
+        "mmf.core.security.domain.models.threat",
+        "mmf.core.security.ports.threat_detection",
         "mmf.core.security.domain.config"
       ],
       "imported_by": []
@@ -1954,13 +1864,13 @@
       "imports_count": 7,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.security.adapters.threat_detection.pattern_detector",
+        "mmf.framework.security.adapters.threat_detection.composite_detector",
         "mmf.framework.security.adapters.threat_detection.ml_analyzer",
         "mmf.framework.security.adapters.threat_detection.event_processor",
+        "mmf.core.security.ports.threat_detection",
         "mmf.framework.security.adapters.threat_detection.scanner",
-        "mmf.core.security.domain.config",
-        "mmf.framework.security.adapters.threat_detection.composite_detector",
-        "mmf.core.security.ports.threat_detection"
+        "mmf.framework.security.adapters.threat_detection.pattern_detector",
+        "mmf.core.security.domain.config"
       ],
       "imported_by": []
     },
@@ -1968,9 +1878,9 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.ports.threat_detection",
-        "mmf.core.security.domain.models.threat",
         "mmf.core.domain.audit_types",
+        "mmf.core.security.domain.models.threat",
+        "mmf.core.security.ports.threat_detection",
         "mmf.core.security.domain.config"
       ],
       "imported_by": []
@@ -2026,8 +1936,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.testing.domain.chaos",
-        "mmf.framework.testing.domain.entities"
+        "mmf.framework.testing.domain.entities",
+        "mmf.framework.testing.domain.chaos"
       ],
       "imported_by": []
     },
@@ -2035,8 +1945,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.testing.domain.contract",
-        "mmf.framework.testing.domain.entities"
+        "mmf.framework.testing.domain.entities",
+        "mmf.framework.testing.domain.contract"
       ],
       "imported_by": []
     },
@@ -2044,8 +1954,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.testing.domain.performance",
-        "mmf.framework.testing.domain.entities"
+        "mmf.framework.testing.domain.entities",
+        "mmf.framework.testing.domain.performance"
       ],
       "imported_by": []
     },
@@ -2094,8 +2004,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.workflow.domain.ports",
         "mmf.framework.workflow.application.engine",
+        "mmf.framework.workflow.domain.ports",
         "mmf.framework.workflow.domain.entities"
       ],
       "imported_by": []
@@ -2130,14 +2040,14 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.services.audit.infrastructure.adapters.console_destination",
-        "mmf.services.audit.infrastructure.adapters.siem_destination",
         "mmf.services.audit.domain.contracts",
-        "mmf.services.audit.infrastructure.adapters.file_destination",
-        "mmf.services.audit.application.use_cases",
-        "mmf.services.audit.infrastructure.adapters.encryption_adapter",
         "mmf.services.audit.infrastructure.repositories.audit_repository",
+        "mmf.services.audit.application.use_cases",
+        "mmf.services.audit.infrastructure.adapters.siem_destination",
+        "mmf.core.domain.audit_types",
         "mmf.services.audit.infrastructure.adapters.database_destination",
-        "mmf.core.domain.audit_types"
+        "mmf.services.audit.infrastructure.adapters.encryption_adapter",
+        "mmf.services.audit.infrastructure.adapters.file_destination"
       ],
       "imported_by": []
     },
@@ -2145,8 +2055,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit.di_config",
-        "mmf.services.audit.application.commands"
+        "mmf.services.audit.application.commands",
+        "mmf.services.audit.di_config"
       ],
       "imported_by": []
     },
@@ -2154,10 +2064,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\services\\audit\\__init__.service_factory",
-        "mmf\\services\\audit\\__init__.di_config",
+        "mmf\\services\\audit\\__init__.application",
         "mmf\\services\\audit\\__init__.domain",
-        "mmf\\services\\audit\\__init__.application"
+        "mmf\\services\\audit\\__init__.di_config",
+        "mmf\\services\\audit\\__init__.service_factory"
       ],
       "imported_by": []
     },
@@ -2173,10 +2083,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit.domain.value_objects",
-        "mmf.core.domain.audit_types",
         "mmf.services.audit.domain.entities",
-        "mmf.services.audit.domain.contracts"
+        "mmf.services.audit.domain.contracts",
+        "mmf.services.audit.domain.value_objects",
+        "mmf.core.domain.audit_types"
       ],
       "imported_by": []
     },
@@ -2184,8 +2094,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\services\\audit\\application\\__init__.use_cases",
-        "mmf\\services\\audit\\application\\__init__.commands"
+        "mmf\\services\\audit\\application\\__init__.commands",
+        "mmf\\services\\audit\\application\\__init__.use_cases"
       ],
       "imported_by": []
     },
@@ -2193,8 +2103,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\services\\audit\\domain\\contracts.entities",
-        "mmf.core.domain.audit_types"
+        "mmf.core.domain.audit_types",
+        "mmf\\services\\audit\\domain\\contracts.entities"
       ],
       "imported_by": []
     },
@@ -2223,8 +2133,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf\\services\\audit\\infrastructure\\__init__.models",
-        "mmf\\services\\audit\\infrastructure\\__init__.repositories",
-        "mmf\\services\\audit\\infrastructure\\__init__.adapters"
+        "mmf\\services\\audit\\infrastructure\\__init__.adapters",
+        "mmf\\services\\audit\\infrastructure\\__init__.repositories"
       ],
       "imported_by": []
     },
@@ -2232,9 +2142,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.domain.audit_types",
         "mmf.services.audit.domain.entities",
-        "mmf.services.audit.domain.contracts"
+        "mmf.services.audit.domain.contracts",
+        "mmf.core.domain.audit_types"
       ],
       "imported_by": []
     },
@@ -2242,9 +2152,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.domain.audit_types",
         "mmf.services.audit.domain.entities",
-        "mmf.services.audit.domain.contracts"
+        "mmf.services.audit.domain.contracts",
+        "mmf.core.domain.audit_types"
       ],
       "imported_by": []
     },
@@ -2261,10 +2171,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
+        "mmf.services.audit.domain.contracts",
         "mmf.services.audit.application.commands",
         "mmf.services.audit.service_factory",
-        "mmf.core.domain.audit_types",
-        "mmf.services.audit.domain.contracts"
+        "mmf.core.domain.audit_types"
       ],
       "imported_by": []
     },
@@ -2281,9 +2191,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
+        "mmf.services.audit.domain.contracts",
         "mmf.services.audit.application.commands",
-        "mmf.core.domain.audit_types",
-        "mmf.services.audit.domain.contracts"
+        "mmf.core.domain.audit_types"
       ],
       "imported_by": []
     },
@@ -2300,10 +2210,10 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\services\\audit\\infrastructure\\adapters\\__init__.siem_destination",
         "mmf\\services\\audit\\infrastructure\\adapters\\__init__.file_destination",
         "mmf\\services\\audit\\infrastructure\\adapters\\__init__.encryption_adapter",
         "mmf\\services\\audit\\infrastructure\\adapters\\__init__.database_destination",
+        "mmf\\services\\audit\\infrastructure\\adapters\\__init__.siem_destination",
         "mmf\\services\\audit\\infrastructure\\adapters\\__init__.console_destination"
       ],
       "imported_by": []
@@ -2312,10 +2222,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit.domain.value_objects",
-        "mmf.core.domain.audit_types",
         "mmf.services.audit.domain.entities",
-        "mmf.services.audit.domain.contracts"
+        "mmf.services.audit.domain.contracts",
+        "mmf.services.audit.domain.value_objects",
+        "mmf.core.domain.audit_types"
       ],
       "imported_by": []
     },
@@ -2331,17 +2241,17 @@
       "imports_count": 11,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit.service_factory",
-        "mmf.services.audit.di_config",
-        "mmf.services.audit.infrastructure.adapters.file_destination",
-        "mmf.services.audit.domain.entities",
-        "mmf.core.domain.audit_types",
-        "mmf.services.audit.application.commands",
-        "mmf.services.audit.domain.value_objects",
-        "mmf.services.audit.infrastructure.repositories.audit_repository",
-        "mmf.services.audit.infrastructure.adapters.database_destination",
         "mmf.services.audit.infrastructure.models",
-        "mmf.services.audit.infrastructure.adapters.encryption_adapter"
+        "mmf.services.audit.infrastructure.repositories.audit_repository",
+        "mmf.services.audit.domain.value_objects",
+        "mmf.services.audit.application.commands",
+        "mmf.services.audit.service_factory",
+        "mmf.core.domain.audit_types",
+        "mmf.services.audit.domain.entities",
+        "mmf.services.audit.di_config",
+        "mmf.services.audit.infrastructure.adapters.database_destination",
+        "mmf.services.audit.infrastructure.adapters.encryption_adapter",
+        "mmf.services.audit.infrastructure.adapters.file_destination"
       ],
       "imported_by": []
     },
@@ -2349,8 +2259,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit.domain.value_objects",
         "mmf.services.audit.domain.entities",
+        "mmf.services.audit.domain.value_objects",
         "mmf.core.domain.audit_types"
       ],
       "imported_by": []
@@ -2359,11 +2269,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit.service_factory",
-        "mmf.services.audit.di_config",
-        "mmf.services.audit.infrastructure.adapters.fastapi_middleware",
         "mmf.services.audit.application.commands",
-        "mmf.core.domain.audit_types"
+        "mmf.services.audit.service_factory",
+        "mmf.core.domain.audit_types",
+        "mmf.services.audit.infrastructure.adapters.fastapi_middleware",
+        "mmf.services.audit.di_config"
       ],
       "imported_by": []
     },
@@ -2371,10 +2281,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit.domain.value_objects",
-        "mmf.core.domain.audit_types",
+        "mmf.services.audit.domain.entities",
         "mmf.services.audit.infrastructure.repositories.audit_repository",
-        "mmf.services.audit.domain.entities"
+        "mmf.services.audit.domain.value_objects",
+        "mmf.core.domain.audit_types"
       ],
       "imported_by": []
     },
@@ -2383,10 +2293,10 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.services.audit.domain.contracts",
-        "mmf.services.audit.domain.entities",
         "mmf.services.audit.application.use_cases",
         "mmf.services.audit.application.commands",
-        "mmf.core.domain.audit_types"
+        "mmf.core.domain.audit_types",
+        "mmf.services.audit.domain.entities"
       ],
       "imported_by": []
     },
@@ -2395,12 +2305,12 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.core.di",
-        "mmf\\services\\audit_compliance\\di_config.infrastructure",
-        "mmf.framework.infrastructure.framework_metrics",
         "mmf.framework.infrastructure.database_manager",
-        "mmf.framework.infrastructure.cache",
+        "mmf\\services\\audit_compliance\\di_config.domain.contracts",
         "mmf\\services\\audit_compliance\\di_config.application.use_cases",
-        "mmf\\services\\audit_compliance\\di_config.domain.contracts"
+        "mmf.framework.infrastructure.framework_metrics",
+        "mmf\\services\\audit_compliance\\di_config.infrastructure",
+        "mmf.framework.infrastructure.cache"
       ],
       "imported_by": []
     },
@@ -2408,11 +2318,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\services\\audit_compliance\\service_factory.application.commands",
-        "mmf.core.domain.audit_models",
-        "mmf\\services\\audit_compliance\\service_factory.domain.models",
         "mmf\\services\\audit_compliance\\service_factory.di_config",
-        "mmf.core.domain.audit_types"
+        "mmf\\services\\audit_compliance\\service_factory.domain.models",
+        "mmf.core.domain.audit_models",
+        "mmf.core.domain.audit_types",
+        "mmf\\services\\audit_compliance\\service_factory.application.commands"
       ],
       "imported_by": []
     },
@@ -2420,11 +2330,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\services\\audit_compliance\\application\\commands.use_cases.log_audit_event",
+        "mmf\\services\\audit_compliance\\application\\commands.use_cases.scan_compliance",
         "mmf\\services\\audit_compliance\\application\\commands.use_cases.collect_security_event",
-        "mmf\\services\\audit_compliance\\application\\commands.use_cases.analyze_threat_pattern",
+        "mmf\\services\\audit_compliance\\application\\commands.use_cases.log_audit_event",
         "mmf\\services\\audit_compliance\\application\\commands.use_cases.generate_security_report",
-        "mmf\\services\\audit_compliance\\application\\commands.use_cases.scan_compliance"
+        "mmf\\services\\audit_compliance\\application\\commands.use_cases.analyze_threat_pattern"
       ],
       "imported_by": []
     },
@@ -2432,8 +2342,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.domain",
-        "mmf.core.application.base"
+        "mmf.core.application.base",
+        "mmf.core.domain"
       ],
       "imported_by": []
     },
@@ -2441,8 +2351,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.domain",
-        "mmf.core.application.base"
+        "mmf.core.application.base",
+        "mmf.core.domain"
       ],
       "imported_by": []
     },
@@ -2450,8 +2360,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.domain",
-        "mmf.core.application.base"
+        "mmf.core.application.base",
+        "mmf.core.domain"
       ],
       "imported_by": []
     },
@@ -2459,8 +2369,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.domain",
-        "mmf.core.application.base"
+        "mmf.core.application.base",
+        "mmf.core.domain"
       ],
       "imported_by": []
     },
@@ -2468,8 +2378,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.domain",
-        "mmf.core.application.base"
+        "mmf.core.application.base",
+        "mmf.core.domain"
       ],
       "imported_by": []
     },
@@ -2478,8 +2388,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf\\services\\audit_compliance\\application\\use_cases\\__init__.collect_security_event",
-        "mmf\\services\\audit_compliance\\application\\use_cases\\__init__.analyze_threat_pattern",
         "mmf\\services\\audit_compliance\\application\\use_cases\\__init__.log_audit_event",
+        "mmf\\services\\audit_compliance\\application\\use_cases\\__init__.analyze_threat_pattern",
         "mmf\\services\\audit_compliance\\application\\use_cases\\__init__.scan_compliance",
         "mmf\\services\\audit_compliance\\application\\use_cases\\__init__.generate_security_report"
       ],
@@ -2522,13 +2432,13 @@
       "imports_count": 7,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.threat_analyzer",
-        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.security_report_generator",
-        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.audit_event_repository",
         "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.auditor",
         "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.siem_adapter",
-        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.compliance_scanner",
-        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.metrics_adapter"
+        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.threat_analyzer",
+        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.metrics_adapter",
+        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.security_report_generator",
+        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.audit_event_repository",
+        "mmf\\services\\audit_compliance\\domain\\contracts\\__init__.compliance_scanner"
       ],
       "imported_by": []
     },
@@ -2570,8 +2480,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.infrastructure.framework_metrics",
         "mmf.framework.infrastructure.database_manager",
+        "mmf.framework.infrastructure.framework_metrics",
         "mmf.core.domain.audit_types"
       ],
       "imported_by": []
@@ -2580,8 +2490,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.infrastructure.framework_metrics",
         "mmf.framework.infrastructure.database_manager",
+        "mmf.framework.infrastructure.framework_metrics",
         "mmf.core.domain.audit_types"
       ],
       "imported_by": []
@@ -2590,8 +2500,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.infrastructure.framework_metrics",
         "mmf.framework.infrastructure.database_manager",
+        "mmf.framework.infrastructure.framework_metrics",
         "mmf.core.domain.audit_types"
       ],
       "imported_by": []
@@ -2600,13 +2510,13 @@
       "imports_count": 7,
       "imported_by_count": 0,
       "imports": [
-        "mmf\\services\\audit_compliance\\infrastructure\\__init__.caching.audit_event_cache",
-        "mmf\\services\\audit_compliance\\infrastructure\\__init__.compliance_scanner_adapter",
-        "mmf\\services\\audit_compliance\\infrastructure\\__init__.security_report_generator_adapter",
-        "mmf\\services\\audit_compliance\\infrastructure\\__init__.threat_analyzer_adapter",
         "mmf\\services\\audit_compliance\\infrastructure\\__init__.adapters.elasticsearch_siem_adapter",
+        "mmf\\services\\audit_compliance\\infrastructure\\__init__.compliance_scanner_adapter",
         "mmf\\services\\audit_compliance\\infrastructure\\__init__.adapters.audit_metrics_adapter",
-        "mmf\\services\\audit_compliance\\infrastructure\\__init__.repositories.audit_event_repository"
+        "mmf\\services\\audit_compliance\\infrastructure\\__init__.security_report_generator_adapter",
+        "mmf\\services\\audit_compliance\\infrastructure\\__init__.repositories.audit_event_repository",
+        "mmf\\services\\audit_compliance\\infrastructure\\__init__.threat_analyzer_adapter",
+        "mmf\\services\\audit_compliance\\infrastructure\\__init__.caching.audit_event_cache"
       ],
       "imported_by": []
     },
@@ -2639,9 +2549,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
+        "mmf.framework.infrastructure.database_manager",
         "mmf.core.domain",
-        "mmf.framework.infrastructure.repository",
-        "mmf.framework.infrastructure.database_manager"
+        "mmf.framework.infrastructure.repository"
       ],
       "imported_by": []
     },
@@ -2649,8 +2559,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit_compliance.di_config",
         "mmf.services.audit_compliance.service_factory",
+        "mmf.services.audit_compliance.di_config",
         "mmf.core.domain.audit_types"
       ],
       "imported_by": []
@@ -2659,10 +2569,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.domain",
-        "mmf.services.audit_compliance.domain.models.security_audit_event",
         "mmf.services.audit_compliance.domain.models.compliance_scan_result",
-        "mmf.services.audit_compliance.domain.models.threat_pattern"
+        "mmf.services.audit_compliance.domain.models.threat_pattern",
+        "mmf.services.audit_compliance.domain.models.security_audit_event",
+        "mmf.core.domain"
       ],
       "imported_by": []
     },
@@ -2679,10 +2589,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.domain",
-        "mmf.services.audit_compliance.application.use_cases.scan_compliance",
         "mmf.services.audit_compliance.domain.models",
-        "mmf.services.audit_compliance.application.use_cases.generate_security_report"
+        "mmf.services.audit_compliance.application.use_cases.generate_security_report",
+        "mmf.services.audit_compliance.application.use_cases.scan_compliance",
+        "mmf.core.domain"
       ],
       "imported_by": []
     },
@@ -2690,10 +2600,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.biometric.application.use_cases",
         "mmf.services.biometric.config",
-        "mmf.services.biometric.infrastructure.adapters.biometric_adapter",
-        "mmf.services.biometric.application.ports_out"
+        "mmf.services.biometric.application.use_cases",
+        "mmf.services.biometric.application.ports_out",
+        "mmf.services.biometric.infrastructure.adapters.biometric_adapter"
       ],
       "imported_by": []
     },
@@ -2726,8 +2636,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.biometric.application.use_cases",
         "mmf.services.biometric.config",
+        "mmf.services.biometric.application.use_cases",
         "mmf.services.biometric.di_config"
       ],
       "imported_by": []
@@ -2736,11 +2646,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit_compliance.domain.models.threat_pattern",
-        "mmf.services.audit.domain.entities",
-        "mmf.core.domain",
         "mmf.services.audit_compliance.domain.models.compliance_scan_result",
-        "mmf.core.domain.audit_types"
+        "mmf.core.domain",
+        "mmf.services.audit_compliance.domain.models.threat_pattern",
+        "mmf.core.domain.audit_types",
+        "mmf.services.audit.domain.entities"
       ],
       "imported_by": []
     },
@@ -2748,12 +2658,12 @@
       "imports_count": 7,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.authorization.engines.opa",
-        "mmf.framework.authorization.engines.acl",
         "mmf.framework.authorization.domain.models",
-        "mmf.framework.authorization.adapters.abac_engine",
+        "mmf.framework.authorization.engines.acl",
         "mmf.framework.authorization.adapters.rbac_engine",
         "mmf.framework.authorization.engines.base",
+        "mmf.framework.authorization.adapters.abac_engine",
+        "mmf.framework.authorization.engines.opa",
         "mmf.framework.authorization.api"
       ],
       "imported_by": []
@@ -2770,9 +2680,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
+        "mmf.framework.messaging.domain.extended",
         "mmf.core.messaging",
-        "mmf.framework.messaging.application.router",
-        "mmf.framework.messaging.domain.extended"
+        "mmf.framework.messaging.application.router"
       ],
       "imported_by": []
     },
@@ -2790,9 +2700,9 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.discovery.domain.models",
-        "mmf.framework.gateway.domain.services",
+        "mmf.framework.deployment.domain.enums",
         "mmf.discovery.domain.load_balancing",
-        "mmf.framework.deployment.domain.enums"
+        "mmf.framework.gateway.domain.services"
       ],
       "imported_by": []
     },
@@ -2809,24 +2719,23 @@
       "imports_count": 6,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.resilience.infrastructure.adapters.bulkhead",
-        "mmf.framework.resilience.infrastructure.adapters.fallback",
+        "mmf.framework.resilience.infrastructure.adapters.retry",
         "mmf.framework.resilience.domain.exceptions",
-        "mmf.framework.resilience.domain.config",
+        "mmf.framework.resilience.infrastructure.adapters.bulkhead",
         "mmf.framework.resilience.infrastructure.adapters.circuit_breaker",
-        "mmf.framework.resilience.infrastructure.adapters.retry"
+        "mmf.framework.resilience.infrastructure.adapters.fallback",
+        "mmf.framework.resilience.domain.config"
       ],
       "imported_by": []
     },
     "mmf\\tests\\contract\\test_security_behavior_contract.py": {
-      "imports_count": 5,
+      "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.services.rate_limiting",
         "mmf.framework.authorization.domain.models",
+        "mmf.core.security.domain.services.rate_limiting",
         "mmf.core.security.domain.models.user",
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.models.session"
+        "mmf.core.security.domain.models.rate_limit"
       ],
       "imported_by": []
     },
@@ -2834,10 +2743,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.testing.application.performance_runner",
-        "mmf.framework.testing.domain.performance",
         "mmf.framework.testing.application.contract_verifier",
-        "mmf.framework.testing.domain.contract"
+        "mmf.framework.testing.application.performance_runner",
+        "mmf.framework.testing.domain.contract",
+        "mmf.framework.testing.domain.performance"
       ],
       "imported_by": []
     },
@@ -2847,8 +2756,8 @@
       "imports": [
         "mmf.framework.patterns.distributed_transactions",
         "mmf.framework.workflow.application.engine",
-        "mmf.framework.workflow.domain.entities",
-        "mmf.framework.patterns.event_sourcing"
+        "mmf.framework.patterns.event_sourcing",
+        "mmf.framework.workflow.domain.entities"
       ],
       "imported_by": []
     },
@@ -2856,11 +2765,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.events.enhanced_event_bus",
-        "mmf.framework.testing.domain.performance",
         "mmf.framework.observability.adapters.monitoring",
+        "mmf.framework.testing",
+        "mmf.framework.events.enhanced_event_bus",
         "mmf.framework.observability.monitoring",
-        "mmf.framework.testing"
+        "mmf.framework.testing.domain.performance"
       ],
       "imported_by": []
     },
@@ -2900,12 +2809,12 @@
       "imports_count": 6,
       "imported_by_count": 0,
       "imports": [
-        "mmf.tests.e2e.performance_reporting",
         "mmf.tests.e2e.conftest",
-        "mmf.tests.e2e.test_timeout_detection",
         "mmf.tests.e2e.test_auditability",
         "mmf.tests.e2e.test_bottleneck_analysis",
-        "mmf.tests.e2e.test_playwright_visual"
+        "mmf.tests.e2e.test_playwright_visual",
+        "mmf.tests.e2e.test_timeout_detection",
+        "mmf.tests.e2e.performance_reporting"
       ],
       "imported_by": []
     },
@@ -2962,9 +2871,9 @@
       "imported_by_count": 0,
       "imports": [
         "mmf\\tests\\factories\\__init__.discovery",
-        "mmf\\tests\\factories\\__init__.messaging",
+        "mmf\\tests\\factories\\__init__.gateway",
         "mmf\\tests\\factories\\__init__.security",
-        "mmf\\tests\\factories\\__init__.gateway"
+        "mmf\\tests\\factories\\__init__.messaging"
       ],
       "imported_by": []
     },
@@ -2981,10 +2890,10 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.result",
-        "mmf.core.security.domain.models.user",
         "mmf.core.security.domain.models.context",
+        "mmf.core.security.domain.models.result",
         "mmf.framework.security.adapters.authorization.adapter",
+        "mmf.core.security.domain.models.user",
         "mmf.framework.authorization.api"
       ],
       "imported_by": []
@@ -2993,12 +2902,12 @@
       "imports_count": 6,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.security.adapters.threat_detection.pattern_detector",
-        "mmf.core.security.domain.models.threat",
         "mmf.framework.security.adapters.threat_detection.event_processor",
         "mmf.framework.security.adapters.threat_detection.scanner",
-        "mmf.core.security.domain.config",
-        "mmf.core.domain.audit_types"
+        "mmf.core.domain.audit_types",
+        "mmf.core.security.domain.models.threat",
+        "mmf.framework.security.adapters.threat_detection.pattern_detector",
+        "mmf.core.security.domain.config"
       ],
       "imported_by": []
     },
@@ -3006,9 +2915,9 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
+        "mmf.core.domain.audit_types",
         "mmf.core.security.domain.models.threat",
         "mmf.framework.security.adapters.threat_detection.event_processor",
-        "mmf.core.domain.audit_types",
         "mmf.core.security.domain.config"
       ],
       "imported_by": []
@@ -3019,9 +2928,9 @@
       "imports": [
         "mmf.tests.factories",
         "mmf.core.messaging",
-        "mmf.core.security.domain.models.user",
         "mmf.discovery.domain.models",
-        "mmf.core.gateway"
+        "mmf.core.gateway",
+        "mmf.core.security.domain.models.user"
       ],
       "imported_by": []
     },
@@ -3029,8 +2938,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.plugins",
-        "mmf.core.cache"
+        "mmf.core.cache",
+        "mmf.core.plugins"
       ],
       "imported_by": []
     },
@@ -3096,8 +3005,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.application.transaction",
-        "mmf.core.domain.database"
+        "mmf.core.domain.database",
+        "mmf.core.application.transaction"
       ],
       "imported_by": []
     },
@@ -3164,8 +3073,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.platform.contracts",
-        "mmf.core.platform.base_services"
+        "mmf.core.platform.base_services",
+        "mmf.core.platform.contracts"
       ],
       "imported_by": []
     },
@@ -3173,21 +3082,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.platform.utilities",
-        "mmf.framework.infrastructure.dependency_injection"
-      ],
-      "imported_by": []
-    },
-    "mmf\\tests\\unit\\core\\security\\test_middleware.py": {
-      "imports_count": 6,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.domain.services.middleware.authentication",
-        "mmf.core.security.domain.config",
-        "mmf.core.security.domain.services.middleware.rate_limit",
-        "mmf.core.security.domain.services.middleware.session",
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.models.session"
+        "mmf.framework.infrastructure.dependency_injection",
+        "mmf.framework.platform.utilities"
       ],
       "imported_by": []
     },
@@ -3195,8 +3091,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.user",
-        "mmf.core.security.domain.enums"
+        "mmf.core.security.domain.enums",
+        "mmf.core.security.domain.models.user"
       ],
       "imported_by": []
     },
@@ -3236,8 +3132,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.user",
-        "mmf.core.security.domain.models.context"
+        "mmf.core.security.domain.models.context",
+        "mmf.core.security.domain.models.user"
       ],
       "imported_by": []
     },
@@ -3245,8 +3141,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.user",
-        "mmf.core.security.domain.models.context"
+        "mmf.core.security.domain.models.context",
+        "mmf.core.security.domain.models.user"
       ],
       "imported_by": []
     },
@@ -3316,22 +3212,6 @@
       ],
       "imported_by": []
     },
-    "mmf\\tests\\unit\\core\\security\\domain\\models\\test_session.py": {
-      "imports_count": 1,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.domain.models.session"
-      ],
-      "imported_by": []
-    },
-    "mmf\\tests\\unit\\core\\security\\domain\\models\\test_session_models.py": {
-      "imports_count": 1,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.domain.models.session"
-      ],
-      "imported_by": []
-    },
     "mmf\\tests\\unit\\core\\security\\domain\\models\\test_threat.py": {
       "imports_count": 1,
       "imported_by_count": 0,
@@ -3390,25 +3270,12 @@
       ],
       "imported_by": []
     },
-    "mmf\\tests\\unit\\core\\security\\domain\\services\\test_middleware_coordinator.py": {
-      "imports_count": 6,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.ports.session",
-        "mmf.core.security.domain.config",
-        "mmf.core.security.ports.rate_limiting",
-        "mmf.core.security.domain.services.middleware_coordinator",
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.models.session"
-      ],
-      "imported_by": []
-    },
     "mmf\\tests\\unit\\core\\security\\domain\\services\\test_rate_limiting.py": {
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.services.rate_limiting"
+        "mmf.core.security.domain.services.rate_limiting",
+        "mmf.core.security.domain.models.rate_limit"
       ],
       "imported_by": []
     },
@@ -3416,8 +3283,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.services.rate_limiting"
+        "mmf.core.security.domain.services.rate_limiting",
+        "mmf.core.security.domain.models.rate_limit"
       ],
       "imported_by": []
     },
@@ -3425,8 +3292,8 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.threat",
         "mmf.core.security.domain.services.threat_detection",
+        "mmf.core.security.domain.models.threat",
         "mmf.core.security.ports.threat_detection",
         "mmf.core.domain.audit_types"
       ],
@@ -3436,41 +3303,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.threat",
         "mmf.core.security.domain.services.threat_detection",
+        "mmf.core.security.domain.models.threat",
         "mmf.core.security.ports.threat_detection",
         "mmf.core.domain.audit_types"
-      ],
-      "imported_by": []
-    },
-    "mmf\\tests\\unit\\core\\security\\domain\\services\\middleware\\test_authentication.py": {
-      "imports_count": 2,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.domain.services.middleware.authentication",
-        "mmf.core.security.domain.config"
-      ],
-      "imported_by": []
-    },
-    "mmf\\tests\\unit\\core\\security\\domain\\services\\middleware\\test_rate_limit_middleware.py": {
-      "imports_count": 4,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.domain.services.middleware.rate_limit",
-        "mmf.core.security.ports.rate_limiting",
-        "mmf.core.security.domain.models.rate_limit",
-        "mmf.core.security.domain.config"
-      ],
-      "imported_by": []
-    },
-    "mmf\\tests\\unit\\core\\security\\domain\\services\\middleware\\test_session_middleware.py": {
-      "imports_count": 4,
-      "imported_by_count": 0,
-      "imports": [
-        "mmf.core.security.ports.session",
-        "mmf.core.security.domain.services.middleware.session",
-        "mmf.core.security.domain.models.session",
-        "mmf.core.security.domain.config"
       ],
       "imported_by": []
     },
@@ -3478,9 +3314,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.discovery.domain.models",
         "mmf.discovery.domain.events",
-        "mmf.discovery.domain.exceptions"
+        "mmf.discovery.domain.exceptions",
+        "mmf.discovery.domain.models"
       ],
       "imported_by": []
     },
@@ -3531,10 +3367,10 @@
       "imports_count": 4,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.application.base",
         "mmf.framework.events.enhanced_event_bus",
         "mmf.framework.patterns.event_sourcing",
-        "mmf.framework.infrastructure.messaging"
+        "mmf.framework.infrastructure.messaging",
+        "mmf.core.application.base"
       ],
       "imported_by": []
     },
@@ -3550,8 +3386,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.gateway",
-        "mmf.framework.gateway.application"
+        "mmf.framework.gateway.application",
+        "mmf.core.gateway"
       ],
       "imported_by": []
     },
@@ -3567,8 +3403,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.gateway.domain.rate_limit",
-        "mmf.core.gateway"
+        "mmf.core.gateway",
+        "mmf.framework.gateway.domain.rate_limit"
       ],
       "imported_by": []
     },
@@ -3576,11 +3412,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.security.domain.models.result",
         "mmf.framework.gateway.domain.security",
-        "mmf.core.security.ports.authentication",
+        "mmf.core.gateway",
+        "mmf.core.security.domain.models.result",
         "mmf.core.security.domain.models.user",
-        "mmf.core.gateway"
+        "mmf.core.security.ports.authentication"
       ],
       "imported_by": []
     },
@@ -3597,8 +3433,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.messaging",
-        "mmf.framework.messaging.bootstrap"
+        "mmf.framework.messaging.bootstrap",
+        "mmf.core.messaging"
       ],
       "imported_by": []
     },
@@ -3606,8 +3442,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.messaging",
-        "mmf.framework.messaging.application.manager"
+        "mmf.framework.messaging.application.manager",
+        "mmf.core.messaging"
       ],
       "imported_by": []
     },
@@ -3616,8 +3452,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.messaging",
-        "mmf.core",
-        "mmf.framework.messaging.application"
+        "mmf.framework.messaging.application",
+        "mmf.core"
       ],
       "imported_by": []
     },
@@ -3634,11 +3470,11 @@
       "imports_count": 5,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.resilience.domain.exceptions",
         "mmf.framework.resilience.application.services",
-        "mmf.framework.resilience.domain.config",
+        "mmf.framework.resilience.infrastructure.adapters.retry",
+        "mmf.framework.resilience.domain.exceptions",
         "mmf.framework.resilience.infrastructure.adapters.circuit_breaker",
-        "mmf.framework.resilience.infrastructure.adapters.retry"
+        "mmf.framework.resilience.domain.config"
       ],
       "imported_by": []
     },
@@ -3647,8 +3483,8 @@
       "imported_by_count": 0,
       "imports": [
         "mmf.framework.resilience.domain.config",
-        "mmf.framework.resilience.infrastructure.adapters.circuit_breaker",
-        "mmf.framework.resilience.domain.exceptions"
+        "mmf.framework.resilience.domain.exceptions",
+        "mmf.framework.resilience.infrastructure.adapters.circuit_breaker"
       ],
       "imported_by": []
     },
@@ -3686,9 +3522,9 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.authorization.adapters.rbac_engine",
+        "mmf.framework.authorization.domain.models",
         "mmf.core.security.domain.exceptions",
-        "mmf.framework.authorization.domain.models"
+        "mmf.framework.authorization.adapters.rbac_engine"
       ],
       "imported_by": []
     },
@@ -3696,8 +3532,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.framework.gateway.domain.services",
-        "mmf.core.gateway"
+        "mmf.core.gateway",
+        "mmf.framework.gateway.domain.services"
       ],
       "imported_by": []
     },
@@ -3713,8 +3549,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.messaging",
-        "mmf.framework.messaging.application.broker"
+        "mmf.framework.messaging.application.broker",
+        "mmf.core.messaging"
       ],
       "imported_by": []
     },
@@ -3731,8 +3567,8 @@
       "imports_count": 2,
       "imported_by_count": 0,
       "imports": [
-        "mmf.core.messaging",
-        "mmf.framework.messaging.application.middleware"
+        "mmf.framework.messaging.application.middleware",
+        "mmf.core.messaging"
       ],
       "imported_by": []
     },
@@ -3749,8 +3585,8 @@
       "imports_count": 3,
       "imported_by_count": 0,
       "imports": [
-        "mmf.services.audit.domain.value_objects",
         "mmf.services.audit.domain.entities",
+        "mmf.services.audit.domain.value_objects",
         "mmf.core.domain.audit_types"
       ],
       "imported_by": []
@@ -3776,8 +3612,6 @@
       "mmf\\adapters\\cache\\redis_cache.py",
       "mmf\\adapters\\cache\\__init__.py",
       "mmf\\adapters\\credentials\\__init__.py",
-      "mmf\\adapters\\session\\redis_adapter.py",
-      "mmf\\adapters\\session\\__init__.py",
       "mmf\\application\\services\\mesh_manager.py",
       "mmf\\application\\services\\plugin_manager.py",
       "mmf\\application\\services\\__init__.py",
@@ -3789,18 +3623,13 @@
       "mmf\\core\\domain\\__init__.py",
       "mmf\\core\\platform\\base_services.py",
       "mmf\\core\\platform\\__init__.py",
-      "mmf\\core\\security\\__init__.py",
       "mmf\\core\\security\\adapters\\openbao_kms.py",
       "mmf\\core\\security\\domain\\models\\context.py",
       "mmf\\core\\security\\domain\\models\\result.py",
       "mmf\\core\\security\\domain\\models\\threat.py",
       "mmf\\core\\security\\domain\\models\\vulnerability.py",
       "mmf\\core\\security\\domain\\services\\cryptography_service.py",
-      "mmf\\core\\security\\domain\\services\\middleware_coordinator.py",
       "mmf\\core\\security\\domain\\services\\threat_detection.py",
-      "mmf\\core\\security\\domain\\services\\middleware\\authentication.py",
-      "mmf\\core\\security\\domain\\services\\middleware\\rate_limit.py",
-      "mmf\\core\\security\\domain\\services\\middleware\\session.py",
       "mmf\\core\\security\\ports\\__init__.py",
       "mmf\\discovery\\adapters\\base_load_balancer.py",
       "mmf\\discovery\\adapters\\consul_adapter.py",
@@ -3963,13 +3792,11 @@
       "mmf\\framework\\security\\adapters\\audit\\factory.py",
       "mmf\\framework\\security\\adapters\\authorization\\adapter.py",
       "mmf\\framework\\security\\adapters\\authorization\\factory.py",
-      "mmf\\framework\\security\\adapters\\middleware\\fastapi_middleware.py",
       "mmf\\framework\\security\\adapters\\rate_limiting\\memory_limiter.py",
       "mmf\\framework\\security\\adapters\\rate_limiting\\redis_limiter.py",
       "mmf\\framework\\security\\adapters\\service_mesh\\factory.py",
       "mmf\\framework\\security\\adapters\\service_mesh\\istio_mesh_manager.py",
       "mmf\\framework\\security\\adapters\\service_mesh\\istio_rate_limiter.py",
-      "mmf\\framework\\security\\adapters\\session\\memory_session_manager.py",
       "mmf\\framework\\security\\adapters\\threat_detection\\composite_detector.py",
       "mmf\\framework\\security\\adapters\\threat_detection\\event_processor.py",
       "mmf\\framework\\security\\adapters\\threat_detection\\factory.py",
@@ -4098,7 +3925,6 @@
       "mmf\\tests\\unit\\core\\domain\\ports\\test_repository.py",
       "mmf\\tests\\unit\\core\\platform\\test_base_services.py",
       "mmf\\tests\\unit\\core\\platform\\test_utilities.py",
-      "mmf\\tests\\unit\\core\\security\\test_middleware.py",
       "mmf\\tests\\unit\\core\\security\\test_security_domain.py",
       "mmf\\tests\\unit\\core\\security\\domain\\test_config.py",
       "mmf\\tests\\unit\\core\\security\\domain\\test_enums.py",
@@ -4114,8 +3940,6 @@
       "mmf\\tests\\unit\\core\\security\\domain\\models\\test_result_models.py",
       "mmf\\tests\\unit\\core\\security\\domain\\models\\test_service_mesh.py",
       "mmf\\tests\\unit\\core\\security\\domain\\models\\test_service_mesh_models.py",
-      "mmf\\tests\\unit\\core\\security\\domain\\models\\test_session.py",
-      "mmf\\tests\\unit\\core\\security\\domain\\models\\test_session_models.py",
       "mmf\\tests\\unit\\core\\security\\domain\\models\\test_threat.py",
       "mmf\\tests\\unit\\core\\security\\domain\\models\\test_threat_models.py",
       "mmf\\tests\\unit\\core\\security\\domain\\models\\test_user.py",
@@ -4123,14 +3947,10 @@
       "mmf\\tests\\unit\\core\\security\\domain\\models\\test_vulnerability.py",
       "mmf\\tests\\unit\\core\\security\\domain\\models\\test_vulnerability_models.py",
       "mmf\\tests\\unit\\core\\security\\domain\\services\\test_cryptography_service.py",
-      "mmf\\tests\\unit\\core\\security\\domain\\services\\test_middleware_coordinator.py",
       "mmf\\tests\\unit\\core\\security\\domain\\services\\test_rate_limiting.py",
       "mmf\\tests\\unit\\core\\security\\domain\\services\\test_rate_limiting_service.py",
       "mmf\\tests\\unit\\core\\security\\domain\\services\\test_threat_detection.py",
       "mmf\\tests\\unit\\core\\security\\domain\\services\\test_threat_detection_service.py",
-      "mmf\\tests\\unit\\core\\security\\domain\\services\\middleware\\test_authentication.py",
-      "mmf\\tests\\unit\\core\\security\\domain\\services\\middleware\\test_rate_limit_middleware.py",
-      "mmf\\tests\\unit\\core\\security\\domain\\services\\middleware\\test_session_middleware.py",
       "mmf\\tests\\unit\\discovery\\test_events_exceptions.py",
       "mmf\\tests\\unit\\discovery\\test_load_balancing.py",
       "mmf\\tests\\unit\\discovery\\test_memory_registry.py",
@@ -4165,7 +3985,7 @@
     ]
   },
   "recommendations": [
-    "\u26a0\ufe0f  HIGH COUPLING: 23 modules are highly coupled",
+    "\u26a0\ufe0f  HIGH COUPLING: 20 modules are highly coupled",
     "   - Consider splitting large modules into smaller, focused modules",
     "   - Apply Single Responsibility Principle",
     "\ud83d\udccb GENERAL RECOMMENDATIONS:",
@@ -4175,7 +3995,7 @@
     "   - Implement proper abstractions and interfaces"
   ],
   "metadata": {
-    "generated_at": "2026-08-20T06:16:56.203804",
+    "generated_at": "2026-08-20T06:48:33.514158",
     "analysis_type": "real_time",
     "parse_errors": [],
     "skipped_files": []

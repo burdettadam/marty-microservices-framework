@@ -4,7 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use mmf_security::{
     AuthenticatedUser, AuthenticationMethod, AuthenticationRequest, Authenticator, MfaProvider,
-    SessionStore,
+    SessionManager,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -324,7 +324,7 @@ pub struct IdentityProviders {
     pub api_key: Option<Arc<dyn ApiKeyProvider>>,
     pub mutual_tls: Option<Arc<dyn MtlsAuthenticator>>,
     pub mfa: Option<Arc<dyn MfaProvider>>,
-    pub sessions: Option<Arc<dyn SessionStore>>,
+    pub sessions: Option<Arc<SessionManager>>,
     pub federated: BTreeMap<AuthenticationMethod, Arc<dyn Authenticator>>,
 }
 
