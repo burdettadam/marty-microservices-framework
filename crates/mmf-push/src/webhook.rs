@@ -10,7 +10,7 @@ use mmf_resilience::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sha2::Sha256;
+use sha2::{Digest, Sha256};
 
 use crate::{
     PushAdapter, PushAdapterHealth, PushChannel, PushError, PushHealthStatus, PushMessage,
@@ -19,6 +19,97 @@ use crate::{
 
 type HmacSha256 = Hmac<Sha256>;
 const TOKEN_MARKER: &str = "__MARTY_TOKEN__";
+pub const MINIMUM_EVENT_SECRET_BYTES: usize = 32;
+
+pub fn canonical_event_bytes(
+    audience: &str,
+    event: &str,
+    event_id: &str,
+    timestamp: &str,
+    payload: &Value,
+) -> Result<Vec<u8>, PushError> {
+    let envelope = BTreeMap::from([
+        ("audience", Value::String(audience.to_owned())),
+        ("event", Value::String(event.to_owned())),
+        ("event_id", Value::String(event_id.to_owned())),
+        ("payload", canonical_json(payload)),
+        ("timestamp", Value::String(timestamp.to_owned())),
+    ]);
+    serde_json::to_vec(&envelope).map_err(|error| PushError::Serialization(error.to_string()))
+}
+
+pub fn sign_event(
+    secret: &str,
+    audience: &str,
+    event: &str,
+    event_id: &str,
+    timestamp: &str,
+    payload: &Value,
+) -> Result<String, PushError> {
+    if secret.len() < MINIMUM_EVENT_SECRET_BYTES {
+        return Err(PushError::InvalidConfiguration(format!(
+            "event signing secrets must be at least {MINIMUM_EVENT_SECRET_BYTES} bytes"
+        )));
+    }
+    let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
+        .map_err(|error| PushError::InvalidConfiguration(error.to_string()))?;
+    mac.update(&canonical_event_bytes(
+        audience, event, event_id, timestamp, payload,
+    )?);
+    Ok(format!(
+        "sha256={}",
+        encode_hex(&mac.finalize().into_bytes())
+    ))
+}
+
+#[must_use]
+pub fn verify_event_signature(
+    signature: &str,
+    secret: &str,
+    audience: &str,
+    event: &str,
+    event_id: &str,
+    timestamp: &str,
+    payload: &Value,
+) -> bool {
+    let Some(encoded) = signature.strip_prefix("sha256=") else {
+        return false;
+    };
+    let Some(signature) = decode_hex(encoded) else {
+        return false;
+    };
+    if secret.len() < MINIMUM_EVENT_SECRET_BYTES {
+        return false;
+    }
+    let Ok(canonical) = canonical_event_bytes(audience, event, event_id, timestamp, payload) else {
+        return false;
+    };
+    let Ok(mut mac) = HmacSha256::new_from_slice(secret.as_bytes()) else {
+        return false;
+    };
+    mac.update(&canonical);
+    mac.verify_slice(&signature).is_ok()
+}
+
+pub fn payload_digest(payload: &Value) -> Result<String, PushError> {
+    let encoded = serde_json::to_vec(&canonical_json(payload))
+        .map_err(|error| PushError::Serialization(error.to_string()))?;
+    Ok(encode_hex(&Sha256::digest(encoded)))
+}
+
+fn canonical_json(value: &Value) -> Value {
+    match value {
+        Value::Object(object) => {
+            let sorted = object
+                .iter()
+                .map(|(key, value)| (key.clone(), canonical_json(value)))
+                .collect::<BTreeMap<_, _>>();
+            Value::Object(sorted.into_iter().collect())
+        }
+        Value::Array(values) => Value::Array(values.iter().map(canonical_json).collect()),
+        _ => value.clone(),
+    }
+}
 
 /// Tenant-scoped allowlist for callback destinations.
 ///

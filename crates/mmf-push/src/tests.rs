@@ -19,6 +19,7 @@ struct Fixture {
     lifecycle_error_mappings: LifecycleFixture,
     webhook_signature: SignatureFixture,
     webhook_destination_registry: DestinationRegistryFixture,
+    webhook_event_signature: EventSignatureFixture,
     failure_contracts: FailureFixture,
 }
 
@@ -80,6 +81,17 @@ struct DestinationRegistryFixture {
     configuration: String,
     accepted: Vec<[String; 2]>,
     rejected: Vec<[String; 2]>,
+}
+
+#[derive(Deserialize)]
+struct EventSignatureFixture {
+    secret: String,
+    audience: String,
+    event: String,
+    event_id: String,
+    timestamp: String,
+    payload: Value,
+    expected: String,
 }
 
 #[derive(Deserialize)]
@@ -297,6 +309,50 @@ fn webhook_destinations_are_tenant_bound_and_template_safe() {
             .is_err()
     );
     assert!(WebhookDestinationRegistry::parse("org-a|https://user:pass@x.test/hook").is_err());
+}
+
+#[test]
+fn webhook_event_signature_binds_headers_and_canonical_payload() {
+    let case = fixture().webhook_event_signature;
+    let signature = sign_event(
+        &case.secret,
+        &case.audience,
+        &case.event,
+        &case.event_id,
+        &case.timestamp,
+        &case.payload,
+    )
+    .unwrap();
+    assert_eq!(signature, case.expected);
+    assert!(verify_event_signature(
+        &signature,
+        &case.secret,
+        &case.audience,
+        &case.event,
+        &case.event_id,
+        &case.timestamp,
+        &case.payload,
+    ));
+    assert!(!verify_event_signature(
+        &signature,
+        &case.secret,
+        &case.audience,
+        &case.event,
+        "another-event",
+        &case.timestamp,
+        &case.payload,
+    ));
+    assert!(
+        sign_event(
+            "weak",
+            &case.audience,
+            &case.event,
+            &case.event_id,
+            &case.timestamp,
+            &case.payload,
+        )
+        .is_err()
+    );
 }
 
 #[tokio::test]
