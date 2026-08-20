@@ -10,3 +10,4 @@ pub use mmf_platform as platform;
 pub use mmf_resilience as resilience;
 pub use mmf_runtime as runtime;
 pub use mmf_security as security;
+pub use mmf_services as services;

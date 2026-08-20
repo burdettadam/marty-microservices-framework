@@ -1,6 +1,6 @@
 [package]
-name = "mmf"
-description = "Facade crate for the Rust Marty Microservices Framework"
+name = "mmf-services"
+description = "Canonical built-in identity, audit, compliance, and biometric service orchestration for MMF"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -8,15 +8,17 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
+async-trait.workspace = true
 mmf-config.workspace = true
 mmf-core.workspace = true
 mmf-messaging.workspace = true
 mmf-observability.workspace = true
-mmf-platform.workspace = true
-mmf-resilience.workspace = true
-mmf-runtime.workspace = true
 mmf-security.workspace = true
-mmf-services.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+uuid.workspace = true
 
 [lints]
 workspace = true

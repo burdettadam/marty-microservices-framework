@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use crate::SecurityError;
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthenticationMethod {
     Jwt,

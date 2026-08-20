@@ -17,7 +17,7 @@
     {"id": "documentation-contracts", "owner": "mmf-cli", "status": "planned"},
     {"id": "developer-cli-scaffolding", "owner": "mmf-cli", "status": "planned"},
     {"id": "ml-platform", "owner": "mmf-ml", "status": "planned"},
-    {"id": "built-in-services", "owner": "mmf-services", "status": "planned"},
+    {"id": "built-in-services", "owner": "mmf-services", "status": "active"},
     {"id": "test-load-chaos-tooling", "owner": "mmf-testkit", "status": "planned"}
   ]
 }

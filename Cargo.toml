@@ -9,6 +9,7 @@ members = [
     "crates/mmf-resilience",
     "crates/mmf-runtime",
     "crates/mmf-security",
+    "crates/mmf-services",
 ]
 resolver = "2"
 
@@ -31,6 +32,7 @@ mmf-platform = { path = "crates/mmf-platform" }
 mmf-resilience = { path = "crates/mmf-resilience" }
 mmf-runtime = { path = "crates/mmf-runtime" }
 mmf-security = { path = "crates/mmf-security" }
+mmf-services = { path = "crates/mmf-services" }
 rand = "0.9"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
