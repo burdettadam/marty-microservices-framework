@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "forwarding": [
+    {"severity": "info", "forward": false},
+    {"severity": "low", "forward": false},
+    {"severity": "medium", "forward": false},
+    {"severity": "high", "forward": true},
+    {"severity": "critical", "forward": true}
+  ],
+  "compliance": {
+    "framework": "iso27001",
+    "overall_status": "non_compliant",
+    "score": 50.0,
+    "findings": [
+      {"rule_id": "R001", "rule_name": "TLS", "severity": "critical", "status": "fail"},
+      {"rule_id": "R002", "rule_name": "Encryption", "severity": "high", "status": "pass"},
+      {"rule_id": "R003", "rule_name": "Retention", "severity": "medium", "status": "warning"},
+      {"rule_id": "R004", "rule_name": "Logging", "severity": "low", "status": "pass"}
+    ],
+    "compliance_percentage": 50.0,
+    "critical_findings": 1
+  },
+  "threat_pattern": {
+    "threat_level": "high",
+    "confidence_threshold": 0.8,
+    "trigger_count": 8,
+    "false_positive_count": 2,
+    "accuracy_rate": 0.8,
+    "high_confidence": true
+  }
+}

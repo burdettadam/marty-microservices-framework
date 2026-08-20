@@ -7,6 +7,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod audit;
 pub mod identity;
 
 use mmf_core::{ErrorCode, MmfError};
