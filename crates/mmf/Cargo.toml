@@ -13,6 +13,7 @@ mmf-core.workspace = true
 mmf-observability.workspace = true
 mmf-resilience.workspace = true
 mmf-runtime.workspace = true
+mmf-security.workspace = true
 
 [lints]
 workspace = true

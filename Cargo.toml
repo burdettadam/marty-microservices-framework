@@ -6,6 +6,7 @@ members = [
     "crates/mmf-observability",
     "crates/mmf-resilience",
     "crates/mmf-runtime",
+    "crates/mmf-security",
 ]
 resolver = "2"
 
@@ -25,6 +26,7 @@ mmf-core = { path = "crates/mmf-core" }
 mmf-observability = { path = "crates/mmf-observability" }
 mmf-resilience = { path = "crates/mmf-resilience" }
 mmf-runtime = { path = "crates/mmf-runtime" }
+mmf-security = { path = "crates/mmf-security" }
 rand = "0.9"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

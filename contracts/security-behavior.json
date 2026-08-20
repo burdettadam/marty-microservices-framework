@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "user": {
+    "user_id": "user-123",
+    "roles": ["issuer", "auditor"],
+    "permissions": ["credential:issue", "audit:read"],
+    "role_checks": {"issuer": true, "administrator": false},
+    "permission_checks": {"credential:issue": true, "credential:delete": false}
+  },
+  "rate_limit_keys": [
+    {"scope": "global", "expected": "rate_limit:api:global"},
+    {"scope": "per_user", "user_id": "user-123", "expected": "rate_limit:api:user:user-123"},
+    {"scope": "per_ip", "ip_address": "192.0.2.1", "expected": "rate_limit:api:ip:192.0.2.1"},
+    {"scope": "per_endpoint", "endpoint": "/v1/issue", "expected": "rate_limit:api:endpoint:/v1/issue"},
+    {"scope": "per_service", "service": "gateway", "expected": "rate_limit:api:service:gateway"}
+  ],
+  "fixed_window": {
+    "limit": 2,
+    "window_ms": 1000,
+    "timestamps_ms": [0, 100, 200, 1000],
+    "allowed": [true, true, false, true],
+    "remaining": [1, 0, 0, 1]
+  },
+  "session": {
+    "created_at_ms": 0,
+    "last_accessed_ms": 300000,
+    "default_timeout_ms": 1800000,
+    "max_timeout_ms": 28800000,
+    "idle_timeout_ms": 900000,
+    "absolute_timeout_ms": 43200000,
+    "requested_timeout_ms": 3600000,
+    "now_ms": 600000,
+    "expected_expiration_ms": 1200000,
+    "ip_violation": "IP address mismatch detected",
+    "user_agent_violation": "User agent mismatch detected"
+  },
+  "authorization": {
+    "default_decision": "deny",
+    "deny_overrides_allow": true,
+    "wildcard_resource": "credentials/*",
+    "matching_resource": "credentials/123",
+    "non_matching_resource": "organizations/123"
+  }
+}
