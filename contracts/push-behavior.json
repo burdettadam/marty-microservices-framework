@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "channels": ["fcm", "apns", "sse", "webhook", "webpush", "websocket"],
+  "priorities": ["low", "normal", "high", "critical"],
+  "statuses": ["pending", "sending", "delivered", "failed", "expired", "rejected"],
+  "expiry": {
+    "created_at_ms": 1000,
+    "ttl_seconds": 10,
+    "not_expired_at_ms": 11000,
+    "expired_at_ms": 11001
+  },
+  "fcm": {
+    "message_id": "push-fcm-1",
+    "token": "device-token-1",
+    "priority": "critical",
+    "ttl_seconds": 120,
+    "collapse_key": "credential-update",
+    "content_available": true,
+    "mutable_content": true,
+    "data": {
+      "active": true,
+      "attempt": 3,
+      "roles": ["holder", "verifier"]
+    },
+    "expected": {
+      "android_priority": "high",
+      "apns_priority": "10",
+      "android_ttl": "120s",
+      "active": "true",
+      "attempt": "3",
+      "roles": "[\"holder\", \"verifier\"]"
+    }
+  },
+  "sse": {
+    "message_id": "push-sse-1",
+    "event_type": "credential.updated",
+    "expected_event_id": "push-sse-1",
+    "expected_user_connections": ["conn-user-a", "conn-user-b"],
+    "expected_organization_connections": ["conn-org"]
+  },
+  "lifecycle_error_mappings": {
+    "fcm": {
+      "UNREGISTERED": "unregistered",
+      "INVALID_ARGUMENT": "invalid_format",
+      "SENDER_ID_MISMATCH": "sender_id_mismatch",
+      "messaging/registration-token-not-registered": "unregistered",
+      "unknown": "unknown"
+    },
+    "apns": {
+      "BadDeviceToken": "invalid_format",
+      "Unregistered": "unregistered",
+      "ExpiredToken": "expired",
+      "DeviceTokenNotForTopic": "sender_id_mismatch",
+      "unknown": "unknown"
+    }
+  },
+  "webhook_signature": {
+    "body": "contract-body",
+    "secret": "contract-secret",
+    "expected": "sha256=29511d841efeb0444af670b839b043dcf8ab26a037efd905617e5d6690154a57"
+  },
+  "failure_contracts": {
+    "missing_adapter": "NO_ADAPTER",
+    "expired": "MESSAGE_EXPIRED",
+    "missing_fcm_tokens": "NO_TOKENS",
+    "missing_webhook_endpoints": "NO_ENDPOINTS",
+    "invalid_token": "INVALID_TOKEN",
+    "open_circuit": "CIRCUIT_OPEN"
+  }
+}

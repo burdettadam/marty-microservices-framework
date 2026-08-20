@@ -13,7 +13,7 @@
     {"id": "resilience-performance", "owner": "mmf-resilience", "status": "active"},
     {"id": "discovery-gateway-mesh-deployment", "owner": "mmf-platform", "status": "active"},
     {"id": "plugin-platform", "owner": "mmf-plugins", "status": "planned"},
-    {"id": "push-delivery", "owner": "mmf-push", "status": "planned"},
+    {"id": "push-delivery", "owner": "mmf-push", "status": "active"},
     {"id": "documentation-contracts", "owner": "mmf-cli", "status": "planned"},
     {"id": "developer-cli-scaffolding", "owner": "mmf-cli", "status": "planned"},
     {"id": "ml-platform", "owner": "mmf-ml", "status": "planned"},
