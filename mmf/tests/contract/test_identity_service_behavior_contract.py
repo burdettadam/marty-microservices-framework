@@ -13,12 +13,6 @@ from mmf.services.identity.domain.models import (
     AuthenticationResult,
     AuthenticationStatus,
 )
-from mmf.services.identity.domain.models.oauth2.oauth2_client import (
-    OAuth2Client,
-    OAuth2ClientType,
-)
-
-
 CONTRACT = json.loads(
     (Path(__file__).parents[3] / "contracts" / "identity-service-behavior.json").read_text(
         encoding="utf-8"
@@ -62,19 +56,3 @@ def test_invalid_result_combinations_fail_closed() -> None:
         AuthenticationResult(status=AuthenticationStatus.SUCCESS)
     with pytest.raises(ValueError):
         AuthenticationResult(status=AuthenticationStatus.FAILED)
-
-
-def test_oauth_client_contract() -> None:
-    case = CONTRACT["oauth_client"]
-    client = OAuth2Client(
-        client_id=case["client_id"],
-        client_secret=case["secret_reference"],
-        client_type=OAuth2ClientType.CONFIDENTIAL,
-        redirect_uris=set(case["redirect_uris"]),
-        allowed_grant_types=set(case["grant_types"]),
-        allowed_scopes=set(case["scopes"]),
-    )
-    assert client.is_redirect_uri_allowed(case["redirect_uris"][0])
-    assert client.are_scopes_allowed({"openid", "email"})
-    assert client.is_grant_type_allowed("authorization_code")
-    assert not client.is_redirect_uri_allowed("https://attacker.example/callback")

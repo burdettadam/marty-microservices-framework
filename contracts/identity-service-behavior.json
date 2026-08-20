@@ -14,19 +14,5 @@
     "failure_code": "INVALID_PASSWORD",
     "mfa_status": "requires_mfa",
     "mfa_code": "MFA_REQUIRED"
-  },
-  "oauth_client": {
-    "client_id": "client-123",
-    "secret_reference": "secret://identity/client-123",
-    "redirect_uris": ["https://client.example/callback"],
-    "grant_types": ["authorization_code", "refresh_token"],
-    "scopes": ["openid", "profile", "email"],
-    "confidential": true
-  },
-  "authorization_code": {
-    "created_at_ms": 1000,
-    "lifetime_ms": 600000,
-    "consume_at_ms": 2000,
-    "expired_at_ms": 700000
   }
 }

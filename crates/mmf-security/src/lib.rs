@@ -9,11 +9,14 @@
 mod authorization;
 mod identity;
 pub mod mfa;
+pub mod oauth;
+pub mod oidc;
 mod policy;
 mod providers;
 mod rate_limit;
 mod security_models;
 mod session;
+mod uri;
 
 use std::sync::Arc;
 
@@ -21,6 +24,8 @@ pub use authorization::*;
 pub use identity::*;
 pub use mfa::*;
 use mmf_core::{ErrorCode, MmfError};
+pub use oauth::*;
+pub use oidc::*;
 pub use policy::*;
 pub use providers::*;
 pub use rate_limit::*;

@@ -9,11 +9,12 @@ use mmf_security::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tokio::sync::RwLock;
-use uuid::Uuid;
 
 use crate::ServiceError;
 
-pub use mmf_security::mfa;
+pub use mmf_security::oauth::*;
+pub use mmf_security::oidc::*;
+pub use mmf_security::{mfa, oauth, oidc};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -273,122 +274,6 @@ impl AuthenticationManager {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum OAuth2GrantType {
-    AuthorizationCode,
-    RefreshToken,
-    ClientCredentials,
-    DeviceCode,
-    TokenExchange,
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct OAuth2Client {
-    pub client_id: String,
-    pub client_secret_reference: Option<String>,
-    #[serde(default)]
-    pub redirect_uris: BTreeSet<String>,
-    #[serde(default)]
-    pub grant_types: BTreeSet<OAuth2GrantType>,
-    #[serde(default)]
-    pub scopes: BTreeSet<String>,
-    pub confidential: bool,
-    pub enabled: bool,
-}
-
-impl OAuth2Client {
-    pub fn validate(&self) -> Result<(), ServiceError> {
-        if self.client_id.trim().is_empty() {
-            return Err(ServiceError::InvalidConfiguration(
-                "OAuth2 client id is required".into(),
-            ));
-        }
-        if self
-            .grant_types
-            .contains(&OAuth2GrantType::AuthorizationCode)
-            && self.redirect_uris.is_empty()
-        {
-            return Err(ServiceError::InvalidConfiguration(
-                "authorization-code clients require a redirect URI".into(),
-            ));
-        }
-        if self.confidential
-            && self
-                .client_secret_reference
-                .as_deref()
-                .is_none_or(str::is_empty)
-        {
-            return Err(ServiceError::ProviderUnavailable(
-                "confidential OAuth2 client secret reference is required".into(),
-            ));
-        }
-        if self
-            .redirect_uris
-            .iter()
-            .any(|uri| !uri.starts_with("https://") && !uri.starts_with("http://localhost"))
-        {
-            return Err(ServiceError::InvalidConfiguration(
-                "OAuth2 redirect URIs require HTTPS except localhost".into(),
-            ));
-        }
-        Ok(())
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct AuthorizationCode {
-    pub code_id: String,
-    pub client_id: String,
-    pub user_id: String,
-    pub redirect_uri: String,
-    pub scopes: BTreeSet<String>,
-    pub code_challenge: Option<String>,
-    pub created_at_ms: u64,
-    pub expires_at_ms: u64,
-    pub consumed_at_ms: Option<u64>,
-}
-
-impl AuthorizationCode {
-    #[must_use]
-    pub fn new(
-        client_id: impl Into<String>,
-        user_id: impl Into<String>,
-        redirect_uri: impl Into<String>,
-        scopes: BTreeSet<String>,
-        code_challenge: Option<String>,
-        now_ms: u64,
-        lifetime_ms: u64,
-    ) -> Self {
-        Self {
-            code_id: Uuid::new_v4().to_string(),
-            client_id: client_id.into(),
-            user_id: user_id.into(),
-            redirect_uri: redirect_uri.into(),
-            scopes,
-            code_challenge,
-            created_at_ms: now_ms,
-            expires_at_ms: now_ms.saturating_add(lifetime_ms),
-            consumed_at_ms: None,
-        }
-    }
-
-    pub fn consume(&mut self, now_ms: u64) -> Result<(), ServiceError> {
-        if self.consumed_at_ms.is_some() {
-            return Err(ServiceError::Conflict(
-                "authorization code already consumed".into(),
-            ));
-        }
-        if now_ms > self.expires_at_ms {
-            return Err(ServiceError::Unauthorized(
-                "authorization code expired".into(),
-            ));
-        }
-        self.consumed_at_ms = Some(now_ms);
-        Ok(())
-    }
-}
-
 #[async_trait]
 pub trait IdentityTokenProvider: Send + Sync {
     async fn issue(
@@ -473,8 +358,6 @@ mod tests {
         schema_version: u32,
         user: UserCase,
         results: ResultCase,
-        oauth_client: OAuthClientCase,
-        authorization_code: AuthorizationCodeCase,
     }
 
     #[derive(Deserialize)]
@@ -494,25 +377,6 @@ mod tests {
         failure_code: AuthenticationErrorCode,
         mfa_status: AuthenticationStatus,
         mfa_code: AuthenticationErrorCode,
-    }
-
-    #[derive(Deserialize)]
-    struct OAuthClientCase {
-        client_id: String,
-        secret_reference: String,
-        redirect_uris: BTreeSet<String>,
-        grant_types: BTreeSet<OAuth2GrantType>,
-        scopes: BTreeSet<String>,
-        confidential: bool,
-    }
-
-    #[derive(Deserialize)]
-    #[allow(clippy::struct_field_names)]
-    struct AuthorizationCodeCase {
-        created_at_ms: u64,
-        lifetime_ms: u64,
-        consume_at_ms: u64,
-        expired_at_ms: u64,
     }
 
     fn fixture() -> Fixture {
@@ -589,92 +453,6 @@ mod tests {
             attempted_at_ms: 0,
         };
         assert!(missing_error.validate().is_err());
-    }
-
-    #[test]
-    fn language_neutral_oauth_client_contract() {
-        let case = fixture().oauth_client;
-        let client = OAuth2Client {
-            client_id: case.client_id,
-            client_secret_reference: Some(case.secret_reference),
-            redirect_uris: case.redirect_uris.clone(),
-            grant_types: case.grant_types,
-            scopes: case.scopes.clone(),
-            confidential: case.confidential,
-            enabled: true,
-        };
-        client.validate().expect("valid client");
-        assert!(
-            client
-                .redirect_uris
-                .contains("https://client.example/callback")
-        );
-        assert!(
-            client
-                .scopes
-                .is_superset(&BTreeSet::from(["openid".into(), "email".into()]))
-        );
-        assert!(
-            !client
-                .redirect_uris
-                .contains("https://attacker.example/callback")
-        );
-    }
-
-    #[test]
-    fn machine_clients_do_not_require_browser_redirects() {
-        let client = OAuth2Client {
-            client_id: "machine-client".into(),
-            client_secret_reference: Some("secret://identity/machine-client".into()),
-            redirect_uris: BTreeSet::new(),
-            grant_types: BTreeSet::from([OAuth2GrantType::ClientCredentials]),
-            scopes: BTreeSet::from(["service:read".into()]),
-            confidential: true,
-            enabled: true,
-        };
-        client.validate().expect("valid machine client");
-
-        let browser_client = OAuth2Client {
-            grant_types: BTreeSet::from([OAuth2GrantType::AuthorizationCode]),
-            ..client
-        };
-        assert!(matches!(
-            browser_client.validate(),
-            Err(ServiceError::InvalidConfiguration(_))
-        ));
-    }
-
-    #[test]
-    fn authorization_code_is_expiring_and_one_time() {
-        let case = fixture().authorization_code;
-        let mut code = AuthorizationCode::new(
-            "client",
-            "user",
-            "https://client.example/callback",
-            BTreeSet::from(["openid".into()]),
-            Some("challenge".into()),
-            case.created_at_ms,
-            case.lifetime_ms,
-        );
-        code.consume(case.consume_at_ms).expect("first use");
-        assert!(matches!(
-            code.consume(case.consume_at_ms),
-            Err(ServiceError::Conflict(_))
-        ));
-
-        let mut expired = AuthorizationCode::new(
-            "client",
-            "user",
-            "https://client.example/callback",
-            BTreeSet::new(),
-            None,
-            case.created_at_ms,
-            case.lifetime_ms,
-        );
-        assert!(matches!(
-            expired.consume(case.expired_at_ms),
-            Err(ServiceError::Unauthorized(_))
-        ));
     }
 
     struct SuccessfulAuthenticator(AuthenticatedUser);

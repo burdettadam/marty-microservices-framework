@@ -12,14 +12,12 @@ from .authentication_result import (
     AuthenticationStatus,
 )
 
-# Note: MFA, Session, OAuth2, OIDC, and MTLS subpackages are available
-# but not imported here to avoid circular dependencies with core infrastructure.
+# Note: Session and MTLS subpackages are available but not imported here to
+# avoid circular dependencies with core infrastructure.
 # Import them directly from their subpackages when needed:
-# from .mfa import MFAChallenge, ...
 # from .session import Session, ...
-# from .oauth2 import OAuth2Client, ...
-# from .oidc import JWK, ...
 # from .mtls import MTLSConfiguration, ...
+# OAuth2, OIDC, and MFA behavior is canonical in the Rust mmf-security crate.
 
 
 @dataclass(frozen=True)
@@ -83,10 +81,6 @@ class LegacyAuthenticationResult:
 
 # mTLS models
 
-# OAuth2 models
-
-# OIDC models
-
 # User and authentication models
 
 __all__ = [
@@ -100,10 +94,5 @@ __all__ = [
     "Credentials",
     "Principal",
     "LegacyAuthenticationResult",
-    # Note: MFA, Session, OAuth2, OIDC, and MTLS models are available
-    # in their respective subpackages but not exported here to avoid
-    # circular dependencies. Import them directly when needed.
+    # Session and MTLS models remain in their respective Python subpackages.
 ]
-
-# Note: OAuth2, mTLS, and OIDC models are included via wildcard imports above
-# This provides all the models while maintaining clean separation of concerns
