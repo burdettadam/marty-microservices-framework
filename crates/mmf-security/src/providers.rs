@@ -94,6 +94,7 @@ pub trait KmsProvider: Send + Sync {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct AuthenticationRequest {
     pub scheme: String,
+    #[serde(skip_serializing)]
     pub credential: String,
     #[serde(default)]
     pub metadata: BTreeMap<String, String>,

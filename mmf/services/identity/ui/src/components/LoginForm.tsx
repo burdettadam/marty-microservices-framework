@@ -23,8 +23,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess }) => {
       });
 
       if (response.data.success) {
-        // The minimal example returns user_id as token for now since JWT isn't fully wired
-        onLoginSuccess(response.data.user_id);
+        onLoginSuccess(response.data.token);
       } else {
         setError(response.data.error_message || 'Login failed');
       }

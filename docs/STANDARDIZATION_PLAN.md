@@ -36,11 +36,14 @@
 - Enforces consistent initialization patterns
 - Prevents use of uninitialized containers (runtime safety)
 
-### 3. Refactored Identity Service DI
+### 3. Refactored Identity Service DI (Superseded by Rust)
 
-**File**: `mmf/services/identity/di_config.py`
+**Current owner**: `crates/mmf-services`
 
-**What**: Migrated Identity service from implicit config-based wiring to explicit DI container pattern.
+**What**: The interim Python DI refactor was replaced in wave 23 by the
+Rust-native `identity-service` binary, typed provider composition, Axum router,
+and canonical `mmf-config` snapshots. The Python DI and backend were deleted
+after language-neutral parity and repository gates passed.
 
 **Before**:
 
@@ -50,16 +53,16 @@
 
 **After**:
 
-- `IdentityDIContainer` inherits from `BaseDIContainer`
-- Explicit `initialize()` method wires all dependencies
-- Clear property accessors with initialization checks
-- Proper `cleanup()` for resource management
+- `IdentityHttpState` composes typed provider traits and an authentication manager
+- `identity_router` owns the public HTTP and middleware contract
+- `IdentityServiceConfiguration` decodes canonical layered snapshots
+- the native binary fails startup closed when production secrets are absent
 
 **Dependencies Wired**:
 
-- Infrastructure: `JWTTokenProvider` (JWT adapter)
-- Application: `AuthenticateWithJWTUseCase`, `ValidateTokenUseCase`
-- Configuration accessors: `jwt_config`, `basic_auth_config`, `api_key_config`
+- Infrastructure: native Scrypt, JWT, API-key, persistence, and plugin adapters
+- Application: Rust identity use cases and provider composition
+- Configuration: `mmf-config` snapshots and secret providers
 
 ---
 
@@ -156,7 +159,7 @@ def main():
 ### Migrating Existing Services
 
 1. **Read `mmf/ARCHITECTURE.md`** - Understand the requirements
-2. **Study `mmf/services/audit/` or `mmf/services/identity/`** - Reference implementations
+2. **Study `crates/mmf-services`** - Rust reference implementation for built-in services
 3. **Create `di_config.py`** following the pattern above
 4. **Move implicit wiring** from scattered locations into `initialize()`
 5. **Update imports** - No deprecation warnings, let tests fail

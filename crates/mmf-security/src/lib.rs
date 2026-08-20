@@ -8,6 +8,7 @@
 
 mod authorization;
 mod identity;
+pub mod jwt_hmac;
 pub mod managed_session;
 pub mod mfa;
 pub mod mtls;
@@ -333,6 +334,7 @@ mod tests {
             session_id: None,
             auth_method: None,
             expires_at_ms: None,
+            created_at_ms: None,
             attributes: BTreeMap::new(),
             user_type: None,
             applicant_id: None,

@@ -9,16 +9,26 @@ version.workspace = true
 
 [dependencies]
 async-trait.workspace = true
+axum.workspace = true
+base64.workspace = true
 mmf-config.workspace = true
 mmf-core.workspace = true
 mmf-messaging.workspace = true
 mmf-observability.workspace = true
+mmf-plugins.workspace = true
 mmf-security.workspace = true
+rand.workspace = true
+scrypt.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+tower.workspace = true
 uuid.workspace = true
+
+[dev-dependencies]
+http-body-util.workspace = true
 
 [lints]
 workspace = true

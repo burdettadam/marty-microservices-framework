@@ -11,11 +11,15 @@ pub enum AuthenticationMethod {
     Jwt,
     OAuth2,
     Oidc,
+    Saml,
     ApiKey,
     Basic,
     MutualTls,
+    Mfa,
     Session,
     ServiceIdentity,
+    Environment,
+    Ldap,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -35,6 +39,8 @@ pub struct AuthenticatedUser {
     pub auth_method: Option<AuthenticationMethod>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_at_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub created_at_ms: Option<u64>,
     #[serde(default)]
     pub attributes: BTreeMap<String, Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -66,6 +72,11 @@ impl AuthenticatedUser {
         {
             return Err(SecurityError::InvalidIdentity(
                 "invalid email address".to_owned(),
+            ));
+        }
+        if self.created_at_ms == Some(0) {
+            return Err(SecurityError::InvalidIdentity(
+                "created_at_ms must be greater than zero".to_owned(),
             ));
         }
         Ok(())

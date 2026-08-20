@@ -435,14 +435,3 @@ layers = [
     "application",
     "domain",
 ]
-
-# Services follow hexagonal architecture
-[[tool.importlinter.contracts]]
-name = "Identity Service Layer Contract"
-type = "layers"
-containers = ["mmf.services.identity"]
-layers = [
-    "infrastructure",
-    "application",
-    "domain",
-]

@@ -9,6 +9,11 @@
 
 pub mod audit;
 pub mod identity;
+pub mod identity_config;
+pub mod identity_http;
+pub mod identity_persistence;
+pub mod identity_usecases;
+pub mod native_identity;
 
 use mmf_core::{ErrorCode, MmfError};
 use thiserror::Error;

@@ -29,7 +29,7 @@ from examples.petstore_domain.services.store_service.domain.exceptions import (
     InsufficientStockError,
     OrderNotFoundError,
 )
-from mmf.services.identity.integration import require_authenticated_user
+from examples.petstore_domain.identity import require_authenticated_user
 
 # =============================================================================
 # Request/Response DTOs
@@ -42,7 +42,7 @@ class CreateOrderRequest(BaseModel):
     pet_id: str = Field(..., description="Catalog item ID")
     quantity: int = Field(default=1, gt=0, description="Number of items")
     customer_name: str = Field(..., min_length=1, description="Customer's name")
-    delivery_address: Optional[str] = Field(None, description="Delivery address")
+    delivery_address: str | None = Field(None, description="Delivery address")
     delivery_requested: bool = Field(default=True, description="Whether delivery is requested")
 
 
@@ -56,7 +56,7 @@ class OrderResponse(BaseModel):
     status: str
     total_price: float
     delivery_requested: bool
-    delivery_address: Optional[str] = None
+    delivery_address: str | None = None
 
 
 class OrderListResponse(BaseModel):

@@ -41,6 +41,7 @@ pub enum AuthenticationErrorCode {
     MissingCredentials,
     InvalidUsername,
     InvalidPassword,
+    ApiKeyInvalid,
     AccountLocked,
     AccountDisabled,
     AccountExpired,
@@ -63,6 +64,7 @@ impl AuthenticationErrorCode {
             Some("MISSING_CREDENTIALS" | "NO_CREDENTIALS") => Self::MissingCredentials,
             Some("INVALID_USERNAME" | "USER_NOT_FOUND") => Self::InvalidUsername,
             Some("INVALID_PASSWORD") => Self::InvalidPassword,
+            Some("API_KEY_INVALID") => Self::ApiKeyInvalid,
             Some("ACCOUNT_LOCKED") => Self::AccountLocked,
             Some("ACCOUNT_DISABLED") => Self::AccountDisabled,
             Some("ACCOUNT_EXPIRED") => Self::AccountExpired,
@@ -306,7 +308,13 @@ pub trait PasswordProvider: Send + Sync {
 #[async_trait]
 pub trait ApiKeyProvider: Send + Sync {
     async fn authenticate(&self, api_key: &[u8]) -> Result<AuthenticatedUser, ServiceError>;
-    async fn create(&self, user_id: &str, scopes: BTreeSet<String>) -> Result<Value, ServiceError>;
+    async fn create(
+        &self,
+        user_id: &str,
+        key_name: Option<&str>,
+        expires_at_ms: Option<u64>,
+        scopes: BTreeSet<String>,
+    ) -> Result<Value, ServiceError>;
     async fn revoke(&self, key_id: &str) -> Result<(), ServiceError>;
 }
 
@@ -317,6 +325,7 @@ pub struct IdentityProviders {
     pub mutual_tls: Option<Arc<dyn MtlsAuthenticator>>,
     pub mfa: Option<Arc<dyn MfaProvider>>,
     pub sessions: Option<Arc<dyn SessionStore>>,
+    pub federated: BTreeMap<AuthenticationMethod, Arc<dyn Authenticator>>,
 }
 
 impl IdentityProviders {
@@ -332,7 +341,11 @@ impl IdentityProviders {
                 AuthenticationMethod::MutualTls | AuthenticationMethod::ServiceIdentity => {
                     self.mutual_tls.is_some()
                 }
+                AuthenticationMethod::Mfa => self.mfa.is_some(),
                 AuthenticationMethod::Session => self.sessions.is_some(),
+                AuthenticationMethod::Saml
+                | AuthenticationMethod::Environment
+                | AuthenticationMethod::Ldap => self.federated.contains_key(method),
             };
             if !available {
                 missing.push(format!("{method:?}"));
@@ -394,6 +407,7 @@ mod tests {
             session_id: None,
             auth_method: Some(AuthenticationMethod::Jwt),
             expires_at_ms: None,
+            created_at_ms: None,
             attributes: BTreeMap::new(),
             user_type: None,
             applicant_id: None,
@@ -537,6 +551,7 @@ mod tests {
             mutual_tls: None,
             mfa: None,
             sessions: None,
+            federated: BTreeMap::new(),
         };
         assert!(matches!(
             providers.validate(&BTreeSet::from([
