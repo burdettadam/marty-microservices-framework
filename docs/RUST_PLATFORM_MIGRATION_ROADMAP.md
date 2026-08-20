@@ -10,7 +10,8 @@
 |---|---|---|
 | Workspace foundation | Merge queued | `mmf-core`, `mmf-config`, `mmf-runtime`, the `mmf` facade, capability ownership inventory, fail-closed lifecycle/readiness contracts, Rust CI, and the existing 1,633-test Python baseline are green in PR #88 |
 | Resilience | Active | `mmf-resilience` now owns validated deadlines, configurable/custom retry backoff, jitter, count/rate circuit breaking, async bulkheads, ordered static/function/cache fallbacks, canonical metrics/errors, and the unified composition order; Rust and Python execute `contracts/resilience-behavior.json` for parity |
-| Observability and security | Next | Capture shared propagation/redaction/metrics and authorization/session/rate-limit contracts before extracting service implementations |
+| Observability | Active | `mmf-observability` now owns MMF correlation headers, strict W3C trace context, recursive structured-data redaction, bounded Prometheus counter/gauge/histogram/summary semantics, SLI/SLO/error-budget math, log/span/business-metric records, dashboard/alert metadata, and fail-closed exporter configuration; Python and Rust execute `contracts/observability-behavior.json` for correlation, trace propagation, and SLO parity |
+| Security | Next | Capture authorization, session, rate-limit, threat-detection, service-mesh, audit, and provider contracts before extracting service implementations |
 | Data and messaging | Planned | Capture SQL/Redis/migration and event/outbox/idempotency/DLQ contracts required by the gateway, flow, and organization ports |
 | Python resilience deletion | Waiting on consumers | Delete the Python resilience package immediately after production consumers use the published Rust crate and the shared contract plus packaging guards pass |
 

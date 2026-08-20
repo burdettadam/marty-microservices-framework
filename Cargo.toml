@@ -3,6 +3,7 @@ members = [
     "crates/mmf",
     "crates/mmf-config",
     "crates/mmf-core",
+    "crates/mmf-observability",
     "crates/mmf-resilience",
     "crates/mmf-runtime",
 ]
@@ -21,6 +22,7 @@ async-trait = "0.1"
 http-body-util = "0.1"
 mmf-config = { path = "crates/mmf-config" }
 mmf-core = { path = "crates/mmf-core" }
+mmf-observability = { path = "crates/mmf-observability" }
 mmf-resilience = { path = "crates/mmf-resilience" }
 mmf-runtime = { path = "crates/mmf-runtime" }
 rand = "0.9"

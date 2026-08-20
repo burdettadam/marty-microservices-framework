@@ -4,5 +4,6 @@
 
 pub use mmf_config as config;
 pub use mmf_core as core;
+pub use mmf_observability as observability;
 pub use mmf_resilience as resilience;
 pub use mmf_runtime as runtime;
