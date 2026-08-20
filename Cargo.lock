@@ -353,9 +353,11 @@ dependencies = [
 name = "mmf-config"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "mmf-core",
  "serde",
  "serde_json",
+ "tokio",
  "toml",
 ]
 

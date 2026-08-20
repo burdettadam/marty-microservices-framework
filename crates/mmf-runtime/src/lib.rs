@@ -2,6 +2,10 @@
 
 #![forbid(unsafe_code)]
 
+mod services;
+
+pub use services::*;
+
 use std::{
     collections::BTreeMap,
     sync::{Arc, RwLock},
