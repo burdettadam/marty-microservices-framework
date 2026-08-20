@@ -10,12 +10,14 @@ mod deployment;
 mod discovery;
 mod gateway;
 mod ports;
+mod proxy;
 
 pub use deployment::*;
 pub use discovery::*;
 pub use gateway::*;
 pub use mmf_security::{MeshType, ServiceMeshManager, ServiceMeshPolicy};
 pub use ports::*;
+pub use proxy::*;
 
 use mmf_core::{ErrorCode, MmfError};
 use thiserror::Error;
@@ -36,6 +38,10 @@ pub enum PlatformError {
     Conflict(String),
     #[error("platform operation failed: {0}")]
     Operation(String),
+    #[error("upstream request timed out: {0}")]
+    UpstreamTimeout(String),
+    #[error("upstream transport failed: {0}")]
+    UpstreamTransport(String),
 }
 
 impl From<PlatformError> for MmfError {
@@ -45,9 +51,10 @@ impl From<PlatformError> for MmfError {
             PlatformError::ServiceNotFound(_) | PlatformError::RouteNotFound { .. } => {
                 ErrorCode::NotFound
             }
-            PlatformError::NoHealthyInstance(_) | PlatformError::ProviderUnavailable(_) => {
-                ErrorCode::DependencyUnavailable
-            }
+            PlatformError::NoHealthyInstance(_)
+            | PlatformError::ProviderUnavailable(_)
+            | PlatformError::UpstreamTimeout(_)
+            | PlatformError::UpstreamTransport(_) => ErrorCode::DependencyUnavailable,
             PlatformError::Conflict(_) => ErrorCode::Conflict,
             PlatformError::Operation(_) => ErrorCode::Internal,
         };

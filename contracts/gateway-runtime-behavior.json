@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "retryable_methods": ["GET", "HEAD", "OPTIONS", "PUT", "DELETE"],
+  "non_retryable_methods": ["POST", "PATCH", "TRACE", "CONNECT"],
+  "query_merge": {
+    "incoming": {"filter": ["active", "verified"], "limit": ["25"]},
+    "injected": {"organization_id": ["org-1"], "limit": ["100"]},
+    "expected": {
+      "filter": ["active", "verified"],
+      "limit": ["25"],
+      "organization_id": ["org-1"]
+    }
+  },
+  "trusted_headers": {
+    "incoming": {
+      "Authorization": "Bearer public-token",
+      "Connection": "keep-alive",
+      "Content-Type": "application/json",
+      "Host": "api.example.test",
+      "X-Api-Key": "must-not-forward",
+      "X-Organization-ID": "forged-org",
+      "X-User-Id": "forged-user"
+    },
+    "identity": {
+      "user_id": "user-1",
+      "organization_id": "org-1",
+      "api_key_id": "key-1",
+      "api_key_scopes": ["credentials:write", "credentials:read"],
+      "organization_roles": ["admin", "issuer"],
+      "organization_permissions": ["credential:issue", "credential:read"],
+      "required_permission": "credential:read"
+    },
+    "expected_present": {
+      "Authorization": "Bearer public-token",
+      "Content-Type": "application/json",
+      "X-Api-Key-Id": "key-1",
+      "X-Api-Key-Scopes": "credentials:write,credentials:read",
+      "X-Organization-ID": "org-1",
+      "X-Org-Permissions": "credential:issue,credential:read",
+      "X-Org-Roles": "admin,issuer",
+      "X-Required-Permission": "credential:read",
+      "X-User-Id": "user-1"
+    },
+    "expected_absent": ["Connection", "Host", "X-Api-Key"]
+  },
+  "errors": [
+    {
+      "name": "complete_mip_passthrough",
+      "status": 409,
+      "body": {"error": "conflict", "error_description": "Already exists", "message_id": "fixed-message"},
+      "expected_error": "conflict",
+      "expected_description": "Already exists",
+      "passthrough": true
+    },
+    {
+      "name": "fastapi_string_detail",
+      "status": 422,
+      "body": {"detail": "Invalid request"},
+      "expected_error": "service_error",
+      "expected_description": "Invalid request",
+      "passthrough": false
+    },
+    {
+      "name": "fastapi_structured_detail",
+      "status": 403,
+      "body": {"detail": {"error": "tenant_denied", "message": "Wrong tenant", "organization_id": "org-2"}},
+      "expected_error": "tenant_denied",
+      "expected_description": "Wrong tenant",
+      "passthrough": false
+    },
+    {
+      "name": "non_json",
+      "status": 502,
+      "raw_body": "not json",
+      "expected_error": "service_error",
+      "expected_description": "Downstream service request failed",
+      "passthrough": false
+    }
+  ],
+  "limits": {"maximum_response_bytes": 10485760, "default_timeout_ms": 30000},
+  "cedar": {
+    "schema": {
+      "": {
+        "entityTypes": {"User": {}, "Document": {}},
+        "actions": {
+          "read": {
+            "appliesTo": {
+              "principalTypes": ["User"],
+              "resourceTypes": ["Document"],
+              "context": {
+                "type": "Record",
+                "attributes": {
+                  "tenant": {"type": "String", "required": true}
+                },
+                "additionalAttributes": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "policy": "permit(principal == User::\"alice\", action == Action::\"read\", resource == Document::\"doc-1\") when { context.tenant == \"org-1\" }; forbid(principal, action, resource) when { context.tenant == \"blocked\" };",
+    "cases": [
+      {"principal_id": "alice", "resource_id": "doc-1", "tenant": "org-1", "allowed": true},
+      {"principal_id": "bob", "resource_id": "doc-1", "tenant": "org-1", "allowed": false},
+      {"principal_id": "alice", "resource_id": "doc-1", "tenant": "blocked", "allowed": false}
+    ]
+  }
+}

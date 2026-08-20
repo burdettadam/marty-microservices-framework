@@ -959,18 +959,22 @@ fn python_json_string(value: &Value) -> String {
                 .collect::<Vec<_>>()
                 .join(", ")
         ),
-        Value::Object(values) => format!(
-            "{{{}}}",
-            values
-                .iter()
-                .map(|(key, value)| format!(
-                    "{}: {}",
-                    serde_json::to_string(key).unwrap_or_else(|_| "\"\"".into()),
-                    python_json_string(value)
-                ))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
+        Value::Object(values) => {
+            let mut values = values.iter().collect::<Vec<_>>();
+            values.sort_by(|(left, _), (right, _)| left.cmp(right));
+            format!(
+                "{{{}}}",
+                values
+                    .into_iter()
+                    .map(|(key, value)| format!(
+                        "{}: {}",
+                        serde_json::to_string(key).unwrap_or_else(|_| "\"\"".into()),
+                        python_json_string(value)
+                    ))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        }
     }
 }
 #[allow(

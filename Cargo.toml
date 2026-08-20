@@ -32,6 +32,7 @@ version = "0.1.0"
 axum = "0.8"
 async-trait = "0.1"
 base64 = "0.22"
+cedar-policy = "4.8.1"
 http-body-util = "0.1"
 mmf-config = { version = "0.1.0", path = "crates/mmf-config" }
 mmf-cli = { version = "0.1.0", path = "crates/mmf-cli" }

@@ -10,6 +10,7 @@ version.workspace = true
 [dependencies]
 async-trait.workspace = true
 base64.workspace = true
+cedar-policy.workspace = true
 hmac.workspace = true
 hkdf.workspace = true
 mmf-core.workspace = true

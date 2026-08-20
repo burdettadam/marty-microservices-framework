@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 
 mod authorization;
+pub mod cedar;
 mod identity;
 pub mod jwt_hmac;
 pub mod managed_session;
@@ -29,6 +30,7 @@ mod uri;
 use std::sync::Arc;
 
 pub use authorization::*;
+pub use cedar::*;
 pub use identity::*;
 pub use managed_session::*;
 pub use mfa::*;
