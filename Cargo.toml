@@ -12,6 +12,7 @@ members = [
     "crates/mmf-runtime",
     "crates/mmf-security",
     "crates/mmf-services",
+    "crates/mmf-testkit",
     "crates/mmf-workflow",
 ]
 resolver = "2"
@@ -38,6 +39,7 @@ mmf-resilience = { path = "crates/mmf-resilience" }
 mmf-runtime = { path = "crates/mmf-runtime" }
 mmf-security = { path = "crates/mmf-security" }
 mmf-services = { path = "crates/mmf-services" }
+mmf-testkit = { path = "crates/mmf-testkit" }
 mmf-workflow = { path = "crates/mmf-workflow" }
 rand = "0.9"
 regex = "1"

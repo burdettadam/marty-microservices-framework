@@ -19,6 +19,7 @@ mmf-resilience.workspace = true
 mmf-runtime.workspace = true
 mmf-security.workspace = true
 mmf-services.workspace = true
+mmf-testkit.workspace = true
 mmf-workflow.workspace = true
 
 [lints]
