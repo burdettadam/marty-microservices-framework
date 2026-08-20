@@ -40,6 +40,8 @@ pub enum MessagingError {
     Unroutable(String),
     #[error("message version conflict: expected {expected}, actual {actual}")]
     VersionConflict { expected: u64, actual: u64 },
+    #[error("message delivery lease is no longer owned: {0}")]
+    LeaseConflict(String),
     #[error("messaging operation is unsupported by the selected backend: {0}")]
     Unsupported(String),
     #[error("messaging storage failed: {0}")]
@@ -51,9 +53,9 @@ impl From<MessagingError> for MmfError {
         let code = match &error {
             MessagingError::InvalidConfiguration(_) => ErrorCode::Configuration,
             MessagingError::BackendUnavailable(_) => ErrorCode::DependencyUnavailable,
-            MessagingError::Duplicate(_) | MessagingError::VersionConflict { .. } => {
-                ErrorCode::Conflict
-            }
+            MessagingError::Duplicate(_)
+            | MessagingError::VersionConflict { .. }
+            | MessagingError::LeaseConflict(_) => ErrorCode::Conflict,
             MessagingError::Expired | MessagingError::Unroutable(_) => ErrorCode::InvalidState,
             MessagingError::Unsupported(_)
             | MessagingError::Serialization(_)
@@ -79,6 +81,19 @@ mod tests {
         message_state: MessageStateCase,
         routing: RoutingCase,
         pattern_recommendations: Vec<PatternCase>,
+        leased_outbox: LeasedOutboxCase,
+    }
+
+    #[derive(Deserialize)]
+    struct LeasedOutboxCase {
+        first_claim_at_ms: u64,
+        lease_duration_ms: u64,
+        reclaim_at_ms: u64,
+        first_attempt: u32,
+        reclaimed_attempt: u32,
+        stale_worker_rejected: bool,
+        completed_status: MessageStatus,
+        expired_status: MessageStatus,
     }
 
     #[derive(Deserialize)]
@@ -259,6 +274,42 @@ mod tests {
         }
         assert_eq!(store.dead_letters().len(), 1);
         assert!(store.requeue_dead_letter("one").expect("requeue"));
+    }
+
+    #[test]
+    fn leased_outbox_recovers_without_accepting_stale_workers() {
+        let case = fixture().leased_outbox;
+        let mut store = InMemoryDeliveryStore::default();
+        store.enqueue(message("leased", "callbacks"), 1).unwrap();
+        let first = store
+            .claim_due(case.first_claim_at_ms, case.lease_duration_ms, 1, None)
+            .unwrap()
+            .pop()
+            .unwrap();
+        assert_eq!(first.attempt_count, case.first_attempt);
+        let first_token = first.lease_token.unwrap();
+
+        let reclaimed = store
+            .claim_due(case.reclaim_at_ms, case.lease_duration_ms, 1, None)
+            .unwrap()
+            .pop()
+            .unwrap();
+        assert_eq!(reclaimed.attempt_count, case.reclaimed_attempt);
+        let reclaimed_token = reclaimed.lease_token.unwrap();
+        let stale = store.mark_processed_by_lease("leased", &first_token, case.reclaim_at_ms);
+        assert_eq!(stale.is_err(), case.stale_worker_rejected);
+        store
+            .mark_processed_by_lease("leased", &reclaimed_token, case.reclaim_at_ms)
+            .unwrap();
+        assert_eq!(store.entry("leased").unwrap().status, case.completed_status);
+
+        let mut expiring = message("expiring", "callbacks");
+        expiring.metadata.expires_at_ms = Some(case.first_claim_at_ms);
+        store.enqueue(expiring, 1).unwrap();
+        assert_eq!(store.scrub_expired(case.reclaim_at_ms), 1);
+        let expired = store.entry("expiring").unwrap();
+        assert_eq!(expired.status, case.expired_status);
+        assert_eq!(expired.message.payload, serde_json::Value::Null);
     }
 
     #[tokio::test]

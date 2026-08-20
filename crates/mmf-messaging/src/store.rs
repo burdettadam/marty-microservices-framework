@@ -14,6 +14,10 @@ pub struct OutboxEntry {
     pub next_attempt_at_ms: Option<u64>,
     pub last_error: Option<String>,
     pub processed_at_ms: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lease_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lease_expires_at_ms: Option<u64>,
 }
 
 impl OutboxEntry {
@@ -73,6 +77,8 @@ impl InMemoryDeliveryStore {
                 next_attempt_at_ms: None,
                 last_error: None,
                 processed_at_ms: None,
+                lease_token: None,
+                lease_expires_at_ms: None,
             },
         );
         Ok(partition)
@@ -116,7 +122,138 @@ impl InMemoryDeliveryStore {
         })?;
         entry.attempt_count = entry.attempt_count.saturating_add(1);
         entry.status = MessageStatus::Processing;
+        entry.lease_token = None;
+        entry.lease_expires_at_ms = None;
         Ok(())
+    }
+
+    /// Atomically claim due entries with per-attempt fencing tokens.
+    ///
+    /// Processing entries whose lease expired are eligible for recovery. A
+    /// token is unique to one claim, so a stale worker cannot acknowledge a
+    /// later delivery attempt.
+    pub fn claim_due(
+        &mut self,
+        now_ms: u64,
+        lease_duration_ms: u64,
+        limit: usize,
+        partition: Option<u32>,
+    ) -> Result<Vec<OutboxEntry>, MessagingError> {
+        if lease_duration_ms == 0 || limit == 0 {
+            return Err(MessagingError::InvalidConfiguration(
+                "outbox lease duration and claim limit must be greater than zero".into(),
+            ));
+        }
+
+        for entry in self.outbox.values_mut() {
+            if entry.status == MessageStatus::Processing
+                && entry
+                    .lease_expires_at_ms
+                    .is_some_and(|expires| expires <= now_ms)
+            {
+                entry.status = MessageStatus::Retry;
+                entry.lease_token = None;
+                entry.lease_expires_at_ms = None;
+            }
+        }
+
+        let ids = self
+            .pending(now_ms, limit, partition)
+            .into_iter()
+            .map(|entry| entry.message.metadata.message_id)
+            .collect::<Vec<_>>();
+        let mut claimed = Vec::with_capacity(ids.len());
+        for message_id in ids {
+            let entry = self.outbox.get_mut(&message_id).ok_or_else(|| {
+                MessagingError::Storage(format!(
+                    "outbox message {message_id} disappeared during claim"
+                ))
+            })?;
+            entry.status = MessageStatus::Processing;
+            entry.attempt_count = entry.attempt_count.saturating_add(1);
+            entry.lease_token = Some(uuid::Uuid::new_v4().to_string());
+            entry.lease_expires_at_ms = Some(now_ms.saturating_add(lease_duration_ms));
+            claimed.push(entry.clone());
+        }
+        Ok(claimed)
+    }
+
+    /// Complete a leased attempt only when the caller owns the current fence.
+    pub fn mark_processed_by_lease(
+        &mut self,
+        message_id: &str,
+        lease_token: &str,
+        now_ms: u64,
+    ) -> Result<(), MessagingError> {
+        let entry = self.leased_entry(message_id, lease_token)?;
+        entry.status = MessageStatus::Processed;
+        entry.processed_at_ms = Some(now_ms);
+        entry.last_error = None;
+        entry.lease_token = None;
+        entry.lease_expires_at_ms = None;
+        Ok(())
+    }
+
+    /// Fail a leased attempt, preserving retry/dead-letter semantics and
+    /// rejecting acknowledgements from stale workers.
+    pub fn mark_failed_by_lease(
+        &mut self,
+        message_id: &str,
+        lease_token: &str,
+        reason: impl Into<String>,
+        next_attempt_at_ms: Option<u64>,
+        now_ms: u64,
+    ) -> Result<MessageStatus, MessagingError> {
+        let reason = reason.into();
+        let (status, dead_letter) = {
+            let entry = self.leased_entry(message_id, lease_token)?;
+            entry.last_error = Some(reason.clone());
+            entry.lease_token = None;
+            entry.lease_expires_at_ms = None;
+            if entry.attempt_count >= entry.max_attempts {
+                entry.status = MessageStatus::DeadLetter;
+                let dead_letter = DeadLetter {
+                    message_id: message_id.to_owned(),
+                    message_type: entry.message.message_type.clone(),
+                    topic: entry.message.topic.clone(),
+                    reason,
+                    failed_at_ms: now_ms,
+                    attempt_count: entry.attempt_count,
+                };
+                (entry.status, Some(dead_letter))
+            } else {
+                entry.status = MessageStatus::Retry;
+                entry.next_attempt_at_ms = next_attempt_at_ms;
+                (entry.status, None)
+            }
+        };
+        if let Some(dead_letter) = dead_letter {
+            self.dead_letters.insert(message_id.to_owned(), dead_letter);
+        }
+        Ok(status)
+    }
+
+    /// Remove retained payloads from expired, non-terminal deliveries.
+    pub fn scrub_expired(&mut self, now_ms: u64) -> usize {
+        let mut scrubbed = 0;
+        for entry in self.outbox.values_mut() {
+            if entry.message.metadata.is_expired(now_ms)
+                && !matches!(
+                    entry.status,
+                    MessageStatus::Processed | MessageStatus::Skipped
+                )
+            {
+                entry.status = MessageStatus::Skipped;
+                entry.message.payload = serde_json::Value::Null;
+                entry.message.routing_key.clear();
+                entry.message.reply_to = None;
+                entry.lease_token = None;
+                entry.lease_expires_at_ms = None;
+                entry.last_error = Some("retention_expired".into());
+                scrubbed += 1;
+            }
+        }
+        scrubbed
     }
 
     pub fn mark_processed(&mut self, message_id: &str, now_ms: u64) -> Result<(), MessagingError> {
@@ -126,6 +263,8 @@ impl InMemoryDeliveryStore {
         entry.status = MessageStatus::Processed;
         entry.processed_at_ms = Some(now_ms);
         entry.last_error = None;
+        entry.lease_token = None;
+        entry.lease_expires_at_ms = None;
         Ok(())
     }
 
@@ -158,6 +297,8 @@ impl InMemoryDeliveryStore {
             entry.status = MessageStatus::Retry;
             entry.next_attempt_at_ms = next_attempt_at_ms;
         }
+        entry.lease_token = None;
+        entry.lease_expires_at_ms = None;
         Ok(entry.status)
     }
 
@@ -172,6 +313,8 @@ impl InMemoryDeliveryStore {
         entry.attempt_count = 0;
         entry.next_attempt_at_ms = None;
         entry.last_error = None;
+        entry.lease_token = None;
+        entry.lease_expires_at_ms = None;
         Ok(true)
     }
 
@@ -218,6 +361,28 @@ impl InMemoryDeliveryStore {
             .values()
             .filter(|entry| entry.is_pending(now_ms))
             .count()
+    }
+
+    #[must_use]
+    pub fn entry(&self, message_id: &str) -> Option<OutboxEntry> {
+        self.outbox.get(message_id).cloned()
+    }
+
+    fn leased_entry(
+        &mut self,
+        message_id: &str,
+        lease_token: &str,
+    ) -> Result<&mut OutboxEntry, MessagingError> {
+        let entry = self.outbox.get_mut(message_id).ok_or_else(|| {
+            MessagingError::Storage(format!("outbox message {message_id} not found"))
+        })?;
+        if entry.status != MessageStatus::Processing
+            || lease_token.is_empty()
+            || entry.lease_token.as_deref() != Some(lease_token)
+        {
+            return Err(MessagingError::LeaseConflict(message_id.to_owned()));
+        }
+        Ok(entry)
     }
 }
 

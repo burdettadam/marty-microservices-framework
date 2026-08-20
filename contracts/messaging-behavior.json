@@ -34,5 +34,15 @@
     {"use_case": "ordered events", "response_needed": false, "ordering_required": true, "high_throughput": true, "expected": "stream_processing"},
     {"use_case": "background command", "response_needed": false, "ordering_required": false, "high_throughput": false, "expected": "point_to_point"},
     {"use_case": "system broadcast", "response_needed": false, "ordering_required": false, "high_throughput": false, "expected": "broadcast"}
-  ]
+  ],
+  "leased_outbox": {
+    "first_claim_at_ms": 1000,
+    "lease_duration_ms": 100,
+    "reclaim_at_ms": 1100,
+    "first_attempt": 1,
+    "reclaimed_attempt": 2,
+    "stale_worker_rejected": true,
+    "completed_status": "processed",
+    "expired_status": "skipped"
+  }
 }
