@@ -6,7 +6,11 @@
 
 #![forbid(unsafe_code)]
 
+mod alerting;
+mod analytics;
 mod correlation;
+mod health;
+mod instrumentation;
 mod metrics;
 mod redaction;
 mod slo;
@@ -14,7 +18,11 @@ mod slo;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
+pub use alerting::*;
+pub use analytics::*;
 pub use correlation::*;
+pub use health::*;
+pub use instrumentation::*;
 pub use metrics::*;
 use mmf_core::{ErrorCode, MmfError};
 pub use redaction::*;
@@ -336,14 +344,20 @@ pub enum ObservabilityError {
     ExporterUnavailable(String),
     #[error("telemetry sink failed: {0}")]
     Sink(String),
+    #[error("health probe failed: {0}")]
+    HealthProbe(String),
+    #[error("invalid alert rule: {0}")]
+    InvalidAlertRule(String),
+    #[error("invalid analytics input: {0}")]
+    InvalidAnalyticsInput(String),
 }
 
 impl From<ObservabilityError> for MmfError {
     fn from(error: ObservabilityError) -> Self {
         let code = match error {
-            ObservabilityError::ExporterUnavailable(_) | ObservabilityError::Sink(_) => {
-                ErrorCode::DependencyUnavailable
-            }
+            ObservabilityError::ExporterUnavailable(_)
+            | ObservabilityError::Sink(_)
+            | ObservabilityError::HealthProbe(_) => ErrorCode::DependencyUnavailable,
             _ => ErrorCode::InvalidInput,
         };
         MmfError::new(code, error.to_string())

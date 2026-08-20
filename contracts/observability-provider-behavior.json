@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "aggregations": {
+    "values": [1.0, 2.0, 3.0, 4.0],
+    "expected": {"sum": 10.0, "average": 2.5, "min": 1.0, "max": 4.0, "count": 4.0, "p95": 4.0, "p99": 4.0, "latest": 4.0}
+  },
+  "thresholds": [
+    {"operator": "greater_than", "value": 11.0, "threshold": 10.0, "triggered": true},
+    {"operator": "greater_than_or_equal", "value": 10.0, "threshold": 10.0, "triggered": true},
+    {"operator": "less_than", "value": 9.0, "threshold": 10.0, "triggered": true},
+    {"operator": "less_than_or_equal", "value": 10.0, "threshold": 10.0, "triggered": true},
+    {"operator": "equals", "value": 10.00001, "threshold": 10.0, "triggered": true},
+    {"operator": "not_equals", "value": 10.1, "threshold": 10.0, "triggered": true}
+  ],
+  "health_rollups": [
+    {"statuses": [], "expected": "healthy"},
+    {"statuses": ["healthy", "healthy"], "expected": "healthy"},
+    {"statuses": ["healthy", "unknown"], "expected": "unknown"},
+    {"statuses": ["healthy", "degraded"], "expected": "degraded"},
+    {"statuses": ["degraded", "unhealthy"], "expected": "unhealthy"}
+  ],
+  "trend": {
+    "points": [
+      {"timestamp_ms": 0, "value": 10.0}, {"timestamp_ms": 1000, "value": 11.0},
+      {"timestamp_ms": 2000, "value": 12.0}, {"timestamp_ms": 3000, "value": 13.0},
+      {"timestamp_ms": 4000, "value": 14.0}, {"timestamp_ms": 5000, "value": 15.0},
+      {"timestamp_ms": 6000, "value": 16.0}, {"timestamp_ms": 7000, "value": 17.0},
+      {"timestamp_ms": 8000, "value": 18.0}, {"timestamp_ms": 9000, "value": 19.0}
+    ],
+    "direction": "increasing",
+    "slope_per_second": 1.0,
+    "r_squared": 1.0,
+    "mean": 14.5,
+    "median": 14.5,
+    "p95": 19.0,
+    "p99": 19.0
+  },
+  "capacity": {
+    "metric_name": "cpu_usage",
+    "points": [
+      {"timestamp_ms": 0, "value": 0.20}, {"timestamp_ms": 86400000, "value": 0.25},
+      {"timestamp_ms": 172800000, "value": 0.30}, {"timestamp_ms": 259200000, "value": 0.35},
+      {"timestamp_ms": 345600000, "value": 0.40}, {"timestamp_ms": 432000000, "value": 0.45},
+      {"timestamp_ms": 518400000, "value": 0.50}, {"timestamp_ms": 604800000, "value": 0.55},
+      {"timestamp_ms": 691200000, "value": 0.60}, {"timestamp_ms": 777600000, "value": 0.65}
+    ],
+    "horizon_seconds": 2592000,
+    "predicted_usage": 2.15,
+    "time_to_threshold_seconds": 259200.0,
+    "recommendation_prefix": "Immediate action required"
+  }
+}

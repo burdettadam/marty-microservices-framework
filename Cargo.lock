@@ -387,6 +387,7 @@ dependencies = [
 name = "mmf-observability"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "mmf-core",
  "serde",
  "serde_json",
