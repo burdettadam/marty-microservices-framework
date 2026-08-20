@@ -16,7 +16,7 @@
     {"id": "push-delivery", "owner": "mmf-push", "status": "active"},
     {"id": "documentation-contracts", "owner": "mmf-cli", "status": "planned"},
     {"id": "developer-cli-scaffolding", "owner": "mmf-cli", "status": "planned"},
-    {"id": "ml-platform", "owner": "mmf-ml", "status": "planned"},
+    {"id": "ml-platform", "owner": "mmf-ml", "status": "active"},
     {"id": "built-in-services", "owner": "mmf-services", "status": "active"},
     {"id": "test-load-chaos-tooling", "owner": "mmf-testkit", "status": "active"}
   ]

@@ -12,6 +12,7 @@ mmf-config.workspace = true
 mmf-core.workspace = true
 mmf-data.workspace = true
 mmf-messaging.workspace = true
+mmf-ml.workspace = true
 mmf-observability.workspace = true
 mmf-platform.workspace = true
 mmf-push.workspace = true

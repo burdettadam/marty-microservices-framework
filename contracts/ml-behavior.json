@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "model_types": ["classification", "regression", "clustering", "recommendation", "natural_language", "computer_vision", "time_series", "deep_learning", "ensemble"],
+  "frameworks": ["sklearn", "tensorflow", "pytorch", "xgboost", "lightgbm", "keras", "onnx", "huggingface", "custom"],
+  "statuses": ["training", "validating", "ready", "deployed", "serving", "deprecated", "failed", "archived"],
+  "feature_types": ["numerical", "categorical", "text", "datetime", "boolean", "embedding", "array", "json"],
+  "numeric_values": [1.0, 2.0, 3.0, 4.0],
+  "numeric_statistics": {"count": 4, "unique_count": 4, "mean": 2.5, "std": 1.118033988749895, "min": 1.0, "max": 4.0, "median": 2.5, "percentile_25": 1.75, "percentile_75": 3.25},
+  "categorical_values": ["active", "inactive", "active"],
+  "categorical_statistics": {"count": 3, "unique_count": 2},
+  "cache_key": {"model_id": "model-1", "input": {"age": 42, "country": "US"}, "expected": "858d625653d41296"},
+  "validation": {"below_minimum": "Value below minimum: 18", "wrong_type": "Expected numerical value", "unknown": "Feature not registered"},
+  "lineage": {"parent": "model-parent", "child": "model-child"}
+}
