@@ -14,10 +14,12 @@ mmf-data.workspace = true
 mmf-messaging.workspace = true
 mmf-observability.workspace = true
 mmf-platform.workspace = true
+mmf-patterns.workspace = true
 mmf-resilience.workspace = true
 mmf-runtime.workspace = true
 mmf-security.workspace = true
 mmf-services.workspace = true
+mmf-workflow.workspace = true
 
 [lints]
 workspace = true

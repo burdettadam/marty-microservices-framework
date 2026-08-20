@@ -342,11 +342,13 @@ dependencies = [
  "mmf-data",
  "mmf-messaging",
  "mmf-observability",
+ "mmf-patterns",
  "mmf-platform",
  "mmf-resilience",
  "mmf-runtime",
  "mmf-security",
  "mmf-services",
+ "mmf-workflow",
 ]
 
 [[package]]
@@ -409,6 +411,20 @@ dependencies = [
  "thiserror",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "mmf-patterns"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "mmf-data",
+ "mmf-messaging",
+ "mmf-workflow",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -485,6 +501,17 @@ dependencies = [
  "thiserror",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "mmf-workflow"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
 ]
 
 [[package]]
