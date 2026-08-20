@@ -9,6 +9,7 @@
 mod authorization;
 mod identity;
 pub mod mfa;
+pub mod mtls;
 pub mod oauth;
 pub mod oidc;
 mod policy;
@@ -24,6 +25,7 @@ pub use authorization::*;
 pub use identity::*;
 pub use mfa::*;
 use mmf_core::{ErrorCode, MmfError};
+pub use mtls::*;
 pub use oauth::*;
 pub use oidc::*;
 pub use policy::*;

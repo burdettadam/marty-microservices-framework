@@ -12,9 +12,10 @@ use tokio::sync::RwLock;
 
 use crate::ServiceError;
 
+pub use mmf_security::mtls::*;
 pub use mmf_security::oauth::*;
 pub use mmf_security::oidc::*;
-pub use mmf_security::{mfa, oauth, oidc};
+pub use mmf_security::{mfa, mtls, oauth, oidc};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -304,19 +305,11 @@ pub trait ApiKeyProvider: Send + Sync {
     async fn revoke(&self, key_id: &str) -> Result<(), ServiceError>;
 }
 
-#[async_trait]
-pub trait MutualTlsProvider: Send + Sync {
-    async fn authenticate_certificate(
-        &self,
-        certificate_chain_der: &[Vec<u8>],
-    ) -> Result<AuthenticatedUser, ServiceError>;
-}
-
 pub struct IdentityProviders {
     pub token: Option<Arc<dyn IdentityTokenProvider>>,
     pub password: Option<Arc<dyn PasswordProvider>>,
     pub api_key: Option<Arc<dyn ApiKeyProvider>>,
-    pub mutual_tls: Option<Arc<dyn MutualTlsProvider>>,
+    pub mutual_tls: Option<Arc<dyn MtlsAuthenticator>>,
     pub mfa: Option<Arc<dyn MfaProvider>>,
     pub sessions: Option<Arc<dyn SessionStore>>,
 }
