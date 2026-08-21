@@ -6,6 +6,7 @@
 
 #![forbid(unsafe_code)]
 
+mod client;
 mod deployment;
 mod discovery;
 mod gateway;
@@ -14,6 +15,7 @@ mod http;
 mod ports;
 mod proxy;
 
+pub use client::*;
 pub use deployment::*;
 pub use discovery::*;
 pub use gateway::*;
