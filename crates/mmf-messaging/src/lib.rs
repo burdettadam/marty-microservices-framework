@@ -10,6 +10,7 @@
 mod event;
 mod memory;
 mod model;
+mod outbox_dispatcher;
 mod ports;
 #[cfg(feature = "postgres")]
 mod postgres_outbox;
@@ -19,6 +20,7 @@ mod store;
 pub use event::*;
 pub use memory::*;
 pub use model::*;
+pub use outbox_dispatcher::*;
 pub use ports::*;
 #[cfg(feature = "postgres")]
 pub use postgres_outbox::*;
