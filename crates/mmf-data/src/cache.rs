@@ -291,6 +291,26 @@ impl RedisCache {
         })
     }
 
+    /// Create another namespaced cache view over the same Redis connection.
+    ///
+    /// This lets one service isolate several cache families without opening a
+    /// connection per family. Each view has independent process-local metrics.
+    pub fn with_key_space(
+        &self,
+        namespace: impl Into<String>,
+        key_prefix: impl Into<String>,
+    ) -> Result<Self, DataError> {
+        let mut config = self.config.clone();
+        config.namespace = namespace.into();
+        config.key_prefix = key_prefix.into();
+        config.validate(false)?;
+        Ok(Self {
+            connection: Arc::clone(&self.connection),
+            config,
+            stats: Arc::new(Mutex::new(CacheStats::default())),
+        })
+    }
+
     fn namespaced_key(&self, key: &str) -> Result<String, DataError> {
         if key.trim().is_empty() {
             return Err(DataError::InvalidQuery("cache key is required".into()));

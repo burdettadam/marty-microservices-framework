@@ -40,12 +40,9 @@ async fn redis_backend_matches_the_canonical_cache_contract_when_available() {
     let cache = RedisCache::connect(redis_config(url.clone(), namespace), false)
         .await
         .expect("connect primary namespace");
-    let isolated = RedisCache::connect(
-        redis_config(url, format!("mmf-redis-isolated-{unique}")),
-        false,
-    )
-    .await
-    .expect("connect isolated namespace");
+    let isolated = cache
+        .with_key_space(format!("mmf-redis-isolated-{unique}"), "acceptance")
+        .expect("derive isolated namespace");
 
     cache.clear().await.expect("clear primary namespace");
     isolated.clear().await.expect("clear isolated namespace");
