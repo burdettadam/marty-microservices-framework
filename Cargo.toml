@@ -68,7 +68,7 @@ p521 = { version = "0.13", features = ["ecdh", "pem"] }
 redis = { version = "1.5", default-features = false, features = ["tokio-comp"] }
 sqlx = { version = "0.9", default-features = false, features = ["json", "postgres", "runtime-tokio", "tls-rustls-ring-webpki"] }
 thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync", "time"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
 tonic = { version = "0.14", features = ["tls-native-roots", "tls-ring"] }
 toml = "0.9"
 tower = { version = "0.5", features = ["util"] }

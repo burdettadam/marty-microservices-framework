@@ -1,9 +1,10 @@
 use std::{collections::BTreeMap, time::Duration};
 
 use mmf_platform::{
-    OutboundHttpClient, OutboundHttpMethod, OutboundHttpRequest, PlatformError,
-    ReqwestOutboundHttpClient,
+    OutboundDestinationPolicy, OutboundHttpClient, OutboundHttpMethod, OutboundHttpRequest,
+    PlatformError, ReqwestOutboundHttpClient,
 };
+use serde::Deserialize;
 use tokio::{
     io::{AsyncReadExt as _, AsyncWriteExt as _},
     net::TcpListener,
@@ -66,6 +67,46 @@ fn request(url: &str, maximum_response_bytes: usize) -> OutboundHttpRequest {
         headers: BTreeMap::new(),
         body: None,
         maximum_response_bytes,
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct DestinationContract {
+    schema_version: u32,
+    cases: Vec<DestinationCase>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DestinationCase {
+    url: String,
+    addresses: Vec<String>,
+    #[serde(default)]
+    approved_hosts: std::collections::BTreeSet<String>,
+    allowed: bool,
+}
+
+#[test]
+fn guarded_destination_policy_matches_the_language_neutral_contract() {
+    let contract: DestinationContract = serde_json::from_str(include_str!(
+        "../../../contracts/outbound-destination-security.json"
+    ))
+    .unwrap();
+    assert_eq!(contract.schema_version, 1);
+    for case in contract.cases {
+        let mut policy = OutboundDestinationPolicy::public_https();
+        policy.allowed_non_public_hosts = case.approved_hosts;
+        let url = url::Url::parse(&case.url).unwrap();
+        let addresses = case
+            .addresses
+            .iter()
+            .map(|address| address.parse().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            policy.validate_resolved(&url, &addresses).is_ok(),
+            case.allowed,
+            "{}",
+            case.url
+        );
     }
 }
 
