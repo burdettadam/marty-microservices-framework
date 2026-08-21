@@ -1,12 +1,16 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
-use mmf_security::{TenantAuthorizationFailure, TenantMembership, authorize_tenant_membership};
+use mmf_security::{
+    TenantAuthorizationFailure, TenantMembership, authorize_tenant_api_key,
+    authorize_tenant_membership,
+};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
 struct Contract {
     schema_version: u32,
     cases: Vec<Case>,
+    api_key_cases: Vec<ApiKeyCase>,
 }
 
 #[derive(Deserialize)]
@@ -18,6 +22,29 @@ struct Case {
     permission: String,
     owner_only: bool,
     result: String,
+}
+
+#[derive(Deserialize)]
+struct ApiKeyCase {
+    name: String,
+    principal_id: String,
+    api_key_id: String,
+    tenant_id: String,
+    principal_tenant_id: String,
+    required_permission: String,
+    authorized_permission: String,
+    owner_only: bool,
+    result: String,
+}
+
+fn result_name(result: Result<(), TenantAuthorizationFailure>) -> &'static str {
+    match result {
+        Ok(()) => "allow",
+        Err(TenantAuthorizationFailure::AuthenticationRequired) => "authentication_required",
+        Err(TenantAuthorizationFailure::MembershipMissing) => "membership_missing",
+        Err(TenantAuthorizationFailure::MembershipInactive) => "membership_inactive",
+        Err(TenantAuthorizationFailure::ActionNotAuthorized) => "action_not_authorized",
+    }
 }
 
 fn membership(kind: &str) -> Option<TenantMembership> {
@@ -54,13 +81,18 @@ fn tenant_authorization_matches_language_neutral_vectors() {
             membership.as_ref(),
             case.owner_only,
         );
-        let actual = match result {
-            Ok(()) => "allow",
-            Err(TenantAuthorizationFailure::AuthenticationRequired) => "authentication_required",
-            Err(TenantAuthorizationFailure::MembershipMissing) => "membership_missing",
-            Err(TenantAuthorizationFailure::MembershipInactive) => "membership_inactive",
-            Err(TenantAuthorizationFailure::ActionNotAuthorized) => "action_not_authorized",
-        };
-        assert_eq!(actual, case.result, "{}", case.name);
+        assert_eq!(result_name(result), case.result, "{}", case.name);
+    }
+    for case in contract.api_key_cases {
+        let result = authorize_tenant_api_key(
+            &case.required_permission,
+            &case.principal_id,
+            &case.tenant_id,
+            &case.api_key_id,
+            &case.principal_tenant_id,
+            &case.authorized_permission,
+            case.owner_only,
+        );
+        assert_eq!(result_name(result), case.result, "{}", case.name);
     }
 }

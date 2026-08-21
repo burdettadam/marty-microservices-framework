@@ -78,6 +78,36 @@ pub fn authorize_tenant_membership(
     Ok(())
 }
 
+/// Authorize a gateway-validated API key at a downstream tenant boundary.
+///
+/// The synthetic principal, API-key identifier, tenant and exact route
+/// permission must all agree. Scopes are evaluated by the trusted gateway;
+/// downstream services consume only this minimized authorization result.
+pub fn authorize_tenant_api_key(
+    required_permission: &str,
+    principal_id: &str,
+    tenant_id: &str,
+    api_key_id: &str,
+    principal_tenant_id: &str,
+    authorized_permission: &str,
+    owner_only: bool,
+) -> Result<(), TenantAuthorizationFailure> {
+    if principal_id.trim().is_empty() {
+        return Err(TenantAuthorizationFailure::AuthenticationRequired);
+    }
+    let expected_principal = format!("api_key:{api_key_id}");
+    if api_key_id.trim().is_empty()
+        || principal_id != expected_principal
+        || tenant_id != principal_tenant_id
+        || authorized_permission.trim().is_empty()
+        || authorized_permission != required_permission
+        || owner_only
+    {
+        return Err(TenantAuthorizationFailure::ActionNotAuthorized);
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 pub struct StructuredPermission {
     pub resource_type: String,
