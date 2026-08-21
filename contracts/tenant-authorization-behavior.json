@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "cases": [
-    {"name": "active_permission", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_active", "permission": "flow-definition:view", "owner_only": false, "result": "allow"},
-    {"name": "owner_action", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_owner", "permission": "organization:transfer-ownership", "owner_only": true, "result": "allow"},
-    {"name": "missing_identity", "principal_id": "", "tenant_id": "org-1", "membership": "matching_active", "permission": "flow-definition:view", "owner_only": false, "result": "authentication_required"},
-    {"name": "no_membership", "principal_id": "user-1", "tenant_id": "org-1", "membership": "none", "permission": "flow-definition:view", "owner_only": false, "result": "membership_missing"},
-    {"name": "cross_principal", "principal_id": "user-2", "tenant_id": "org-1", "membership": "matching_active", "permission": "flow-definition:view", "owner_only": false, "result": "membership_missing"},
-    {"name": "cross_tenant", "principal_id": "user-1", "tenant_id": "org-2", "membership": "matching_active", "permission": "flow-definition:view", "owner_only": false, "result": "membership_missing"},
-    {"name": "inactive", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_inactive", "permission": "flow-definition:view", "owner_only": false, "result": "membership_inactive"},
-    {"name": "permission_missing", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_active", "permission": "flow-definition:delete", "owner_only": false, "result": "action_not_authorized"},
-    {"name": "non_owner", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_active", "permission": "organization:transfer-ownership", "owner_only": true, "result": "action_not_authorized"}
+    {"name": "active_permission", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_active", "permission": "flow-definition:view", "owner_only": false, "result": "allow", "membership_result": "allow"},
+    {"name": "owner_action", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_owner", "permission": "organization:transfer-ownership", "owner_only": true, "result": "allow", "membership_result": "allow"},
+    {"name": "missing_identity", "principal_id": "", "tenant_id": "org-1", "membership": "matching_active", "permission": "flow-definition:view", "owner_only": false, "result": "authentication_required", "membership_result": "authentication_required"},
+    {"name": "no_membership", "principal_id": "user-1", "tenant_id": "org-1", "membership": "none", "permission": "flow-definition:view", "owner_only": false, "result": "membership_missing", "membership_result": "membership_missing"},
+    {"name": "cross_principal", "principal_id": "user-2", "tenant_id": "org-1", "membership": "matching_active", "permission": "flow-definition:view", "owner_only": false, "result": "membership_missing", "membership_result": "membership_missing"},
+    {"name": "cross_tenant", "principal_id": "user-1", "tenant_id": "org-2", "membership": "matching_active", "permission": "flow-definition:view", "owner_only": false, "result": "membership_missing", "membership_result": "membership_missing"},
+    {"name": "inactive", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_inactive", "permission": "flow-definition:view", "owner_only": false, "result": "membership_inactive", "membership_result": "membership_inactive"},
+    {"name": "permission_missing", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_active", "permission": "flow-definition:delete", "owner_only": false, "result": "action_not_authorized", "membership_result": "allow"},
+    {"name": "non_owner", "principal_id": "user-1", "tenant_id": "org-1", "membership": "matching_active", "permission": "organization:transfer-ownership", "owner_only": true, "result": "action_not_authorized", "membership_result": "allow"}
   ],
   "api_key_cases": [
     {"name":"exact_gateway_binding","principal_id":"api_key:key-1","api_key_id":"key-1","tenant_id":"org-1","principal_tenant_id":"org-1","required_permission":"credential-template:view","authorized_permission":"credential-template:view","owner_only":false,"result":"allow"},

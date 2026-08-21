@@ -1,8 +1,8 @@
 use std::{collections::BTreeSet, path::PathBuf};
 
 use mmf_security::{
-    TenantAuthorizationFailure, TenantMembership, authorize_tenant_api_key,
-    authorize_tenant_membership,
+    TenantAuthorizationFailure, TenantMembership, authenticate_tenant_membership,
+    authorize_tenant_api_key, authorize_tenant_membership,
 };
 use serde::Deserialize;
 
@@ -22,6 +22,7 @@ struct Case {
     permission: String,
     owner_only: bool,
     result: String,
+    membership_result: String,
 }
 
 #[derive(Deserialize)]
@@ -74,6 +75,18 @@ fn tenant_authorization_matches_language_neutral_vectors() {
     assert_eq!(contract.schema_version, 1);
     for case in contract.cases {
         let membership = membership(&case.membership);
+        let membership_result = authenticate_tenant_membership(
+            &case.principal_id,
+            &case.tenant_id,
+            membership.as_ref(),
+        )
+        .map(|_| ());
+        assert_eq!(
+            result_name(membership_result),
+            case.membership_result,
+            "{} membership-only",
+            case.name
+        );
         let result = authorize_tenant_membership(
             &case.permission,
             &case.principal_id,

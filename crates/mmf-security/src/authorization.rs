@@ -62,6 +62,18 @@ pub fn authorize_tenant_membership(
     membership: Option<&TenantMembership>,
     owner_only: bool,
 ) -> Result<(), TenantAuthorizationFailure> {
+    let membership = authenticate_tenant_membership(principal_id, tenant_id, membership)?;
+    if !membership.allows(required_permission, owner_only) {
+        return Err(TenantAuthorizationFailure::ActionNotAuthorized);
+    }
+    Ok(())
+}
+
+pub fn authenticate_tenant_membership<'a>(
+    principal_id: &str,
+    tenant_id: &str,
+    membership: Option<&'a TenantMembership>,
+) -> Result<&'a TenantMembership, TenantAuthorizationFailure> {
     if principal_id.trim().is_empty() {
         return Err(TenantAuthorizationFailure::AuthenticationRequired);
     }
@@ -72,10 +84,7 @@ pub fn authorize_tenant_membership(
     if !membership.is_active() {
         return Err(TenantAuthorizationFailure::MembershipInactive);
     }
-    if !membership.allows(required_permission, owner_only) {
-        return Err(TenantAuthorizationFailure::ActionNotAuthorized);
-    }
-    Ok(())
+    Ok(membership)
 }
 
 /// Authorize a gateway-validated API key at a downstream tenant boundary.
