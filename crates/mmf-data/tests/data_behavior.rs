@@ -67,6 +67,50 @@ async fn cache_serialization_ttl_stats_and_sorted_sets_match_contract() {
     assert!(CacheSerializer::new(SerializationFormat::Pickle).is_err());
 
     let cache = MemoryCache::default();
+    cache
+        .set("one-time", b"challenge".to_vec(), Some(60), 100)
+        .await
+        .expect("set one-time value");
+    assert_eq!(
+        cache.take("one-time", 100).await.expect("take value"),
+        Some(b"challenge".to_vec())
+    );
+    assert_eq!(
+        cache.take("one-time", 100).await.expect("replay take"),
+        None
+    );
+
+    assert_eq!(
+        cache
+            .sadd(
+                "sessions",
+                vec![b"session-2".to_vec(), b"session-1".to_vec()],
+                100,
+            )
+            .await
+            .expect("add set members"),
+        2
+    );
+    assert_eq!(
+        cache.smembers("sessions", 100).await.expect("set members"),
+        [b"session-1".to_vec(), b"session-2".to_vec()]
+    );
+    assert_eq!(
+        cache
+            .srem("sessions", vec![b"session-1".to_vec()], 100)
+            .await
+            .expect("remove set member"),
+        1
+    );
+    assert!(cache.expire("sessions", 1, 100).await.expect("set TTL"));
+    assert!(
+        cache
+            .smembers("sessions", 1_100)
+            .await
+            .expect("expired set")
+            .is_empty()
+    );
+
     cache.set("key", bytes, Some(1), 100).await.expect("set");
     assert!(cache.get("key", 100).await.expect("get").is_some());
     assert!(

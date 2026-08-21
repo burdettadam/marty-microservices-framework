@@ -13,6 +13,41 @@ fn redis_config(url: String, namespace: String) -> CacheConfig {
     }
 }
 
+async fn assert_atomic_and_set_contract(cache: &RedisCache) {
+    cache
+        .set("one-time", b"challenge".to_vec(), Some(60), 0)
+        .await
+        .expect("set one-time value");
+    assert_eq!(
+        cache.take("one-time", 0).await.expect("take value"),
+        Some(b"challenge".to_vec())
+    );
+    assert_eq!(cache.take("one-time", 0).await.expect("replay take"), None);
+    assert_eq!(
+        cache
+            .sadd(
+                "sessions",
+                vec![b"session-2".to_vec(), b"session-1".to_vec()],
+                0,
+            )
+            .await
+            .expect("add set members"),
+        2
+    );
+    assert_eq!(
+        cache.smembers("sessions", 0).await.expect("set members"),
+        [b"session-1".to_vec(), b"session-2".to_vec()]
+    );
+    assert_eq!(
+        cache
+            .srem("sessions", vec![b"session-1".to_vec()], 0)
+            .await
+            .expect("remove set member"),
+        1
+    );
+    assert!(cache.delete("sessions").await.expect("delete set"));
+}
+
 #[test]
 fn redis_configuration_is_namespaced_and_fail_closed() {
     let config = redis_config("redis://localhost:6379/0".into(), "organization".into());
@@ -100,6 +135,8 @@ async fn redis_backend_matches_the_canonical_cache_contract_when_available() {
     assert_eq!(stats.sets, 2);
     assert_eq!(stats.deletes, 1);
     assert_eq!(stats.errors, 0);
+
+    assert_atomic_and_set_contract(&cache).await;
 
     cache.clear().await.expect("clear primary namespace");
     assert_eq!(

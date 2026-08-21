@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
@@ -192,6 +192,9 @@ impl CacheSerializer {
 #[async_trait]
 pub trait CacheStore: Send + Sync {
     async fn get(&self, key: &str, now_ms: u64) -> Result<Option<Vec<u8>>, DataError>;
+    /// Atomically read and remove a value. This is the canonical primitive for
+    /// one-time state, challenges, and replay-resistant handoffs.
+    async fn take(&self, key: &str, now_ms: u64) -> Result<Option<Vec<u8>>, DataError>;
     async fn set(
         &self,
         key: &str,
@@ -203,6 +206,11 @@ pub trait CacheStore: Send + Sync {
     async fn exists(&self, key: &str, now_ms: u64) -> Result<bool, DataError>;
     async fn clear(&self) -> Result<(), DataError>;
     async fn stats(&self) -> Result<CacheStats, DataError>;
+    async fn sadd(&self, key: &str, members: Vec<Vec<u8>>, now_ms: u64)
+    -> Result<usize, DataError>;
+    async fn srem(&self, key: &str, members: Vec<Vec<u8>>, now_ms: u64)
+    -> Result<usize, DataError>;
+    async fn smembers(&self, key: &str, now_ms: u64) -> Result<Vec<Vec<u8>>, DataError>;
     async fn zadd(&self, key: &str, members: BTreeMap<Vec<u8>, f64>) -> Result<usize, DataError>;
     async fn zrevrangebyscore(
         &self,
@@ -390,6 +398,21 @@ impl CacheStore for RedisCache {
         Ok(value)
     }
 
+    async fn take(&self, key: &str, _now_ms: u64) -> Result<Option<Vec<u8>>, DataError> {
+        let value: Option<Vec<u8>> = self
+            .command(redis::cmd("GETDEL").arg(self.namespaced_key(key)?))
+            .await?;
+        let mut stats = self.lock_stats();
+        if let Some(value) = &value {
+            stats.hits = stats.hits.saturating_add(1);
+            stats.deletes = stats.deletes.saturating_add(1);
+            stats.total_size = stats.total_size.saturating_sub(value.len() as u64);
+        } else {
+            stats.misses = stats.misses.saturating_add(1);
+        }
+        Ok(value)
+    }
+
     async fn set(
         &self,
         key: &str,
@@ -464,6 +487,48 @@ impl CacheStore for RedisCache {
 
     async fn stats(&self) -> Result<CacheStats, DataError> {
         Ok(self.lock_stats().clone())
+    }
+
+    async fn sadd(
+        &self,
+        key: &str,
+        members: Vec<Vec<u8>>,
+        _now_ms: u64,
+    ) -> Result<usize, DataError> {
+        if members.is_empty() {
+            return Ok(0);
+        }
+        self.command(
+            redis::cmd("SADD")
+                .arg(self.namespaced_key(key)?)
+                .arg(members),
+        )
+        .await
+    }
+
+    async fn srem(
+        &self,
+        key: &str,
+        members: Vec<Vec<u8>>,
+        _now_ms: u64,
+    ) -> Result<usize, DataError> {
+        if members.is_empty() {
+            return Ok(0);
+        }
+        self.command(
+            redis::cmd("SREM")
+                .arg(self.namespaced_key(key)?)
+                .arg(members),
+        )
+        .await
+    }
+
+    async fn smembers(&self, key: &str, _now_ms: u64) -> Result<Vec<Vec<u8>>, DataError> {
+        let mut members: Vec<Vec<u8>> = self
+            .command(redis::cmd("SMEMBERS").arg(self.namespaced_key(key)?))
+            .await?;
+        members.sort();
+        Ok(members)
     }
 
     async fn zadd(&self, key: &str, members: BTreeMap<Vec<u8>, f64>) -> Result<usize, DataError> {
@@ -586,7 +651,9 @@ struct Entry {
 #[derive(Default)]
 struct MemoryState {
     entries: BTreeMap<String, Entry>,
+    sets: BTreeMap<String, BTreeSet<Vec<u8>>>,
     sorted_sets: BTreeMap<String, BTreeMap<Vec<u8>, f64>>,
+    collection_expiry_ms: BTreeMap<String, u64>,
     stats: CacheStats,
 }
 
@@ -609,6 +676,15 @@ impl MemoryCache {
                 .total_size
                 .saturating_sub(entry.value.len() as u64);
         }
+        if state
+            .collection_expiry_ms
+            .get(key)
+            .is_some_and(|expires| *expires <= now_ms)
+        {
+            state.collection_expiry_ms.remove(key);
+            state.sets.remove(key);
+            state.sorted_sets.remove(key);
+        }
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, MemoryState> {
@@ -626,6 +702,20 @@ impl CacheStore for MemoryCache {
         let value = state.entries.get(key).map(|entry| entry.value.clone());
         if value.is_some() {
             state.stats.hits = state.stats.hits.saturating_add(1);
+        } else {
+            state.stats.misses = state.stats.misses.saturating_add(1);
+        }
+        Ok(value)
+    }
+
+    async fn take(&self, key: &str, now_ms: u64) -> Result<Option<Vec<u8>>, DataError> {
+        let mut state = self.lock();
+        Self::purge(&mut state, key, now_ms);
+        let value = state.entries.remove(key).map(|entry| entry.value);
+        if let Some(value) = &value {
+            state.stats.hits = state.stats.hits.saturating_add(1);
+            state.stats.deletes = state.stats.deletes.saturating_add(1);
+            state.stats.total_size = state.stats.total_size.saturating_sub(value.len() as u64);
         } else {
             state.stats.misses = state.stats.misses.saturating_add(1);
         }
@@ -671,26 +761,81 @@ impl CacheStore for MemoryCache {
                 .saturating_sub(entry.value.len() as u64);
             state.stats.deletes = state.stats.deletes.saturating_add(1);
         }
-        state.sorted_sets.remove(key);
-        Ok(removed.is_some())
+        let removed_set = state.sets.remove(key).is_some();
+        let removed_sorted_set = state.sorted_sets.remove(key).is_some();
+        state.collection_expiry_ms.remove(key);
+        Ok(removed.is_some() || removed_set || removed_sorted_set)
     }
 
     async fn exists(&self, key: &str, now_ms: u64) -> Result<bool, DataError> {
         let mut state = self.lock();
         Self::purge(&mut state, key, now_ms);
-        Ok(state.entries.contains_key(key) || state.sorted_sets.contains_key(key))
+        Ok(state.entries.contains_key(key)
+            || state.sets.contains_key(key)
+            || state.sorted_sets.contains_key(key))
     }
 
     async fn clear(&self) -> Result<(), DataError> {
         let mut state = self.lock();
         state.entries.clear();
+        state.sets.clear();
         state.sorted_sets.clear();
+        state.collection_expiry_ms.clear();
         state.stats.total_size = 0;
         Ok(())
     }
 
     async fn stats(&self) -> Result<CacheStats, DataError> {
         Ok(self.lock().stats.clone())
+    }
+
+    async fn sadd(
+        &self,
+        key: &str,
+        members: Vec<Vec<u8>>,
+        now_ms: u64,
+    ) -> Result<usize, DataError> {
+        if key.is_empty() {
+            return Err(DataError::InvalidQuery("cache key is required".into()));
+        }
+        let mut state = self.lock();
+        Self::purge(&mut state, key, now_ms);
+        let set = state.sets.entry(key.to_owned()).or_default();
+        Ok(members
+            .into_iter()
+            .map(|member| usize::from(set.insert(member)))
+            .sum())
+    }
+
+    async fn srem(
+        &self,
+        key: &str,
+        members: Vec<Vec<u8>>,
+        now_ms: u64,
+    ) -> Result<usize, DataError> {
+        let mut state = self.lock();
+        Self::purge(&mut state, key, now_ms);
+        let Some(set) = state.sets.get_mut(key) else {
+            return Ok(0);
+        };
+        let removed = members
+            .into_iter()
+            .map(|member| usize::from(set.remove(&member)))
+            .sum();
+        if set.is_empty() {
+            state.sets.remove(key);
+            state.collection_expiry_ms.remove(key);
+        }
+        Ok(removed)
+    }
+
+    async fn smembers(&self, key: &str, now_ms: u64) -> Result<Vec<Vec<u8>>, DataError> {
+        let mut state = self.lock();
+        Self::purge(&mut state, key, now_ms);
+        Ok(state
+            .sets
+            .get(key)
+            .map_or_else(Vec::new, |set| set.iter().cloned().collect()))
     }
 
     async fn zadd(&self, key: &str, members: BTreeMap<Vec<u8>, f64>) -> Result<usize, DataError> {
@@ -807,11 +952,18 @@ impl CacheStore for MemoryCache {
 
     async fn expire(&self, key: &str, ttl_seconds: u64, now_ms: u64) -> Result<bool, DataError> {
         let mut state = self.lock();
-        let Some(entry) = state.entries.get_mut(key) else {
-            return Ok(false);
-        };
-        entry.expires_at_ms = Some(now_ms.saturating_add(ttl_seconds.saturating_mul(1_000)));
-        Ok(true)
+        let expires_at_ms = now_ms.saturating_add(ttl_seconds.saturating_mul(1_000));
+        if let Some(entry) = state.entries.get_mut(key) {
+            entry.expires_at_ms = Some(expires_at_ms);
+            return Ok(true);
+        }
+        if state.sets.contains_key(key) || state.sorted_sets.contains_key(key) {
+            state
+                .collection_expiry_ms
+                .insert(key.to_owned(), expires_at_ms);
+            return Ok(true);
+        }
+        Ok(false)
     }
 
     async fn keys(&self, pattern: &str, now_ms: u64) -> Result<Vec<String>, DataError> {
@@ -823,6 +975,7 @@ impl CacheStore for MemoryCache {
         Ok(state
             .entries
             .keys()
+            .chain(state.sets.keys())
             .chain(state.sorted_sets.keys())
             .filter(|key| glob_matches(pattern, key))
             .cloned()
