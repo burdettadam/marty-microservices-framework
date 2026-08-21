@@ -115,6 +115,47 @@ pub struct CedarPolicyEngine {
     config: CedarConfig,
 }
 
+/// A reusable, immutable Cedar schema validator for policy-management APIs.
+///
+/// This owns parse and strict schema-validation behavior without requiring a
+/// caller to construct an authorization engine for every draft policy set.
+#[derive(Clone, Debug)]
+pub struct CedarPolicyValidator {
+    schema: Schema,
+    config: CedarConfig,
+}
+
+impl CedarPolicyValidator {
+    /// Load a validator from Cedar's JSON schema representation.
+    pub fn from_json_schema(schema: Value, config: CedarConfig) -> Result<Self, SecurityError> {
+        config.validate()?;
+        check_json_size("schema", &schema, config.max_schema_bytes)?;
+        let schema = Schema::from_json_value(schema).map_err(|error| {
+            SecurityError::InvalidPolicy(format!("invalid Cedar schema: {error}"))
+        })?;
+        Ok(Self { schema, config })
+    }
+
+    /// Load a validator from Cedar's human-readable schema format.
+    pub fn from_human_schema(
+        schema_source: &str,
+        config: CedarConfig,
+    ) -> Result<Self, SecurityError> {
+        config.validate()?;
+        check_text_size("schema", schema_source, config.max_schema_bytes)?;
+        let (schema, _warnings) = Schema::from_cedarschema_str(schema_source).map_err(|error| {
+            SecurityError::InvalidPolicy(format!("invalid Cedar schema: {error}"))
+        })?;
+        Ok(Self { schema, config })
+    }
+
+    /// Parse and strictly validate one complete Cedar policy document.
+    pub fn validate_policy_source(&self, policy_source: &str) -> Result<(), SecurityError> {
+        parse_and_validate_policy(policy_source, &self.schema, self.config.max_policy_bytes)
+            .map(drop)
+    }
+}
+
 impl CedarPolicyEngine {
     /// Parse and validate a Cedar policy and JSON schema before accepting traffic.
     pub fn from_json_schema(
@@ -123,30 +164,11 @@ impl CedarPolicyEngine {
         config: CedarConfig,
     ) -> Result<Self, SecurityError> {
         config.validate()?;
-        check_text_size("policy", policy_source, config.max_policy_bytes)?;
         check_json_size("schema", &schema, config.max_schema_bytes)?;
-        if policy_source.trim().is_empty() {
-            return Err(SecurityError::InvalidPolicy(
-                "Cedar policy document must not be empty".into(),
-            ));
-        }
-        let policies = PolicySet::from_str(policy_source).map_err(|error| {
-            SecurityError::InvalidPolicy(format!("invalid Cedar policy: {error}"))
-        })?;
         let schema = Schema::from_json_value(schema).map_err(|error| {
             SecurityError::InvalidPolicy(format!("invalid Cedar schema: {error}"))
         })?;
-        let validation = Validator::new(schema.clone()).validate(&policies, ValidationMode::Strict);
-        if !validation.validation_passed() {
-            let errors = validation
-                .validation_errors()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>()
-                .join("; ");
-            return Err(SecurityError::InvalidPolicy(format!(
-                "Cedar policy failed schema validation: {errors}"
-            )));
-        }
+        let policies = parse_and_validate_policy(policy_source, &schema, config.max_policy_bytes)?;
         Ok(Self {
             policies,
             schema,
@@ -220,6 +242,33 @@ impl CedarPolicyEngine {
             entities: empty_entities(),
         }
     }
+}
+
+fn parse_and_validate_policy(
+    policy_source: &str,
+    schema: &Schema,
+    max_policy_bytes: usize,
+) -> Result<PolicySet, SecurityError> {
+    check_text_size("policy", policy_source, max_policy_bytes)?;
+    if policy_source.trim().is_empty() {
+        return Err(SecurityError::InvalidPolicy(
+            "Cedar policy document must not be empty".into(),
+        ));
+    }
+    let policies = PolicySet::from_str(policy_source)
+        .map_err(|error| SecurityError::InvalidPolicy(format!("invalid Cedar policy: {error}")))?;
+    let validation = Validator::new(schema.clone()).validate(&policies, ValidationMode::Strict);
+    if !validation.validation_passed() {
+        let errors = validation
+            .validation_errors()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join("; ");
+        return Err(SecurityError::InvalidPolicy(format!(
+            "Cedar policy failed schema validation: {errors}"
+        )));
+    }
+    Ok(policies)
 }
 
 #[async_trait]
@@ -374,6 +423,44 @@ mod tests {
             entities: empty_entities(),
         };
         assert!(engine.authorize_request(invalid).is_err());
+    }
+
+    #[test]
+    fn human_schema_validator_is_reusable_and_strict() {
+        let schema = r#"
+            namespace MIP {
+                entity User;
+                entity Document;
+                action "documents:read" appliesTo {
+                    principal: [User],
+                    resource: [Document],
+                    context: {}
+                };
+            }
+        "#;
+        let validator = CedarPolicyValidator::from_human_schema(schema, CedarConfig::default())
+            .expect("human-readable schema must load");
+        validator
+            .validate_policy_source(
+                r#"permit(
+                    principal is MIP::User,
+                    action == MIP::Action::"documents:read",
+                    resource is MIP::Document
+                );"#,
+            )
+            .expect("schema-compatible policy must pass");
+        assert!(
+            validator
+                .validate_policy_source(
+                    r#"permit(
+                    principal is MIP::User,
+                    action == MIP::Action::"documents:write",
+                    resource is MIP::Document
+                );"#,
+                )
+                .is_err()
+        );
+        assert!(validator.validate_policy_source("").is_err());
     }
 
     #[test]
