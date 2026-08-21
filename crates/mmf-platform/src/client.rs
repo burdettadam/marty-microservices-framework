@@ -92,16 +92,31 @@ pub trait OutboundHttpClient: Send + Sync {
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OutboundDestinationPolicy {
+    pub query_policy: OutboundQueryPolicy,
     #[serde(default)]
     pub allowed_non_public_hosts: BTreeSet<String>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum OutboundQueryPolicy {
+    Reject,
+    Allow,
 }
 
 impl OutboundDestinationPolicy {
     #[must_use]
     pub fn public_https() -> Self {
         Self {
+            query_policy: OutboundQueryPolicy::Reject,
             allowed_non_public_hosts: BTreeSet::new(),
         }
+    }
+
+    #[must_use]
+    pub const fn with_query_policy(mut self, query_policy: OutboundQueryPolicy) -> Self {
+        self.query_policy = query_policy;
+        self
     }
 
     /// Validates the logical URL and every resolved address before a caller
@@ -116,7 +131,7 @@ impl OutboundDestinationPolicy {
         })?;
         if url.scheme() != "https"
             || url.port().is_some()
-            || url.query().is_some()
+            || (self.query_policy == OutboundQueryPolicy::Reject && url.query().is_some())
             || url.fragment().is_some()
             || !url.username().is_empty()
             || url.password().is_some()
@@ -167,6 +182,7 @@ pub struct ReqwestOutboundHttpClient {
     timeout: Duration,
     destination_policy: Option<OutboundDestinationPolicy>,
     resolver: Arc<dyn OutboundHostResolver>,
+    additional_roots: Arc<Vec<reqwest::Certificate>>,
 }
 
 impl ReqwestOutboundHttpClient {
@@ -177,10 +193,11 @@ impl ReqwestOutboundHttpClient {
             ));
         }
         Ok(Self {
-            client: http_client(timeout, None)?,
+            client: http_client(timeout, None, &[])?,
             timeout,
             destination_policy: None,
             resolver: Arc::new(TokioOutboundHostResolver),
+            additional_roots: Arc::new(vec![]),
         })
     }
 
@@ -190,6 +207,31 @@ impl ReqwestOutboundHttpClient {
     ) -> Result<Self, PlatformError> {
         let mut client = Self::new(timeout)?;
         client.destination_policy = Some(policy);
+        Ok(client)
+    }
+
+    pub fn new_guarded_with_ca_bundle(
+        timeout: Duration,
+        policy: OutboundDestinationPolicy,
+        ca_bundle: Option<&[u8]>,
+    ) -> Result<Self, PlatformError> {
+        let roots = ca_bundle
+            .map(reqwest::Certificate::from_pem_bundle)
+            .transpose()
+            .map_err(|_| {
+                PlatformError::InvalidConfiguration(
+                    "outbound HTTP CA bundle is not valid PEM certificate material".into(),
+                )
+            })?
+            .unwrap_or_default();
+        if ca_bundle.is_some() && roots.is_empty() {
+            return Err(PlatformError::InvalidConfiguration(
+                "outbound HTTP CA bundle contains no PEM certificates".into(),
+            ));
+        }
+        let mut client = Self::new_guarded(timeout, policy)?;
+        client.client = http_client(timeout, None, &roots)?;
+        client.additional_roots = Arc::new(roots);
         Ok(client)
     }
 
@@ -220,7 +262,11 @@ impl ReqwestOutboundHttpClient {
             Err(_) => self.resolver.resolve(host, port).await?,
         };
         policy.validate_resolved(&url, &addresses)?;
-        http_client(self.timeout, Some((host, &addresses)))
+        http_client(
+            self.timeout,
+            Some((host, &addresses)),
+            self.additional_roots.as_ref(),
+        )
     }
 }
 
@@ -293,6 +339,7 @@ impl OutboundHttpClient for ReqwestOutboundHttpClient {
 fn http_client(
     timeout: Duration,
     resolution: Option<(&str, &[SocketAddr])>,
+    additional_roots: &[reqwest::Certificate],
 ) -> Result<reqwest::Client, PlatformError> {
     if timeout.is_zero() || timeout > Duration::from_mins(5) {
         return Err(PlatformError::InvalidConfiguration(
@@ -304,6 +351,9 @@ fn http_client(
         .redirect(reqwest::redirect::Policy::none());
     if let Some((host, addresses)) = resolution {
         builder = builder.resolve_to_addrs(host, addresses);
+    }
+    for certificate in additional_roots {
+        builder = builder.add_root_certificate(certificate.clone());
     }
     builder
         .build()

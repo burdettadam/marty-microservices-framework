@@ -110,6 +110,18 @@ fn guarded_destination_policy_matches_the_language_neutral_contract() {
     }
 }
 
+#[test]
+fn guarded_client_rejects_an_invalid_operator_ca_bundle() {
+    assert!(matches!(
+        ReqwestOutboundHttpClient::new_guarded_with_ca_bundle(
+            Duration::from_secs(2),
+            OutboundDestinationPolicy::public_https(),
+            Some(b"not a PEM certificate"),
+        ),
+        Err(PlatformError::InvalidConfiguration(_))
+    ));
+}
+
 async fn serve_once(response: &'static str) -> (String, tokio::task::JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
