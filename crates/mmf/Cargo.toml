@@ -1,0 +1,16 @@
+[package]
+name = "mmf"
+description = "Facade crate for the Rust Marty Microservices Framework"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+mmf-config.workspace = true
+mmf-core.workspace = true
+mmf-runtime.workspace = true
+
+[lints]
+workspace = true
