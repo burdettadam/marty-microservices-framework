@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "rate_limit": {
+    "prefix": "mip:rl",
+    "rule_name": "marty_gateway",
+    "strategy": "sliding_window",
+    "user_id": "ip:192.0.2.1:v1/organizations",
+    "expected_key": "mip:rl:sliding_window:rate_limit:marty_gateway:user:ip:192.0.2.1:v1/organizations",
+    "supported_strategies": ["token_bucket", "sliding_window", "fixed_window", "leaky_bucket"]
+  },
+  "idempotency": {
+    "prefix": "idempotency",
+    "namespace": "user-1:create-example",
+    "expected_data_key": "idempotency:aa390623d10aa16f6a569a646a22c8fdcc96dd85704e7365afb5170fdc168cd5",
+    "expected_lock_key": "idempotency:aa390623d10aa16f6a569a646a22c8fdcc96dd85704e7365afb5170fdc168cd5:lock",
+    "response_ttl_ms": 86400000,
+    "lock_ttl_ms": 300000
+  }
+}

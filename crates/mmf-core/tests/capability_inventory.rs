@@ -32,7 +32,10 @@ fn every_intended_capability_has_one_rust_owner() {
         );
         assert!(capability.owner.starts_with("mmf-"), "non-MMF owner");
         assert!(
-            matches!(capability.status.as_str(), "planned" | "foundation-active"),
+            matches!(
+                capability.status.as_str(),
+                "planned" | "foundation-active" | "active" | "migrated"
+            ),
             "unknown status for {}",
             capability.id
         );

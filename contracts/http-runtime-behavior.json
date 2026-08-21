@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "versions": {
+    "current": "0.4.1",
+    "supported": ["0.4.0", "0.4.1"],
+    "cases": [
+      {"advertised": null, "accepted": true},
+      {"advertised": "0.4.0", "accepted": true},
+      {"advertised": "0.4.1", "accepted": true},
+      {"advertised": "1.0.0", "accepted": false},
+      {"advertised": "", "accepted": false}
+    ]
+  },
+  "content_types": {
+    "body_methods": ["POST", "PUT", "PATCH"],
+    "allowed": [
+      "application/json",
+      "application/scim+json",
+      "application/x-www-form-urlencoded",
+      "multipart/form-data"
+    ],
+    "exempt_prefixes": [
+      "/v1/issuance/token",
+      "/v1/issuance/par",
+      "/v1/issuance/nonce",
+      "/v1/flows/instances/",
+      "/v1/flows/siop/submit",
+      "/v1/auth/"
+    ],
+    "cases": [
+      {"method":"GET","path":"/v1/example","content_type":"application/octet-stream","accepted":true},
+      {"method":"POST","path":"/v1/example","content_type":null,"accepted":true},
+      {"method":"POST","path":"/v1/example","content_type":"application/json; charset=utf-8","accepted":true},
+      {"method":"PATCH","path":"/v1/scim","content_type":"application/scim+json","accepted":true},
+      {"method":"POST","path":"/v1/example","content_type":"application/octet-stream","accepted":false},
+      {"method":"POST","path":"/v1/issuance/nonce","content_type":"application/octet-stream","accepted":true},
+      {"method":"POST","path":"/v1/issuance/didcomm/deliver","content_type":"application/didcomm-plain+json","accepted":false}
+    ]
+  },
+  "entity_tags": [
+    {"method":"GET","authenticated":false,"status":200,"cache_control":null,"if_none_match":null,"body":"{\"ok\":true}","decision":"attach","entity_tag":"W/\"4062edaf750fb807\""},
+    {"method":"GET","authenticated":false,"status":200,"cache_control":null,"if_none_match":"W/\"4062edaf750fb807\"","body":"{\"ok\":true}","decision":"not_modified","entity_tag":"W/\"4062edaf750fb807\""},
+    {"method":"GET","authenticated":true,"status":200,"cache_control":null,"if_none_match":null,"body":"{\"ok\":true}","decision":"bypass","entity_tag":null},
+    {"method":"POST","authenticated":false,"status":200,"cache_control":null,"if_none_match":null,"body":"{\"ok\":true}","decision":"bypass","entity_tag":null},
+    {"method":"GET","authenticated":false,"status":404,"cache_control":null,"if_none_match":null,"body":"missing","decision":"bypass","entity_tag":null},
+    {"method":"GET","authenticated":false,"status":200,"cache_control":"public, no-cache","if_none_match":null,"body":"{\"ok\":true}","decision":"bypass","entity_tag":null}
+  ],
+  "idempotency": {
+    "request": {
+      "principal_id": "user-1",
+      "key": "create-example",
+      "method": "POST",
+      "path": "/v1/examples",
+      "query": "expand=owner",
+      "body": [123,34,110,97,109,101,34,58,34,101,120,97,109,112,108,101,34,125]
+    },
+    "fingerprint": "e3b75f31e7436d1b43be438fca7d2daf3e2bbfa04c0a4b468f87fa3db2091278"
+  }
+}

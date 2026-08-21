@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "users": [
+    {
+      "user_id": "user-123",
+      "username": "alex",
+      "email": "alex@example.com",
+      "roles": ["issuer"],
+      "permissions": ["credential:issue"],
+      "session_id": "session-123",
+      "auth_method": "basic",
+      "expires_at_ms": 10000,
+      "created_at_ms": 1000
+    },
+    {
+      "user_id": "user-456",
+      "username": "blair",
+      "email": "blair@example.com",
+      "roles": ["verifier"],
+      "permissions": ["credential:verify"],
+      "session_id": "session-456",
+      "auth_method": "jwt",
+      "expires_at_ms": null,
+      "created_at_ms": 2000
+    }
+  ],
+  "updates": {
+    "email": "alex.updated@example.com",
+    "roles": ["issuer", "administrator"]
+  },
+  "pagination": {
+    "offset": 1,
+    "limit": 1,
+    "expected_user_id": "user-456"
+  },
+  "failures": {
+    "duplicate_user_id": "user user-123 already exists",
+    "duplicate_username": "username alex is already assigned",
+    "missing_user": "user missing was not found",
+    "zero_limit": "pagination limit must be greater than zero"
+  }
+}

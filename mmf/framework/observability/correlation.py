@@ -25,9 +25,6 @@ import httpx
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-# Framework imports
-from mmf.framework.grpc import ServiceRegistrationProtocol
-
 logger = logging.getLogger(__name__)
 
 # Context variables for correlation tracking

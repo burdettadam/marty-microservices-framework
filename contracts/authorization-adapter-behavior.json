@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "structured_permissions": [
+    {"permission": "service:*:read", "request": ["service", "gateway", "read"], "allowed": true},
+    {"permission": "config:public:read", "request": ["config", "private", "read"], "allowed": false},
+    {"permission": "service:gateway-*:deploy", "request": ["service", "gateway-beta", "deploy"], "allowed": true}
+  ],
+  "rbac": {
+    "system_roles": ["admin", "service_manager", "developer", "viewer", "service_account"],
+    "user": "user-1",
+    "assigned_role": "release_manager",
+    "parent_role": "developer",
+    "allowed_request": ["service", "gateway", "deploy"],
+    "inherited_request": ["metric", "latency", "read"],
+    "denied_request": ["config", "secret", "delete"]
+  },
+  "abac": {
+    "nested_path": "profile.department",
+    "nested_value": "finance",
+    "regex_path": "email",
+    "regex": "^[a-z]+@example\\.com$",
+    "matching_email": "alice@example.com",
+    "non_matching_email": "alice@invalid.test"
+  },
+  "acl": {
+    "resource_pattern": "/api/v1/documents/*",
+    "matching_resource": "/api/v1/documents/42",
+    "non_matching_resource": "/api/v1/users/42",
+    "principal": "role:editor",
+    "permission": "write",
+    "ip_range": "10.0.0.0/8",
+    "matching_ip": "10.20.30.40",
+    "non_matching_ip": "192.0.2.1",
+    "request_method": "PATCH",
+    "resource_attribute": {"classification": ["internal", "public"]},
+    "time_range": {"start": "22:00", "end": "02:00"},
+    "matching_timestamp_ms": 84600000,
+    "non_matching_timestamp_ms": 43200000
+  },
+  "composite": {
+    "any": [false, true],
+    "all": [true, true],
+    "all_with_deny": [true, false],
+    "empty_allowed": false
+  },
+  "external_policy_backend": {
+    "missing_provider_error": "external_policy_engine",
+    "python_placeholder_decision": false
+  }
+}

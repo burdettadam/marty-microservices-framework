@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "subject": {
+    "common_name": "device.example.com",
+    "organization": "Example Org",
+    "organizational_unit": "Identity",
+    "email_address": "alex@example.com",
+    "user_id": "user-123",
+    "display_name": "device.example.com",
+    "matching_identity": "DEVICE.EXAMPLE.COM",
+    "non_matching_identity": "other.example.com"
+  },
+  "issuer": {
+    "common_name": "Example Root CA",
+    "organization": "Example Trust",
+    "ca_identifier": "ca-123",
+    "display_name": "Example Root CA",
+    "matching_name": "root ca",
+    "non_matching_name": "unrelated"
+  },
+  "certificate": {
+    "pem_data": "-----BEGIN CERTIFICATE-----\nZml4dHVyZQ==\n-----END CERTIFICATE-----",
+    "der_text": "certificate bytes",
+    "serial_number": "01AB",
+    "fingerprint_sha1": "AE095A8810BA6D92BC052E207948AE1E698D5DFD",
+    "fingerprint_sha256": "2269B58C43012EFC59B0544F8702B3FDD5FBA9DA5D38C8EAB193F6F48DE62556",
+    "not_valid_before_ms": 1000,
+    "not_valid_after_ms": 10000,
+    "valid_at_ms": 5000,
+    "not_yet_valid_at_ms": 999,
+    "expired_at_ms": 10001,
+    "warning_at_ms": 9000,
+    "warning_window_ms": 1000,
+    "key_usage": "digital_signature",
+    "extended_key_usage": "client_auth",
+    "exact_hostname": "device.example.com",
+    "wildcard_san": "*.service.example.com",
+    "wildcard_hostname": "api.service.example.com",
+    "invalid_deep_wildcard_hostname": "deep.api.service.example.com",
+    "matching_email": "ALEX@EXAMPLE.COM"
+  },
+  "authority": {
+    "ca_name": "Example Root",
+    "trust_level": "full",
+    "client_allowed": true,
+    "server_allowed": true,
+    "ca_allowed": false
+  },
+  "crl": {
+    "this_update_ms": 1000,
+    "next_update_ms": 10000,
+    "current_at_ms": 5000,
+    "stale_at_ms": 10001,
+    "revoked_serial_numbers": ["DEAD", "BEEF"]
+  },
+  "validation": {
+    "allowed_signature_algorithm": "sha256WithRSAEncryption",
+    "blocked_signature_algorithm": "md5WithRSAEncryption",
+    "allowed_key_usages": ["digital_signature", "key_encipherment"],
+    "invalid_key_usages": ["certificate_signing"],
+    "error": "signature invalid",
+    "warning": "certificate expires soon"
+  },
+  "configuration": {
+    "development_ca_directory": "./dev_certs/ca",
+    "production_ca_directory": "/etc/ssl/certs",
+    "pkcs11_module": "/usr/lib/pkcs11/provider.so",
+    "file_ca": "/etc/marty/ca.pem",
+    "certificate_header_name": "X-Client-Cert",
+    "certificate_param_name": "client_cert",
+    "certificate_body_field": "client_certificate"
+  },
+  "authentication": {
+    "request_id": "request-123",
+    "client_ip": "192.0.2.10",
+    "user_id": "user-123",
+    "email": "alex@example.com",
+    "fingerprint": "2269B58C43012EFC59B0544F8702B3FDD5FBA9DA5D38C8EAB193F6F48DE62556",
+    "session_id": "session-123",
+    "session_created_at_ms": 1000,
+    "session_expires_at_ms": 10000,
+    "session_active_at_ms": 5000,
+    "session_expired_at_ms": 10001,
+    "role": "issuer",
+    "permission": "credential:issue",
+    "revocation_reason": "key compromise"
+  }
+}

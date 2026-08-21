@@ -1,0 +1,25 @@
+[package]
+name = "mmf-push"
+description = "Canonical provider-neutral push delivery, lifecycle, and adapter platform for MMF"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+hmac.workspace = true
+mmf-core.workspace = true
+mmf-resilience.workspace = true
+rand.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+url.workspace = true
+
+[lints]
+workspace = true

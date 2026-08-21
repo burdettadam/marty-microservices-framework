@@ -1,7 +1,7 @@
 """Delivery Board Service - A bounded context for delivery management.
 
 This service demonstrates Hexagonal Architecture (Ports and Adapters) following
-the strict patterns defined in mmf/services/identity as the reference implementation.
+the strict boundaries defined by the Rust mmf-services identity implementation.
 
 Structure:
     domain/         Pure business logic (entities, value objects, exceptions)

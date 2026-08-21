@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "environments": {
+    "development": {
+      "debug": true,
+      "access_token_expiry_ms": 3600000,
+      "create_default_users": true,
+      "create_demo_keys": true,
+      "rate_limiting": false
+    },
+    "testing": {
+      "debug": true,
+      "access_token_expiry_ms": 300000,
+      "create_default_users": false,
+      "create_demo_keys": false,
+      "rate_limiting": false
+    },
+    "staging": {
+      "debug": false,
+      "create_default_users": false,
+      "create_demo_keys": false,
+      "rate_limiting": true
+    },
+    "production": {
+      "debug": false,
+      "create_default_users": false,
+      "create_demo_keys": false,
+      "rate_limiting": true,
+      "audit_logging": true
+    }
+  },
+  "jwt": {
+    "algorithm": "HS256",
+    "issuer": "marty-microservices",
+    "audience": "marty-services",
+    "expiry_ms": 1800000,
+    "excluded_paths": ["/health", "/docs", "/openapi.json", "/auth/jwt/health"],
+    "development_optional_paths": ["/admin/debug", "/metrics"]
+  },
+  "password": {
+    "min_length": 8,
+    "max_length": 128,
+    "bcrypt_rounds": 12,
+    "max_login_attempts": 5,
+    "lockout_ms": 900000
+  },
+  "api_key": {
+    "entropy_bytes": 32,
+    "prefix": "mmf_",
+    "default_expiry_ms": 31536000000,
+    "max_per_user": 10
+  },
+  "providers": ["basic", "api_key", "jwt", "oauth2", "oidc", "saml", "mtls", "mfa", "session", "environment", "ldap"],
+  "saml": {
+    "name_id_format": "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+    "require_assertion_signature": true,
+    "require_response_signature": true
+  },
+  "failures": {
+    "production_missing_jwt_key": "production JWT key material is required",
+    "production_default_admin_password": "production cannot use a default administrator password",
+    "unsupported_jwt_algorithm": "unsupported JWT algorithm",
+    "disabled_default_provider": "default authentication provider must be enabled",
+    "invalid_password_policy": "invalid password policy",
+    "unconfigured_saml": "enabled SAML requires complete IdP and SP configuration"
+  }
+}

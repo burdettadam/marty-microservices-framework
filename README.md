@@ -69,7 +69,7 @@ Detailed documentation is available in the `docs/` directory.
 
 Explore the `examples/` directory for practical implementations:
 
-* **Authentication**: `authentication_examples.py`, `jwt_auth_demo.py`, `mfa_authentication_example.py`
+* **Authentication**: Rust identity-service contracts in `contracts/identity-service-*-behavior.json` and the `mmf-services` identity binary
 * **Domains**: `petstore_domain/`, `video_streaming_domain/`, `production-payment-service/`
 * **Resilience**: `resilience/`, `resilience_test.py`
 * **Security**: `security/`, `security_recovery_demo.py`

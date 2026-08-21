@@ -1,4 +1,14 @@
 services:
+  identity-service:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      MMF_ENVIRONMENT: development
+      MMF_BIND: 0.0.0.0:8000
+
   pet-service:
     build:
       context: ../../
@@ -7,11 +17,13 @@ services:
       - "8000:8000"
     environment:
       PYTHONPATH: /app
+      IDENTITY_SERVICE_URL: http://identity-service:8000
       OTEL_SERVICE_NAME: pet-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       OTEL_TRACES_EXPORTER: otlp
     command: uvicorn examples.petstore_domain.services.pet_service.main:app --host 0.0.0.0 --port 8000
     depends_on:
+      - identity-service
       - jaeger
 
   store-service:
@@ -22,6 +34,7 @@ services:
       - "8001:8001"
     environment:
       PYTHONPATH: /app
+      IDENTITY_SERVICE_URL: http://identity-service:8000
       PET_SERVICE_URL: http://pet-service:8000
       DELIVERY_BOARD_URL: http://delivery-board-service:8002
       OTEL_SERVICE_NAME: store-service
@@ -29,6 +42,7 @@ services:
       OTEL_TRACES_EXPORTER: otlp
     command: uvicorn examples.petstore_domain.services.store_service.main:app --host 0.0.0.0 --port 8001
     depends_on:
+      - identity-service
       - pet-service
       - delivery-board-service
       - jaeger
@@ -41,11 +55,13 @@ services:
       - "8002:8002"
     environment:
       PYTHONPATH: /app
+      IDENTITY_SERVICE_URL: http://identity-service:8000
       OTEL_SERVICE_NAME: delivery-board-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       OTEL_TRACES_EXPORTER: otlp
     command: uvicorn examples.petstore_domain.services.delivery_board_service.main:app --host 0.0.0.0 --port 8002
     depends_on:
+      - identity-service
       - jaeger
 
   # --- Observability Stack ---

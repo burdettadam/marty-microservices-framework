@@ -8,9 +8,23 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
+mmf-cli.workspace = true
 mmf-config.workspace = true
 mmf-core.workspace = true
+mmf-data.workspace = true
+mmf-messaging.workspace = true
+mmf-ml.workspace = true
+mmf-observability.workspace = true
+mmf-platform.workspace = true
+mmf-plugins.workspace = true
+mmf-push.workspace = true
+mmf-patterns.workspace = true
+mmf-resilience.workspace = true
 mmf-runtime.workspace = true
+mmf-security.workspace = true
+mmf-services.workspace = true
+mmf-testkit.workspace = true
+mmf-workflow.workspace = true
 
 [lints]
 workspace = true

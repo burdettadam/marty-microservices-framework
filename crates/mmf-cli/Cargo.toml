@@ -1,0 +1,27 @@
+[package]
+name = "mmf-cli"
+description = "Canonical documentation, contracts, scaffolding, and developer command platform for MMF"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+mmf-platform.workspace = true
+mmf-plugins.workspace = true
+mmf-testkit.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+toml.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "marty"
+path = "src/main.rs"

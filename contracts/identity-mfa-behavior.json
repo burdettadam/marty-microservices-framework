@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "totp_vectors": [
+    {
+      "algorithm": "SHA1",
+      "secret": "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ",
+      "counter": 1,
+      "expected": "94287082"
+    },
+    {
+      "algorithm": "SHA256",
+      "secret": "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZA====",
+      "counter": 1,
+      "expected": "46119246"
+    },
+    {
+      "algorithm": "SHA512",
+      "secret": "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNA=",
+      "counter": 1,
+      "expected": "90693936"
+    }
+  ],
+  "challenge": {
+    "created_at_ms": 100,
+    "lifetime_ms": 100,
+    "max_attempts": 2,
+    "active_at_ms": 199,
+    "expired_at_ms": 200
+  },
+  "delivery": {
+    "phone_number": "+15555550100",
+    "email_address": "user@example.test",
+    "invalid_phone_number": "555-0100",
+    "invalid_email_address": "not-an-email"
+  },
+  "setup": {
+    "user_identifier": "user+test@example.test",
+    "encoded_user_identifier": "user%2Btest%40example.test",
+    "encoded_issuer": "issuer=MMF%20Identity%20Service"
+  }
+}

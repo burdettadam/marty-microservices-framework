@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "priorities": [
+    {"name": "low", "value": 1},
+    {"name": "normal", "value": 5},
+    {"name": "high", "value": 10},
+    {"name": "critical", "value": 15}
+  ],
+  "message_state": {
+    "now_ms": 10000,
+    "future_expiry_ms": 10001,
+    "past_expiry_ms": 9999,
+    "retry_cases": [
+      {"retry_count": 0, "max_retries": 3, "expected": true},
+      {"retry_count": 2, "max_retries": 3, "expected": true},
+      {"retry_count": 3, "max_retries": 3, "expected": false}
+    ]
+  },
+  "routing": {
+    "default_topic": "events.default",
+    "default_key": "default",
+    "rules": [
+      {"name": "specific", "pattern": "user.created", "match_type": "contains", "topic": "events.users", "routing_key": "users.created", "priority": 100},
+      {"name": "generic", "pattern": "user", "match_type": "contains", "topic": "events.generic", "routing_key": "users", "priority": 10}
+    ],
+    "cases": [
+      {"input": "tenant.user.created.v1", "topic": "events.users", "routing_key": "users.created", "matched_rule": "specific"},
+      {"input": "invoice.paid", "topic": "events.default", "routing_key": "default", "matched_rule": null}
+    ]
+  },
+  "pattern_recommendations": [
+    {"use_case": "user notification", "response_needed": false, "ordering_required": false, "high_throughput": false, "expected": "publish_subscribe"},
+    {"use_case": "account query", "response_needed": true, "ordering_required": false, "high_throughput": false, "expected": "request_reply"},
+    {"use_case": "ordered events", "response_needed": false, "ordering_required": true, "high_throughput": true, "expected": "stream_processing"},
+    {"use_case": "background command", "response_needed": false, "ordering_required": false, "high_throughput": false, "expected": "point_to_point"},
+    {"use_case": "system broadcast", "response_needed": false, "ordering_required": false, "high_throughput": false, "expected": "broadcast"}
+  ],
+  "leased_outbox": {
+    "first_claim_at_ms": 1000,
+    "lease_duration_ms": 100,
+    "reclaim_at_ms": 1100,
+    "first_attempt": 1,
+    "reclaimed_attempt": 2,
+    "stale_worker_rejected": true,
+    "completed_status": "processed",
+    "expired_status": "skipped"
+  }
+}

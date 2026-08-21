@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "routes": {
+    "legacy_authenticate": "/authenticate",
+    "health": "/health",
+    "login": "/auth/login",
+    "validate": "/auth/validate",
+    "me": "/auth/me",
+    "refresh": "/auth/refresh",
+    "logout": "/auth/logout",
+    "jwt_authenticate": "/auth/jwt/authenticate",
+    "jwt_validate": "/auth/jwt/validate",
+    "jwt_health": "/auth/jwt/health",
+    "plugins": "/plugins",
+    "password_change": "/auth/password/change",
+    "api_key_create": "/auth/api-keys/create",
+    "api_key_revoke": "/auth/api-keys/revoke"
+  },
+  "credentials": {
+    "username": "alex",
+    "password": "Correct-Horse-42!",
+    "token": "fixture.jwt.token",
+    "refresh_token": "fixture.refresh.token"
+  },
+  "responses": {
+    "service": "identity",
+    "backend": "rust",
+    "version": "0.1.0",
+    "token_type": "Bearer",
+    "expires_in": 3600,
+    "logout_message": "Successfully logged out"
+  },
+  "authorization": {
+    "role": "issuer",
+    "permission": "credential:issue",
+    "missing_role": "administrator",
+    "missing_permission": "credential:delete"
+  },
+  "failures": {
+    "missing_bearer": "Authorization header required",
+    "invalid_bearer": "Invalid authorization header format",
+    "authentication_required": "Authentication required",
+    "role_forbidden": "Required role is missing",
+    "permission_forbidden": "Required permission is missing"
+  }
+}

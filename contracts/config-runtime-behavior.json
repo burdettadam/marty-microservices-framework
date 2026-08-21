@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "hosting": [
+    {"variables": {"KUBERNETES_SERVICE_HOST": "10.0.0.1", "AWS_REGION": "us-west-2"}, "expected": "aws"},
+    {"variables": {"AWS_REGION": "us-west-2"}, "expected": "aws"},
+    {"variables": {"GOOGLE_CLOUD_PROJECT": "marty"}, "expected": "google_cloud"},
+    {"variables": {"AZURE_CLIENT_ID": "client"}, "expected": "azure"},
+    {"variables": {"KUBERNETES_SERVICE_HOST": "10.0.0.1"}, "expected": "kubernetes"},
+    {"variables": {"MMF_DOCKER": "1"}, "expected": "docker"},
+    {"variables": {"MMF_SELF_HOSTED": "true"}, "expected": "self_hosted"},
+    {"variables": {"ENVIRONMENT": "development"}, "expected": "local"},
+    {"variables": {}, "expected": "self_hosted"}
+  ],
+  "secret": {"created_at_ms": 1000, "expires_at_ms": 2000, "valid_at_ms": 1999, "expired_at_ms": 2000},
+  "lifetimes": {"singleton_same": true, "transient_same": false, "scope_same": true, "cross_scope_same": false}
+}

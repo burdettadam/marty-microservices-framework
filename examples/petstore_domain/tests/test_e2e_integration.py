@@ -27,9 +27,9 @@ class TestPetService:
     def client(self):
         """Create a test client for the pet service."""
         app = create_pet_app()
-        # Skip JWT validation for testing
+        # Skip the external Rust identity service for domain-flow testing.
         for middleware in app.user_middleware:
-            if "JWTAuthenticationMiddleware" in str(middleware.cls):
+            if "RustIdentityMiddleware" in str(middleware.cls):
                 app.user_middleware.remove(middleware)
                 break
         with TestClient(app) as client:
@@ -64,9 +64,9 @@ class TestStoreService:
     def client(self):
         """Create a test client for the store service."""
         app = create_store_app()
-        # Skip JWT validation for testing
+        # Skip the external Rust identity service for domain-flow testing.
         for middleware in list(app.user_middleware):
-            if "JWTAuthenticationMiddleware" in str(middleware.cls):
+            if "RustIdentityMiddleware" in str(middleware.cls):
                 app.user_middleware.remove(middleware)
                 break
         with TestClient(app) as client:
@@ -96,9 +96,9 @@ class TestDeliveryBoardService:
     def client(self):
         """Create a test client for the delivery board service."""
         app = create_delivery_app()
-        # Skip JWT validation for testing
+        # Skip the external Rust identity service for domain-flow testing.
         for middleware in list(app.user_middleware):
-            if "JWTAuthenticationMiddleware" in str(middleware.cls):
+            if "RustIdentityMiddleware" in str(middleware.cls):
                 app.user_middleware.remove(middleware)
                 break
         with TestClient(app) as client:
@@ -139,7 +139,7 @@ class TestOrderToDeliveryFlow:
         """Create a test client for the store service."""
         app = create_store_app()
         for middleware in list(app.user_middleware):
-            if "JWTAuthenticationMiddleware" in str(middleware.cls):
+            if "RustIdentityMiddleware" in str(middleware.cls):
                 app.user_middleware.remove(middleware)
                 break
         with TestClient(app) as client:
@@ -150,7 +150,7 @@ class TestOrderToDeliveryFlow:
         """Create a test client for the delivery board service."""
         app = create_delivery_app()
         for middleware in list(app.user_middleware):
-            if "JWTAuthenticationMiddleware" in str(middleware.cls):
+            if "RustIdentityMiddleware" in str(middleware.cls):
                 app.user_middleware.remove(middleware)
                 break
         with TestClient(app) as client:
@@ -214,7 +214,7 @@ class TestServiceResilience:
         """Create a test client for the delivery board service."""
         app = create_delivery_app()
         for middleware in list(app.user_middleware):
-            if "JWTAuthenticationMiddleware" in str(middleware.cls):
+            if "RustIdentityMiddleware" in str(middleware.cls):
                 app.user_middleware.remove(middleware)
                 break
         with TestClient(app) as client:

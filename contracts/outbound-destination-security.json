@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "require_https": true,
+    "reject_explicit_ports": true,
+    "reject_query": true,
+    "reject_fragment": true,
+    "reject_credentials": true,
+    "validate_every_resolved_address": true,
+    "pin_validated_addresses_for_transport": true
+  },
+  "cases": [
+    {"url": "https://registry.example/sync", "addresses": ["93.184.216.34:443"], "allowed": true},
+    {"url": "http://registry.example/sync", "addresses": ["93.184.216.34:80"], "allowed": false},
+    {"url": "https://registry.example:8443/sync", "addresses": ["93.184.216.34:8443"], "allowed": false},
+    {"url": "https://registry.example/sync?token=secret", "addresses": ["93.184.216.34:443"], "allowed": false},
+    {"url": "https://registry.example/sync#fragment", "addresses": ["93.184.216.34:443"], "allowed": false},
+    {"url": "https://user:password@registry.example/sync", "addresses": ["93.184.216.34:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["127.0.0.1:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["10.0.0.1:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["169.254.169.254:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["100.64.0.1:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["192.0.0.8:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["[::1]:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["[::ffff:127.0.0.1]:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["[fc00::1]:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["93.184.216.34:443", "10.0.0.1:443"], "allowed": false},
+    {"url": "https://approved.service.local/sync", "addresses": ["10.0.0.1:443"], "approved_hosts": ["approved.service.local"], "allowed": true}
+  ]
+}

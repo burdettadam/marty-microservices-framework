@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "user": {
+    "user_id": "user-123",
+    "username": "alex",
+    "email": "alex@example.com",
+    "roles": ["issuer"],
+    "permissions": ["credential:issue"]
+  },
+  "results": {
+    "success_status": "success",
+    "failure_status": "failed",
+    "failure_message": "Invalid credentials",
+    "failure_code": "INVALID_PASSWORD",
+    "mfa_status": "requires_mfa",
+    "mfa_code": "MFA_REQUIRED"
+  }
+}

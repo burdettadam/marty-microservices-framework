@@ -103,21 +103,33 @@ class WildcardMatcher(IRouteMatcher):
 class TemplateMatcher(IRouteMatcher):
     """Template-based path matching with parameter extraction."""
 
+    _parameter_pattern = re.compile(
+        r"\{([A-Za-z_][A-Za-z0-9_]*)(?::([A-Za-z_][A-Za-z0-9_]*))?\}"
+    )
+
     def __init__(self, case_sensitive: bool = True):
         self.case_sensitive = case_sensitive
         self._compiled_patterns: dict[str, tuple[Pattern, list[str]]] = {}
 
     def _compile_template(self, template: str) -> tuple[Pattern, list[str]]:
         if template not in self._compiled_patterns:
-            param_names = []
-            pattern = template
+            param_names: list[str] = []
+            pattern_parts: list[str] = []
+            cursor = 0
 
-            # Find all parameters in {name} format
-            for match in re.finditer(r"\{([^}]+)\}", template):
-                param_name = match.group(1)
+            for match in self._parameter_pattern.finditer(template):
+                param_name, converter = match.groups()
+                if converter not in (None, "path"):
+                    raise ValueError(f"unsupported route converter: {converter}")
+
+                pattern_parts.append(re.escape(template[cursor : match.start()]))
                 param_names.append(param_name)
-                # Replace with named regex group
-                pattern = pattern.replace(f"{{{param_name}}}", f"(?P<{param_name}>[^/]+)")
+                expression = ".+" if converter == "path" else "[^/]+"
+                pattern_parts.append(f"(?P<{param_name}>{expression})")
+                cursor = match.end()
+
+            pattern_parts.append(re.escape(template[cursor:]))
+            pattern = "".join(pattern_parts)
 
             # Ensure full match
             pattern = f"^{pattern}$"
@@ -130,7 +142,7 @@ class TemplateMatcher(IRouteMatcher):
         try:
             regex, _ = self._compile_template(pattern)
             return bool(regex.match(path))
-        except re.error:
+        except (re.error, ValueError):
             return False
 
     def extract_params(self, pattern: str, path: str) -> dict[str, str]:
@@ -138,7 +150,7 @@ class TemplateMatcher(IRouteMatcher):
             regex, _ = self._compile_template(pattern)
             match = regex.match(path)
             return match.groupdict() if match else {}
-        except re.error:
+        except (re.error, ValueError):
             return {}
 
 

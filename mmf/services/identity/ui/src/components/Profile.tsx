@@ -8,8 +8,8 @@ interface User {
   roles: string[];
   permissions: string[];
   auth_method: string | null;
-  created_at: string;
-  expires_at: string | null;
+  created_at_ms: number | null;
+  expires_at_ms: number | null;
 }
 
 interface ProfileProps {

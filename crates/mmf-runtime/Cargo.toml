@@ -11,6 +11,7 @@ version.workspace = true
 axum.workspace = true
 mmf-core.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 http-body-util.workspace = true

@@ -4,7 +4,7 @@ This directory contains a complete example domain implementation using the Marty
 
 ## 🏗️ Architecture
 
-All services follow the same strict Hexagonal Architecture pattern as `mmf/services/identity` (the reference implementation):
+All services follow the same strict Hexagonal Architecture boundaries as the Rust `mmf-services` identity implementation:
 
 ```
 service/
@@ -129,7 +129,7 @@ These tests ensure:
 ## 📚 Reference Implementation
 
 For the canonical example of Hexagonal Architecture in MMF, see:
-- `mmf/services/identity/` - The production reference implementation
+- `crates/mmf-services/src/identity*.rs` - The production Rust reference implementation
 - `docs/architecture/STANDARDS.md` - Architectural standards and rules
 
 ## Plugin Configuration

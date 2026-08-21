@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "correlation": {
+    "context": {
+      "correlation_id": "corr-123",
+      "request_id": "req-456",
+      "user_id": "user-789",
+      "session_id": "session-321",
+      "plugin_id": "plugin-a",
+      "operation_id": "operation-b",
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "00f067aa0ba902b7",
+      "service_name": "gateway",
+      "operation_name": "issue",
+      "custom_tags": {"region": "us-west"}
+    },
+    "headers": {
+      "X-MMF-Correlation-ID": "corr-123",
+      "X-MMF-Request-ID": "req-456",
+      "X-MMF-User-ID": "user-789",
+      "X-MMF-Session-ID": "session-321",
+      "X-MMF-Plugin-ID": "plugin-a",
+      "X-MMF-Operation-ID": "operation-b",
+      "X-Trace-ID": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "X-Span-ID": "00f067aa0ba902b7"
+    },
+    "log_fields": {
+      "correlation_id": "corr-123",
+      "request_id": "req-456",
+      "user_id": "user-789",
+      "session_id": "session-321",
+      "plugin_id": "plugin-a",
+      "operation_id": "operation-b",
+      "trace_id": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "span_id": "00f067aa0ba902b7",
+      "service_name": "gateway",
+      "operation_name": "issue",
+      "tag_region": "us-west"
+    }
+  },
+  "traceparent": {
+    "valid": [
+      "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      "00-80e1afed08e019fc1110464cfa66635c-7a085853722dc6d2-00"
+    ],
+    "invalid": [
+      "",
+      "00-00000000000000000000000000000000-00f067aa0ba902b7-01",
+      "00-4bf92f3577b34da6a3ce929d0e0e4736-0000000000000000-01",
+      "ff-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+      "00-not-hex-00f067aa0ba902b7-01"
+    ]
+  },
+  "slo_cases": [
+    {"target_percentage": 99.9, "compliance_percentage": 100.0, "total_budget": 0.1, "consumed": 0.0, "remaining": 0.1},
+    {"target_percentage": 99.9, "compliance_percentage": 99.85, "total_budget": 0.1, "consumed": 0.05, "remaining": 0.05},
+    {"target_percentage": 99.0, "compliance_percentage": 97.0, "total_budget": 1.0, "consumed": 1.0, "remaining": 0.0}
+  ],
+  "redaction": {
+    "replacement": "[REDACTED]",
+    "sensitive_keys": ["password", "client_secret", "authorization", "access_token", "private_key"],
+    "safe_keys": ["request_id", "credential_type", "status"]
+  }
+}

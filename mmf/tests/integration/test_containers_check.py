@@ -1,23 +1,16 @@
-import asyncpg
 import pytest
 import redis.asyncio as redis
-from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_postgres_container_connection(postgres_container: PostgresContainer):
+async def test_postgres_container_connection(
+    real_database_connection,
+):
     """Verify that the Postgres container is running and accessible."""
-    connection_url = postgres_container.get_connection_url()
-    asyncpg_url = connection_url.replace("postgresql+psycopg2://", "postgresql://")
-
-    conn = await asyncpg.connect(asyncpg_url)
-    try:
-        result = await conn.fetchval("SELECT 1")
-        assert result == 1
-    finally:
-        await conn.close()
+    result = await real_database_connection.fetchval("SELECT 1")
+    assert result == 1
 
 
 @pytest.mark.integration

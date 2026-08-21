@@ -3,7 +3,21 @@ members = [
     "crates/mmf",
     "crates/mmf-config",
     "crates/mmf-core",
+    "crates/mmf-cli",
+    "crates/mmf-data",
+    "crates/mmf-messaging",
+    "crates/mmf-ml",
+    "crates/mmf-observability",
+    "crates/mmf-platform",
+    "crates/mmf-plugins",
+    "crates/mmf-push",
+    "crates/mmf-patterns",
+    "crates/mmf-resilience",
     "crates/mmf-runtime",
+    "crates/mmf-security",
+    "crates/mmf-services",
+    "crates/mmf-testkit",
+    "crates/mmf-workflow",
 ]
 resolver = "2"
 
@@ -16,18 +30,51 @@ version = "0.1.0"
 
 [workspace.dependencies]
 axum = "0.8"
+async-trait = "0.1"
+base64 = "0.22"
+cedar-policy = "4.8.1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 http-body-util = "0.1"
-mmf-config = { path = "crates/mmf-config" }
-mmf-core = { path = "crates/mmf-core" }
-mmf-runtime = { path = "crates/mmf-runtime" }
+mmf-config = { version = "0.1.0", path = "crates/mmf-config" }
+mmf-cli = { version = "0.1.0", path = "crates/mmf-cli" }
+mmf-core = { version = "0.1.0", path = "crates/mmf-core" }
+mmf-data = { version = "0.1.0", path = "crates/mmf-data" }
+mmf-messaging = { version = "0.1.0", path = "crates/mmf-messaging" }
+mmf-ml = { version = "0.1.0", path = "crates/mmf-ml" }
+mmf-observability = { version = "0.1.0", path = "crates/mmf-observability" }
+mmf-platform = { version = "0.1.0", path = "crates/mmf-platform" }
+mmf-plugins = { version = "0.1.0", path = "crates/mmf-plugins" }
+mmf-push = { version = "0.1.0", path = "crates/mmf-push" }
+mmf-patterns = { version = "0.1.0", path = "crates/mmf-patterns" }
+mmf-resilience = { version = "0.1.0", path = "crates/mmf-resilience" }
+mmf-runtime = { version = "0.1.0", path = "crates/mmf-runtime" }
+mmf-security = { version = "0.1.0", path = "crates/mmf-security" }
+mmf-services = { version = "0.1.0", path = "crates/mmf-services" }
+mmf-testkit = { version = "0.1.0", path = "crates/mmf-testkit" }
+mmf-workflow = { version = "0.1.0", path = "crates/mmf-workflow" }
+rand = "0.9"
+regex = "1"
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "stream"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+scrypt = { version = "0.11", default-features = false }
+sha2 = "0.10"
+sha1 = "0.10"
+hmac = "0.12"
+hkdf = "0.12"
+p256 = { version = "0.13", features = ["ecdh", "pem"] }
+p384 = { version = "0.13", features = ["ecdh", "pem"] }
+p521 = { version = "0.13", features = ["ecdh", "pem"] }
+redis = { version = "1.5", default-features = false, features = ["tokio-comp"] }
+sqlx = { version = "0.9", default-features = false, features = ["json", "postgres", "runtime-tokio", "tls-rustls-ring-webpki"] }
 thiserror = "2"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal"] }
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tonic = { version = "0.14", features = ["tls-native-roots", "tls-ring"] }
 toml = "0.9"
 tower = { version = "0.5", features = ["util"] }
 tracing = "0.1"
 uuid = { version = "1", features = ["serde", "v4"] }
+url = "2"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

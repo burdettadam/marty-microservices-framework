@@ -1,0 +1,20 @@
+[package]
+name = "mmf-plugins"
+description = "Canonical discovery, dependency, lifecycle, service, config, and extension platform for MMF plugins"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+mmf-core.workspace = true
+mmf-messaging.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "endpoints": [
+    {"host": "api.internal", "port": 8080, "protocol": "http", "path": "health", "url": "http://api.internal:8080/health"},
+    {"host": "api.internal", "port": 8443, "protocol": "https", "path": "/ready", "url": "https://api.internal:8443/ready"},
+    {"host": "db.internal", "port": 5432, "protocol": "tcp", "path": "", "url": "tcp://db.internal:5432"}
+  ],
+  "route_matches": [
+    {"match_type": "exact", "pattern": "/api/v1/users", "path": "/api/v1/users", "matched": true, "params": {}},
+    {"match_type": "prefix", "pattern": "/api/v1", "path": "/api/v1/users/123", "matched": true, "params": {"*": "users/123"}},
+    {"match_type": "wildcard", "pattern": "/users/*/profile", "path": "/users/123/profile", "matched": true, "params": {"wildcard": "/users/123/profile"}},
+    {"match_type": "template", "pattern": "/users/{user_id}/credentials/{credential_id}", "path": "/users/123/credentials/abc", "matched": true, "params": {"user_id": "123", "credential_id": "abc"}},
+    {"match_type": "template", "pattern": "/v1/auth/{path:path}", "path": "/v1/auth/session/validate", "matched": true, "params": {"path": "session/validate"}},
+    {"match_type": "regex", "pattern": "^/users/(?P<id>\\d+)$", "path": "/users/123", "matched": true, "params": {"id": "123"}},
+    {"match_type": "exact", "pattern": "/users", "path": "/organizations", "matched": false, "params": {}}
+  ],
+  "load_balancing": {
+    "instances": [
+      {"id": "i1", "host": "host1", "weight": 1, "connections": 10, "region": "us-east-1", "zone": "us-east-1a"},
+      {"id": "i2", "host": "host2", "weight": 9, "connections": 5, "region": "us-east-1", "zone": "us-east-1b"},
+      {"id": "i3", "host": "host3", "weight": 1, "connections": 15, "region": "us-west-2", "zone": "us-west-2a"}
+    ],
+    "round_robin_sequence": ["i1", "i2", "i3", "i1", "i2", "i3"],
+    "least_connections": "i2",
+    "same_zone": "i1",
+    "same_region": "i2"
+  },
+  "deployment": {
+    "statuses": ["pending", "preparing", "deploying", "deployed", "failed", "rolling_back", "rolled_back", "terminated"],
+    "strategies": ["rolling_update", "blue_green", "canary", "recreate", "a_b_testing"],
+    "production_requires_digest": true
+  }
+}

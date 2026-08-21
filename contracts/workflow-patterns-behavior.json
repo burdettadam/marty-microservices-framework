@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "workflow": {
+    "definition_id": "order-fulfillment",
+    "execution_id": "workflow-1",
+    "correlation_id": "correlation-1",
+    "steps": ["reserve", "charge", "notify"],
+    "retry_delay_ms": 1000,
+    "compensation_order": ["charge", "reserve"],
+    "terminal_status": "compensated"
+  },
+  "event_stream": {
+    "stream_id": "Order-order-1",
+    "event_types": ["OrderCreated", "OrderPaid"],
+    "versions": [1, 2],
+    "stale_expected_version": 0,
+    "snapshot_version": 2,
+    "final_state": {"status": "paid", "amount": 1250}
+  },
+  "cqrs": {
+    "command_id": "command-1",
+    "command_type": "CreateOrder",
+    "query_id": "query-1",
+    "query_type": "GetOrder",
+    "same_command_result_on_replay": true,
+    "handler_invocations": 1
+  },
+  "transaction": {
+    "transaction_id": "transaction-1",
+    "participants": ["inventory", "payments"],
+    "prepared_state": "prepared",
+    "committed_state": "committed",
+    "failed_prepare_state": "failed",
+    "abort_state": "aborted",
+    "timeout_ms": 300000
+  },
+  "consistency": {
+    "replication_factor": 3,
+    "read_quorum": 2,
+    "write_quorum": 2,
+    "strong_valid": true,
+    "non_intersecting_strong_valid": false,
+    "production_requires_encrypted_transport": true
+  }
+}

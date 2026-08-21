@@ -7,7 +7,7 @@ For the original version, see main.py.
 """
 
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import structlog
 from fastapi import FastAPI, Request
@@ -19,11 +19,8 @@ from examples.petstore_domain.services.delivery_board_service.di_config import (
 from examples.petstore_domain.services.delivery_board_service.infrastructure.adapters.input.api import (
     create_delivery_router,
 )
+from examples.petstore_domain.identity import add_rust_identity_middleware
 from mmf.framework.observability import add_correlation_id_middleware
-from mmf.services.identity.integration import (
-    JWTAuthenticationMiddleware,
-    create_development_config,
-)
 
 # Configure structured logging
 structlog.configure(
@@ -79,15 +76,8 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Configure JWT Authentication (Development Mode)
-    jwt_auth_config = create_development_config()
-    jwt_config = jwt_auth_config.to_jwt_config()
-    app.add_middleware(
-        JWTAuthenticationMiddleware,
-        jwt_config=jwt_config,
-        excluded_paths=jwt_auth_config.excluded_paths,
-        optional_paths=jwt_auth_config.optional_paths,
-    )
+    # Delegate token verification and identity policy to the Rust service.
+    add_rust_identity_middleware(app)
 
     # Add correlation ID middleware for distributed tracing
     add_correlation_id_middleware(app)

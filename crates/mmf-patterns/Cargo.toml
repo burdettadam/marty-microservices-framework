@@ -1,0 +1,21 @@
+[package]
+name = "mmf-patterns"
+description = "Canonical CQRS, event sourcing, consistency, and transaction patterns for MMF"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+mmf-data.workspace = true
+mmf-messaging.workspace = true
+mmf-workflow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

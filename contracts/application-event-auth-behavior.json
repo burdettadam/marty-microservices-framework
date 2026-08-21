@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "producer": "marty-applicant-service",
+  "audience": "marty-flow-application-approved",
+  "signature_version": "v1",
+  "secret": "test-application-event-key-that-is-distinct-and-long",
+  "event_id": "f4593698-8155-4e83-ac82-fef05e2e5761",
+  "signed_at": 1786291200,
+  "event": {
+    "event_type": "application.approved",
+    "aggregate_id": "application-1",
+    "aggregate_type": "application",
+    "organization_id": "org-1",
+    "data": {
+      "applicant_id": "applicant-1",
+      "claims": {"given_name": "Ada", "roles": ["member"]}
+    },
+    "timestamp": "2026-08-09T12:00:00+00:00"
+  },
+  "canonical_payload": "{\"aggregate_id\":\"application-1\",\"aggregate_type\":\"application\",\"data\":{\"applicant_id\":\"applicant-1\",\"claims\":{\"given_name\":\"Ada\",\"roles\":[\"member\"]}},\"event_type\":\"application.approved\",\"organization_id\":\"org-1\",\"timestamp\":\"2026-08-09T12:00:00+00:00\"}",
+  "payload_sha256": "234cdf6fd3dc198fff14bc575bc6f88299b9386a1c8857858561beb3a1c46208",
+  "event_id_sha256": "50b80483116fde90146709d75c6e774c69d871575843d88da53051837408e439",
+  "signature": "1917623323c056edee4abd8fa3c0f9508a3e19395f8654d01171852047ced8d9",
+  "authenticated_at": "2026-08-09T16:00:00+00:00",
+  "max_age_seconds": 60,
+  "replay_ttl_seconds": 300,
+  "replay_key_prefix": "marty:application-approved:v1:",
+  "failure_codes": [
+    "configuration_error",
+    "invalid_payload",
+    "invalid_event_id",
+    "missing_authentication",
+    "wrong_purpose",
+    "unsupported_version",
+    "invalid_envelope",
+    "stale_event",
+    "invalid_signature",
+    "replayed_event",
+    "replay_store_unavailable"
+  ]
+}

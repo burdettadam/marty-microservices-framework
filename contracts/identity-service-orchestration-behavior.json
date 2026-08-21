@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "user": {
+    "user_id": "user-123",
+    "username": "alex",
+    "email": "alex@example.com",
+    "role": "issuer",
+    "permission": "credential:issue"
+  },
+  "context": {
+    "client_ip": "192.0.2.10",
+    "user_agent": "Marty Fixture/1.0",
+    "request_id": "request-123",
+    "timestamp_ms": 1000
+  },
+  "principal": {
+    "authenticated_at_ms": 1000,
+    "expires_at_ms": 10000,
+    "active_at_ms": 9999,
+    "expired_at_ms": 10000
+  },
+  "requests": {
+    "username": "alex",
+    "password": "Correct-Horse-42!",
+    "new_password": "New-Correct-Horse-43!",
+    "api_key": "mmf_fixture_key",
+    "token": "fixture.jwt.token",
+    "api_key_name": "automation",
+    "api_key_expiry_ms": 10000
+  },
+  "results": {
+    "password_changed": "Password changed successfully",
+    "api_key_created": "API key created successfully",
+    "api_key_revoked": "API key revoked successfully",
+    "invalid_token_code": "TOKEN_INVALID",
+    "internal_error_code": "INTERNAL_ERROR"
+  },
+  "failures": {
+    "empty_user_id": "UserId cannot be empty",
+    "empty_username": "Username is required",
+    "empty_password": "Password is required",
+    "short_new_password": "New password must be at least 8 characters long",
+    "empty_api_key": "API key is required",
+    "empty_token": "Token is required",
+    "provider_unavailable": "authentication service unavailable"
+  }
+}
