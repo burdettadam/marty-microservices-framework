@@ -162,7 +162,7 @@ impl CredentialVerificationPolicyEngine {
         let credential_age_seconds = i64::try_from(facts.credential_age_seconds).map_err(|_| {
             SecurityError::Authorization("credential age exceeds Cedar Long range".into())
         })?;
-        self.cedar.authorize_request(CedarAuthorizationRequest {
+        let mut decision = self.cedar.authorize_request(CedarAuthorizationRequest {
             principal_type: "MIP::User".into(),
             principal_id: "verifier".into(),
             action_type: "MIP::Action".into(),
@@ -205,7 +205,31 @@ impl CredentialVerificationPolicyEngine {
                     "parents": [{"type": "MIP::Organization", "id": facts.organization_id}]
                 }
             ]),
-        })
+        })?;
+        decision.determining_policies = decision
+            .determining_policies
+            .into_iter()
+            .map(|policy| canonical_policy_reason(&policy).to_owned())
+            .collect();
+        Ok(decision)
+    }
+}
+
+fn canonical_policy_reason(policy: &str) -> &str {
+    match policy {
+        "policy0" => "permit-valid-credentials",
+        "policy1" => "deny-revoked-credentials",
+        "policy2" => "deny-expired-credentials",
+        "policy3" => "deny-untrusted-issuers",
+        "policy4" => "icao-dtc-format-requirement",
+        "policy5" => "icao-dtc-holder-binding",
+        "policy6" => "aamva-mdl-format-requirement",
+        "policy7" => "aamva-mdl-holder-binding",
+        "policy8" => "eudi-pid-format-requirement",
+        "policy9" => "eudi-pid-holder-binding",
+        "policy10" => "deny-weak-algorithms",
+        "policy11" => "high-assurance-freshness",
+        other => other,
     }
 }
 
@@ -254,6 +278,8 @@ mod tests {
         name: String,
         patch: Value,
         allowed: bool,
+        #[serde(default)]
+        expected_reasons: Vec<String>,
     }
 
     #[test]
@@ -273,6 +299,9 @@ mod tests {
                 serde_json::from_value(value).unwrap();
             let decision = engine.authorize(&facts).unwrap();
             assert_eq!(decision.allowed, case.allowed, "{}", case.name);
+            if !case.expected_reasons.is_empty() {
+                assert_eq!(decision.determining_policies, case.expected_reasons);
+            }
         }
     }
 
