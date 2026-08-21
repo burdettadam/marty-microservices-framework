@@ -171,6 +171,25 @@ class TestTemplateMatcher:
         params = matcher.extract_params("/users/{user_id}/posts/{post_id}", "/users/1/posts/2")
         assert params == {"user_id": "1", "post_id": "2"}
 
+    def test_path_converter_captures_multiple_segments(self):
+        matcher = TemplateMatcher()
+        template = "/v1/auth/{path:path}"
+        path = "/v1/auth/session/validate"
+
+        assert matcher.matches(template, path) is True
+        assert matcher.extract_params(template, path) == {"path": "session/validate"}
+
+    def test_literal_route_characters_are_not_regex(self):
+        matcher = TemplateMatcher()
+
+        assert matcher.matches("/files/v1.0/{name}", "/files/v1x0/report") is False
+
+    def test_unknown_converter_fails_closed(self):
+        matcher = TemplateMatcher()
+
+        assert matcher.matches("/users/{id:integer}", "/users/123") is False
+        assert matcher.extract_params("/users/{id:integer}", "/users/123") == {}
+
     def test_caches_compiled_templates(self):
         matcher = TemplateMatcher()
         matcher.matches("/users/{id}", "/users/123")
