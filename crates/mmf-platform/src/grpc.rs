@@ -25,6 +25,14 @@ pub enum GrpcTrustMode {
     CustomCa,
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GrpcServerClientAuthentication {
+    #[default]
+    Disabled,
+    Required,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct GrpcChannelConfig {
@@ -117,9 +125,10 @@ pub struct GrpcTlsMaterial {
 
 #[derive(Clone)]
 pub struct GrpcServerTlsMaterial {
-    pub ca_certificate_pem: Vec<u8>,
-    pub server_certificate_pem: Vec<u8>,
-    pub server_private_key_pem: Vec<u8>,
+    client_authentication: GrpcServerClientAuthentication,
+    ca_certificate_pem: Option<Vec<u8>>,
+    server_certificate_pem: Vec<u8>,
+    server_private_key_pem: Vec<u8>,
 }
 
 impl GrpcServerTlsMaterial {
@@ -135,15 +144,63 @@ impl GrpcServerTlsMaterial {
         )
     }
 
+    pub fn from_server_pem_files(
+        server_certificate: &Path,
+        server_private_key: &Path,
+    ) -> Result<Self, PlatformError> {
+        Self::server_only(
+            read_required_secret(server_certificate, "workload server certificate")?,
+            read_required_secret(server_private_key, "workload server private key")?,
+        )
+    }
+
     pub fn new(
         ca_certificate_pem: Vec<u8>,
         server_certificate_pem: Vec<u8>,
         server_private_key_pem: Vec<u8>,
     ) -> Result<Self, PlatformError> {
-        validate_certificate(Some(&ca_certificate_pem), "workload CA certificate")?;
+        Self::with_client_authentication(
+            GrpcServerClientAuthentication::Required,
+            Some(ca_certificate_pem),
+            server_certificate_pem,
+            server_private_key_pem,
+        )
+    }
+
+    pub fn server_only(
+        server_certificate_pem: Vec<u8>,
+        server_private_key_pem: Vec<u8>,
+    ) -> Result<Self, PlatformError> {
+        Self::with_client_authentication(
+            GrpcServerClientAuthentication::Disabled,
+            None,
+            server_certificate_pem,
+            server_private_key_pem,
+        )
+    }
+
+    pub fn with_client_authentication(
+        client_authentication: GrpcServerClientAuthentication,
+        ca_certificate_pem: Option<Vec<u8>>,
+        server_certificate_pem: Vec<u8>,
+        server_private_key_pem: Vec<u8>,
+    ) -> Result<Self, PlatformError> {
+        match client_authentication {
+            GrpcServerClientAuthentication::Disabled if ca_certificate_pem.is_some() => {
+                return Err(invalid(
+                    "server-only TLS cannot include a client CA certificate",
+                ));
+            }
+            GrpcServerClientAuthentication::Required => validate_certificate(
+                ca_certificate_pem.as_deref(),
+                "workload client CA certificate",
+            )?,
+            GrpcServerClientAuthentication::Disabled => {}
+        }
         validate_certificate(Some(&server_certificate_pem), "workload server certificate")?;
-        validate_private_key(Some(&server_private_key_pem))?;
+        validate_private_key(Some(&server_private_key_pem), "workload server private key")?;
         Ok(Self {
+            client_authentication,
             ca_certificate_pem,
             server_certificate_pem,
             server_private_key_pem,
@@ -151,13 +208,23 @@ impl GrpcServerTlsMaterial {
     }
 
     #[must_use]
+    pub const fn client_authentication(&self) -> GrpcServerClientAuthentication {
+        self.client_authentication
+    }
+
+    #[must_use]
     pub fn server_tls_config(&self) -> ServerTlsConfig {
-        ServerTlsConfig::new()
-            .identity(Identity::from_pem(
-                self.server_certificate_pem.clone(),
-                self.server_private_key_pem.clone(),
-            ))
-            .client_ca_root(Certificate::from_pem(self.ca_certificate_pem.clone()))
+        let config = ServerTlsConfig::new().identity(Identity::from_pem(
+            self.server_certificate_pem.clone(),
+            self.server_private_key_pem.clone(),
+        ));
+        match (&self.client_authentication, &self.ca_certificate_pem) {
+            (GrpcServerClientAuthentication::Required, Some(certificate)) => {
+                config.client_ca_root(Certificate::from_pem(certificate.clone()))
+            }
+            (GrpcServerClientAuthentication::Disabled, None) => config,
+            _ => unreachable!("validated server TLS material has a consistent client CA policy"),
+        }
     }
 }
 
@@ -311,7 +378,10 @@ fn validate_client_identity(
                 material.client_certificate_pem.as_deref(),
                 "client certificate",
             )?;
-            validate_private_key(material.client_private_key_pem.as_deref())?;
+            validate_private_key(
+                material.client_private_key_pem.as_deref(),
+                "client private key",
+            )?;
         }
         GrpcTransportSecurity::Plaintext => {}
     }
@@ -325,7 +395,7 @@ fn validate_certificate(value: Option<&[u8]>, name: &str) -> Result<(), Platform
         .ok_or_else(|| invalid(&format!("{name} is missing or malformed")))
 }
 
-fn validate_private_key(value: Option<&[u8]>) -> Result<(), PlatformError> {
+fn validate_private_key(value: Option<&[u8]>, name: &str) -> Result<(), PlatformError> {
     value
         .filter(|value| {
             [
@@ -337,7 +407,7 @@ fn validate_private_key(value: Option<&[u8]>) -> Result<(), PlatformError> {
             .any(|marker| pem_contains(value, marker))
         })
         .map(|_| ())
-        .ok_or_else(|| invalid("client private key is missing or malformed"))
+        .ok_or_else(|| invalid(&format!("{name} is missing or malformed")))
 }
 
 fn pem_contains(value: &[u8], marker: &[u8]) -> bool {
@@ -392,7 +462,7 @@ const fn default_http2_keepalive_timeout_ms() -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::GrpcServerTlsMaterial;
+    use super::{GrpcServerClientAuthentication, GrpcServerTlsMaterial};
 
     const CERTIFICATE: &[u8] = b"-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----\n";
     const PRIVATE_KEY: &[u8] = b"-----BEGIN PRIVATE KEY-----\nfixture\n-----END PRIVATE KEY-----\n";
@@ -406,6 +476,19 @@ mod tests {
         )
         .expect("complete material");
         let _configuration = material.server_tls_config();
+        assert_eq!(
+            material.client_authentication(),
+            GrpcServerClientAuthentication::Required
+        );
+
+        let server_only =
+            GrpcServerTlsMaterial::server_only(CERTIFICATE.to_vec(), PRIVATE_KEY.to_vec())
+                .expect("server-only material");
+        let _configuration = server_only.server_tls_config();
+        assert_eq!(
+            server_only.client_authentication(),
+            GrpcServerClientAuthentication::Disabled
+        );
 
         assert!(
             GrpcServerTlsMaterial::new(Vec::new(), CERTIFICATE.to_vec(), PRIVATE_KEY.to_vec())
@@ -419,5 +502,7 @@ mod tests {
             GrpcServerTlsMaterial::new(CERTIFICATE.to_vec(), CERTIFICATE.to_vec(), Vec::new())
                 .is_err()
         );
+        assert!(GrpcServerTlsMaterial::server_only(Vec::new(), PRIVATE_KEY.to_vec()).is_err());
+        assert!(GrpcServerTlsMaterial::server_only(CERTIFICATE.to_vec(), Vec::new()).is_err());
     }
 }
