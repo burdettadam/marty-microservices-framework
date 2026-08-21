@@ -378,18 +378,20 @@ fn is_public_ipv4(address: Ipv4Addr) -> bool {
         || address.is_unspecified()
         || octets[0] == 0
         || (octets[0] == 100 && (64..=127).contains(&octets[1]))
+        || (octets[0] == 192 && octets[1] == 0 && octets[2] == 0)
         || (octets[0] == 198 && (18..=19).contains(&octets[1]))
         || octets[0] >= 240)
 }
 
 fn is_public_ipv6(address: Ipv6Addr) -> bool {
     let segments = address.segments();
-    !(address.is_loopback()
-        || address.is_unspecified()
-        || address.is_multicast()
-        || (segments[0] & 0xfe00) == 0xfc00
-        || (segments[0] & 0xffc0) == 0xfe80
-        || (segments[0] == 0x2001 && segments[1] == 0x0db8))
+    (segments[0] & 0xe000) == 0x2000
+        && !(address.is_loopback()
+            || address.is_unspecified()
+            || address.is_multicast()
+            || (segments[0] & 0xfe00) == 0xfc00
+            || (segments[0] & 0xffc0) == 0xfe80
+            || (segments[0] == 0x2001 && segments[1] == 0x0db8))
 }
 
 fn map_reqwest_error(error: &reqwest::Error) -> PlatformError {

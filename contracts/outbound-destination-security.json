@@ -20,7 +20,9 @@
     {"url": "https://registry.example/sync", "addresses": ["10.0.0.1:443"], "allowed": false},
     {"url": "https://registry.example/sync", "addresses": ["169.254.169.254:443"], "allowed": false},
     {"url": "https://registry.example/sync", "addresses": ["100.64.0.1:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["192.0.0.8:443"], "allowed": false},
     {"url": "https://registry.example/sync", "addresses": ["[::1]:443"], "allowed": false},
+    {"url": "https://registry.example/sync", "addresses": ["[::ffff:127.0.0.1]:443"], "allowed": false},
     {"url": "https://registry.example/sync", "addresses": ["[fc00::1]:443"], "allowed": false},
     {"url": "https://registry.example/sync", "addresses": ["93.184.216.34:443", "10.0.0.1:443"], "allowed": false},
     {"url": "https://approved.service.local/sync", "addresses": ["10.0.0.1:443"], "approved_hosts": ["approved.service.local"], "allowed": true}
