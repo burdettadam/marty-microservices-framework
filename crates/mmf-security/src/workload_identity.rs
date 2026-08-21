@@ -6,6 +6,54 @@ use serde::{Deserialize, Serialize};
 
 use crate::SecurityError;
 
+const MINIMUM_SERVICE_TOKEN_BYTES: usize = 32;
+
+#[derive(Clone)]
+pub struct ServiceTokenAuthenticator {
+    expected: Option<Vec<u8>>,
+}
+
+impl ServiceTokenAuthenticator {
+    pub fn new(secret: Option<String>, required: bool) -> Result<Self, SecurityError> {
+        let expected = match secret {
+            Some(secret) if secret.len() >= MINIMUM_SERVICE_TOKEN_BYTES => {
+                Some(secret.into_bytes())
+            }
+            Some(_) => {
+                return Err(SecurityError::InvalidConfiguration(format!(
+                    "service token must contain at least {MINIMUM_SERVICE_TOKEN_BYTES} bytes"
+                )));
+            }
+            None if required => {
+                return Err(SecurityError::RequiredProvidersUnavailable(vec![
+                    "service_token",
+                ]));
+            }
+            None => None,
+        };
+        Ok(Self { expected })
+    }
+
+    #[must_use]
+    pub fn is_configured(&self) -> bool {
+        self.expected.is_some()
+    }
+
+    pub fn authenticate(&self, candidate: Option<&str>) -> Result<(), SecurityError> {
+        let Some(expected) = self.expected.as_deref() else {
+            return Ok(());
+        };
+        let candidate = candidate.map(str::as_bytes).unwrap_or_default();
+        if constant_time_secret_eq(expected, candidate) {
+            Ok(())
+        } else {
+            Err(SecurityError::Authentication(
+                "service authentication failed".into(),
+            ))
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkloadAuthorizationDecision {
@@ -147,5 +195,23 @@ mod tests {
         assert!(constant_time_secret_eq(b"same", b"same"));
         assert!(!constant_time_secret_eq(b"same", b"different"));
         assert!(!constant_time_secret_eq(b"same", b"samf"));
+    }
+
+    #[test]
+    fn required_service_tokens_fail_closed_at_startup_and_request_time() {
+        assert!(ServiceTokenAuthenticator::new(None, true).is_err());
+        assert!(ServiceTokenAuthenticator::new(Some("short".into()), false).is_err());
+        let authenticator = ServiceTokenAuthenticator::new(Some("s".repeat(32)), true).unwrap();
+        assert!(authenticator.is_configured());
+        assert!(authenticator.authenticate(Some(&"s".repeat(32))).is_ok());
+        assert!(authenticator.authenticate(None).is_err());
+        assert!(authenticator.authenticate(Some(&"s".repeat(31))).is_err());
+    }
+
+    #[test]
+    fn optional_unconfigured_service_authentication_supports_local_development() {
+        let authenticator = ServiceTokenAuthenticator::new(None, false).unwrap();
+        assert!(!authenticator.is_configured());
+        assert!(authenticator.authenticate(None).is_ok());
     }
 }
