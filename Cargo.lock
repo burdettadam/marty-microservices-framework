@@ -1411,6 +1411,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "mmf-core",
+ "redis",
  "serde",
  "serde_json",
  "thiserror",

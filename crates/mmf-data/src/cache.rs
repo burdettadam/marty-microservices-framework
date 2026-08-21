@@ -2,8 +2,11 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
+use redis::FromRedisValue;
+use redis::aio::MultiplexedConnection;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tokio::sync::Mutex as AsyncMutex;
 
 use crate::DataError;
 
@@ -225,6 +228,333 @@ pub trait CacheStore: Send + Sync {
     ) -> Result<usize, DataError>;
     async fn expire(&self, key: &str, ttl_seconds: u64, now_ms: u64) -> Result<bool, DataError>;
     async fn keys(&self, pattern: &str, now_ms: u64) -> Result<Vec<String>, DataError>;
+}
+
+/// Production Redis implementation of the canonical MMF cache contract.
+///
+/// Every operation is constrained to the configured namespace and key prefix.
+/// Namespace clearing and key enumeration use `SCAN`; this adapter never issues
+/// a database-wide `KEYS` or `FLUSHDB` command.
+#[derive(Clone)]
+pub struct RedisCache {
+    connection: Arc<AsyncMutex<MultiplexedConnection>>,
+    config: CacheConfig,
+    stats: Arc<Mutex<CacheStats>>,
+}
+
+impl RedisCache {
+    /// Connect to Redis and verify that the backend is responsive.
+    pub async fn connect(config: CacheConfig, production: bool) -> Result<Self, DataError> {
+        config.validate(production)?;
+        if config.backend != CacheBackend::Redis {
+            return Err(DataError::InvalidConfiguration(
+                "Redis cache requires the redis backend".into(),
+            ));
+        }
+        let redis_url = config.url.clone().unwrap_or_else(|| {
+            format!(
+                "redis://{}:{}/{}",
+                config.host, config.port, config.database
+            )
+        });
+        let client = redis::Client::open(redis_url)
+            .map_err(|error| DataError::InvalidConfiguration(error.to_string()))?;
+        let connection = client
+            .get_multiplexed_async_connection()
+            .await
+            .map_err(|error| DataError::ProviderUnavailable(error.to_string()))?;
+        let cache = Self::from_connection(config, connection)?;
+        let response: String = cache.command(&mut redis::cmd("PING")).await?;
+        if response != "PONG" {
+            return Err(DataError::ProviderUnavailable(
+                "Redis health check returned an unexpected response".into(),
+            ));
+        }
+        Ok(cache)
+    }
+
+    /// Construct an adapter from an established Redis connection.
+    pub fn from_connection(
+        config: CacheConfig,
+        connection: MultiplexedConnection,
+    ) -> Result<Self, DataError> {
+        config.validate(false)?;
+        if config.backend != CacheBackend::Redis {
+            return Err(DataError::InvalidConfiguration(
+                "Redis cache requires the redis backend".into(),
+            ));
+        }
+        Ok(Self {
+            connection: Arc::new(AsyncMutex::new(connection)),
+            config,
+            stats: Arc::new(Mutex::new(CacheStats::default())),
+        })
+    }
+
+    fn namespaced_key(&self, key: &str) -> Result<String, DataError> {
+        if key.trim().is_empty() {
+            return Err(DataError::InvalidQuery("cache key is required".into()));
+        }
+        Ok(self.config.key(key))
+    }
+
+    fn namespace_prefix(&self) -> String {
+        self.config.key("")
+    }
+
+    fn lock_stats(&self) -> std::sync::MutexGuard<'_, CacheStats> {
+        self.stats
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    async fn command<T>(&self, command: &mut redis::Cmd) -> Result<T, DataError>
+    where
+        T: FromRedisValue,
+    {
+        let result = command
+            .query_async(&mut *self.connection.lock().await)
+            .await;
+        result.map_err(|error| {
+            let mut stats = self.lock_stats();
+            stats.errors = stats.errors.saturating_add(1);
+            DataError::Operation(error.to_string())
+        })
+    }
+
+    async fn scan_namespaced_keys(&self, pattern: &str) -> Result<Vec<String>, DataError> {
+        if pattern.is_empty() {
+            return Err(DataError::InvalidQuery(
+                "cache key pattern is required".into(),
+            ));
+        }
+        let prefix = self.namespace_prefix();
+        let match_pattern = format!("{prefix}{pattern}");
+        let mut cursor = 0_u64;
+        let mut keys = Vec::new();
+        loop {
+            let (next, mut page): (u64, Vec<String>) = self
+                .command(
+                    redis::cmd("SCAN")
+                        .arg(cursor)
+                        .arg("MATCH")
+                        .arg(&match_pattern)
+                        .arg("COUNT")
+                        .arg(200_u16),
+                )
+                .await?;
+            keys.append(&mut page);
+            if next == 0 {
+                break;
+            }
+            cursor = next;
+        }
+        keys.sort();
+        keys.dedup();
+        Ok(keys)
+    }
+}
+
+#[async_trait]
+impl CacheStore for RedisCache {
+    async fn get(&self, key: &str, _now_ms: u64) -> Result<Option<Vec<u8>>, DataError> {
+        let value: Option<Vec<u8>> = self
+            .command(redis::cmd("GET").arg(self.namespaced_key(key)?))
+            .await?;
+        let mut stats = self.lock_stats();
+        if value.is_some() {
+            stats.hits = stats.hits.saturating_add(1);
+        } else {
+            stats.misses = stats.misses.saturating_add(1);
+        }
+        Ok(value)
+    }
+
+    async fn set(
+        &self,
+        key: &str,
+        value: Vec<u8>,
+        ttl_seconds: Option<u64>,
+        _now_ms: u64,
+    ) -> Result<bool, DataError> {
+        let key = self.namespaced_key(key)?;
+        let ttl_seconds = ttl_seconds.unwrap_or_default();
+        let previous_size: usize = self
+            .command(
+                redis::cmd("EVAL")
+                    .arg(
+                        "local size = 0; local kind = redis.call('TYPE', KEYS[1]); \
+                         if kind.ok == 'string' then size = redis.call('STRLEN', KEYS[1]); end; \
+                         if tonumber(ARGV[2]) > 0 then \
+                           redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2]); \
+                         else redis.call('SET', KEYS[1], ARGV[1]); end; return size",
+                    )
+                    .arg(1_u8)
+                    .arg(&key)
+                    .arg(&value)
+                    .arg(ttl_seconds),
+            )
+            .await?;
+        let mut stats = self.lock_stats();
+        stats.sets = stats.sets.saturating_add(1);
+        stats.total_size = stats
+            .total_size
+            .saturating_sub(previous_size as u64)
+            .saturating_add(value.len() as u64);
+        Ok(true)
+    }
+
+    async fn delete(&self, key: &str) -> Result<bool, DataError> {
+        let key = self.namespaced_key(key)?;
+        let (deleted, previous_size): (usize, usize) = self
+            .command(
+                redis::cmd("EVAL")
+                    .arg(
+                        "local size = 0; local kind = redis.call('TYPE', KEYS[1]); \
+                         if kind.ok == 'string' then size = redis.call('STRLEN', KEYS[1]); end; \
+                         return {redis.call('DEL', KEYS[1]), size}",
+                    )
+                    .arg(1_u8)
+                    .arg(key),
+            )
+            .await?;
+        if deleted > 0 {
+            let mut stats = self.lock_stats();
+            stats.deletes = stats.deletes.saturating_add(1);
+            stats.total_size = stats.total_size.saturating_sub(previous_size as u64);
+        }
+        Ok(deleted > 0)
+    }
+
+    async fn exists(&self, key: &str, _now_ms: u64) -> Result<bool, DataError> {
+        let count: usize = self
+            .command(redis::cmd("EXISTS").arg(self.namespaced_key(key)?))
+            .await?;
+        Ok(count > 0)
+    }
+
+    async fn clear(&self) -> Result<(), DataError> {
+        let keys = self.scan_namespaced_keys("*").await?;
+        for page in keys.chunks(200) {
+            let _: usize = self.command(redis::cmd("DEL").arg(page)).await?;
+        }
+        self.lock_stats().total_size = 0;
+        Ok(())
+    }
+
+    async fn stats(&self) -> Result<CacheStats, DataError> {
+        Ok(self.lock_stats().clone())
+    }
+
+    async fn zadd(&self, key: &str, members: BTreeMap<Vec<u8>, f64>) -> Result<usize, DataError> {
+        if members.values().any(|score| !score.is_finite()) {
+            return Err(DataError::InvalidQuery(
+                "sorted-set score must be finite".into(),
+            ));
+        }
+        if members.is_empty() {
+            return Ok(0);
+        }
+        let mut command = redis::cmd("ZADD");
+        command.arg(self.namespaced_key(key)?);
+        for (member, score) in members {
+            command.arg(score).arg(member);
+        }
+        self.command(&mut command).await
+    }
+
+    async fn zrevrangebyscore(
+        &self,
+        key: &str,
+        max_score: f64,
+        min_score: f64,
+        start: usize,
+        limit: Option<usize>,
+    ) -> Result<Vec<Vec<u8>>, DataError> {
+        validate_range(min_score, max_score)?;
+        let mut command = redis::cmd("ZREVRANGEBYSCORE");
+        command
+            .arg(self.namespaced_key(key)?)
+            .arg(max_score)
+            .arg(min_score);
+        if let Some(limit) = limit {
+            command.arg("LIMIT").arg(start).arg(limit);
+        } else if start > 0 {
+            command.arg("LIMIT").arg(start).arg(i64::MAX);
+        }
+        self.command(&mut command).await
+    }
+
+    async fn zcount(&self, key: &str, min_score: f64, max_score: f64) -> Result<usize, DataError> {
+        validate_range(min_score, max_score)?;
+        self.command(
+            redis::cmd("ZCOUNT")
+                .arg(self.namespaced_key(key)?)
+                .arg(min_score)
+                .arg(max_score),
+        )
+        .await
+    }
+
+    async fn zremrangebyscore(
+        &self,
+        key: &str,
+        min_score: f64,
+        max_score: f64,
+    ) -> Result<usize, DataError> {
+        validate_range(min_score, max_score)?;
+        self.command(
+            redis::cmd("ZREMRANGEBYSCORE")
+                .arg(self.namespaced_key(key)?)
+                .arg(min_score)
+                .arg(max_score),
+        )
+        .await
+    }
+
+    async fn zcard(&self, key: &str) -> Result<usize, DataError> {
+        self.command(redis::cmd("ZCARD").arg(self.namespaced_key(key)?))
+            .await
+    }
+
+    async fn zremrangebyrank(
+        &self,
+        key: &str,
+        min_rank: usize,
+        max_rank: usize,
+    ) -> Result<usize, DataError> {
+        if min_rank > max_rank {
+            return Err(DataError::InvalidQuery(
+                "invalid sorted-set rank range".into(),
+            ));
+        }
+        self.command(
+            redis::cmd("ZREMRANGEBYRANK")
+                .arg(self.namespaced_key(key)?)
+                .arg(min_rank)
+                .arg(max_rank),
+        )
+        .await
+    }
+
+    async fn expire(&self, key: &str, ttl_seconds: u64, _now_ms: u64) -> Result<bool, DataError> {
+        self.command(
+            redis::cmd("EXPIRE")
+                .arg(self.namespaced_key(key)?)
+                .arg(ttl_seconds),
+        )
+        .await
+    }
+
+    async fn keys(&self, pattern: &str, _now_ms: u64) -> Result<Vec<String>, DataError> {
+        let prefix = self.namespace_prefix();
+        Ok(self
+            .scan_namespaced_keys(pattern)
+            .await?
+            .into_iter()
+            .filter_map(|key| key.strip_prefix(&prefix).map(str::to_owned))
+            .collect())
+    }
 }
 
 #[derive(Clone, Debug)]
