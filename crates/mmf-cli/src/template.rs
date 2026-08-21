@@ -184,10 +184,7 @@ impl TemplateEngine {
         let expression = Regex::new(r#"\{%\s*include\s+[\"']([^\"']+)[\"']\s*%\}"#)
             .map_err(|error| CliError::Operation(error.to_string()))?;
         let mut output = source.to_owned();
-        loop {
-            let Some(captures) = expression.captures(&output) else {
-                break;
-            };
+        while let Some(captures) = expression.captures(&output) {
             let whole = captures.get(0).expect("include expression has whole match");
             let name = captures
                 .get(1)

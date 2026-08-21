@@ -961,7 +961,7 @@ fn python_json_string(value: &Value) -> String {
         ),
         Value::Object(values) => {
             let mut values = values.iter().collect::<Vec<_>>();
-            values.sort_by(|(left, _), (right, _)| left.cmp(right));
+            values.sort_by_key(|(key, _)| *key);
             format!(
                 "{{{}}}",
                 values
