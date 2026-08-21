@@ -202,6 +202,16 @@ pub trait CacheStore: Send + Sync {
         ttl_seconds: Option<u64>,
         now_ms: u64,
     ) -> Result<bool, DataError>;
+    /// Atomically create a value only when the key does not already exist.
+    /// Expired entries do not block acquisition. This is the canonical lease,
+    /// idempotency-claim, and distributed single-winner primitive.
+    async fn set_if_absent(
+        &self,
+        key: &str,
+        value: Vec<u8>,
+        ttl_seconds: Option<u64>,
+        now_ms: u64,
+    ) -> Result<bool, DataError>;
     async fn delete(&self, key: &str) -> Result<bool, DataError>;
     async fn exists(&self, key: &str, now_ms: u64) -> Result<bool, DataError>;
     async fn clear(&self) -> Result<(), DataError>;
@@ -445,6 +455,29 @@ impl CacheStore for RedisCache {
             .saturating_sub(previous_size as u64)
             .saturating_add(value.len() as u64);
         Ok(true)
+    }
+
+    async fn set_if_absent(
+        &self,
+        key: &str,
+        value: Vec<u8>,
+        ttl_seconds: Option<u64>,
+        _now_ms: u64,
+    ) -> Result<bool, DataError> {
+        let key = self.namespaced_key(key)?;
+        let mut command = redis::cmd("SET");
+        command.arg(&key).arg(&value).arg("NX");
+        if let Some(ttl_seconds) = ttl_seconds.filter(|ttl| *ttl > 0) {
+            command.arg("EX").arg(ttl_seconds);
+        }
+        let result: Option<String> = self.command(&mut command).await?;
+        let inserted = result.is_some();
+        if inserted {
+            let mut stats = self.lock_stats();
+            stats.sets = stats.sets.saturating_add(1);
+            stats.total_size = stats.total_size.saturating_add(value.len() as u64);
+        }
+        Ok(inserted)
     }
 
     async fn delete(&self, key: &str) -> Result<bool, DataError> {
@@ -746,6 +779,37 @@ impl CacheStore for MemoryCache {
                 .total_size
                 .saturating_sub(previous.value.len() as u64);
         }
+        state.stats.total_size = state.stats.total_size.saturating_add(value.len() as u64);
+        state.stats.sets = state.stats.sets.saturating_add(1);
+        Ok(true)
+    }
+
+    async fn set_if_absent(
+        &self,
+        key: &str,
+        value: Vec<u8>,
+        ttl_seconds: Option<u64>,
+        now_ms: u64,
+    ) -> Result<bool, DataError> {
+        if key.is_empty() {
+            return Err(DataError::InvalidQuery("cache key is required".into()));
+        }
+        let expires_at_ms = ttl_seconds.map(|ttl| now_ms.saturating_add(ttl.saturating_mul(1_000)));
+        let mut state = self.lock();
+        Self::purge(&mut state, key, now_ms);
+        if state.entries.contains_key(key)
+            || state.sets.contains_key(key)
+            || state.sorted_sets.contains_key(key)
+        {
+            return Ok(false);
+        }
+        state.entries.insert(
+            key.into(),
+            Entry {
+                value: value.clone(),
+                expires_at_ms,
+            },
+        );
         state.stats.total_size = state.stats.total_size.saturating_add(value.len() as u64);
         state.stats.sets = state.stats.sets.saturating_add(1);
         Ok(true)

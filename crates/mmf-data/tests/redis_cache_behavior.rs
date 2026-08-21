@@ -23,6 +23,22 @@ async fn assert_atomic_and_set_contract(cache: &RedisCache) {
         Some(b"challenge".to_vec())
     );
     assert_eq!(cache.take("one-time", 0).await.expect("replay take"), None);
+    assert!(
+        cache
+            .set_if_absent("lease", b"first".to_vec(), Some(30), 0)
+            .await
+            .expect("first lease")
+    );
+    assert!(
+        !cache
+            .set_if_absent("lease", b"second".to_vec(), Some(30), 0)
+            .await
+            .expect("contended lease")
+    );
+    assert_eq!(
+        cache.get("lease", 0).await.expect("lease read"),
+        Some(b"first".to_vec())
+    );
     assert_eq!(
         cache
             .sadd(

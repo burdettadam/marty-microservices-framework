@@ -144,6 +144,33 @@ async fn cache_serialization_ttl_stats_and_sorted_sets_match_contract() {
 }
 
 #[tokio::test]
+async fn cache_set_if_absent_is_a_single_winner_expiring_lease() {
+    let cache = MemoryCache::default();
+    assert!(
+        cache
+            .set_if_absent("lease", b"first".to_vec(), Some(1), 100)
+            .await
+            .expect("first lease")
+    );
+    assert!(
+        !cache
+            .set_if_absent("lease", b"second".to_vec(), Some(1), 100)
+            .await
+            .expect("contended lease")
+    );
+    assert!(
+        cache
+            .set_if_absent("lease", b"third".to_vec(), Some(1), 1_100)
+            .await
+            .expect("expired lease replacement")
+    );
+    assert_eq!(
+        cache.get("lease", 1_100).await.expect("replacement lease"),
+        Some(b"third".to_vec())
+    );
+}
+
+#[tokio::test]
 async fn read_model_filter_sort_and_pagination_match_contract() {
     let fixture = fixture();
     let store = InMemoryReadModelStore::default();
