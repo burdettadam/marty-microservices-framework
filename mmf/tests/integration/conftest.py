@@ -45,7 +45,6 @@ async def postgres_container() -> AsyncGenerator[PostgresContainer, None]:
     with PostgresContainer(
         "postgres:15-alpine@sha256:cae15a3b718f23497a60b7cafdcf205216d7949680972da0584db00fb68bf3e6"
     ) as postgres:
-        postgres.start()
         yield postgres
 
 
@@ -57,19 +56,23 @@ async def redis_container() -> AsyncGenerator[RedisContainer, None]:
     with RedisContainer(
         "redis:7-alpine@sha256:b1addbe72465a718643cff9e60a58e6df1841e29d6d7d60c9a85d8d72f08d1a7"
     ) as redis_container:
-        redis_container.start()
         yield redis_container
 
 
 @pytest.fixture
-async def real_database_connection(postgres_container: PostgresContainer):
+def postgres_connection_url(postgres_container: PostgresContainer) -> str:
+    """Provide an asyncpg URL for the isolated, non-TLS test container."""
+    connection_url = postgres_container.get_connection_url().replace(
+        "postgresql+psycopg2://", "postgresql://"
+    )
+    separator = "&" if "?" in connection_url else "?"
+    return f"{connection_url}{separator}sslmode=disable"
+
+
+@pytest.fixture
+async def real_database_connection(postgres_connection_url: str):
     """Provide a real database connection for integration tests."""
-
-    connection_url = postgres_container.get_connection_url()
-    # Convert psycopg2 URL to asyncpg format
-    asyncpg_url = connection_url.replace("postgresql+psycopg2://", "postgresql://")
-
-    connection = await asyncpg.connect(asyncpg_url)
+    connection = await asyncpg.connect(postgres_connection_url)
 
     # Setup test schema
     await connection.execute("""
