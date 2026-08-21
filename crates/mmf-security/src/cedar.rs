@@ -176,6 +176,25 @@ impl CedarPolicyEngine {
         })
     }
 
+    /// Parse and validate a Cedar policy against Cedar's human-readable schema format.
+    pub fn from_human_schema(
+        policy_source: &str,
+        schema_source: &str,
+        config: CedarConfig,
+    ) -> Result<Self, SecurityError> {
+        config.validate()?;
+        check_text_size("schema", schema_source, config.max_schema_bytes)?;
+        let (schema, _warnings) = Schema::from_cedarschema_str(schema_source).map_err(|error| {
+            SecurityError::InvalidPolicy(format!("invalid Cedar schema: {error}"))
+        })?;
+        let policies = parse_and_validate_policy(policy_source, &schema, config.max_policy_bytes)?;
+        Ok(Self {
+            policies,
+            schema,
+            config,
+        })
+    }
+
     /// Evaluate one request. Invalid request data is an error, never an allow.
     pub fn authorize_request(
         &self,

@@ -9,6 +9,7 @@
 pub mod application_event;
 mod authorization;
 pub mod cedar;
+pub mod credential_verification;
 mod identity;
 pub mod jwt_hmac;
 pub mod managed_session;
@@ -34,6 +35,7 @@ use std::sync::Arc;
 pub use application_event::*;
 pub use authorization::*;
 pub use cedar::*;
+pub use credential_verification::*;
 pub use identity::*;
 pub use managed_session::*;
 pub use mfa::*;
