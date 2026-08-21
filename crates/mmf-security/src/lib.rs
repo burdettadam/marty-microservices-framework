@@ -6,6 +6,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod applicant_approval;
 pub mod application_event;
 mod authorization;
 pub mod cedar;
@@ -32,6 +33,7 @@ mod workload_identity;
 
 use std::sync::Arc;
 
+pub use applicant_approval::*;
 pub use application_event::*;
 pub use authorization::*;
 pub use cedar::*;
