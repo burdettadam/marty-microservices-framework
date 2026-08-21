@@ -198,28 +198,31 @@ where
     S: OutboxLeaseStore + 'static,
 {
     config.validate()?;
-    transport.connect().await?;
     let result = async {
         loop {
             if *shutdown.borrow() {
                 break;
             }
+            if transport.connect().await.is_err() {
+                wait_for_poll_or_shutdown(config.poll_interval_ms, &mut shutdown).await;
+                continue;
+            }
             dispatch_outbox_once(store.as_ref(), transport.as_ref(), &config, unix_time_ms())
                 .await?;
-            tokio::select! {
-                () = tokio::time::sleep(Duration::from_millis(config.poll_interval_ms)) => {}
-                changed = shutdown.changed() => {
-                    if changed.is_err() || *shutdown.borrow() {
-                        break;
-                    }
-                }
-            }
+            wait_for_poll_or_shutdown(config.poll_interval_ms, &mut shutdown).await;
         }
         Ok(())
     }
     .await;
     let disconnect = transport.disconnect().await;
     result.and(disconnect)
+}
+
+async fn wait_for_poll_or_shutdown(interval_ms: u64, shutdown: &mut watch::Receiver<bool>) {
+    tokio::select! {
+        () = tokio::time::sleep(Duration::from_millis(interval_ms)) => {}
+        _ = shutdown.changed() => {}
+    }
 }
 
 fn unix_time_ms() -> u64 {
