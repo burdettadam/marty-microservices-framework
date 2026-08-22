@@ -8,6 +8,26 @@ use url::Url;
 
 use crate::PlatformError;
 
+/// Installs MMF's process-wide Rustls crypto policy when no provider has been
+/// selected yet.
+///
+/// Dependency feature unification can make both Rustls providers available in
+/// a service process. Rustls deliberately refuses to choose between them, so
+/// MMF selects the ring provider before constructing any gRPC TLS state.
+pub fn install_default_crypto_provider() -> Result<(), PlatformError> {
+    if rustls::crypto::CryptoProvider::get_default().is_none()
+        && rustls::crypto::ring::default_provider()
+            .install_default()
+            .is_err()
+        && rustls::crypto::CryptoProvider::get_default().is_none()
+    {
+        return Err(PlatformError::ProviderUnavailable(
+            "Rustls crypto provider".into(),
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum GrpcTransportSecurity {
@@ -199,6 +219,7 @@ impl GrpcServerTlsMaterial {
         }
         validate_certificate(Some(&server_certificate_pem), "workload server certificate")?;
         validate_private_key(Some(&server_private_key_pem), "workload server private key")?;
+        install_default_crypto_provider()?;
         Ok(Self {
             client_authentication,
             ca_certificate_pem,
@@ -261,6 +282,9 @@ impl GrpcChannelFactory {
         material: GrpcTlsMaterial,
     ) -> Result<Self, PlatformError> {
         config.validate(&material)?;
+        if config.security != GrpcTransportSecurity::Plaintext {
+            install_default_crypto_provider()?;
+        }
         Ok(Self { config, material })
     }
 

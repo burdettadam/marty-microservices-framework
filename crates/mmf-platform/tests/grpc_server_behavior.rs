@@ -1,4 +1,8 @@
-use std::{collections::BTreeSet, path::PathBuf};
+use std::{
+    collections::BTreeSet,
+    panic::{AssertUnwindSafe, catch_unwind},
+    path::PathBuf,
+};
 
 use mmf_platform::{GrpcServerClientAuthentication, GrpcServerTlsMaterial, PlatformError};
 use serde::Deserialize;
@@ -64,7 +68,15 @@ fn language_neutral_grpc_server_policy_fails_closed() {
     for case in &contract.accepted {
         let result = material(case);
         assert!(result.is_ok(), "{}", case.name);
-        let _configuration = result.expect("accepted material").server_tls_config();
+        let configuration = result.expect("accepted material").server_tls_config();
+        let configured = catch_unwind(AssertUnwindSafe(|| {
+            tonic::transport::Server::builder().tls_config(configuration)
+        }));
+        assert!(
+            configured.is_ok(),
+            "{} must not panic while selecting a Rustls provider",
+            case.name
+        );
     }
     for case in &contract.rejected {
         assert!(material(case).is_err(), "{}", case.name);
