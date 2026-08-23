@@ -6,5 +6,5 @@ grpcio==1.83.0
 grpcio-tools==1.83.0
 protobuf==7.35.1
 pydantic==2.13.4
-sqlalchemy[asyncio]==2.0.51
-uvicorn[standard]==0.52.1
+sqlalchemy[asyncio]==2.0.52
+uvicorn[standard]==0.52.4
