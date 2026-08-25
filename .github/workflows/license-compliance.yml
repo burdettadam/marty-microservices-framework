@@ -7,22 +7,8 @@ on:
     types: [checks_requested]
   pull_request:
     branches: [main]
-    paths:
-      - Cargo.toml
-      - Cargo.lock
-      - crates/**/Cargo.toml
-      - LICENSE
-      - NOTICE
-      - .github/workflows/license-compliance.yml
   push:
     branches: [main]
-    paths:
-      - Cargo.toml
-      - Cargo.lock
-      - crates/**/Cargo.toml
-      - LICENSE
-      - NOTICE
-      - .github/workflows/license-compliance.yml
 
 permissions:
   contents: read

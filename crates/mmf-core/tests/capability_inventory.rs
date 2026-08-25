@@ -246,3 +246,19 @@ fn release_checksums_match_github_asset_names() {
         "the release job must reject nested assets before generating checksums"
     );
 }
+
+#[test]
+fn required_license_check_runs_for_every_protected_change() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = std::fs::read_to_string(
+        root.join(".github/workflows/license-compliance.yml"),
+    )
+    .expect("read Rust license workflow");
+
+    assert!(workflow.contains("pull_request:\n    branches: [main]"));
+    assert!(workflow.contains("merge_group:\n    types: [checks_requested]"));
+    assert!(
+        !workflow.contains("    paths:"),
+        "a required check must not be skipped by path filters"
+    );
+}
