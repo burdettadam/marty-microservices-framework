@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "marty-msf"
 version = "1.0.2"
-description = "Marty Microservices Framework - Enterprise-grade microservices platform"
+description = "Frozen legacy Python distribution; use the canonical MMF Rust crates"
 authors = [
     {name = "Marty Framework Team", email = "team@marty-msf.com"}
 ]
@@ -14,7 +14,7 @@ license = {text = "AGPL-3.0-only"}
 requires-python = ">=3.11"
 keywords = ["microservices", "framework", "fastapi", "docker", "kubernetes"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 7 - Inactive",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU Affero General Public License v3",
     "Programming Language :: Python :: 3",

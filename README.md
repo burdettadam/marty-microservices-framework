@@ -1,88 +1,62 @@
 # Marty Microservices Framework
 
-**Enterprise-grade Python Microservices Platform**
+MMF is ElevenID's canonical Rust microservice crate platform. The former
+`marty-msf` Python distribution is frozen compatibility history and must not be
+used by new services.
 
-Marty Microservices Framework (MMF) is a "batteries-included" platform designed to accelerate microservices development. It implements **Hexagonal Architecture (Ports and Adapters)** to ensure modularity, testability, and long-term maintainability.
+## Rust platform
 
-## 🚀 Key Features
+The Cargo workspace provides one DRY implementation for shared capabilities:
 
-* **Hexagonal Architecture**: Clean separation of Domain, Application, and Infrastructure layers.
-* **Core Infrastructure**: API Gateway, Service Discovery (Consul), and Configuration Management.
-* **Data & Messaging**: Database integration (SQLAlchemy), Caching (Redis), and Event Streaming (Kafka).
-* **Observability**: Built-in support for Prometheus, Grafana, and Jaeger (OpenTelemetry).
-* **Security**: Comprehensive identity management (JWT, OAuth2/OIDC) and policy enforcement.
-* **Developer Experience**: CLI tools, project scaffolding, and comprehensive testing utilities.
+- `mmf-core` and the `mmf` facade for common contracts and composition;
+- `mmf-config`, `mmf-runtime`, and `mmf-platform` for configuration, lifecycle,
+  readiness, and deployment models;
+- `mmf-security`, `mmf-data`, and `mmf-messaging` for security, persistence,
+  caching, events, outbox, and transport ports;
+- `mmf-observability`, `mmf-resilience`, and `mmf-workflow` for cross-cutting
+  runtime behavior;
+- `mmf-plugins`, `mmf-services`, `mmf-push`, `mmf-ml`, `mmf-patterns`,
+  `mmf-testkit`, and `mmf-cli` for higher-level capabilities and tooling.
 
-## 📁 Project Structure
+Language-neutral behavior fixtures live in [`contracts`](contracts), and Rust
+implementations execute those contracts in CI.
 
-The project follows a strict Hexagonal Architecture:
-
-```
-mmf/                        # Core Framework & Services
-├── services/                   # Domain Services (Bounded Contexts)
-│   ├── identity/               # Identity & Access Management
-│   └── audit/                  # Audit Logging
-├── core/                       # Platform Contracts & Interfaces
-└── framework/                  # Shared Infrastructure Implementations
-    ├── gateway/                # API Gateway
-    ├── security/               # Security Utilities
-    └── observability/          # Telemetry & Tracing
+```shell
+cargo fmt --all -- --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo test --locked --workspace
 ```
 
-## 🛠️ Getting Started
-
-### Prerequisites
-
-* Python 3.11+
-* Docker & Docker Compose
-
-### Installation
-
-```bash
-pip install -e .
-```
-
-### Running Tests
-
-```bash
-pytest
-```
-
-## 🏗️ Architecture
-
-MMF enforces a strict dependency rule:
-**Domain** <- **Application** <- **Infrastructure**
-
-* **Domain**: Pure business logic, no external dependencies.
-* **Application**: Use cases orchestrating domain objects.
-* **Infrastructure**: Adapters for external systems (Databases, APIs, Web).
-
-## 📚 Documentation
-
-Detailed documentation is available in the `docs/` directory.
-
-* [Architecture Standards](docs/architecture/STANDARDS.md) - Strict guidelines for Hexagonal Architecture.
-* [Core Migration Guide](docs/CORE_MIGRATION_GUIDE.md) - Guide for migrating legacy code.
-* [Standardization Plan](docs/STANDARDIZATION_PLAN.md) - Roadmap for framework standardization.
-
-## 💡 Examples
-
-Explore the `examples/` directory for practical implementations:
-
-* **Authentication**: Rust identity-service contracts in `contracts/identity-service-*-behavior.json` and the `mmf-services` identity binary
-* **Domains**: `petstore_domain/`, `video_streaming_domain/`, `production-payment-service/`
-* **Resilience**: `resilience/`, `resilience_test.py`
-* **Security**: `security/`, `security_recovery_demo.py`
-* **Kubernetes**: `k8s/`
-
-## ⚠️ Legacy Code
-
-Legacy components from the previous monolithic architecture have been moved to `boneyard/`.
-
-## License
-
-This repository is licensed under the GNU Affero General Public License v3.0 only (`AGPL-3.0-only`). See [`LICENSE`](LICENSE).
+Consumers should pin a reviewed immutable repository revision until a governed
+crate publication channel is established.
 
 ## Production Use
 
-This framework is published as open-source software, but production deployments still require careful configuration of secrets, databases, network boundaries, backups, monitoring, data retention, and dependency review. Validate your deployment and supply-chain controls before using it in production.
+The Rust crates are the supported production platform. The frozen Python
+distribution is retained only for migration verification and rollback evidence;
+it must not receive new production features or releases.
+
+## Frozen Python distribution
+
+The `mmf` Python tree and `pyproject.toml` remain temporarily so the last
+consumer migration can be verified against the existing `v1.0.2` release. The
+Python release/tag workflows have been disabled: no later Python distribution
+will be published from this repository.
+
+The final Python source deletion requires all of the following:
+
+1. every intended consumer has merged its Rust/shared replacement;
+2. language-neutral parity and negative-path contracts pass;
+3. organization and release-artifact searches find no supported Python
+   package or import consumer;
+4. rollback distributions, SBOMs, attestations, checksums, and source history
+   have verified retention copies; and
+5. branch protections and maintainer review remain intact.
+
+Historical Python documentation and tests are evidence during this gate, not
+the production platform. Do not add new Python framework behavior.
+
+## License
+
+Licensed under the GNU Affero General Public License v3.0 only
+(`AGPL-3.0-only`). See [LICENSE](LICENSE).
