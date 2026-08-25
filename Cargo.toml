@@ -31,7 +31,7 @@ version = "0.1.0"
 [workspace.dependencies]
 axum = "0.8"
 async-trait = "0.1"
-base64 = "0.22"
+base64 = "0.23"
 cedar-policy = "4.8.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 http-body-util = "0.1"
@@ -52,26 +52,26 @@ mmf-security = { version = "0.1.0", path = "crates/mmf-security" }
 mmf-services = { version = "0.1.0", path = "crates/mmf-services" }
 mmf-testkit = { version = "0.1.0", path = "crates/mmf-testkit" }
 mmf-workflow = { version = "0.1.0", path = "crates/mmf-workflow" }
-rand = "0.9"
+rand = "0.10"
 regex = "1"
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "stream"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-scrypt = { version = "0.11", default-features = false }
-sha2 = "0.10"
-sha1 = "0.10"
-hmac = "0.12"
-hkdf = "0.12"
-p256 = { version = "0.13", features = ["ecdh", "pem"] }
-p384 = { version = "0.13", features = ["ecdh", "pem"] }
-p521 = { version = "0.13", features = ["ecdh", "pem"] }
+scrypt = { version = "0.12", default-features = false }
+sha2 = "0.11"
+sha1 = "0.11"
+hmac = "0.13"
+hkdf = "0.13"
+p256 = { version = "0.14", features = ["ecdh", "pem"] }
+p384 = { version = "0.14", features = ["ecdh", "pem"] }
+p521 = { version = "0.14", features = ["ecdh", "pem"] }
 redis = { version = "1.5", default-features = false, features = ["tokio-comp"] }
 sqlx = { version = "0.9", default-features = false, features = ["json", "postgres", "runtime-tokio", "tls-rustls-ring-webpki"] }
 thiserror = "2"
 tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
 tonic = { version = "0.14", features = ["tls-native-roots", "tls-ring"] }
-toml = "0.9"
+toml = "1.1"
 tower = { version = "0.5", features = ["util"] }
 tracing = "0.1"
 uuid = { version = "1", features = ["serde", "v4"] }
