@@ -250,10 +250,8 @@ fn release_checksums_match_github_asset_names() {
 #[test]
 fn required_license_check_runs_for_every_protected_change() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let workflow = std::fs::read_to_string(
-        root.join(".github/workflows/license-compliance.yml"),
-    )
-    .expect("read Rust license workflow");
+    let workflow = std::fs::read_to_string(root.join(".github/workflows/license-compliance.yml"))
+        .expect("read Rust license workflow");
 
     assert!(workflow.contains("pull_request:\n    branches: [main]"));
     assert!(workflow.contains("merge_group:\n    types: [checks_requested]"));
