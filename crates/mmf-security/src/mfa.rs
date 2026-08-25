@@ -9,8 +9,8 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use hmac::{Hmac, Mac};
-use rand::Rng;
+use hmac::{Hmac, KeyInit, Mac};
+use rand::RngExt as _;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha1::Sha1;
