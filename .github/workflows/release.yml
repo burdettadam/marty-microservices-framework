@@ -88,8 +88,8 @@ jobs:
           version="${REQUESTED_TAG#v}"
           mkdir -p release/package-manifests
           for crate in $(printf '%s' "$MMF_PUBLICATION_LAYERS" | tr ';' ' '); do
-            cargo package --locked --list -p "$crate" >
-              "release/package-manifests/${crate}.txt"
+            cargo package --locked --list -p "$crate" \
+              > "release/package-manifests/${crate}.txt"
           done
           git archive --format=tar.gz \
             --prefix="marty-microservices-framework-${version}/" \
