@@ -11,7 +11,7 @@ use mmf_security::jwt_hmac::HmacJwtCodec;
 use mmf_security::{
     AuthenticatedUser, AuthenticationRequest, AuthenticationResult, Authenticator, SecurityError,
 };
-use rand::RngCore as _;
+use rand::Rng as _;
 use scrypt::{Params as ScryptParams, scrypt};
 use serde_json::{Map, Value, json};
 use sha2::{Digest as _, Sha256};
@@ -37,7 +37,7 @@ impl PasswordHashProvider for ScryptPasswordHashProvider {
             ));
         }
         let salt = rand::random::<[u8; 16]>();
-        let params = ScryptParams::recommended();
+        let params = ScryptParams::RECOMMENDED;
         let mut output = [0_u8; ScryptParams::RECOMMENDED_LEN];
         scrypt(password, &salt, &params, &mut output)
             .map_err(|_| ServiceError::Operation("password hashing failed".into()))?;
@@ -75,7 +75,7 @@ impl PasswordHashProvider for ScryptPasswordHashProvider {
                 "stored password hash is invalid".into(),
             ));
         };
-        let params = ScryptParams::new(log_n, r, p, expected.len())
+        let params = ScryptParams::new(log_n, r, p)
             .map_err(|_| ServiceError::Operation("stored password hash is invalid".into()))?;
         let mut computed = vec![0_u8; expected.len()];
         scrypt(password, &salt, &params, &mut computed)
@@ -826,6 +826,21 @@ mod tests {
         );
         api_keys.revoke(key_id).await.expect("revoke API key");
         assert!(api_keys.authenticate(raw_key.as_bytes()).await.is_err());
+    }
+
+    #[test]
+    fn pre_upgrade_scrypt_vector_remains_verifiable() {
+        // RFC 7914's first vector also freezes the persisted hash format across
+        // scrypt crate upgrades. Existing password records must remain usable.
+        let encoded = concat!(
+            "$scrypt$4$1$1$$",
+            "d9ZXYjhleyA7GcpCwYoEl_FrSETjB0ro39_6P-3iFEL80Aad7QlI-",
+            "DJqdToPyB8X6NPg-y4NNijPNeIMONGJBg"
+        );
+        let hasher = ScryptPasswordHashProvider;
+
+        assert!(hasher.verify(b"", encoded).expect("valid RFC vector"));
+        assert!(!hasher.verify(b"not-empty", encoded).expect("valid hash"));
     }
 
     struct FastTestHasher;

@@ -4,8 +4,7 @@ use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use hkdf::Hkdf;
-use p256::elliptic_curve::rand_core::OsRng;
-use p256::elliptic_curve::sec1::ToEncodedPoint;
+use p256::elliptic_curve::{Generate, sec1::ToSec1Point};
 use p256::pkcs8::{EncodePublicKey, LineEnding};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
@@ -54,19 +53,19 @@ impl EphemeralKeyPair {
         match &self.private_key {
             PrivateKey::P256(secret) => {
                 p256::PublicKey::from_secret_scalar(&secret.to_nonzero_scalar())
-                    .to_encoded_point(false)
+                    .to_sec1_point(false)
                     .as_bytes()
                     .to_vec()
             }
             PrivateKey::P384(secret) => {
                 p384::PublicKey::from_secret_scalar(&secret.to_nonzero_scalar())
-                    .to_encoded_point(false)
+                    .to_sec1_point(false)
                     .as_bytes()
                     .to_vec()
             }
             PrivateKey::P521(secret) => {
                 p521::PublicKey::from_secret_scalar(&secret.to_nonzero_scalar())
-                    .to_encoded_point(false)
+                    .to_sec1_point(false)
                     .as_bytes()
                     .to_vec()
             }
@@ -196,9 +195,9 @@ impl EcdhSessionEstablishment {
     pub fn generate_ephemeral_keypair(&self, curve: Option<EllipticCurve>) -> EphemeralKeyPair {
         let curve = curve.unwrap_or(self.default_curve);
         let private_key = match curve {
-            EllipticCurve::P256 => PrivateKey::P256(p256::SecretKey::random(&mut OsRng)),
-            EllipticCurve::P384 => PrivateKey::P384(p384::SecretKey::random(&mut OsRng)),
-            EllipticCurve::P521 => PrivateKey::P521(p521::SecretKey::random(&mut OsRng)),
+            EllipticCurve::P256 => PrivateKey::P256(p256::SecretKey::generate()),
+            EllipticCurve::P384 => PrivateKey::P384(p384::SecretKey::generate()),
+            EllipticCurve::P521 => PrivateKey::P521(p521::SecretKey::generate()),
         };
         EphemeralKeyPair {
             private_key,
@@ -540,17 +539,17 @@ mod tests {
             let encoded = match curve {
                 EllipticCurve::P256 => p256::PublicKey::from_public_key_pem(&pem)
                     .expect("P-256 PEM")
-                    .to_encoded_point(false)
+                    .to_sec1_point(false)
                     .as_bytes()
                     .to_vec(),
                 EllipticCurve::P384 => p384::PublicKey::from_public_key_pem(&pem)
                     .expect("P-384 PEM")
-                    .to_encoded_point(false)
+                    .to_sec1_point(false)
                     .as_bytes()
                     .to_vec(),
                 EllipticCurve::P521 => p521::PublicKey::from_public_key_pem(&pem)
                     .expect("P-521 PEM")
-                    .to_encoded_point(false)
+                    .to_sec1_point(false)
                     .as_bytes()
                     .to_vec(),
             };

@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use async_trait::async_trait;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-use rand::Rng;
+use rand::RngExt as _;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};

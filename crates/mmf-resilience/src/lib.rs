@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use mmf_core::{ErrorCode, MmfError};
-use rand::Rng;
+use rand::RngExt;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::time::Instant;
 
 use async_trait::async_trait;
-use hmac::{Hmac, Mac};
+use hmac::{Hmac, KeyInit, Mac};
 use mmf_resilience::{
     BackoffPolicy, CircuitBreaker, CircuitBreakerConfig, CircuitState, ConfiguredBackoff,
     RetryConfig, RetryStrategy,
