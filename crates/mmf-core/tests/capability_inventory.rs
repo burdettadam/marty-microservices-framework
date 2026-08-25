@@ -221,4 +221,8 @@ fn retired_python_source_and_packaging_are_absent() {
         root.join(".github/workflows/release.yml").is_file(),
         "Rust release channel is required after Python publication retirement"
     );
+    assert!(
+        root.join("dependency-health.yml").is_file(),
+        "Rust dependency-health policy is required"
+    );
 }
