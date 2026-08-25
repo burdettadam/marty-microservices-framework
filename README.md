@@ -27,8 +27,14 @@ cargo clippy --locked --workspace --all-targets -- -D warnings
 cargo test --locked --workspace
 ```
 
-Consumers should pin an reviewed immutable repository revision until a governed
+Consumers should pin a reviewed immutable repository revision until a governed
 crate publication channel is established.
+
+## Production Use
+
+The Rust crates are the supported production platform. The frozen Python
+distribution is retained only for migration verification and rollback evidence;
+it must not receive new production features or releases.
 
 ## Frozen Python distribution
 
@@ -52,4 +58,5 @@ the production platform. Do not add new Python framework behavior.
 
 ## License
 
-AGPL-3.0-only. See [LICENSE](LICENSE).
+Licensed under the GNU Affero General Public License v3.0 only
+(`AGPL-3.0-only`). See [LICENSE](LICENSE).

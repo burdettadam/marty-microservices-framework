@@ -93,12 +93,12 @@ def main() -> int:
                 violations.append(f"README.md is missing the text {snippet!r}.")
 
     if violations:
-        print("❌ License metadata validation failed:")
+        print("ERROR: License metadata validation failed:")
         for violation in violations:
             print(f"- {violation}")
         return 1
 
-    print("✅ License metadata is internally consistent.")
+    print("OK: License metadata is internally consistent.")
     return 0
 
 
