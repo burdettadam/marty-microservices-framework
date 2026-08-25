@@ -297,6 +297,18 @@ fn intended_command_catalog_parses_and_dangerous_plans_fail_closed() {
     assert!(!config.docker_enabled);
     assert_eq!(config.http_port, 8_081);
 
+    let config = parse_cli(&[
+        "config".into(),
+        "set".into(),
+        "--rust-version".into(),
+        "1.93".into(),
+    ])
+    .expect("Rust platform configuration");
+    let CliCommand::Config(ConfigCommand::Set { values }) = config else {
+        panic!("wrong command");
+    };
+    assert_eq!(values.get("rust_version").map(String::as_str), Some("1.93"));
+
     let build = CliCommand::Build(BuildOptions {
         push: true,
         ..BuildOptions::default()

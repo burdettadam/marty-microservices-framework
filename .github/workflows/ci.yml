@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "main", "dev" ]
+    branches: [main]
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: [main]
   merge_group:
     types: [checks_requested]
 
@@ -19,81 +19,17 @@ jobs:
   rust:
     name: Rust platform
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      with:
-        persist-credentials: false
-    - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
-      with:
-        toolchain: 1.93.0
-        components: clippy,rustfmt
-    - name: Check formatting
-      run: cargo fmt --all -- --check
-    - name: Lint workspace
-      run: cargo clippy --locked --workspace --all-targets -- -D warnings
-    - name: Test workspace
-      run: cargo test --locked --workspace
-
-  test:
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-    strategy:
-      matrix:
-        python-version: ["3.12"]
-
-    steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-
-    - name: Install uv
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
-      with:
-        version: "0.11.3"
-        enable-cache: true
-
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
-
-    - name: Install dependencies
-      run: |
-        uv sync --all-extras --dev
-
-    - name: Run Architecture Checks
-      run: |
-        # Run the architecture tests (no coverage - these don't execute code)
-        uv run pytest mmf/tests/test_architecture.py --no-cov
-
-    - name: Run Core Tests with Coverage
-      run: |
-        uv run pytest mmf/tests/unit mmf/tests/integration --no-cov
-
-    - name: Run Contract Tests
-      run: |
-        uv run pytest mmf/tests/contract --no-cov
-
-    - name: Summarize CI performance
-      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
-      with:
-        script: |
-          const {owner, repo} = context.repo;
-          const {data: run} = await github.rest.actions.getWorkflowRun({owner, repo, run_id: context.runId});
-          const {data} = await github.rest.actions.listJobsForWorkflowRun({
-            owner, repo, run_id: context.runId, filter: 'latest', per_page: 100,
-          });
-          const created = new Date(run.created_at);
-          const now = new Date();
-          const rows = data.jobs.filter(job => job.started_at).map(job => ({
-            name: job.name,
-            queue: Math.max(0, Math.round((new Date(job.started_at) - created) / 1000)),
-            run: Math.max(0, Math.round(((job.completed_at ? new Date(job.completed_at) : now) - new Date(job.started_at)) / 1000)),
-          })).sort((a, b) => b.run - a.run);
-          const maxQueue = Math.max(0, ...rows.map(row => row.queue));
-          core.summary.addHeading('CI performance').addTable([
-            [{data: 'Job', header: true}, {data: 'Queue', header: true}, {data: 'Runtime', header: true}],
-            ...rows.slice(0, 10).map(row => [row.name, `${row.queue}s`, `${row.run}s`]),
-          ]).addRaw(`Longest observed queue delay: ${maxQueue}s.`);
-          if (maxQueue > 300) core.warning(`Runner queue delay reached ${maxQueue}s.`);
-          await core.summary.write();
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
+        with:
+          toolchain: 1.93.0
+          components: clippy,rustfmt
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Lint workspace
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - name: Test workspace and retirement guards
+        run: cargo test --locked --workspace

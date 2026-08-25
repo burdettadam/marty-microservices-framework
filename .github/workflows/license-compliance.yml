@@ -3,69 +3,54 @@ name: License Compliance
 
 on:
   workflow_dispatch:
+  merge_group:
+    types: [checks_requested]
   pull_request:
-    branches: [ "main", "dev" ]
+    branches: [main]
     paths:
-      - "LICENSE"
-      - "README.md"
-      - "pyproject.toml"
-      - "scripts/README.md"
-      - "scripts/check_license_metadata.py"
-      - ".github/workflows/license-compliance.yml"
+      - Cargo.toml
+      - Cargo.lock
+      - crates/**/Cargo.toml
+      - LICENSE
+      - NOTICE
+      - .github/workflows/license-compliance.yml
   push:
-    branches: [ "main", "dev" ]
+    branches: [main]
     paths:
-      - "LICENSE"
-      - "README.md"
-      - "pyproject.toml"
-      - "scripts/README.md"
-      - "scripts/check_license_metadata.py"
-      - ".github/workflows/license-compliance.yml"
+      - Cargo.toml
+      - Cargo.lock
+      - crates/**/Cargo.toml
+      - LICENSE
+      - NOTICE
+      - .github/workflows/license-compliance.yml
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
 
 jobs:
-  metadata-consistency:
-    name: Metadata Consistency
+  rust-license-metadata:
+    name: Rust license metadata
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
-          python-version: "3.11"
-
-      - name: Validate AGPL metadata
-        run: python scripts/check_license_metadata.py
-
-  dependency-license-inventory:
-    name: Dependency License Inventory
-    runs-on: ubuntu-latest
-    needs: metadata-consistency
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
         with:
-          version: "latest"
-
-      - name: Set up Python 3.11
-        run: uv python install 3.11
-
-      - name: Install project dependencies
-        run: uv sync --all-extras --dev
-
-      - name: Generate dependency license inventory
+          toolchain: 1.93.0
+      - name: Require canonical workspace license
+        shell: bash
         run: |
-          uv pip install pip-licenses
-          uv run --no-sync pip-licenses --format=json > dependency-licenses.json
-
-      - name: Upload dependency license inventory
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+          set -euo pipefail
+          test "$(cargo metadata --locked --format-version 1 --no-deps |
+            jq -r '[.packages[].license] | unique | join(",")')" = "AGPL-3.0-only"
+          test -s LICENSE
+          test -s NOTICE
+      - name: Publish locked dependency inventory
+        run: cargo metadata --locked --format-version 1 > dependency-inventory.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: dependency-license-inventory
-          path: dependency-licenses.json
+          name: rust-dependency-inventory
+          path: dependency-inventory.json
+          if-no-files-found: error
+          retention-days: 30
