@@ -2,12 +2,33 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Made the 18-crate Rust workspace the only MMF implementation and marked
+  every capability `native-active` in the machine-readable inventory.
+- Replaced Python CI, dependency automation, contributor commands, and stale
+  migration documentation with Rust-only equivalents and retirement guards.
+- Replaced the obsolete CLI `--python-version` setting with tested
+  `--rust-version` configuration.
+
+### Added
+
+- Added an immutable Rust release channel that validates all 18 crate package
+  manifests, emits signed source/SBOM/provenance assets, and optionally
+  publishes crates in dependency order behind the registry environment gate.
+
+### Removed
+
+- Removed the frozen `marty-msf` source, packaging, examples, generated
+  reports, Python-specific operations tooling, and obsolete workflows after
+  consumer, parity, artifact, dual-backup, and aggregate beta gates passed.
+
 ### Security
 
-- Explicitly dispatch releases after workflow-created tags; v1.0.1 remains quarantined and unused.
-- Make stable tags one-time, exact-main handoffs with recorded preparation evidence.
-- Publish GitHub releases once with signed assets, checksums, provenance, and an immutable-release verification gate.
-- Prevent SBOM tooling and release actions from silently replacing assets on an existing release.
+- Bound releases to annotated semantic-version tags whose commits are on
+  protected `main` and whose versions exactly match the Cargo workspace.
+- Retained exact release hashes, dual recovery copies, and a complete Git
+  bundle before removing obsolete Python releases and tags.
 
 ## October 2025 - Framework Modernization Complete
 

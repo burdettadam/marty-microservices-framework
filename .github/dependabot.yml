@@ -1,50 +1,14 @@
 version: 2
 updates:
-  - package-ecosystem: npm
-    directory: /mmf/services/identity/ui
-    schedule:
-      interval: weekly
-      day: sunday
-      time: "12:00"
-      timezone: "America/Denver"
-    ignore:
-      # typescript-eslint 8.64 supports TypeScript <6.1; see dependency-health.yml.
-      - dependency-name: typescript
-        versions: [">=7.0.0"]
-    groups:
-      identity-ui-dependencies:
-        patterns: ["*"]
-    cooldown:
-      default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
-    open-pull-requests-limit: 3
-  - package-ecosystem: npm
-    directory: /examples/video_streaming_domain/ui
-    schedule:
-      interval: weekly
-      day: sunday
-      time: "13:00"
-      timezone: "America/Denver"
-    groups:
-      video-ui-dependencies:
-        patterns: ["*"]
-    cooldown:
-      default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
-    open-pull-requests-limit: 3
-  - package-ecosystem: pip
+  - package-ecosystem: cargo
     directory: /
     schedule:
       interval: weekly
       day: sunday
-      time: "14:00"
-      timezone: "America/Denver"
+      time: "12:00"
+      timezone: America/Denver
     groups:
-      pip-dependencies:
+      rust-dependencies:
         patterns: ["*"]
     cooldown:
       default-days: 7
@@ -52,77 +16,14 @@ updates:
       semver-minor-days: 7
       semver-patch-days: 3
     open-pull-requests-limit: 3
-  - package-ecosystem: pip
-    directory: /mmf/examples/service_templates/fastapi_example
-    schedule:
-      interval: weekly
-      day: sunday
-      time: "15:00"
-      timezone: "America/Denver"
-    groups:
-      fastapi-template-dependencies:
-        patterns: ["*"]
-    cooldown:
-      default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
-    open-pull-requests-limit: 3
-  - package-ecosystem: pip
-    directory: /mmf/examples/service_templates/grpc_example
-    schedule:
-      interval: weekly
-      day: sunday
-      time: "16:00"
-      timezone: "America/Denver"
-    groups:
-      grpc-template-dependencies:
-        patterns: ["*"]
-    cooldown:
-      default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
-    open-pull-requests-limit: 3
-  - package-ecosystem: pip
-    directory: /mmf/examples/service_templates/hybrid_example
-    schedule:
-      interval: weekly
-      day: sunday
-      time: "17:00"
-      timezone: "America/Denver"
-    groups:
-      hybrid-template-dependencies:
-        patterns: ["*"]
-    cooldown:
-      default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
-    open-pull-requests-limit: 3
-  - package-ecosystem: pip
-    directory: /examples/production-payment-service
-    schedule:
-      interval: weekly
-      day: sunday
-      time: "18:00"
-      timezone: "America/Denver"
-    groups:
-      payment-example-dependencies:
-        patterns: ["*"]
-    cooldown:
-      default-days: 7
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
-    open-pull-requests-limit: 3
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: sunday
-      time: "19:00"
-      timezone: "America/Denver"
+      time: "13:00"
+      timezone: America/Denver
     groups:
       github-actions-dependencies:
         patterns: ["*"]

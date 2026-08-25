@@ -1,3 +1,0 @@
-"""
-Service Discovery Domain Layer
-"""

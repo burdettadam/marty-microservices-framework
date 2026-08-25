@@ -1,8 +1,0 @@
-include README.md
-include LICENSE
-recursive-include services *
-prune services/*/.git
-global-exclude *.pyc
-global-exclude *.pyo
-global-exclude __pycache__
-global-exclude .DS_Store

@@ -761,7 +761,7 @@ fn parse_config(cursor: &mut Arguments) -> Result<CliCommand, CliError> {
                 ("--email", "email"),
                 ("--license", "license"),
                 ("--registry", "registry"),
-                ("--python-version", "python_version"),
+                ("--rust-version", "rust_version"),
             ] {
                 if let Some(value) = cursor.option(flag)? {
                     values.insert(key.into(), value);

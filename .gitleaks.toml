@@ -4,7 +4,7 @@ title = "Marty MSF Gitleaks Configuration"
 useDefault = true
 
 [allowlist]
-description = "Vendored Istio demo fixtures are excluded from repository-owned secret policy."
+description = "Retained for full-history scans of the retired vendored Istio demo fixtures."
 paths = [
   '''examples/demos/istio-1\.27\.2/.*''',
 ]

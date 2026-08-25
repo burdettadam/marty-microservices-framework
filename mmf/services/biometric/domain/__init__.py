@@ -1,1 +1,0 @@
-"""Biometric domain models."""

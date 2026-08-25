@@ -1,3 +1,0 @@
-"""
-Mesh Core Module.
-"""

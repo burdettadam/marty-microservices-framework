@@ -17,7 +17,7 @@ repository in the LICENSE file. It is also available at
 
 ---
 
-Third-party notices are listed in the dependency-licenses.json artifact
-produced by the CI `dependency-license-inventory` workflow. Each dependency
+Third-party dependency identities and declared licenses are recorded by
+`Cargo.lock` and the `rust-dependency-inventory` CI artifact. Each dependency
 is used under its own license; none of those licenses are modified by this
 notice.
