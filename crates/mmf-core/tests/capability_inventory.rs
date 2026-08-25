@@ -226,3 +226,23 @@ fn retired_python_source_and_packaging_are_absent() {
         "Rust dependency-health policy is required"
     );
 }
+
+#[test]
+fn release_checksums_match_github_asset_names() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let workflow = std::fs::read_to_string(root.join(".github/workflows/release.yml"))
+        .expect("read Rust release workflow");
+
+    assert!(
+        workflow.contains("> \"release/${crate}.txt\""),
+        "crate manifests must be emitted at the release root"
+    );
+    assert!(
+        !workflow.contains("release/package-manifests"),
+        "GitHub flattens release assets, so checksums cannot contain nested manifest paths"
+    );
+    assert!(
+        workflow.contains("find release-assets -mindepth 2 -type f"),
+        "the release job must reject nested assets before generating checksums"
+    );
+}

@@ -86,10 +86,10 @@ jobs:
         run: |
           set -euo pipefail
           version="${REQUESTED_TAG#v}"
-          mkdir -p release/package-manifests
+          mkdir -p release
           for crate in $(printf '%s' "$MMF_PUBLICATION_LAYERS" | tr ';' ' '); do
             cargo package --locked --list -p "$crate" \
-              > "release/package-manifests/${crate}.txt"
+              > "release/${crate}.txt"
           done
           git archive --format=tar.gz \
             --prefix="marty-microservices-framework-${version}/" \
@@ -183,6 +183,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if find release-assets -mindepth 2 -type f -print -quit | grep -q .; then
+            echo "Release assets must be flat because GitHub publishes each asset by basename" >&2
+            exit 1
+          fi
           find release-assets -type f ! -name '*.sigstore.json' -print0 |
             while IFS= read -r -d '' file; do
               cosign sign-blob --yes --bundle "${file}.sigstore.json" "$file"
