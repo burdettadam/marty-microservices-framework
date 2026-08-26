@@ -258,7 +258,11 @@ fn all_intended_templates_generate_rust_first_operational_projects() {
             .iter()
             .find(|file| file.relative_path.as_path() == std::path::Path::new("Cargo.toml"))
             .expect("Cargo manifest");
-        assert!(cargo.content.contains("mmf = \"0.1.0\""));
+        assert!(
+            cargo
+                .content
+                .contains(&format!("mmf = \"{}\"", env!("CARGO_PKG_VERSION")))
+        );
         let library = project
             .files
             .iter()
