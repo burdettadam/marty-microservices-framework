@@ -1750,7 +1750,7 @@ dependencies = [
 
 [[package]]
 name = "mmf"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "mmf-cli",
  "mmf-config",
@@ -1773,7 +1773,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "mmf-platform",
@@ -1789,7 +1789,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-config"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "mmf-core",
@@ -1801,7 +1801,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -1811,7 +1811,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-data"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "mmf-core",
@@ -1824,7 +1824,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-messaging"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "mmf-core",
@@ -1840,7 +1840,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-ml"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "serde",
@@ -1853,7 +1853,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-observability"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "mmf-core",
@@ -1866,7 +1866,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-patterns"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "mmf-data",
@@ -1880,7 +1880,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-platform"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "mmf-core",
@@ -1904,7 +1904,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-plugins"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "mmf-core",
@@ -1917,7 +1917,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-push"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "hmac",
@@ -1935,7 +1935,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-resilience"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "mmf-core",
@@ -1948,7 +1948,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-runtime"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "http-body-util",
@@ -1961,7 +1961,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-security"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -1988,7 +1988,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-services"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -2013,7 +2013,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-testkit"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "serde",
@@ -2024,7 +2024,7 @@ dependencies = [
 
 [[package]]
 name = "mmf-workflow"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "serde",

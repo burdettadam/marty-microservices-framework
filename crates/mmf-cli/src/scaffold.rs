@@ -498,8 +498,9 @@ fn template_dependencies(template: ServiceTemplate) -> Vec<String> {
 
 fn cargo_manifest(config: &ProjectConfig, names: &ProjectNames) -> String {
     let mut dependencies = String::from(
-        "axum = \"0.8\"\nmmf = \"0.1.0\"\nserde = { version = \"1\", features = [\"derive\"] }\nserde_json = \"1\"\ntokio = { version = \"1\", features = [\"macros\", \"rt-multi-thread\", \"signal\"] }\n",
-    );
+        "axum = \"0.8\"\nmmf = \"__MMF_VERSION__\"\nserde = { version = \"1\", features = [\"derive\"] }\nserde_json = \"1\"\ntokio = { version = \"1\", features = [\"macros\", \"rt-multi-thread\", \"signal\"] }\n",
+    )
+    .replace("__MMF_VERSION__", env!("CARGO_PKG_VERSION"));
     if matches!(
         config.template,
         ServiceTemplate::GrpcService | ServiceTemplate::HybridService

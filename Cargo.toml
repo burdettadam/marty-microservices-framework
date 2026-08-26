@@ -26,7 +26,7 @@ edition = "2024"
 license = "AGPL-3.0-only"
 repository = "https://github.com/ElevenID/marty-microservices-framework"
 rust-version = "1.93"
-version = "0.1.0"
+version = "0.1.1"
 
 [workspace.dependencies]
 axum = "0.8"
@@ -35,23 +35,23 @@ base64 = "0.23"
 cedar-policy = "4.8.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 http-body-util = "0.1"
-mmf-config = { version = "0.1.0", path = "crates/mmf-config" }
-mmf-cli = { version = "0.1.0", path = "crates/mmf-cli" }
-mmf-core = { version = "0.1.0", path = "crates/mmf-core" }
-mmf-data = { version = "0.1.0", path = "crates/mmf-data" }
-mmf-messaging = { version = "0.1.0", path = "crates/mmf-messaging" }
-mmf-ml = { version = "0.1.0", path = "crates/mmf-ml" }
-mmf-observability = { version = "0.1.0", path = "crates/mmf-observability" }
-mmf-platform = { version = "0.1.0", path = "crates/mmf-platform" }
-mmf-plugins = { version = "0.1.0", path = "crates/mmf-plugins" }
-mmf-push = { version = "0.1.0", path = "crates/mmf-push" }
-mmf-patterns = { version = "0.1.0", path = "crates/mmf-patterns" }
-mmf-resilience = { version = "0.1.0", path = "crates/mmf-resilience" }
-mmf-runtime = { version = "0.1.0", path = "crates/mmf-runtime" }
-mmf-security = { version = "0.1.0", path = "crates/mmf-security" }
-mmf-services = { version = "0.1.0", path = "crates/mmf-services" }
-mmf-testkit = { version = "0.1.0", path = "crates/mmf-testkit" }
-mmf-workflow = { version = "0.1.0", path = "crates/mmf-workflow" }
+mmf-config = { version = "0.1.1", path = "crates/mmf-config" }
+mmf-cli = { version = "0.1.1", path = "crates/mmf-cli" }
+mmf-core = { version = "0.1.1", path = "crates/mmf-core" }
+mmf-data = { version = "0.1.1", path = "crates/mmf-data" }
+mmf-messaging = { version = "0.1.1", path = "crates/mmf-messaging" }
+mmf-ml = { version = "0.1.1", path = "crates/mmf-ml" }
+mmf-observability = { version = "0.1.1", path = "crates/mmf-observability" }
+mmf-platform = { version = "0.1.1", path = "crates/mmf-platform" }
+mmf-plugins = { version = "0.1.1", path = "crates/mmf-plugins" }
+mmf-push = { version = "0.1.1", path = "crates/mmf-push" }
+mmf-patterns = { version = "0.1.1", path = "crates/mmf-patterns" }
+mmf-resilience = { version = "0.1.1", path = "crates/mmf-resilience" }
+mmf-runtime = { version = "0.1.1", path = "crates/mmf-runtime" }
+mmf-security = { version = "0.1.1", path = "crates/mmf-security" }
+mmf-services = { version = "0.1.1", path = "crates/mmf-services" }
+mmf-testkit = { version = "0.1.1", path = "crates/mmf-testkit" }
+mmf-workflow = { version = "0.1.1", path = "crates/mmf-workflow" }
 rand = "0.10"
 regex = "1"
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "stream"] }
