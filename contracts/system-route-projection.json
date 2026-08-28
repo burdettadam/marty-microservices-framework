@@ -1,0 +1,12 @@
+{
+  "default_body": {
+    "components": {},
+    "status": "unknown"
+  },
+  "projected_body": {
+    "service": "issuance-service",
+    "status": "healthy"
+  },
+  "healthy_status": 200,
+  "unhealthy_status": 503
+}
