@@ -7,7 +7,7 @@
     "supported_python_package_consumers": 0,
     "supported_python_import_consumers": 0,
     "rust_capability_count": 18,
-    "language_neutral_contract_count": 40
+    "language_neutral_contract_count": 41
   },
   "aggregate_beta": {
     "release": "marty-ui@1.1.202",

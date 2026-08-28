@@ -118,7 +118,7 @@ fn python_retirement_has_consumer_beta_and_recovery_proof() {
     );
     assert_eq!(evidence.consumer_audit.supported_python_import_consumers, 0);
     assert_eq!(evidence.consumer_audit.rust_capability_count, 18);
-    assert_eq!(evidence.consumer_audit.language_neutral_contract_count, 40);
+    assert_eq!(evidence.consumer_audit.language_neutral_contract_count, 41);
 
     let contracts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../contracts");
     let retained_contract_count = std::fs::read_dir(contracts)

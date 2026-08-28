@@ -22,6 +22,32 @@ use mmf_core::{
     BuildInfo, ComponentHealth, ErrorCode, HealthReport, HealthStatus, LifecycleState, MmfError,
 };
 use serde::Serialize;
+use serde_json::Value;
+
+/// Converts the canonical health report into a consumer-compatible JSON body.
+///
+/// The projector controls representation only. MMF continues to own the HTTP
+/// status code so an unhealthy service cannot be made available by an adapter.
+pub type HealthProjector = fn(&HealthReport) -> Value;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SystemRouteOptions {
+    health_projector: Option<HealthProjector>,
+}
+
+impl SystemRouteOptions {
+    #[must_use]
+    pub const fn with_health_projector(mut self, projector: HealthProjector) -> Self {
+        self.health_projector = Some(projector);
+        self
+    }
+}
+
+#[derive(Clone)]
+struct SystemRouteState {
+    runtime: RuntimeState,
+    options: SystemRouteOptions,
+}
 
 #[derive(Clone)]
 pub struct RuntimeState {
@@ -185,29 +211,44 @@ fn unhealthy_required_components(inner: &RuntimeInner) -> Vec<String> {
 }
 
 pub fn system_router(state: RuntimeState) -> Router {
+    system_router_with_options(state, SystemRouteOptions::default())
+}
+
+/// Creates the shared diagnostics router with optional representation adapters.
+///
+/// Lifecycle, readiness, availability, and error decisions always remain owned
+/// by MMF. Options may only adapt successful response bodies for compatibility
+/// with an existing service contract.
+pub fn system_router_with_options(state: RuntimeState, options: SystemRouteOptions) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/ready", get(readiness))
         .route("/version", get(version))
-        .with_state(state)
+        .with_state(SystemRouteState {
+            runtime: state,
+            options,
+        })
 }
 
-async fn health(State(state): State<RuntimeState>) -> Response {
-    match state.health() {
+async fn health(State(state): State<SystemRouteState>) -> Response {
+    match state.runtime.health() {
         Ok(report) => {
             let status = if report.status == HealthStatus::Unhealthy {
                 StatusCode::SERVICE_UNAVAILABLE
             } else {
                 StatusCode::OK
             };
-            (status, Json(report)).into_response()
+            match state.options.health_projector {
+                Some(project) => (status, Json(project(&report))).into_response(),
+                None => (status, Json(report)).into_response(),
+            }
         }
         Err(error) => internal_error(error),
     }
 }
 
-async fn readiness(State(state): State<RuntimeState>) -> Response {
-    match state.readiness() {
+async fn readiness(State(state): State<SystemRouteState>) -> Response {
+    match state.runtime.readiness() {
         Ok(report) => {
             let status = if report.ready {
                 StatusCode::OK
@@ -220,8 +261,8 @@ async fn readiness(State(state): State<RuntimeState>) -> Response {
     }
 }
 
-async fn version(State(state): State<RuntimeState>) -> Response {
-    match state.build_info() {
+async fn version(State(state): State<SystemRouteState>) -> Response {
+    match state.runtime.build_info() {
         Ok(build) => (StatusCode::OK, Json(build)).into_response(),
         Err(error) => internal_error(error),
     }
@@ -236,10 +277,42 @@ mod tests {
     use axum::{body::Body, http::Request};
     use http_body_util::BodyExt;
     use mmf_core::{BuildInfo, ComponentHealth, HealthStatus, LifecycleState};
-    use serde_json::Value;
+    use serde::Deserialize;
+    use serde_json::{Value, json};
     use tower::ServiceExt;
 
-    use super::{RuntimeState, system_router};
+    use super::{RuntimeState, SystemRouteOptions, system_router, system_router_with_options};
+
+    #[derive(Deserialize)]
+    struct ProjectionFixture {
+        default_body: Value,
+        projected_body: Value,
+        healthy_status: u16,
+        unhealthy_status: u16,
+    }
+
+    fn projection_fixture() -> ProjectionFixture {
+        serde_json::from_str(include_str!(
+            "../../../contracts/system-route-projection.json"
+        ))
+        .expect("valid system-route projection fixture")
+    }
+
+    fn legacy_health(_report: &mmf_core::HealthReport) -> Value {
+        json!({"status": "healthy", "service": "issuance-service"})
+    }
+
+    async fn response_json(response: axum::response::Response) -> Value {
+        serde_json::from_slice(
+            &response
+                .into_body()
+                .collect()
+                .await
+                .expect("body")
+                .to_bytes(),
+        )
+        .expect("json")
+    }
 
     fn runtime() -> RuntimeState {
         RuntimeState::new(BuildInfo {
@@ -293,6 +366,109 @@ mod tests {
         assert_eq!(body["ready"], true);
         assert_eq!(body["lifecycle"], "active");
         assert_eq!(body["required_components_healthy"], true);
+    }
+
+    #[tokio::test]
+    async fn default_health_representation_is_unchanged() {
+        let fixture = projection_fixture();
+        let response = system_router(runtime())
+            .oneshot(
+                Request::get("/health")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(response.status(), fixture.healthy_status);
+        assert_eq!(response_json(response).await, fixture.default_body);
+    }
+
+    #[tokio::test]
+    async fn health_projection_preserves_framework_status_semantics() {
+        let fixture = projection_fixture();
+        let state = runtime();
+        let router = system_router_with_options(
+            state.clone(),
+            SystemRouteOptions::default().with_health_projector(legacy_health),
+        );
+
+        let healthy = router
+            .clone()
+            .oneshot(
+                Request::get("/health")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+        assert_eq!(healthy.status(), fixture.healthy_status);
+        assert_eq!(response_json(healthy).await, fixture.projected_body);
+
+        state
+            .set_component_health(
+                "database",
+                ComponentHealth {
+                    status: HealthStatus::Unhealthy,
+                    message: Some("connection lost".into()),
+                },
+            )
+            .expect("health");
+        let unhealthy = router
+            .oneshot(
+                Request::get("/health")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+        assert_eq!(unhealthy.status(), fixture.unhealthy_status);
+        assert_eq!(response_json(unhealthy).await, fixture.projected_body);
+    }
+
+    #[tokio::test]
+    async fn health_projection_does_not_change_readiness_or_version() {
+        let state = runtime();
+        state
+            .set_component_health(
+                "http",
+                ComponentHealth {
+                    status: HealthStatus::Healthy,
+                    message: None,
+                },
+            )
+            .expect("health");
+        state
+            .transition(LifecycleState::Initialized)
+            .expect("initialize");
+        state.transition(LifecycleState::Starting).expect("start");
+        state.transition(LifecycleState::Active).expect("active");
+        let router = system_router_with_options(
+            state,
+            SystemRouteOptions::default().with_health_projector(legacy_health),
+        );
+
+        let ready = router
+            .clone()
+            .oneshot(Request::get("/ready").body(Body::empty()).expect("request"))
+            .await
+            .expect("response");
+        assert_eq!(ready.status(), 200);
+        assert_eq!(response_json(ready).await["ready"], true);
+
+        let version = router
+            .oneshot(
+                Request::get("/version")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+        assert_eq!(version.status(), 200);
+        let body = response_json(version).await;
+        assert_eq!(body["service"], "contract-service");
+        assert_eq!(body["version"], "1.2.3");
+        assert_eq!(body["build_revision"], "abc123");
     }
 
     #[tokio::test]
