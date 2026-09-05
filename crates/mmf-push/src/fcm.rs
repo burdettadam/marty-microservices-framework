@@ -400,36 +400,7 @@ fn serialize_fcm_value(value: &Value) -> String {
         Value::String(value) => value.clone(),
         Value::Bool(value) => value.to_string(),
         Value::Number(value) => value.to_string(),
-        _ => python_json_string(value),
-    }
-}
-
-fn python_json_string(value: &Value) -> String {
-    match value {
-        Value::Null => "null".into(),
-        Value::Bool(value) => value.to_string(),
-        Value::Number(value) => value.to_string(),
-        Value::String(value) => serde_json::to_string(value).unwrap_or_else(|_| "\"\"".into()),
-        Value::Array(values) => format!(
-            "[{}]",
-            values
-                .iter()
-                .map(python_json_string)
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        Value::Object(values) => format!(
-            "{{{}}}",
-            values
-                .iter()
-                .map(|(key, value)| format!(
-                    "{}: {}",
-                    serde_json::to_string(key).unwrap_or_else(|_| "\"\"".into()),
-                    python_json_string(value)
-                ))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
+        _ => mmf_core::spaced_json(value, mmf_core::JsonObjectOrder::Map),
     }
 }
 

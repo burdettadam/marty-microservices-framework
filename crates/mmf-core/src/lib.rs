@@ -2,7 +2,9 @@
 
 #![forbid(unsafe_code)]
 
+mod json;
 mod matching;
+pub use json::{JsonObjectOrder, spaced_json};
 
 pub use matching::wildcard_matches;
 

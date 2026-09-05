@@ -898,7 +898,10 @@ impl ModelTrainingService {
 
 #[must_use]
 pub fn prediction_cache_key(id: &str, input: &BTreeMap<String, Value>) -> String {
-    let encoded = python_json_string(&json!({"model_id":id,"input_data":input}));
+    let encoded = mmf_core::spaced_json(
+        &json!({"model_id":id,"input_data":input}),
+        mmf_core::JsonObjectOrder::Sorted,
+    );
     let digest = Sha256::digest(encoded);
     digest[..8].iter().fold(String::new(), |mut out, byte| {
         use std::fmt::Write as _;
@@ -917,7 +920,7 @@ fn feature_statistics(values: &[Value]) -> FeatureStatistics {
     }
     let unique_count = values
         .iter()
-        .map(python_json_string)
+        .map(|value| mmf_core::spaced_json(value, mmf_core::JsonObjectOrder::Sorted))
         .collect::<BTreeSet<_>>()
         .len();
     let count = values.len();
@@ -945,38 +948,6 @@ fn feature_statistics(values: &[Value]) -> FeatureStatistics {
     }
 }
 
-fn python_json_string(value: &Value) -> String {
-    match value {
-        Value::Null => "null".into(),
-        Value::Bool(value) => value.to_string(),
-        Value::Number(value) => value.to_string(),
-        Value::String(value) => serde_json::to_string(value).unwrap_or_else(|_| "\"\"".into()),
-        Value::Array(values) => format!(
-            "[{}]",
-            values
-                .iter()
-                .map(python_json_string)
-                .collect::<Vec<_>>()
-                .join(", ")
-        ),
-        Value::Object(values) => {
-            let mut values = values.iter().collect::<Vec<_>>();
-            values.sort_by_key(|(key, _)| *key);
-            format!(
-                "{{{}}}",
-                values
-                    .into_iter()
-                    .map(|(key, value)| format!(
-                        "{}: {}",
-                        serde_json::to_string(key).unwrap_or_else(|_| "\"\"".into()),
-                        python_json_string(value)
-                    ))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        }
-    }
-}
 #[allow(
     clippy::cast_possible_truncation,
     clippy::cast_precision_loss,
