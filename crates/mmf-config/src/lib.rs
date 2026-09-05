@@ -2,6 +2,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod numeric_config;
 mod providers;
 
 pub use providers::*;
