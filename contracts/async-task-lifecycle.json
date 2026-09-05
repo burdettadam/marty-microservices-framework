@@ -1,0 +1,19 @@
+{
+  "schema": "mmf.async-task-lifecycle/v1",
+  "legacy_observation": {
+    "repository": "ElevenID/marty-credentials",
+    "commit": "b027e834d71dee0cc3550aac1150cdb0c40946ae",
+    "test_path": "tests/unit/test_canvas_worker_lifecycle_oracle.py",
+    "test_blob": "b3c85cfa7bf03c11c90ed440221f47343ee1ae36",
+    "scope": "initialized entry point; operation return, error and cancellation all await engine disposal; cancellation releases owned active work before acknowledgment"
+  },
+  "cases": [
+    {"operation": "return", "outcome": "completed"},
+    {"operation": "error", "outcome": "failed"},
+    {"operation": "cancel", "outcome": "cancelled"}
+  ],
+  "order": ["operation_entered", "operation_dropped", "cleanup_entered", "cleanup_completed", "join_completed"],
+  "cleanup_cancellable": false,
+  "native_extensions": ["cancellation requests cannot interrupt cleanup once started", "operation panic still cleans up", "cleanup error or panic retains original operation outcome", "pre-start cancellation skips operation but disposes initialized resources", "dropped handles request cleanup without claiming synchronous acknowledgment"],
+  "excluded_guarantees": ["arbitrary detached child tasks", "forced runtime shutdown", "process abort", "host failure", "Canvas deployment or Python deletion"]
+}

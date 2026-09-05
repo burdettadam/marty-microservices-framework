@@ -2,6 +2,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod managed_task;
 mod services;
 
 pub use services::*;
