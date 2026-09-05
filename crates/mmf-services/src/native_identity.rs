@@ -101,17 +101,35 @@ pub struct NativePasswordPolicy {
 
 impl Default for NativePasswordPolicy {
     fn default() -> Self {
+        Self::legacy_native()
+    }
+}
+
+impl NativePasswordPolicy {
+    /// Default policy for configured identity services.
+    #[must_use]
+    pub fn configured() -> Self {
         Self {
             min_length: 8,
             max_length: 128,
             require_uppercase: true,
             require_lowercase: true,
             require_numbers: true,
-            require_special_characters: false,
+            require_special_characters: true,
             special_characters: "!@#$%^&*()_+-=[]{}|;:,.<>?".into(),
             max_login_attempts: 5,
             lockout_duration_ms: 900_000,
             password_expiry_ms: 7_776_000_000,
+        }
+    }
+
+    /// Compatibility profile used by the original native constructor.
+    /// It differs from configured services only in the special-character rule.
+    #[must_use]
+    pub fn legacy_native() -> Self {
+        Self {
+            require_special_characters: false,
+            ..Self::configured()
         }
     }
 }
@@ -844,6 +862,67 @@ mod tests {
     }
 
     struct FastTestHasher;
+
+    #[tokio::test]
+    async fn named_password_profiles_preserve_constructor_contracts() {
+        let legacy = NativeBasicAuthenticator::new(Arc::new(FastTestHasher));
+        legacy
+            .register("legacy", b"GoodPass42", user())
+            .await
+            .unwrap();
+        let config = crate::identity_config::PasswordAuthenticationConfig::default();
+        let configured = NativeBasicAuthenticator::with_policy(
+            Arc::new(FastTestHasher),
+            NativePasswordPolicy::from(&config),
+        );
+        assert!(
+            configured
+                .register("configured", b"GoodPass42", user())
+                .await
+                .is_err()
+        );
+        configured
+            .register("configured", b"GoodPass42!", user())
+            .await
+            .unwrap();
+        let serialized = serde_json::to_value(&config).unwrap();
+        assert_eq!(serialized["require_special_characters"], true);
+        assert!(serialized.get("default_admin_password").is_none());
+    }
+
+    #[test]
+    fn configured_password_fields_reach_native_validation() {
+        let config = crate::identity_config::PasswordAuthenticationConfig {
+            min_length: 8,
+            max_length: 8,
+            special_characters: "!".into(),
+            max_login_attempts: 2,
+            lockout_duration_ms: 500,
+            password_expiry_ms: 1000,
+            ..crate::identity_config::PasswordAuthenticationConfig::default()
+        };
+        let policy = NativePasswordPolicy::from(&config);
+        assert_eq!(
+            (
+                policy.max_login_attempts,
+                policy.lockout_duration_ms,
+                policy.password_expiry_ms
+            ),
+            (2, 500, 1000)
+        );
+        assert!(policy.validate("Äbcdef1!".as_bytes()).is_ok());
+        for invalid in [
+            "Abcde1!",
+            "Abcdefg1!",
+            "abcdef1!",
+            "ABCDEF1!",
+            "Abcdefg!",
+            "Abcdef12",
+            "Abcdef1?",
+        ] {
+            assert!(policy.validate(invalid.as_bytes()).is_err(), "{invalid}");
+        }
+    }
 
     impl PasswordHashProvider for FastTestHasher {
         fn hash(&self, password: &[u8]) -> Result<String, ServiceError> {
