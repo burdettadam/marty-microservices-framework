@@ -53,6 +53,14 @@ cargo +1.93.0 clippy --locked -p mmf-config --all-targets -- -D warnings
 
 ## Consumer migration requirement
 
+The retirement guard now checks every named contract in the last recorded
+41-contract baseline at protected revision `020beffb4da1e0ef52b4330b55c3b4633022d529`.
+The historical retirement receipt stays unchanged; new contracts are additive.
+This replaces an exact current-directory count that blocked additions and could
+miss replacing an old contract with an unrelated new one. A regression test
+requires additions to pass and equal-count replacement/deletion to fail. All
+other consumer, beta, recovery and Python-absence checks are retained.
+
 Canvas must adopt the shared owner through a reviewed protected dependency pin,
 preserve explicit identity whitespace, replay its full configuration corpus and
 the separate consumer-range oracle, and check conversions at the observed SQL/

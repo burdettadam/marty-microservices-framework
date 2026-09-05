@@ -62,6 +62,73 @@ struct PythonRelease {
     checksums_sha256: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct RetainedContracts {
+    schema_version: u32,
+    inventory_source_commit: String,
+    contracts: BTreeSet<String>,
+}
+
+fn retained_contracts() -> RetainedContracts {
+    serde_json::from_str(include_str!(
+        "../../../contracts/python-retirement-contract-inventory.json"
+    ))
+    .expect("versioned retirement contract inventory")
+}
+
+fn missing_contracts<'a>(
+    baseline: &'a BTreeSet<String>,
+    current: &'a BTreeSet<String>,
+) -> Vec<&'a String> {
+    baseline.difference(current).collect()
+}
+
+fn assert_retained_contract_inventory(recorded_count: usize) {
+    // Keep the last recorded evidence/count unchanged as the platform grows.
+    // Every named baseline contract must remain; an unrelated new JSON file
+    // cannot compensate for deleting an old one, even at the same total count.
+    let baseline = retained_contracts();
+    assert_eq!(baseline.schema_version, 1);
+    assert_eq!(
+        baseline.inventory_source_commit,
+        "020beffb4da1e0ef52b4330b55c3b4633022d529"
+    );
+    assert_eq!(baseline.contracts.len(), recorded_count);
+    for name in &baseline.contracts {
+        assert_eq!(
+            Path::new(name).file_name(),
+            Some(std::ffi::OsStr::new(name))
+        );
+        assert_eq!(
+            Path::new(name).extension(),
+            Some(std::ffi::OsStr::new("json"))
+        );
+    }
+    let contracts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../contracts");
+    let retained_names = std::fs::read_dir(contracts)
+        .expect("contracts directory")
+        .map(|entry| entry.expect("read contract entry"))
+        .filter(|entry| {
+            entry
+                .path()
+                .extension()
+                .is_some_and(|extension| extension == "json")
+                && entry.file_type().expect("contract file type").is_file()
+        })
+        .map(|entry| {
+            entry
+                .file_name()
+                .into_string()
+                .expect("UTF-8 contract filename")
+        })
+        .collect::<BTreeSet<_>>();
+    let missing = missing_contracts(&baseline.contracts, &retained_names);
+    assert!(
+        missing.is_empty(),
+        "retired behavior contracts removed: {missing:?}"
+    );
+}
+
 #[test]
 fn every_intended_capability_has_one_rust_owner() {
     let inventory: Inventory =
@@ -120,22 +187,7 @@ fn python_retirement_has_consumer_beta_and_recovery_proof() {
     assert_eq!(evidence.consumer_audit.rust_capability_count, 18);
     assert_eq!(evidence.consumer_audit.language_neutral_contract_count, 41);
 
-    let contracts = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../contracts");
-    let retained_contract_count = std::fs::read_dir(contracts)
-        .expect("contracts directory")
-        .filter_map(Result::ok)
-        .filter(|entry| {
-            entry
-                .path()
-                .extension()
-                .is_some_and(|extension| extension == "json")
-                && entry.file_name() != "python-retirement-evidence.json"
-        })
-        .count();
-    assert_eq!(
-        evidence.consumer_audit.language_neutral_contract_count,
-        retained_contract_count
-    );
+    assert_retained_contract_inventory(evidence.consumer_audit.language_neutral_contract_count);
 
     assert_eq!(evidence.aggregate_beta.release, "marty-ui@1.1.202");
     assert_eq!(
@@ -225,6 +277,18 @@ fn retired_python_source_and_packaging_are_absent() {
         root.join("dependency-health.yml").is_file(),
         "Rust dependency-health policy is required"
     );
+}
+
+#[test]
+fn retirement_inventory_allows_growth_but_rejects_replacement_at_equal_count() {
+    let baseline = retained_contracts().contracts;
+    let mut current = baseline.clone();
+    current.insert("new-native-capability.json".to_owned());
+    assert!(missing_contracts(&baseline, &current).is_empty());
+    let removed = baseline.first().expect("nonempty baseline").clone();
+    current.remove(&removed);
+    assert_eq!(current.len(), baseline.len());
+    assert_eq!(missing_contracts(&baseline, &current), vec![&removed]);
 }
 
 #[test]
