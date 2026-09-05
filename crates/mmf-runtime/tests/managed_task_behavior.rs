@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use mmf_runtime::managed_task::{CleanupOutcome, ManagedTask, TaskOutcome};
+use mmf_runtime::managed_task::{CleanupOutcome, ManagedTask, TaskJoinError, TaskOutcome};
 use serde_json::Value;
 use tokio::sync::{Notify, Semaphore};
 
@@ -270,4 +270,36 @@ async fn pre_start_destructor_panic_still_disposes_initialized_resources() {
     let completion = task.join().await.unwrap();
     assert_eq!(completion.outcome, TaskOutcome::Panicked);
     assert_eq!(completion.cleanup, CleanupOutcome::Completed);
+}
+
+#[tokio::test]
+async fn panic_result_destructor_cannot_run_before_resource_disposal() {
+    struct PanicPayload(Arc<State>);
+    impl Drop for PanicPayload {
+        fn drop(&mut self) {
+            self.0.record("panic_payload_dropped");
+            panic!("synthetic panic result destructor");
+        }
+    }
+    let state = Arc::new(State::default());
+    let operation_state = state.clone();
+    let cleanup_state = state.clone();
+    let task = ManagedTask::spawn(
+        async move {
+            std::panic::panic_any(PanicPayload(operation_state));
+            #[allow(unreachable_code)]
+            Ok::<(), ()>(())
+        },
+        move || async move {
+            cleanup_state.record("cleanup_completed");
+            Ok::<(), ()>(())
+        },
+    );
+    // Releasing an exceptional result can itself fail. That must remain a
+    // failed observation, never an acknowledgment of successful execution.
+    assert_eq!(task.join().await, Err(TaskJoinError::SupervisorPanicked));
+    assert_eq!(
+        *state.events.lock().unwrap(),
+        ["cleanup_completed", "panic_payload_dropped"]
+    );
 }

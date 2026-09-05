@@ -48,6 +48,12 @@ that directly dropping a pre-cancelled future in the supervisor could panic
 and skip disposal; the corrected implementation observes even that destructor
 inside the operation task before proceeding to cleanup.
 
+A separate regression verifies that resource disposal precedes release of a
+panic result even when that result's destructor also panics. The existing owner
+already satisfies this ordering; no runtime behavior change was needed. The
+caller receives a supervisor join error rather than a false success, while the
+test independently observes that cleanup completed before result destruction.
+
 Tokio moves from a development-only to a normal runtime dependency; it was
 already resolved in the lockfile. No dependency version or crypto pin changes.
 The existing synchronous/HTTP runtime and retirement inventory contracts remain
