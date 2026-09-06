@@ -2,6 +2,12 @@
 
 #![forbid(unsafe_code)]
 
+mod json;
+mod matching;
+pub use json::{JsonObjectOrder, spaced_json};
+
+pub use matching::wildcard_matches;
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};

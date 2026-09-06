@@ -69,19 +69,20 @@ pub struct PasswordAuthenticationConfig {
 
 impl Default for PasswordAuthenticationConfig {
     fn default() -> Self {
+        let policy = crate::native_identity::NativePasswordPolicy::configured();
         Self {
             hash_algorithm: PasswordHashAlgorithm::Bcrypt,
             hash_cost: 12,
-            min_length: 8,
-            max_length: 128,
-            require_uppercase: true,
-            require_lowercase: true,
-            require_numbers: true,
-            require_special_characters: true,
-            special_characters: "!@#$%^&*()_+-=[]{}|;:,.<>?".into(),
-            max_login_attempts: 5,
-            lockout_duration_ms: 900_000,
-            password_expiry_ms: 7_776_000_000,
+            min_length: policy.min_length,
+            max_length: policy.max_length,
+            require_uppercase: policy.require_uppercase,
+            require_lowercase: policy.require_lowercase,
+            require_numbers: policy.require_numbers,
+            require_special_characters: policy.require_special_characters,
+            special_characters: policy.special_characters,
+            max_login_attempts: policy.max_login_attempts,
+            lockout_duration_ms: policy.lockout_duration_ms,
+            password_expiry_ms: policy.password_expiry_ms,
             create_default_users: true,
             default_admin_username: "admin".into(),
             default_admin_password: None,

@@ -644,3 +644,92 @@ async fn webhook_missing_endpoints_fails_closed() {
         Some(failures.missing_webhook_endpoints.as_str())
     );
 }
+
+#[derive(Default)]
+struct LifecycleProbe {
+    fail: std::sync::atomic::AtomicBool,
+    health_calls: std::sync::atomic::AtomicUsize,
+}
+impl LifecycleProbe {
+    fn result(&self) -> Result<(), PushError> {
+        if self.fail.load(std::sync::atomic::Ordering::SeqCst) {
+            Err(PushError::ProviderUnavailable("fixture failure".into()))
+        } else {
+            Ok(())
+        }
+    }
+    fn checked(&self) -> Result<(), PushError> {
+        self.health_calls
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        self.result()
+    }
+}
+#[async_trait]
+impl FcmProvider for LifecycleProbe {
+    async fn start(&self, _: &FcmConfig) -> Result<(), PushError> {
+        self.result()
+    }
+    async fn stop(&self) -> Result<(), PushError> {
+        self.result()
+    }
+    async fn health(&self) -> Result<(), PushError> {
+        self.checked()
+    }
+    async fn send(&self, _: &FcmConfig, _: &Value) -> Result<FcmProviderResponse, PushError> {
+        Err(PushError::ProviderUnavailable("unused delivery".into()))
+    }
+}
+#[async_trait]
+impl WebhookProvider for LifecycleProbe {
+    async fn start(&self) -> Result<(), PushError> {
+        self.result()
+    }
+    async fn stop(&self) -> Result<(), PushError> {
+        self.result()
+    }
+    async fn health(&self) -> Result<(), PushError> {
+        self.checked()
+    }
+    async fn post(&self, _: &WebhookRequest) -> Result<WebhookResponse, PushError> {
+        Err(PushError::ProviderUnavailable("unused delivery".into()))
+    }
+}
+#[tokio::test]
+async fn both_provider_adapters_preserve_failed_lifecycle_transitions() {
+    use std::sync::atomic::Ordering;
+    let provider = Arc::new(LifecycleProbe::default());
+    let fcm = FcmAdapter::new(
+        FcmConfig {
+            project_id: "fixture".into(),
+            credentials: Some(FcmCredentialSource::ApplicationDefault),
+            ..FcmConfig::default()
+        },
+        provider.clone(),
+        None,
+    )
+    .unwrap();
+    let webhook = WebhookAdapter::new(WebhookConfig::default(), provider.clone(), vec![]).unwrap();
+    let adapters: Vec<Box<dyn PushAdapter>> = vec![Box::new(fcm), Box::new(webhook)];
+    for adapter in adapters {
+        let calls = provider.health_calls.load(Ordering::SeqCst);
+        assert_eq!(adapter.health(1).await.status, PushHealthStatus::Stopped);
+        assert_eq!(provider.health_calls.load(Ordering::SeqCst), calls);
+        provider.fail.store(true, Ordering::SeqCst);
+        assert!(adapter.start().await.is_err());
+        assert_eq!(adapter.health(2).await.status, PushHealthStatus::Stopped);
+        provider.fail.store(false, Ordering::SeqCst);
+        adapter.start().await.unwrap();
+        let health = adapter.health(3).await;
+        assert_eq!(health.status, PushHealthStatus::Healthy);
+        assert_eq!(health.channel, adapter.channel());
+        assert_eq!(health.checked_at_ms, 3);
+        provider.fail.store(true, Ordering::SeqCst);
+        assert!(adapter.stop().await.is_err());
+        let health = adapter.health(4).await;
+        assert_eq!(health.status, PushHealthStatus::Unavailable);
+        assert!(health.detail.unwrap().contains("fixture failure"));
+        provider.fail.store(false, Ordering::SeqCst);
+        adapter.stop().await.unwrap();
+        assert_eq!(adapter.health(5).await.status, PushHealthStatus::Stopped);
+    }
+}
