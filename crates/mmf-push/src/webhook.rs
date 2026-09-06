@@ -1,20 +1,20 @@
+use crate::adapter_state::{AdapterState, adapter_backoff};
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use async_trait::async_trait;
 use hmac::{Hmac, KeyInit, Mac};
 use mmf_resilience::{
     BackoffPolicy, CircuitBreaker, CircuitBreakerConfig, CircuitState, ConfiguredBackoff,
-    RetryConfig, RetryStrategy,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 use crate::{
-    PushAdapter, PushAdapterHealth, PushChannel, PushError, PushHealthStatus, PushMessage,
-    PushResult, PushStatus, lifecycle::encode_hex,
+    PushAdapter, PushAdapterHealth, PushChannel, PushError, PushMessage, PushResult, PushStatus,
+    lifecycle::encode_hex,
 };
 
 type HmacSha256 = Hmac<Sha256>;
@@ -291,7 +291,7 @@ pub struct WebhookAdapter {
     configured_endpoints: Vec<WebhookEndpointConfig>,
     circuits: Mutex<BTreeMap<String, CircuitBreaker>>,
     backoff: ConfiguredBackoff,
-    running: RwLock<bool>,
+    running: AdapterState,
 }
 
 impl WebhookAdapter {
@@ -304,23 +304,18 @@ impl WebhookAdapter {
         for endpoint in &configured_endpoints {
             validate_endpoint(endpoint)?;
         }
-        let backoff = ConfiguredBackoff::new(RetryConfig {
-            max_attempts: config.max_attempts,
-            base_delay_ms: config.initial_backoff_ms,
-            max_delay_ms: config.max_backoff_ms,
-            strategy: RetryStrategy::Exponential,
-            backoff_multiplier: 2.0,
-            jitter: false,
-            jitter_factor: 0.0,
-        })
-        .map_err(|error| PushError::InvalidConfiguration(error.to_string()))?;
+        let backoff = adapter_backoff(
+            config.max_attempts,
+            config.initial_backoff_ms,
+            config.max_backoff_ms,
+        )?;
         Ok(Self {
             config,
             provider,
             configured_endpoints,
             circuits: Mutex::new(BTreeMap::new()),
             backoff,
-            running: RwLock::new(false),
+            running: AdapterState::default(),
         })
     }
 
@@ -592,19 +587,13 @@ impl PushAdapter for WebhookAdapter {
 
     async fn start(&self) -> Result<(), PushError> {
         self.provider.start().await?;
-        *self
-            .running
-            .write()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = true;
+        self.running.set_running(true);
         Ok(())
     }
 
     async fn stop(&self) -> Result<(), PushError> {
         self.provider.stop().await?;
-        *self
-            .running
-            .write()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = false;
+        self.running.set_running(false);
         Ok(())
     }
 
@@ -637,24 +626,9 @@ impl PushAdapter for WebhookAdapter {
     }
 
     async fn health(&self, now_ms: u64) -> PushAdapterHealth {
-        let running = *self
-            .running
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let (status, detail) = if running {
-            match self.provider.health().await {
-                Ok(()) => (PushHealthStatus::Healthy, None),
-                Err(error) => (PushHealthStatus::Unavailable, Some(error.to_string())),
-            }
-        } else {
-            (PushHealthStatus::Stopped, None)
-        };
-        PushAdapterHealth {
-            channel: PushChannel::Webhook,
-            status,
-            detail,
-            checked_at_ms: now_ms,
-        }
+        self.running
+            .health(PushChannel::Webhook, now_ms, self.provider.health())
+            .await
     }
 }
 

@@ -1,15 +1,15 @@
+use crate::adapter_state::{AdapterState, adapter_backoff};
 use std::collections::BTreeMap;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use async_trait::async_trait;
-use mmf_resilience::{BackoffPolicy, ConfiguredBackoff, RetryConfig, RetryStrategy};
+use mmf_resilience::{BackoffPolicy, ConfiguredBackoff};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 
 use crate::{
-    PushAdapter, PushAdapterHealth, PushChannel, PushError, PushHealthStatus, PushMessage,
-    PushPriority, PushResult, PushStatus, TokenInvalidationEvent, TokenLifecycleHandler,
-    reason_from_fcm_error,
+    PushAdapter, PushAdapterHealth, PushChannel, PushError, PushMessage, PushPriority, PushResult,
+    PushStatus, TokenInvalidationEvent, TokenLifecycleHandler, reason_from_fcm_error,
 };
 
 pub const FCM_MESSAGING_SCOPE: &str = "https://www.googleapis.com/auth/firebase.messaging";
@@ -101,7 +101,7 @@ pub struct FcmAdapter {
     config: FcmConfig,
     provider: Arc<dyn FcmProvider>,
     lifecycle: Option<Arc<dyn TokenLifecycleHandler>>,
-    running: RwLock<bool>,
+    running: AdapterState,
     backoff: ConfiguredBackoff,
 }
 
@@ -112,21 +112,16 @@ impl FcmAdapter {
         lifecycle: Option<Arc<dyn TokenLifecycleHandler>>,
     ) -> Result<Self, PushError> {
         config.validate()?;
-        let backoff = ConfiguredBackoff::new(RetryConfig {
-            max_attempts: config.max_attempts,
-            base_delay_ms: config.initial_backoff_ms,
-            max_delay_ms: config.max_backoff_ms,
-            strategy: RetryStrategy::Exponential,
-            backoff_multiplier: 2.0,
-            jitter: false,
-            jitter_factor: 0.0,
-        })
-        .map_err(|error| PushError::InvalidConfiguration(error.to_string()))?;
+        let backoff = adapter_backoff(
+            config.max_attempts,
+            config.initial_backoff_ms,
+            config.max_backoff_ms,
+        )?;
         Ok(Self {
             config,
             provider,
             lifecycle,
-            running: RwLock::new(false),
+            running: AdapterState::default(),
             backoff,
         })
     }
@@ -298,19 +293,13 @@ impl PushAdapter for FcmAdapter {
 
     async fn start(&self) -> Result<(), PushError> {
         self.provider.start(&self.config).await?;
-        *self
-            .running
-            .write()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = true;
+        self.running.set_running(true);
         Ok(())
     }
 
     async fn stop(&self) -> Result<(), PushError> {
         self.provider.stop().await?;
-        *self
-            .running
-            .write()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = false;
+        self.running.set_running(false);
         Ok(())
     }
 
@@ -374,24 +363,9 @@ impl PushAdapter for FcmAdapter {
     }
 
     async fn health(&self, now_ms: u64) -> PushAdapterHealth {
-        let running = *self
-            .running
-            .read()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let (status, detail) = if running {
-            match self.provider.health().await {
-                Ok(()) => (PushHealthStatus::Healthy, None),
-                Err(error) => (PushHealthStatus::Unavailable, Some(error.to_string())),
-            }
-        } else {
-            (PushHealthStatus::Stopped, None)
-        };
-        PushAdapterHealth {
-            channel: PushChannel::Fcm,
-            status,
-            detail,
-            checked_at_ms: now_ms,
-        }
+        self.running
+            .health(PushChannel::Fcm, now_ms, self.provider.health())
+            .await
     }
 }
 
