@@ -13,18 +13,18 @@ impl AdapterState {
             .unwrap_or_else(std::sync::PoisonError::into_inner) = running;
     }
 
-    pub(crate) async fn health(
+    pub(crate) async fn health<F: Future<Output = Result<(), PushError>>>(
         &self,
         channel: PushChannel,
         now_ms: u64,
-        check: impl Future<Output = Result<(), PushError>>,
+        check: impl FnOnce() -> F,
     ) -> PushAdapterHealth {
         let running = *self
             .0
             .read()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let (status, detail) = if running {
-            match check.await {
+            match check().await {
                 Ok(()) => (PushHealthStatus::Healthy, None),
                 Err(error) => (PushHealthStatus::Unavailable, Some(error.to_string())),
             }
@@ -61,6 +61,20 @@ pub(crate) fn adapter_backoff(
 mod tests {
     use super::*;
     use mmf_resilience::BackoffPolicy;
+
+    #[tokio::test]
+    async fn stopped_state_does_not_invoke_health_factory() {
+        let state = AdapterState::default();
+        let called = std::cell::Cell::new(false);
+        let health = state
+            .health(PushChannel::Fcm, 1, || {
+                called.set(true);
+                async { Ok(()) }
+            })
+            .await;
+        assert_eq!(health.status, PushHealthStatus::Stopped);
+        assert!(!called.get());
+    }
 
     #[test]
     fn retry_conversion_preserves_exponential_delay_and_cap() {

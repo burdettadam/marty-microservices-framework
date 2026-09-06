@@ -627,7 +627,7 @@ impl PushAdapter for WebhookAdapter {
 
     async fn health(&self, now_ms: u64) -> PushAdapterHealth {
         self.running
-            .health(PushChannel::Webhook, now_ms, self.provider.health())
+            .health(PushChannel::Webhook, now_ms, || self.provider.health())
             .await
     }
 }

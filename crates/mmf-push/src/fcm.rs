@@ -364,7 +364,7 @@ impl PushAdapter for FcmAdapter {
 
     async fn health(&self, now_ms: u64) -> PushAdapterHealth {
         self.running
-            .health(PushChannel::Fcm, now_ms, self.provider.health())
+            .health(PushChannel::Fcm, now_ms, || self.provider.health())
             .await
     }
 }
